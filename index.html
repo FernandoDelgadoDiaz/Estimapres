@@ -151,6 +151,29 @@
             </details>
             <div id="loanDetail" class="card hidden" style="margin-top:8px"></div>
           </div>
+
+          <!-- NUEVO: Clientes -->
+          <div class="card">
+            <h2 style="margin:0 0 8px 0;font-size:16px">Clientes</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              <input id="searchClient" class="input" placeholder="Buscar por nombre / DNI / email" />
+              <button id="btnReloadClients" class="btn ghost">Actualizar</button>
+            </div>
+            <div style="overflow:auto">
+              <table>
+                <thead>
+                  <tr>
+                    <th>DNI</th><th>Nombre</th><th>Email</th><th>Teléfono</th>
+                    <th>Activos</th><th>Inactivos</th>
+                    <th>Pagadas</th><th>Pendientes</th>
+                    <th>Restante (ARS)</th><th>Mora máx (d)</th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="clientsTable"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- /Clientes -->
         </section>
       </main>
     </div>
@@ -172,7 +195,7 @@
       </div>
       <div id="lgMsg" class="muted err"></div>
     </form>
-  </dialog><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  </dialog>8<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -287,7 +310,7 @@
     const batch=db.batch(); const loanRef=db.collection('loans').doc();
     batch.set(loanRef,loan);
     batch.update(db.collection('loan_requests').doc(id),{status:'approved',approvedLoanId:loanRef.id,decidedAt:firebase.firestore.FieldValue.serverTimestamp()});
-    await batch.commit(); alert('Préstamo aprobado'); loadLoans();
+    await batch.commit(); alert('Préstamo aprobado'); loadLoans(); loadClients();
   }
   async function rejectRequest(id){ await db.collection('loan_requests').doc(id).update({status:'rejected',decidedAt:firebase.firestore.FieldValue.serverTimestamp()}); }
 
@@ -322,9 +345,10 @@
         const snap=await ref.get(); const C=snap.data();
         const schedule=C.schedule.map(x=> x.k===k ? ({...x,paid:chk.checked,paidAt: chk.checked? new Date().toISOString(): null}) : x);
         await ref.update({schedule});
-        const t=computeTotals(schedule); box.querySelector('.muted').nextElementSibling?.remove; // no-op
+        const t=computeTotals(schedule);
         box.querySelectorAll('.muted')[1].textContent = `Total préstamo: ${fmtARS(t.total)} · Pagado: ${fmtARS(t.pagado)} · Restante: ${fmtARS(t.restante)}`;
         chk.nextElementSibling.textContent = chk.checked? 'Pagada' : 'Pendiente';
+        loadClients(); // refresca KPI por cliente
       };
     });
 
@@ -332,7 +356,7 @@
     if(L.status==='active'){
       box.querySelector('#btnMarkInactive').onclick = async ()=>{
         await db.collection('loans').doc(loanId).update({status:'inactive',inactivatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-        alert('Préstamo marcado como inactivo'); loadLoans(); box.classList.add('hidden');
+        alert('Préstamo marcado como inactivo'); loadLoans(); loadClients(); box.classList.add('hidden');
       };
     }
   }
@@ -359,7 +383,7 @@
     });
 
     activeBox.innerHTML='';
-    ;['green','yellow','red'].forEach(k=>{
+    ['green','yellow','red'].forEach(k=>{
       const arr=groups[k]; if(!arr.length) return;
       const sec=document.createElement('div');
       sec.innerHTML=`<div style="font-weight:700;margin:6px 0">${colorEmoji(k)} ${colorTitle(k)}</div>`;
@@ -382,6 +406,72 @@
     });
   }
 
+  // ====== CLIENTES (NUEVO) ======
+  function maxMoraDias(schedule){
+    let md=0, today=new Date();
+    (schedule||[]).forEach(c=>{
+      if(!c.paid){
+        const dd=Math.floor((today - new Date(c.dueDate))/86400000);
+        if(dd>md) md=dd;
+      }
+    });
+    return Math.max(0, md);
+  }
+
+  async function loadClients(){
+    const tbody = document.getElementById('clientsTable');
+    if(!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="11">Cargando…</td></tr>';
+
+    const snap = await db.collection('loans').get();
+    const map = new Map();
+
+    snap.docs.forEach(doc=>{
+      const L = doc.data(), s=L.schedule||[];
+      const key = L.borrower?.dni || 'sin_dni';
+      const e = map.get(key) || {
+        dni: key, name: L.borrower?.name||'', email: L.borrower?.email||'',
+        phone: L.borrower?.phone||'', activos:0, inactivos:0,
+        pagadas:0, pendientes:0, restante:0, moraMax:0
+      };
+      if (L.status==='active') e.activos++; else e.inactivos++;
+      e.pagadas    += s.filter(x=>x.paid).length;
+      e.pendientes += s.filter(x=>!x.paid).length;
+      const t = computeTotals(s);
+      e.restante   += t.restante||0;
+      e.moraMax     = Math.max(e.moraMax, maxMoraDias(s));
+      e.name   = e.name   || L.borrower?.name   || '';
+      e.email  = e.email  || L.borrower?.email  || '';
+      e.phone  = e.phone  || L.borrower?.phone  || '';
+      map.set(key, e);
+    });
+
+    const rows = [...map.values()].sort((a,b)=> a.name.localeCompare(b.name));
+    tbody.innerHTML='';
+    rows.forEach(c=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        `<td>${c.dni}</td><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td>
+         <td>${c.activos}</td><td>${c.inactivos}</td>
+         <td>${c.pagadas}</td><td>${c.pendientes}</td>
+         <td>${fmtARS(c.restante)}</td><td>${c.moraMax}</td>
+         <td><button class="btn ghost" data-open-dni="${c.dni}">Ver</button></td>`;
+      tbody.appendChild(tr);
+    });
+
+    // Ver último préstamo del DNI
+    tbody.querySelectorAll('[data-open-dni]').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const dni = btn.getAttribute('data-open-dni');
+        const q = await db.collection('loans')
+          .where('borrower.dni','==',dni)
+          .orderBy('createdAt','desc').get();
+        if (!q.empty){ const d=q.docs[0]; renderLoanDetail(d.id,d.data()); }
+      };
+    });
+  }
+
+  // ===== Mount Admin (arranque) =====
   function mountAdminData(){
     // Solicitudes pendientes
     db.collection('loan_requests').orderBy('createdAt','desc').onSnapshot(snap=>{
@@ -400,8 +490,22 @@
       const doc=snap.docs[0]; renderLoanDetail(doc.id, doc.data());
     };
 
-    // Cargar listado al entrar
+    // Clientes: filtro en vivo y reload
+    const inputClient = document.getElementById('searchClient');
+    const btnReload   = document.getElementById('btnReloadClients');
+    if (inputClient){
+      inputClient.oninput = function(){
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#clientsTable tr').forEach(tr=>{
+          tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      };
+    }
+    if (btnReload){ btnReload.onclick = loadClients; }
+
+    // Cargar listados
     loadLoans();
+    loadClients();
   }
 
   // ===== Guardar TNA =====
@@ -413,4 +517,3 @@
   </script>
 </body>
 </html>
-```0
