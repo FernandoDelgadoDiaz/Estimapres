@@ -112,8 +112,29 @@
               <input id="rqPhone" class="input" placeholder="Celular" />
             </label>
           </div>
+          <label>
+            <div class="label">CBU/CVU o alias (depósito)</div>
+            <input id="rqAccount" class="input" placeholder="alias o CBU/CVU" />
+          </label>
           <button id="btnSendRequest" class="btn alt" style="width:100%;margin-top:10px">Enviar solicitud</button>
           <div id="rqMsg" class="muted" style="margin-top:8px"></div>
+        </section>
+
+        <!-- Portal del cliente -->
+        <section class="card" id="clientPortal">
+          <h2 style="margin:0 0 8px 0;font-size:16px">Mi préstamo</h2>
+          <div class="row">
+            <label>
+              <div class="label">DNI</div>
+              <input id="cpDni" class="input" placeholder="30123456" />
+            </label>
+            <label>
+              <div class="label">Email</div>
+              <input id="cpEmail" type="email" class="input" placeholder="tucorreo@dominio.com" />
+            </label>
+          </div>
+          <button id="btnClientView" class="btn ghost" style="width:100%;margin-top:10px">Ver mi préstamo</button>
+          <div id="clientLoanBox" class="hidden" style="margin-top:10px"></div>
         </section>
 
         <!-- Panel Admin -->
@@ -152,7 +173,7 @@
             <div id="loanDetail" class="card hidden" style="margin-top:8px"></div>
           </div>
 
-          <!-- NUEVO: Clientes -->
+          <!-- Clientes (vista amigable) -->
           <div class="card">
             <h2 style="margin:0 0 8px 0;font-size:16px">Clientes</h2>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
@@ -195,13 +216,13 @@
       </div>
       <div id="lgMsg" class="muted err"></div>
     </form>
-  </dialog>8<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  </dialog><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <script>
   // ===== PWA (opcional) =====
-  if('serviceWorker' in navigator){ window.addEventListener('load',()=> navigator.serviceWorker.register('/sw.js').catch(console.error)); }
+  if('serviceWorker' in navigator){ window.addEventListener('load',()=> navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
 
   // ===== Firebase =====
   const firebaseConfig={apiKey:"AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",authDomain:"estimapres.firebaseapp.com",projectId:"estimapres",storageBucket:"estimapres.appspot.com",messagingSenderId:"578516597437",appId:"1:578516597437:web:f59994b87729aa1cd655d4"};
@@ -261,12 +282,13 @@
   // ===== Enviar solicitud =====
   $('#btnSendRequest').addEventListener('click', async ()=>{
     const name=$('#rqName').value.trim(), dni=$('#rqDni').value.trim(), email=$('#rqEmail').value.trim(), phone=$('#rqPhone').value.trim();
+    const bankDest=$('#rqAccount').value.trim();
     const amount=+$('#simAmount').value, months=+$('#simMonths').value; const msg=$('#rqMsg'); msg.textContent='';
     if(!name||!dni||!email||!amount||!months){ msg.textContent='Completá datos y simulación.'; msg.className='muted err'; return; }
     let tna=TNA_FALLBACK; try{ const d=await db.doc('settings/global').get(); tna=d.data()?.tna??TNA_FALLBACK; }catch(e){}
     const {installment}=frenchSchedule(amount,months,tna);
     try{
-      await db.collection('loan_requests').add({name,dni,email,phone,amount,months,tnaSnapshot:tna,installment,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await db.collection('loan_requests').add({name,dni,email,phone,bankDest,amount,months,tnaSnapshot:tna,installment,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       msg.textContent='Solicitud enviada. Un admin la revisará.'; msg.className='muted ok';
     }catch(e){ msg.textContent='No se pudo enviar: '+(e.message||e); msg.className='muted err'; }
   });
@@ -302,15 +324,31 @@
   async function approveRequest(id,r){
     const {schedule}=frenchSchedule(r.amount,r.months,r.tnaSnapshot);
     const loan={
-      borrower:{name:r.name,dni:r.dni,email:r.email,phone:r.phone||''},
+      borrower:{name:r.name,dni:r.dni,email:r.email,phone:r.phone||'', bankDest:r.bankDest||''},
       principal:r.amount, months:r.months, tna:r.tnaSnapshot,
       status:'active', schedule,
+      disbursed:false,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     };
-    const batch=db.batch(); const loanRef=db.collection('loans').doc();
+
+    const batch=db.batch();
+    const loanRef=db.collection('loans').doc();
     batch.set(loanRef,loan);
     batch.update(db.collection('loan_requests').doc(id),{status:'approved',approvedLoanId:loanRef.id,decidedAt:firebase.firestore.FieldValue.serverTimestamp()});
-    await batch.commit(); alert('Préstamo aprobado'); loadLoans(); loadClients();
+
+    // doc público (sanitizado) para portal de cliente
+    const pubRef=db.collection('public_loans').doc();
+    batch.set(pubRef,{
+      loanId: loanRef.id,
+      borrower:{dni:r.dni,email:r.email,name:r.name},
+      principal:r.amount, months:r.months, tna:r.tnaSnapshot,
+      status:'active', disbursed:false,
+      schedule: schedule.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid})),
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    await batch.commit();
+    alert('Préstamo aprobado'); loadLoans(); loadClients();
   }
   async function rejectRequest(id){ await db.collection('loan_requests').doc(id).update({status:'rejected',decidedAt:firebase.firestore.FieldValue.serverTimestamp()}); }
 
@@ -332,7 +370,11 @@
     const {total,pagado,restante}=computeTotals(L.schedule);
     const tot=`<div class="muted" style="margin:6px 0 10px 0">Total préstamo: ${fmtARS(total)} · Pagado: ${fmtARS(pagado)} · Restante: ${fmtARS(restante)}</div>`;
     const table=`<div style="overflow:auto"><table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Capital</th><th>Interés</th><th>Estado</th></tr></thead><tbody id="loanRows"></tbody></table></div>`;
-    const actions = L.status==='active' ? `<div style="margin-top:8px"><button id="btnMarkInactive" class="btn ghost">Marcar como inactivo</button></div>` : '';
+    const acreditBtn = (!L.disbursed && L.status==='active') ? `<button id="btnAcreditar" class="btn">Acreditar (depositar)</button>` : '';
+    const actions = `<div style="margin-top:8px;display:flex;gap:8px">
+      ${acreditBtn}
+      ${L.status==='active' ? '<button id="btnMarkInactive" class="btn ghost">Marcar como inactivo</button>' : ''}
+    </div>`;
     box.innerHTML = head + tot + table + actions;
 
     const tbody=box.querySelector('#loanRows'); tbody.innerHTML='';
@@ -348,7 +390,11 @@
         const t=computeTotals(schedule);
         box.querySelectorAll('.muted')[1].textContent = `Total préstamo: ${fmtARS(t.total)} · Pagado: ${fmtARS(t.pagado)} · Restante: ${fmtARS(t.restante)}`;
         chk.nextElementSibling.textContent = chk.checked? 'Pagada' : 'Pendiente';
-        loadClients(); // refresca KPI por cliente
+
+        // reflejar en público
+        const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
+        if(!q.empty){ await q.docs[0].ref.update({schedule: schedule.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid}))}); }
+        loadClients();
       };
     });
 
@@ -356,7 +402,28 @@
     if(L.status==='active'){
       box.querySelector('#btnMarkInactive').onclick = async ()=>{
         await db.collection('loans').doc(loanId).update({status:'inactive',inactivatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+        const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
+        if(!q.empty){ await q.docs[0].ref.update({status:'inactive'}); }
         alert('Préstamo marcado como inactivo'); loadLoans(); loadClients(); box.classList.add('hidden');
+      };
+    }
+
+    // acreditar (depositar)
+    const btnAcred = box.querySelector('#btnAcreditar');
+    if(btnAcred){
+      btnAcred.onclick = async ()=>{
+        const method = prompt('Método (MP, transferencia, etc.)','transferencia');
+        const dest = L.borrower?.bankDest || prompt('Destino (CBU/CVU/alias)','');
+        const ref = prompt('Nº de operación / referencia','');
+        await db.collection('loans').doc(loanId).update({
+          disbursed:true,
+          disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),
+          disbursement:{method,dest,ref}
+        });
+        const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
+        if(!q.empty){ await q.docs[0].ref.update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp()}); }
+        alert('Acreditación registrada');
+        loadLoans();
       };
     }
   }
@@ -406,7 +473,7 @@
     });
   }
 
-  // ====== CLIENTES (NUEVO) ======
+  // ===== Clientes (resumen amigable) =====
   function maxMoraDias(schedule){
     let md=0, today=new Date();
     (schedule||[]).forEach(c=>{
@@ -469,9 +536,57 @@
         if (!q.empty){ const d=q.docs[0]; renderLoanDetail(d.id,d.data()); }
       };
     });
+
+    // Filtro en vivo
+    const inputClient = document.getElementById('searchClient');
+    if (inputClient){
+      inputClient.oninput = function(){
+        const q = this.value.toLowerCase();
+        document.querySelectorAll('#clientsTable tr').forEach(tr=>{
+          tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      };
+    }
   }
 
-  // ===== Mount Admin (arranque) =====
+  // ===== Portal del cliente =====
+  function renderClientLoan(container, pub){
+    const {borrower,principal,months,tna,schedule,status} = pub;
+    const {total,pagado,restante}=computeTotals(schedule);
+    container.classList.remove('hidden');
+    container.innerHTML = `
+      <div style="font-weight:700">${borrower.name||''} · DNI ${borrower.dni} · Estado: ${status}</div>
+      <div class="muted">Principal ${fmtARS(principal)} · ${months} cuotas · TNA ${tna}%</div>
+      <div class="muted" style="margin:6px 0 10px 0">Total: ${fmtARS(total)} · Pagado: ${fmtARS(pagado)} · Restante: ${fmtARS(restante)}</div>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>
+          <tbody>${schedule.map(c=>`
+            <tr>
+              <td>${c.k}</td>
+              <td>${new Date(c.dueDate).toLocaleDateString('es-AR')}</td>
+              <td>${fmtARS(c.installment)}</td>
+              <td>${c.paid?'Pagada':'Pendiente'}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  document.getElementById('btnClientView').onclick = async ()=>{
+    const dni = $('#cpDni').value.trim();
+    const email = $('#cpEmail').value.trim().toLowerCase();
+    if(!dni || !email) return alert('Completá DNI y email');
+    const snap = await db.collection('public_loans')
+      .where('borrower.dni','==',dni)
+      .where('borrower.email','==',email)
+      .orderBy('createdAt','desc').limit(1).get();
+    const box = document.getElementById('clientLoanBox');
+    if(snap.empty){ box.classList.remove('hidden'); box.innerHTML='<div class="muted err">No se encontró un préstamo para esos datos.</div>'; return; }
+    renderClientLoan(box, snap.docs[0].data());
+  };
+
+  // ===== Mount Admin =====
   function mountAdminData(){
     // Solicitudes pendientes
     db.collection('loan_requests').orderBy('createdAt','desc').onSnapshot(snap=>{
@@ -489,19 +604,6 @@
       if(snap.empty){ alert('Sin resultados'); return; }
       const doc=snap.docs[0]; renderLoanDetail(doc.id, doc.data());
     };
-
-    // Clientes: filtro en vivo y reload
-    const inputClient = document.getElementById('searchClient');
-    const btnReload   = document.getElementById('btnReloadClients');
-    if (inputClient){
-      inputClient.oninput = function(){
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('#clientsTable tr').forEach(tr=>{
-          tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
-        });
-      };
-    }
-    if (btnReload){ btnReload.onclick = loadClients; }
 
     // Cargar listados
     loadLoans();
