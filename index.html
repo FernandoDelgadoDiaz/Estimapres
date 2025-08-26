@@ -173,7 +173,7 @@
             <div id="loanDetail" class="card hidden" style="margin-top:8px"></div>
           </div>
 
-          <!-- Clientes (vista amigable) -->
+          <!-- Clientes -->
           <div class="card">
             <h2 style="margin:0 0 8px 0;font-size:16px">Clientes</h2>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
@@ -216,16 +216,29 @@
       </div>
       <div id="lgMsg" class="muted err"></div>
     </form>
-  </dialog><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  </dialog><!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <!-- PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
   // ===== PWA (opcional) =====
-  if('serviceWorker' in navigator){ window.addEventListener('load',()=> navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=> navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  }
 
   // ===== Firebase =====
-  const firebaseConfig={apiKey:"AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",authDomain:"estimapres.firebaseapp.com",projectId:"estimapres",storageBucket:"estimapres.appspot.com",messagingSenderId:"578516597437",appId:"1:578516597437:web:f59994b87729aa1cd655d4"};
+  const firebaseConfig={
+    apiKey:"AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
+    authDomain:"estimapres.firebaseapp.com",
+    projectId:"estimapres",
+    storageBucket:"estimapres.appspot.com",
+    messagingSenderId:"578516597437",
+    appId:"1:578516597437:web:f59994b87729aa1cd655d4"
+  };
   firebase.initializeApp(firebaseConfig);
   const auth=firebase.auth(); const db=firebase.firestore();
 
@@ -233,6 +246,16 @@
   const $=s=>document.querySelector(s);
   const fmtARS=n=> new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
   const TNA_FALLBACK = 120;
+  const toAR = iso => new Date(iso).toLocaleDateString('es-AR');
+  const pct = x => (x*100).toFixed(2);
+  function calcTEA(tna){ const r=(tna/100)/12; return ((1+r)**12 - 1)*100; }
+
+  async function sha256Hex(str){
+    const buf = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  function genOtp(){ return (''+Math.floor(100000 + Math.random()*900000)); }
 
   function frenchSchedule(principal, months, tna){
     const r=(tna/100)/12; if(r<=0||months<=0) return {installment:0,total:0,schedule:[]};
@@ -275,7 +298,7 @@
     const {installment, schedule}=frenchSchedule(amount,months,tna);
     $('#rMonto').textContent=fmtARS(amount); $('#rCuotas').textContent=months; $('#rCuota').textContent=installment?fmtARS(installment):'—';
     const tbody=$('#tablaCuotas'); tbody.innerHTML='';
-    schedule.forEach(it=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${it.k}</td><td>${new Date(it.dueDate).toLocaleDateString('es-AR')}</td><td>${fmtARS(it.installment)}</td>`; tbody.appendChild(tr); });
+    schedule.forEach(it=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${it.k}</td><td>${toAR(it.dueDate)}</td><td>${fmtARS(it.installment)}</td>`; tbody.appendChild(tr); });
     $('#tablaCuotasWrap').classList.remove('hidden');
   });
 
@@ -288,24 +311,29 @@
     let tna=TNA_FALLBACK; try{ const d=await db.doc('settings/global').get(); tna=d.data()?.tna??TNA_FALLBACK; }catch(e){}
     const {installment}=frenchSchedule(amount,months,tna);
     try{
-      await db.collection('loan_requests').add({name,dni,email,phone,bankDest,amount,months,tnaSnapshot:tna,installment,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      await db.collection('loan_requests').add({
+        name,dni,email,phone,bankDest,amount,months,tnaSnapshot:tna,installment,
+        status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
       msg.textContent='Solicitud enviada. Un admin la revisará.'; msg.className='muted ok';
     }catch(e){ msg.textContent='No se pudo enviar: '+(e.message||e); msg.className='muted err'; }
   });
 
-  // ===== Admin auth =====
+  // ===== Auth admin =====
   const loginDlg=$('#loginDlg');
   $('#btnShowLogin').addEventListener('click',()=>loginDlg.showModal());
-  $('#btnLogin').addEventListener('click', async ()=>{ $('#lgMsg').textContent=''; try{ await auth.signInWithEmailAndPassword($('#lgEmail').value,$('#lgPass').value); loginDlg.close(); }catch(e){ $('#lgMsg').textContent=e.message; } });
+  $('#btnLogin').addEventListener('click', async ()=>{
+    $('#lgMsg').textContent='';
+    try{ await auth.signInWithEmailAndPassword($('#lgEmail').value,$('#lgPass').value); loginDlg.close(); }
+    catch(e){ $('#lgMsg').textContent=e.message; }
+  });
   $('#btnLogout').addEventListener('click',()=> auth.signOut().then(()=>location.reload()));
 
   auth.onAuthStateChanged(user=>{
     const adminPanel=$('#adminPanel'); const authStatus=$('#authStatus'); const btnLogout=$('#btnLogout');
     if(user){ adminPanel.classList.remove('hidden'); authStatus.textContent='Admin'; btnLogout.classList.remove('hidden'); mountAdminData(); }
     else { adminPanel.classList.add('hidden'); authStatus.textContent='No admin'; btnLogout.classList.add('hidden'); }
-  });
-
-  // ===== Admin data =====
+  });// ===== Admin: solicitudes =====
   function renderRequest(id,r){
     const div=document.createElement('div');
     div.style.cssText='display:flex;justify-content:space-between;align-items:center;border:1px solid #e2e8f0;border-radius:10px;padding:8px;margin:6px 0;';
@@ -314,7 +342,7 @@
       <div class="muted">${fmtARS(r.amount)} · ${r.months} cuotas · TNA ${r.tnaSnapshot}% · Cuota ${fmtARS(r.installment)}</div>
       <div class="muted">${r.email}${r.phone? ' · '+r.phone:''}</div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button data-approve="${id}" class="btn" style="padding:8px 10px">Aprobar</button>
       <button data-reject="${id}" class="btn danger" style="padding:8px 10px">Rechazar</button>
     </div>`;
@@ -334,7 +362,9 @@
     const batch=db.batch();
     const loanRef=db.collection('loans').doc();
     batch.set(loanRef,loan);
-    batch.update(db.collection('loan_requests').doc(id),{status:'approved',approvedLoanId:loanRef.id,decidedAt:firebase.firestore.FieldValue.serverTimestamp()});
+    batch.update(db.collection('loan_requests').doc(id),{
+      status:'approved',approvedLoanId:loanRef.id,decidedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
 
     // doc público (sanitizado) para portal de cliente
     const pubRef=db.collection('public_loans').doc();
@@ -342,7 +372,7 @@
       loanId: loanRef.id,
       borrower:{dni:r.dni,email:r.email,name:r.name},
       principal:r.amount, months:r.months, tna:r.tnaSnapshot,
-      status:'active', disbursed:false,
+      status:'active', disbursed:false, accepted:false,
       schedule: schedule.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid})),
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -350,12 +380,66 @@
     await batch.commit();
     alert('Préstamo aprobado'); loadLoans(); loadClients();
   }
-  async function rejectRequest(id){ await db.collection('loan_requests').doc(id).update({status:'rejected',decidedAt:firebase.firestore.FieldValue.serverTimestamp()}); }
+  async function rejectRequest(id){
+    await db.collection('loan_requests').doc(id).update({status:'rejected',decidedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }
 
+  // ===== Contrato PDF =====
+  function generateContractPdf(loanId, L){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'pt', format:'a4', compress:true});
+    let y = 40;
+
+    const TEA = calcTEA(L.tna); const CFT = TEA; // aprox
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('CONTRATO DE MUTUO — EstimaPres', 40, y); y+=18;
+    doc.setFont('helvetica',''); doc.setFontSize(10);
+
+    [
+      `Prestatario: ${L.borrower.name} (DNI ${L.borrower.dni}) — Email ${L.borrower.email}`,
+      `Capital: ${fmtARS(L.principal)} — Plazo: ${L.months} meses (francés)`,
+      `TNA: ${L.tna}% — TEA aprox: ${pct(TEA/100)}% — CFT estimado: ${pct(CFT/100)}%`,
+      `1er vencimiento: ${toAR(L.schedule[0].dueDate)} — Vencimientos: día 10`,
+      `Aceptación electrónica por OTP`
+    ].forEach(t=>{ doc.text(t, 40, y); y+=14; });
+
+    y+=6; doc.setFont('helvetica','bold'); doc.text('Anexo — Cronograma', 40, y); y+=6;
+    const rows = (L.schedule||[]).map(c=>[
+      c.k, toAR(c.dueDate), fmtARS(c.installment), fmtARS(c.capital), fmtARS(c.interest), c.paid?'Pagada':'Pendiente'
+    ]);
+    doc.autoTable({startY:y, head:[['#','Vencimiento','Cuota','Capital','Interés','Estado']], body:rows, styles:{fontSize:9,cellPadding:3}, headStyles:{fillColor:[10,47,115]}});
+    const y2 = doc.lastAutoTable.finalY||y;
+    doc.setFont('helvetica',''); doc.text('La aceptación por OTP queda registrada en EstimaPres.', 40, y2+24);
+
+    doc.save(`Contrato_EstimaPres_${loanId}.pdf`);
+  }
+
+  // ===== OTP =====
+  async function startOtpForLoan(loanId, L){
+    const q = await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
+    if(q.empty){ alert('No hay doc público. Aprobá el préstamo primero.'); return; }
+    const ref = q.docs[0].ref;
+    const code = genOtp();
+    const otpHash = await sha256Hex(code);
+    const exp = Date.now() + 15*60*1000;
+    await ref.set({ otpHash, otpExp: exp, accepted:false }, {merge:true});
+    const texto = `Hola ${L.borrower.name}, tu código OTP para firmar el contrato es: ${code} (vence en 15 min).`;
+    const wa = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+    if(confirm(`OTP generado: ${code}\n\n¿Abrir WhatsApp para enviar?`)){ window.open(wa,'_blank'); }
+  }
+
+  async function reflectPublicSchedule(loanId, schedule){
+    const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
+    if(!q.empty){
+      await q.docs[0].ref.update({schedule: schedule.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid}))});
+    }
+  }
+
+  // ===== Detalle de préstamo (admin) =====
   function renderLoanRow(it,loanId){
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${it.k}</td>
-      <td>${new Date(it.dueDate).toLocaleDateString('es-AR')}</td>
+      <td>${toAR(it.dueDate)}</td>
       <td>${fmtARS(it.installment)}</td>
       <td>${fmtARS(it.capital)}</td>
       <td>${fmtARS(it.interest)}</td>
@@ -371,7 +455,9 @@
     const tot=`<div class="muted" style="margin:6px 0 10px 0">Total préstamo: ${fmtARS(total)} · Pagado: ${fmtARS(pagado)} · Restante: ${fmtARS(restante)}</div>`;
     const table=`<div style="overflow:auto"><table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Capital</th><th>Interés</th><th>Estado</th></tr></thead><tbody id="loanRows"></tbody></table></div>`;
     const acreditBtn = (!L.disbursed && L.status==='active') ? `<button id="btnAcreditar" class="btn">Acreditar (depositar)</button>` : '';
-    const actions = `<div style="margin-top:8px;display:flex;gap:8px">
+    const actions = `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button id="btnContratoPdf" class="btn ghost">Contrato (PDF)</button>
+      <button id="btnOtpStart" class="btn ghost">Iniciar firma OTP</button>
       ${acreditBtn}
       ${L.status==='active' ? '<button id="btnMarkInactive" class="btn ghost">Marcar como inactivo</button>' : ''}
     </div>`;
@@ -390,15 +476,15 @@
         const t=computeTotals(schedule);
         box.querySelectorAll('.muted')[1].textContent = `Total préstamo: ${fmtARS(t.total)} · Pagado: ${fmtARS(t.pagado)} · Restante: ${fmtARS(t.restante)}`;
         chk.nextElementSibling.textContent = chk.checked? 'Pagada' : 'Pendiente';
-
-        // reflejar en público
-        const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
-        if(!q.empty){ await q.docs[0].ref.update({schedule: schedule.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid}))}); }
+        await reflectPublicSchedule(loanId, schedule);
         loadClients();
       };
     });
 
-    // marcar inactivo
+    // acciones
+    document.getElementById('btnContratoPdf').onclick = ()=> generateContractPdf(loanId, L);
+    document.getElementById('btnOtpStart').onclick   = ()=> startOtpForLoan(loanId, L);
+
     if(L.status==='active'){
       box.querySelector('#btnMarkInactive').onclick = async ()=>{
         await db.collection('loans').doc(loanId).update({status:'inactive',inactivatedAt:firebase.firestore.FieldValue.serverTimestamp()});
@@ -408,17 +494,16 @@
       };
     }
 
-    // acreditar (depositar)
     const btnAcred = box.querySelector('#btnAcreditar');
     if(btnAcred){
       btnAcred.onclick = async ()=>{
         const method = prompt('Método (MP, transferencia, etc.)','transferencia');
         const dest = L.borrower?.bankDest || prompt('Destino (CBU/CVU/alias)','');
-        const ref = prompt('Nº de operación / referencia','');
+        const refOp = prompt('Nº de operación / referencia','');
         await db.collection('loans').doc(loanId).update({
           disbursed:true,
           disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),
-          disbursement:{method,dest,ref}
+          disbursement:{method,dest,ref:refOp}
         });
         const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();
         if(!q.empty){ await q.docs[0].ref.update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp()}); }
@@ -428,6 +513,7 @@
     }
   }
 
+  // ===== Listados de préstamos =====
   async function loadLoans(){
     const activeBox=$('#loansListActive'); const inactiveBox=$('#loansListInactive'); const detail=$('#loanDetail');
     activeBox.innerHTML='Cargando…'; inactiveBox.innerHTML=''; detail.classList.add('hidden'); detail.innerHTML='';
@@ -473,7 +559,7 @@
     });
   }
 
-  // ===== Clientes (resumen amigable) =====
+  // ===== Clientes =====
   function maxMoraDias(schedule){
     let md=0, today=new Date();
     (schedule||[]).forEach(c=>{
@@ -551,12 +637,12 @@
 
   // ===== Portal del cliente =====
   function renderClientLoan(container, pub){
-    const {borrower,principal,months,tna,schedule,status} = pub;
+    const {borrower,principal,months,tna,schedule,status,accepted,signedAt} = pub;
     const {total,pagado,restante}=computeTotals(schedule);
     container.classList.remove('hidden');
     container.innerHTML = `
       <div style="font-weight:700">${borrower.name||''} · DNI ${borrower.dni} · Estado: ${status}</div>
-      <div class="muted">Principal ${fmtARS(principal)} · ${months} cuotas · TNA ${tna}%</div>
+      <div class="muted">Capital ${fmtARS(principal)} · ${months} cuotas · TNA ${tna}%</div>
       <div class="muted" style="margin:6px 0 10px 0">Total: ${fmtARS(total)} · Pagado: ${fmtARS(pagado)} · Restante: ${fmtARS(restante)}</div>
       <div style="overflow:auto">
         <table>
@@ -564,29 +650,51 @@
           <tbody>${schedule.map(c=>`
             <tr>
               <td>${c.k}</td>
-              <td>${new Date(c.dueDate).toLocaleDateString('es-AR')}</td>
+              <td>${toAR(c.dueDate)}</td>
               <td>${fmtARS(c.installment)}</td>
               <td>${c.paid?'Pagada':'Pendiente'}</td>
             </tr>`).join('')}
           </tbody>
         </table>
-      </div>`;
+      </div>
+      <div style="margin-top:10px">
+        ${accepted ? `<div class="ok">Contrato aceptado${signedAt? ' el '+(signedAt?.toDate?.()? signedAt.toDate().toLocaleString('es-AR'): new Date(signedAt).toLocaleString('es-AR')):''}</div>`
+                   : `<label class="label">Ingresá tu código OTP para firmar
+                        <input id="otpInput" class="input" placeholder="6 dígitos" />
+                      </label>
+                      <button id="btnFirmarOtp" class="btn" style="margin-top:8px">Firmar con OTP</button>`}
+      </div>
+      ${accepted ? `<button id="btnDescargarContrato" class="btn ghost" style="margin-top:8px">Descargar contrato (PDF)</button>` : '' }
+    `;
+    if(!accepted){
+      document.getElementById('btnFirmarOtp').onclick = ()=> clientAcceptByOtp(pub);
+    }else{
+      document.getElementById('btnDescargarContrato').onclick = ()=> downloadClientContract(pub);
+    }
   }
 
-  document.getElementById('btnClientView').onclick = async ()=>{
-    const dni = $('#cpDni').value.trim();
-    const email = $('#cpEmail').value.trim().toLowerCase();
-    if(!dni || !email) return alert('Completá DNI y email');
-    const snap = await db.collection('public_loans')
-      .where('borrower.dni','==',dni)
-      .where('borrower.email','==',email)
-      .orderBy('createdAt','desc').limit(1).get();
+  async function clientAcceptByOtp(pub){
     const box = document.getElementById('clientLoanBox');
-    if(snap.empty){ box.classList.remove('hidden'); box.innerHTML='<div class="muted err">No se encontró un préstamo para esos datos.</div>'; return; }
-    renderClientLoan(box, snap.docs[0].data());
-  };
+    const code = (document.getElementById('otpInput').value||'').trim();
+    if(code.length!==6) return alert('Código inválido');
+    const hash = await sha256Hex(code);
+    const snap = await db.collection('public_loans').where('loanId','==',pub.loanId).limit(1).get();
+    if(snap.empty){ alert('No encontrado'); return; }
+    const ref = snap.docs[0].ref; const data = snap.docs[0].data();
+    if(!data.otpHash || !data.otpExp) return alert('OTP no iniciado. Pedí un nuevo código.');
+    if(Date.now() > data.otpExp)    return alert('OTP vencido. Pedí uno nuevo.');
+    if(hash !== data.otpHash)       return alert('Código incorrecto.');
+    await ref.update({ accepted:true, signedAt: firebase.firestore.FieldValue.serverTimestamp() });
+    box.innerHTML = '<div class="ok">¡Contrato firmado! Actualizá para ver el PDF.</div>';
+  }
 
-  // ===== Mount Admin =====
+  async function downloadClientContract(pub){
+    const d = await db.collection('loans').doc(pub.loanId).get();
+    if(!d.exists){ return alert('No se encontró el préstamo completo.'); }
+    generateContractPdf(pub.loanId, d.data());
+  }
+
+  // ===== Montaje Admin =====
   function mountAdminData(){
     // Solicitudes pendientes
     db.collection('loan_requests').orderBy('createdAt','desc').onSnapshot(snap=>{
@@ -605,7 +713,6 @@
       const doc=snap.docs[0]; renderLoanDetail(doc.id, doc.data());
     };
 
-    // Cargar listados
     loadLoans();
     loadClients();
   }
@@ -615,6 +722,20 @@
     const tna=+$('#tnaInput').value; if(isNaN(tna)||tna<0) return alert('TNA inválida');
     await db.doc('settings/global').set({tna,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
     alert('TNA actualizada');
+  });
+
+  // ===== Portal cliente — botón Ver =====
+  document.getElementById('btnClientView')?.addEventListener('click', async ()=>{
+    const dni = ($('#cpDni').value||'').trim();
+    const email = ($('#cpEmail').value||'').trim().toLowerCase();
+    if(!dni || !email) return alert('Completá DNI y email');
+    const snap = await db.collection('public_loans')
+      .where('borrower.dni','==',dni)
+      .where('borrower.email','==',email)
+      .orderBy('createdAt','desc').limit(1).get();
+    const box = document.getElementById('clientLoanBox');
+    if(snap.empty){ box.classList.remove('hidden'); box.innerHTML='<div class="muted err">No se encontró un préstamo con esos datos.</div>'; return; }
+    const pub = snap.docs[0].data(); renderClientLoan(box, pub);
   });
   </script>
 </body>
