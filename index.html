@@ -45,6 +45,7 @@
   .table th,.table td{border:1px solid #e5e7eb;padding:8px;text-align:right;font-size:13px}
   .table th:first-child,.table td:first-child{text-align:left}
   .badge{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;font-size:12px}
+  .hidden{display:none}
   @media (max-width:640px){
     header h1{font-size:16px}
     .btn{padding:9px 12px}
@@ -53,9 +54,7 @@
 </head>
 <body>
 <header>
-  <div class="left">
-    <h1>EstimaPres</h1>
-  </div>
+  <div class="left"><h1>EstimaPres</h1></div>
   <div class="actions">
     <button class="btn primary" id="btnMyLoan">Ver mi préstamo</button>
     <button class="btn ghost" id="btnAdmin">Admin</button>
@@ -334,7 +333,7 @@
           <li>Vencimiento mensual: día ${l.dueDay||dueDay}</li>
         </ul>
         <p>Para aceptar el contrato, ingresar el OTP: <b>${l.otp}</b> en “Ver mi préstamo”.</p>
-        <script>window.onload=()=>window.print()</script>
+        <script>window.onload=()=>window.print()<\/script>
       </body></html>`;
     const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
   }
@@ -450,7 +449,7 @@
         <p>Cliente: <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</p>
         <p>Monto original: ${money(l.amount)} · Plazo: ${l.months} meses · TNA: ${l.tna}%</p>
         <p>Contrato aceptado vía OTP: <b>${l.otp}</b></p>
-        <script>window.onload=()=>window.print()</script>
+        <script>window.onload=()=>window.print()<\/script>
       </body></html>`;
     const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
   }
