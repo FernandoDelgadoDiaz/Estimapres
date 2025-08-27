@@ -23,10 +23,7 @@
     button{cursor:pointer}.btn{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:12px 14px;font-weight:600}
     .btn.alt{background:#0ea5e9}.btn.ghost{background:#e2e8f0;color:#0f172a}.btn.danger{background:#dc2626}
     table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:6px;font-size:12px}thead th{background:#f1f5f9;text-align:left}
-    dialog{border:0;border-radius:12px;padding:0}
-    details>summary{list-style:none;cursor:pointer;font-weight:700;padding:6px 0}
-    .chip{display:inline-block;padding:2px 8px;border-radius:999px;background:#e2e8f0;font-size:11px}
-    .ok{color:#047857}.err{color:#b91c1c}
+    details>summary{list-style:none;cursor:pointer;font-weight:700}
   </style>
 </head>
 <body>
@@ -94,44 +91,49 @@
       <div id="clientLoanBox" class="hidden" style="margin-top:10px"></div>
     </section>
 
-    <!-- Panel Admin (5 solapas) -->
+    <!-- Panel Admin -->
     <section id="adminPanel" class="hidden">
-      <details open class="card"><summary>1) Tasa de interés (TNA)</summary>
+      <div class="card">
+        <h2 style="margin:0 0 8px 0;font-size:16px">1) Tasa centralizada (TNA %)</h2>
         <div class="row">
           <label><div class="label">TNA actual (%)</div><input id="tnaInput" type="number" step="0.01" class="input" /></label>
           <div style="display:flex;align-items:end"><button id="btnSaveTna" class="btn" style="width:100%">Guardar</button></div>
         </div>
-        <div class="muted" style="margin-top:6px">Impacta en el simulador; los préstamos conservan la TNA de aprobación.</div>
-      </details>
-
-      <details class="card"><summary>2) Solicitudes pendientes</summary>
-        <div id="listRequests" class="muted"></div>
-      </details>
-
-      <details class="card"><summary>3) Preaprobados (contrato / OTP / depósito)</summary>
-        <div id="listPreapproved" class="muted"></div>
-      </details>
-
-      <details class="card"><summary>4) Aprobados (activos) por semáforo</summary>
-        <div class="muted" style="margin-bottom:8px">Verde = al día · Amarillo = 6–10 días · Rojo = &gt;10 días</div>
-        <div id="listApproved" class="muted"></div>
-        <div id="loanDetail" class="card hidden" style="margin-top:8px"></div>
-      </details>
-
-      <details class="card"><summary>5) Historial (finalizados / incobrables)</summary>
-        <div style="margin-bottom:6px;font-weight:700">Finalizados</div>
-        <div id="listClosed" class="muted"></div>
-        <div style="margin:10px 0 6px;font-weight:700">Incobrables</div>
-        <div id="listChargedOff" class="muted"></div>
-      </details>
+        <div class="muted" style="margin-top:6px">Impacta en el simulador; los préstamos conservan la TNA capturada al aprobar.</div>
+      </div>
 
       <div class="card">
-        <h3 style="margin:0 0 8px 0;font-size:15px">Buscador</h3>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0 0 8px 0;font-size:16px">2) Solicitudes pendientes</h2>
+        <div id="requestsList" class="muted"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 8px 0;font-size:16px">3) Preaprobados (contrato / OTP / depósito)</h2>
+        <div id="preList" class="muted"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin:0 0 8px 0;font-size:16px">4) Préstamos</h2>
+        <details open><summary>Activos (agrupados por semáforo)</summary><div id="loansListActive" class="muted"></div></details>
+        <details><summary>Inactivos (terminados/incobrables)</summary><div id="loansListInactive" class="muted"></div></details>
+        <div id="loanDetail" class="card hidden" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Clientes (resumen amigable) -->
+      <div class="card">
+        <h2 style="margin:0 0 8px 0;font-size:16px">Clientes</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
           <input id="searchDni" class="input" placeholder="Buscar por DNI" />
           <button id="btnSearchLoans" class="btn ghost">Buscar</button>
         </div>
+        <div style="overflow:auto">
+          <table>
+            <thead><tr><th>DNI</th><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Activos</th><th>Inactivos</th><th>Pagadas</th><th>Pendientes</th><th>Restante</th><th>Mora máx (d)</th><th></th></tr></thead>
+            <tbody id="clientsTable"></tbody>
+          </table>
+        </div>
       </div>
+      <!-- /Clientes -->
     </section>
   </main>
 </div></div>
@@ -157,7 +159,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-// PWA (opcional)
+// PWA (sin caché agresivo)
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}
 
 // Firebase
@@ -187,79 +189,98 @@ $('#btnSimulate').onclick=async()=>{const amount=+$('#simAmount').value,months=+
 $('#btnClear').onclick=()=>{$('#simAmount').value='';$('#simMonths').value='';$('#rMonto').textContent='—';$('#rCuotas').textContent='—';$('#rCuota').textContent='—';$('#tablaCuotas').innerHTML='';$('#tablaCuotasWrap').classList.add('hidden');};
 
 // Enviar solicitud
-$('#btnSendRequest').onclick=async()=>{const name=$('#rqName').value.trim(),dni=$('#rqDni').value.trim(),email=($('#rqEmail').value||'').trim().toLowerCase(),phone=$('#rqPhone').value.trim(),bankDest=$('#rqAccount').value.trim();const amount=+$('#simAmount').value,months=+$('#simMonths').value;const msg=$('#rqMsg');msg.textContent='';if(!name||!dni||!email||!amount||!months){msg.textContent='Completá datos y simulación.';msg.className='muted err';return;}let tna=TNA_FALLBACK;try{tna=(await db.doc('settings/global').get()).data()?.tna??TNA_FALLBACK;}catch{}const {installment}=frenchSchedule(amount,months,tna);await db.collection('loan_requests').add({name,dni,email,phone,bankDest,amount,months,tnaSnapshot:tna,installment,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});msg.textContent='Solicitud enviada.';msg.className='muted ok';};
-
-// Portal del cliente
-function renderClientLoan(container,pub){const {borrower,principal,months,tna,schedule,status,accepted,signedAt}=pub;const {total,pagado,restante}=computeTotals(schedule);container.classList.remove('hidden');container.innerHTML=`<div style="font-weight:700">${borrower.name||''} · DNI ${borrower.dni} · Estado: ${status}</div><div class="muted">Capital ${fmtARS(principal)} · ${months} cuotas · TNA ${tna}%</div><div class="muted" style="margin:6px 0 10px 0">Total: ${fmtARS(total)} · Pagado: ${fmtARS(pagado)} · Restante: ${fmtARS(restante)}</div><div style="overflow:auto"><table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>${schedule.map(c=>`<tr><td>${c.k}</td><td>${toAR(c.dueDate)}</td><td>${fmtARS(c.installment)}</td><td>${c.paid?'Pagada':'Pendiente'}</td></tr>`).join('')}</tbody></table></div><div style="margin-top:10px">${accepted?`<div class="ok">Contrato aceptado${signedAt?' el '+(signedAt?.toDate?.()?signedAt.toDate().toLocaleString('es-AR'):new Date(signedAt).toLocaleString('es-AR')):''}</div>`:`<label class="label">Ingresá tu código OTP<input id="otpInput" class="input" placeholder="6 dígitos" /></label><button id="btnFirmarOtp" class="btn" style="margin-top:8px">Firmar con OTP</button>`}</div>${accepted?`<button id="btnDescargarContrato" class="btn ghost" style="margin-top:8px">Descargar contrato (PDF)</button>`:''}`;if(!accepted){document.getElementById('btnFirmarOtp').onclick=()=>clientAcceptByOtp(pub);}else{document.getElementById('btnDescargarContrato').onclick=()=>downloadClientContract(pub);}}
-document.getElementById('btnClientView')?.addEventListener('click',async()=>{const dni=$('#cpDni').value.trim(),email=($('#cpEmail').value||'').trim().toLowerCase();if(!dni||!email)return alert('Completá DNI y email');const snap=await db.collection('public_loans').where('borrower.dni','==',dni).where('borrower.email','==',email).orderBy('createdAt','desc').limit(1).get();const box=$('#clientLoanBox');if(snap.empty){box.classList.remove('hidden');box.innerHTML='<div class="muted err">No se encontró un préstamo con esos datos.</div>';return;}renderClientLoan(box,snap.docs[0].data());});
-async function clientAcceptByOtp(pub){const box=$('#clientLoanBox');const code=($('#otpInput').value||'').trim();if(code.length!==6)return alert('Código inválido');const hash=await sha256Hex(code);const snap=await db.collection('public_loans').where('loanId','==',pub.loanId).limit(1).get();if(snap.empty){alert('No encontrado');return;}const ref=snap.docs[0].ref;const data=snap.docs[0].data();if(!data.otpHash||!data.otpExp)return alert('OTP no iniciado.');if(Date.now()>data.otpExp)return alert('OTP vencido.');if(hash!==data.otpHash)return alert('Código incorrecto.');await ref.update({accepted:true,signedAt:firebase.firestore.FieldValue.serverTimestamp()});box.innerHTML='<div class="ok">¡Contrato firmado! Actualizá para ver el PDF.</div>';}
-async function downloadClientContract(pub){const d=await db.collection('loans').doc(pub.loanId).get();if(!d.exists)return alert('No se encontró el préstamo completo.');generateContractPdf(pub.loanId,d.data());}
+$('#btnSendRequest').onclick=async()=>{const name=$('#rqName').value.trim(),dni=$('#rqDni').value.trim(),email=$('#rqEmail').value.trim(),phone=$('#rqPhone').value.trim(),bankDest=$('#rqAccount').value.trim();const amount=+$('#simAmount').value,months=+$('#simMonths').value;const msg=$('#rqMsg');msg.textContent='';if(!name||!dni||!email||!amount||!months){msg.textContent='Completá datos y simulación.';msg.className='muted err';return;}let tna=TNA_FALLBACK;try{tna=(await db.doc('settings/global').get()).data()?.tna??TNA_FALLBACK;}catch{}const {installment}=frenchSchedule(amount,months,tna);try{await db.collection('loan_requests').add({name,dni,email,phone,bankDest,amount,months,tnaSnapshot:tna,installment,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});msg.textContent='Solicitud enviada.';msg.className='muted ok';}catch(e){msg.textContent='No se pudo enviar: '+(e.message||e);msg.className='muted err';}};
 
 // Auth admin
 const loginDlg=$('#loginDlg');$('#btnShowLogin').onclick=()=>loginDlg.showModal();$('#btnLogin').onclick=async()=>{try{await auth.signInWithEmailAndPassword($('#lgEmail').value,$('#lgPass').value);loginDlg.close();}catch(e){$('#lgMsg').textContent=e.message;}};$('#btnLogout').onclick=()=>auth.signOut().then(()=>location.reload());
 auth.onAuthStateChanged(u=>{const p=$('#adminPanel');const t=$('#authStatus');const lo=$('#btnLogout');if(u){p.classList.remove('hidden');t.textContent='Admin';lo.classList.remove('hidden');mountAdmin();}else{p.classList.add('hidden');t.textContent='No admin';lo.classList.add('hidden');}});
 
+// Portal del cliente
+function renderClientLoan(container,pub){const {borrower,principal,months,tna,schedule,status,accepted,signedAt}=pub;const {total,pagado,restante}=computeTotals(schedule);container.classList.remove('hidden');container.innerHTML=`<div style="font-weight:700">${borrower.name||''} · DNI ${borrower.dni} · Estado: ${status}</div><div class="muted">Capital ${fmtARS(principal)} · ${months} cuotas · TNA ${tna}%</div><div class="muted" style="margin:6px 0 10px 0">Total: ${fmtARS(total)} · Pagado: ${fmtARS(pagado)} · Restante: ${fmtARS(restante)}</div><div style="overflow:auto"><table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>${schedule.map(c=>`<tr><td>${c.k}</td><td>${toAR(c.dueDate)}</td><td>${fmtARS(c.installment)}</td><td>${c.paid?'Pagada':'Pendiente'}</td></tr>`).join('')}</tbody></table></div><div style="margin-top:10px">${accepted?`<div class="ok">Contrato aceptado${signedAt?' el '+(signedAt?.toDate?.()?signedAt.toDate().toLocaleString('es-AR'):new Date(signedAt).toLocaleString('es-AR')):''}</div>`:`<label class="label">Ingresá tu código OTP<input id="otpInput" class="input" placeholder="6 dígitos" /></label><button id="btnFirmarOtp" class="btn" style="margin-top:8px">Firmar con OTP</button>`}</div>${accepted?`<button id="btnDescargarContrato" class="btn ghost" style="margin-top:8px">Descargar contrato (PDF)</button>`:''}`;if(!accepted){document.getElementById('btnFirmarOtp').onclick=()=>clientAcceptByOtp(pub);}else{document.getElementById('btnDescargarContrato').onclick=()=>downloadClientContract(pub);}}
+document.getElementById('btnClientView')?.addEventListener('click',async()=>{const dni=$('#cpDni').value.trim(),email=($('#cpEmail').value||'').trim().toLowerCase();if(!dni||!email)return alert('Completá DNI y email');const snap=await db.collection('public_loans').where('borrower.dni','==',dni).where('borrower.email','==',email).orderBy('createdAt','desc').limit(1).get();const box=$('#clientLoanBox');if(snap.empty){box.classList.remove('hidden');box.innerHTML='<div class="muted err">No se encontró un préstamo con esos datos.</div>';return;}renderClientLoan(box,snap.docs[0].data());});
+async function clientAcceptByOtp(pub){const box=$('#clientLoanBox');const code=($('#otpInput').value||'').trim();if(code.length!==6)return alert('Código inválido');const hash=await sha256Hex(code);const snap=await db.collection('public_loans').where('loanId','==',pub.loanId).limit(1).get();if(snap.empty){alert('No encontrado');return;}const ref=snap.docs[0].ref;const data=snap.docs[0].data();if(!data.otpHash||!data.otpExp)return alert('OTP no iniciado.');if(Date.now()>data.otpExp)return alert('OTP vencido.');if(hash!==data.otpHash)return alert('Código incorrecto.');await ref.update({accepted:true,signedAt:firebase.firestore.FieldValue.serverTimestamp()});box.innerHTML='<div class="ok">¡Contrato firmado! Actualizá para ver el PDF.</div>';}
+
 // Mostrar errores silenciosos
-window.addEventListener('unhandledrejection',ev=>alert('Error de datos: '+(ev.reason?.message||ev.reason||'desconocido')));
+window.addEventListener('unhandledrejection', ev=>alert('Error de datos: '+(ev.reason?.message||ev.reason||'desconocido')));
 </script><script>
-// Estados
-const STATES={PRE:'preapproved',OK:'approved',FIN:'closed',BAD:'chargedoff'};
+// ===== PDF contrato =====
+function generateContractPdf(loanId,L){const{jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4',compress:true});let y=40;const TEA=calcTEA(L.tna),CFT=TEA;doc.setFont('helvetica','bold').setFontSize(14).text('CONTRATO DE MUTUO — EstimaPres',40,y);y+=18;doc.setFont('helvetica','').setFontSize(10);[ `Prestatario: ${L.borrower.name} (DNI ${L.borrower.dni}) — Email ${L.borrower.email}`, `Capital: ${fmtARS(L.principal)} — Plazo: ${L.months} meses (francés)`, `TNA: ${L.tna}% — TEA aprox: ${pct(TEA/100)}% — CFT estimado: ${pct(CFT/100)}%`, `1er vencimiento: ${toAR(L.schedule[0].dueDate)} — Vencimientos: día 10`, `Aceptación electrónica por OTP`].forEach(t=>{doc.text(t,40,y);y+=14;});y+=6;doc.setFont('helvetica','bold').text('Anexo — Cronograma',40,y);y+=6;const rows=(L.schedule||[]).map(c=>[c.k,toAR(c.dueDate),fmtARS(c.installment),fmtARS(c.capital),fmtARS(c.interest),c.paid?'Pagada':'Pendiente']);doc.autoTable({startY:y,head:[['#','Vencimiento','Cuota','Capital','Interés','Estado']],body:rows,styles:{fontSize:9,cellPadding:3},headStyles:{fillColor:[10,47,115]}});doc.text('La aceptación por OTP queda registrada en EstimaPres.',40,(doc.lastAutoTable.finalY||y)+24);doc.save(`Contrato_EstimaPres_${loanId}.pdf`);}
 
-// Helpers
-async function ensurePublicDoc(loanId,L){const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();if(!q.empty)return;await db.collection('public_loans').add({loanId,borrower:{dni:L.borrower?.dni||'',email:(L.borrower?.email||'').toLowerCase(),name:L.borrower?.name||''},principal:L.principal,months:L.months,tna:L.tna,status:(L.status||STATES.PRE),disbursed:!!L.disbursed,accepted:false,schedule:(L.schedule||[]).map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid})),createdAt:firebase.firestore.FieldValue.serverTimestamp()});}
-function cardReq(id,r){const d=document.createElement('div');d.className='card';d.innerHTML=`<div style="font-weight:700">${r.name} · DNI ${r.dni}</div><div class="muted">${fmtARS(r.amount)} · ${r.months} cuotas · TNA ${r.tnaSnapshot}% · Cuota ${fmtARS(r.installment)}</div><div class="muted">${r.email}${r.phone?' · '+r.phone:''}</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-ok="${id}">Preaprobar</button><button class="btn danger" data-ko="${id}">Rechazar</button></div>`;return d;}
-function cardPre(id,L){const d=document.createElement('div');d.className='card';d.innerHTML=`<div style="font-weight:700">🟦 ${L.borrower.name} · DNI ${L.borrower.dni}</div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><div class="muted">Depósito: ${L.disbursed?'Realizado':'Pendiente'}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn ghost" data-contrato="${id}">Contrato (PDF)</button><button class="btn ghost" data-otp="${id}">Iniciar OTP</button><button class="btn" data-dep="${id}">Acreditar</button></div>`;return d;}
-function listItem(id,L,before=''){const d=document.createElement('div');d.className='card';d.innerHTML=`${before}<div style="font-weight:700">${L.borrower.name} · DNI ${L.borrower.dni}</div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><div><button class="btn ghost" data-open="${id}">Ver</button></div>`;return d;}
-function cardHist(id,L,kind){const d=document.createElement('div');d.className='card';d.innerHTML=`<div style="font-weight:700">${kind==='fin'?'✅':'⚠️'} ${L.borrower.name} · DNI ${L.borrower.dni}</div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><button class="btn danger" data-del="${id}" style="margin-top:8px">Eliminar</button>`;return d;}
-
-// Contrato PDF
-function generateContractPdf(loanId,L){const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:'pt',format:'a4',compress:true});let y=40;const TEA=calcTEA(L.tna),CFT=TEA;doc.setFont('helvetica','bold').setFontSize(14).text('CONTRATO DE MUTUO — EstimaPres',40,y);y+=18;doc.setFont('helvetica','').setFontSize(10);[ `Prestatario: ${L.borrower.name} (DNI ${L.borrower.dni}) — Email ${L.borrower.email}`, `Capital: ${fmtARS(L.principal)} — Plazo: ${L.months} meses (francés)`, `TNA: ${L.tna}% — TEA aprox: ${pct(TEA/100)}% — CFT estimado: ${pct(CFT/100)}%`, `1er vencimiento: ${toAR(L.schedule[0].dueDate)} — Vencimientos: día 10`, `Aceptación electrónica por OTP`].forEach(t=>{doc.text(t,40,y);y+=14;});y+=6;doc.setFont('helvetica','bold').text('Anexo — Cronograma',40,y);y+=6;const rows=(L.schedule||[]).map(c=>[c.k,toAR(c.dueDate),fmtARS(c.installment),fmtARS(c.capital),fmtARS(c.interest),c.paid?'Pagada':'Pendiente']);doc.autoTable({startY:y,head:[['#','Vencimiento','Cuota','Capital','Interés','Estado']],body:rows,styles:{fontSize:9,cellPadding:3},headStyles:{fillColor:[10,47,115]}});doc.text('La aceptación por OTP queda registrada en EstimaPres.',40,(doc.lastAutoTable.finalY||y)+24);doc.save(`Contrato_EstimaPres_${loanId}.pdf`);}
-
-// OTP admin
-async function startOtp(loanId,L){await ensurePublicDoc(loanId,L);const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();const ref=q.docs[0].ref;const code=genOtp();const otpHash=await sha256Hex(code);await ref.set({otpHash,otpExp:Date.now()+15*60*1000,accepted:false},{merge:true});const txt=`Hola ${L.borrower.name}, tu código OTP es ${code} (vence en 15 min).`;const wa=`https://wa.me/?text=${encodeURIComponent(txt)}`;if(confirm(`OTP generado: ${code}\n\n¿Abrir WhatsApp para enviar?`))window.open(wa,'_blank');}
+// ===== Helpers admin =====
+async function ensurePublicDoc(loanId,L){const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();if(!q.empty)return;await db.collection('public_loans').add({loanId,borrower:{dni:(L.borrower?.dni||''),email:(L.borrower?.email||'').toLowerCase(),name:L.borrower?.name||''},principal:L.principal,months:L.months,tna:L.tna,status:(L.status||'preapproved'),disbursed:!!L.disbursed,accepted:false,schedule:(L.schedule||[]).map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid})),createdAt:firebase.firestore.FieldValue.serverTimestamp()});}
+async function startOtpForLoan(loanId,L){await ensurePublicDoc(loanId,L);const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();const ref=q.docs[0].ref;const code=genOtp();const otpHash=await sha256Hex(code);await ref.set({otpHash,otpExp:Date.now()+15*60*1000,accepted:false},{merge:true});const txt=`Hola ${L.borrower.name}, tu código OTP es ${code} (vence en 15 min).`;const wa=`https://wa.me/?text=${encodeURIComponent(txt)}`;if(confirm(`OTP generado: ${code}\n\n¿Abrir WhatsApp para enviar?`))window.open(wa,'_blank');}
 async function reflectPublicSchedule(loanId,s){const q=await db.collection('public_loans').where('loanId','==',loanId).limit(1).get();if(!q.empty){await q.docs[0].ref.update({schedule:s.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid}))});}}
 
-// Detalle de préstamo
+// ===== Renderers =====
+function cardReq(id,r){const d=document.createElement('div');d.className='card';d.innerHTML=`<div style="font-weight:700">${r.name} · DNI ${r.dni}</div><div class="muted">${fmtARS(r.amount)} · ${r.months} cuotas · TNA ${r.tnaSnapshot}% · Cuota ${fmtARS(r.installment)}</div><div class="muted">${r.email}${r.phone?' · '+r.phone:''}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" data-ok="${id}">Preaprobar</button><button class="btn danger" data-ko="${id}">Rechazar</button></div>`;return d;}
+function cardPre(id,L){const d=document.createElement('div');d.className='card';d.innerHTML=`<div style="font-weight:700">🟦 ${L.borrower.name} · DNI ${L.borrower.dni}</div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><div class="muted">Depósito: ${L.disbursed?'Realizado':'Pendiente'}</div><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn ghost" data-contrato="${id}">Contrato (PDF)</button><button class="btn ghost" data-otp="${id}">Iniciar OTP</button><button class="btn" data-dep="${id}">Acreditar</button><button class="btn ghost" data-aprobar="${id}">Mover a Activo</button></div>`;return d;}
+function listItem(id,L,before=''){const d=document.createElement('div');d.className='card';d.innerHTML=`${before}<div style="font-weight:700">${L.borrower.name} · DNI ${L.borrower.dni}</div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><div><button class="btn ghost" data-open="${id}">Ver</button></div>`;return d;}
 function rowCuota(it,loanId){const tr=document.createElement('tr');tr.innerHTML=`<td>${it.k}</td><td>${toAR(it.dueDate)}</td><td>${fmtARS(it.installment)}</td><td>${fmtARS(it.capital)}</td><td>${fmtARS(it.interest)}</td><td><label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-loan="${loanId}" data-k="${it.k}" ${it.paid?'checked':''}/><span>${it.paid?'Pagada':'Pendiente'}</span></label></td>`;return tr;}
-async function renderDetail(loanId){const box=$('#loanDetail');box.classList.remove('hidden');const snap=await db.collection('loans').doc(loanId).get();const L=snap.data();await ensurePublicDoc(loanId,L);const st=loanStatusColor(L.schedule);const {total,pagado,restante}=computeTotals(L.schedule);box.innerHTML=`<div style="font-weight:700">${st} ${L.borrower.name} · DNI ${L.borrower.dni} · <span class="chip">${L.status}</span></div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><div class="muted" style="margin:6px 0 10px">Total ${fmtARS(total)} · Pagado ${fmtARS(pagado)} · Restante ${fmtARS(restante)}</div><div style="overflow:auto"><table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Capital</th><th>Interés</th><th>Estado</th></tr></thead><tbody id="loanRows"></tbody></table></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn ghost" id="dContrato">Contrato (PDF)</button><button class="btn ghost" id="dOtp">Iniciar OTP</button>${L.status===STATES.OK&&!L.disbursed?'<button class="btn" id="dDep">Acreditar</button>':''}<button class="btn ghost" id="dFin">Finalizar</button><button class="btn danger" id="dIncob">Incobrable</button></div>`;const tb=box.querySelector('#loanRows');tb.innerHTML='';L.schedule.forEach(it=>tb.appendChild(rowCuota(it,loanId)));tb.querySelectorAll('input[type="checkbox"]').forEach(chk=>{chk.onchange=async()=>{const k=+chk.getAttribute('data-k');const ref=db.collection('loans').doc(loanId);const C=(await ref.get()).data();const s=C.schedule.map(x=>x.k===k?({...x,paid:chk.checked,paidAt:chk.checked?new Date().toISOString():null}):x);await ref.update({schedule:s});const t=computeTotals(s);box.querySelectorAll('.muted')[1].textContent=`Total ${fmtARS(t.total)} · Pagado ${fmtARS(t.pagado)} · Restante ${fmtARS(t.restante)}`;chk.nextElementSibling.textContent=chk.checked?'Pagada':'Pendiente';await reflectPublicSchedule(loanId,s);};});box.querySelector('#dContrato').onclick=()=>generateContractPdf(loanId,L);box.querySelector('#dOtp').onclick=()=>startOtp(loanId,L);box.querySelector('#dFin').onclick=async()=>{const allPaid=(L.schedule||[]).every(c=>c.paid);if(!allPaid&& !confirm('Hay cuotas pendientes. ¿Finalizar igual?'))return;await db.collection('loans').doc(loanId).update({status:STATES.FIN,closedAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('public_loans').where('loanId','==',loanId).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({status:STATES.FIN});});loadAll();box.classList.add('hidden');};box.querySelector('#dIncob').onclick=async()=>{if(!confirm('Marcar como incobrable?'))return;await db.collection('loans').doc(loanId).update({status:STATES.BAD,chargedOffAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('public_loans').where('loanId','==',loanId).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({status:STATES.BAD});});loadAll();box.classList.add('hidden');};const dep=box.querySelector('#dDep');if(dep){dep.onclick=async()=>{const method=prompt('Método (transferencia/MP/etc.)','transferencia');const dest=L.borrower?.bankDest||prompt('Destino (CBU/CVU/alias)','');const refOp=prompt('Nº operación/ref','');await db.collection('loans').doc(loanId).update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),disbursement:{method,dest,ref:refOp},status:STATES.OK});await db.collection('public_loans').where('loanId','==',loanId).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),status:STATES.OK});});loadAll();box.classList.add('hidden');};}}
 
-// Cargas de solapas
-async function loadRequests(){const box=$('#listRequests');box.innerHTML='Cargando…';const q=await db.collection('loan_requests').orderBy('createdAt','desc').get();box.innerHTML='';q.docs.forEach(d=>{const r=d.data();if(r.status==='pending'||!r.status)box.appendChild(cardReq(d.id,r));});if(!box.innerHTML)box.textContent='Sin solicitudes pendientes';box.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-ok');const r=(await db.collection('loan_requests').doc(id).get()).data();await approveRequest(id,r);});box.querySelectorAll('[data-ko]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-ko');await db.collection('loan_requests').doc(id).delete();loadRequests();});}
-async function loadPreapproved(){const box=$('#listPreapproved');box.innerHTML='Cargando…';const q=await db.collection('loans').where('status','==',STATES.PRE).orderBy('createdAt','desc').get();box.innerHTML='';q.docs.forEach(d=>{box.appendChild(cardPre(d.id,d.data()));});if(!box.innerHTML)box.textContent='Sin preaprobados';box.querySelectorAll('[data-contrato]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-contrato');const L=(await db.collection('loans').doc(id).get()).data();generateContractPdf(id,L);});box.querySelectorAll('[data-otp]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-otp');const L=(await db.collection('loans').doc(id).get()).data();startOtp(id,L);});box.querySelectorAll('[data-dep]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-dep');const snap=await db.collection('loans').doc(id).get();const L=snap.data();const method=prompt('Método (transferencia/MP/etc.)','transferencia');const dest=L.borrower?.bankDest||prompt('Destino (CBU/CVU/alias)','');const refOp=prompt('Nº operación/ref','');await db.collection('loans').doc(id).update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),disbursement:{method,dest,ref:refOp},status:STATES.OK});await db.collection('public_loans').where('loanId','==',id).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),status:STATES.OK});});loadAll();});}
-async function loadApproved(){const box=$('#listApproved');box.innerHTML='Cargando…';const q=await db.collection('loans').where('status','==',STATES.OK).orderBy('createdAt','desc').get();box.innerHTML='';const groups={green:[],yellow:[],red:[]};q.docs.forEach(d=>{const L=d.data();groups[statusKey(loanStatusColor(L.schedule))].push({id:d.id,L});});['green','yellow','red'].forEach(k=>{const arr=groups[k];if(!arr.length)return;const sec=document.createElement('div');sec.innerHTML=`<div style="font-weight:700;margin:6px 0">${colorEmoji(k)} ${colorTitle(k)}</div>`;arr.forEach(({id,L})=>{sec.appendChild(listItem(id,L));});box.appendChild(sec);});if(!box.innerHTML)box.textContent='Sin aprobados';box.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>renderDetail(b.getAttribute('data-open')));}
-async function loadHistory(){const c=$('#listClosed'),ch=$('#listChargedOff');c.innerHTML='Cargando…';ch.innerHTML='Cargando…';const q1=await db.collection('loans').where('status','==',STATES.FIN).orderBy('createdAt','desc').get();const q2=await db.collection('loans').where('status','==',STATES.BAD).orderBy('createdAt','desc').get();c.innerHTML='';q1.docs.forEach(d=>c.appendChild(cardHist(d.id,d.data(),'fin')));if(!c.innerHTML)c.textContent='—';ch.innerHTML='';q2.docs.forEach(d=>ch.appendChild(cardHist(d.id,d.data(),'bad')));if(!ch.innerHTML)ch.textContent='—';document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-del');if(!confirm('Eliminar definitivamente?'))return;await db.collection('loans').doc(id).delete();const q=await db.collection('public_loans').where('loanId','==',id).limit(1).get();if(!q.empty)await q.docs[0].ref.delete();loadHistory();});}
-
-// Aprobar → PREAPROBADO + espejo público
+// ===== Aprobar (PRE) =====
 async function approveRequest(id,r){
   try{
     const { schedule } = frenchSchedule(r.amount, r.months, r.tnaSnapshot);
+    const dni=(r.dni||'').trim(); const email=((r.email||'')+'').trim().toLowerCase();
+
     const loan = {
-      borrower:{ name:r.name, dni:(r.dni||'').trim(), email:(r.email||'').trim().toLowerCase(), phone:r.phone||'', bankDest:r.bankDest||'' },
+      borrower:{ name:r.name, dni, email, phone:r.phone||'', bankDest:r.bankDest||'' },
       principal:r.amount, months:r.months, tna:r.tnaSnapshot,
-      status:STATES.PRE, schedule, disbursed:false,
+      status:'preapproved', schedule, disbursed:false,
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     };
+
     const batch = db.batch();
     const loanRef = db.collection('loans').doc();
     batch.set(loanRef, loan);
+
+    // Podés borrar la solicitud para que salga de "pendientes"
     batch.delete(db.collection('loan_requests').doc(id));
+
+    // Espejo público (portal cliente) en estado preaprobado
     const pubRef = db.collection('public_loans').doc();
     batch.set(pubRef,{
       loanId: loanRef.id,
-      borrower:{dni:loan.borrower.dni,email:loan.borrower.email,name:loan.borrower.name},
+      borrower:{ dni, email, name:r.name },
       principal:r.amount, months:r.months, tna:r.tnaSnapshot,
-      status:STATES.PRE, disbursed:false, accepted:false,
+      status:'preapproved', disbursed:false, accepted:false,
       schedule: schedule.map(c=>({k:c.k,dueDate:c.dueDate,installment:c.installment,paid:c.paid})),
       createdAt:firebase.firestore.FieldValue.serverTimestamp()
     });
+
     await batch.commit();
-    alert('Preaprobado creado'); loadAll();
-  }catch(e){ alert('Error al preaprobar: '+(e.message||e)); }
+    alert('Preaprobado creado');
+    loadAll();
+  }catch(e){
+    alert('Error al preaprobar: ' + (e.message || e));
+  }
 }
 
-// Montaje admin
-function mountAdmin(){loadAll();$('#btnSaveTna').onclick=async()=>{const tna=+$('#tnaInput').value;if(isNaN(tna)||tna<0)return alert('TNA inválida');await db.doc('settings/global').set({tna,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});alert('TNA actualizada');};$('#btnSearchLoans').onclick=async()=>{const dni=$('#searchDni').value.trim();if(!dni)return;const q=await db.collection('loans').where('borrower.dni','==',dni).orderBy('createdAt','desc').limit(1).get();if(q.empty){alert('Sin resultados');return;}renderDetail(q.docs[0].id);};}
-function loadAll(){loadRequests();loadPreapproved();loadApproved();loadHistory();}
+// ===== Detalle de préstamo =====
+async function renderDetail(loanId){
+  const box=$('#loanDetail'); box.classList.remove('hidden');
+  const snap=await db.collection('loans').doc(loanId).get(); const L=snap.data();
+  await ensurePublicDoc(loanId,L);
+  const {total,pagado,restante}=computeTotals(L.schedule);
+  box.innerHTML=`<div style="font-weight:700">${loanStatusColor(L.schedule)} ${L.borrower.name} · DNI ${L.borrower.dni} · <span class="muted">Estado: ${L.status}</span></div><div class="muted">Principal ${fmtARS(L.principal)} · ${L.months} cuotas · TNA ${L.tna}%</div><div class="muted" style="margin:6px 0 10px">Total ${fmtARS(total)} · Pagado ${fmtARS(pagado)} · Restante ${fmtARS(restante)}</div><div style="overflow:auto"><table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Capital</th><th>Interés</th><th>Estado</th></tr></thead><tbody id="loanRows"></tbody></table></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn ghost" id="dContrato">Contrato (PDF)</button><button class="btn ghost" id="dOtp">Iniciar OTP</button>${(!L.disbursed && (L.status==='preapproved'||L.status==='active'))?'<button class="btn" id="dDep">Acreditar</button>':''}${L.status==='preapproved'?'<button class="btn" id="dActivar">Mover a Activo</button>':''}<button class="btn ghost" id="dInac">Marcar inactivo</button></div>`;
+  const tb=box.querySelector('#loanRows');tb.innerHTML='';(L.schedule||[]).forEach(it=>tb.appendChild(rowCuota(it,loanId)));
+  tb.querySelectorAll('input[type="checkbox"]').forEach(chk=>{chk.onchange=async()=>{const k=+chk.getAttribute('data-k');const ref=db.collection('loans').doc(loanId);const C=(await ref.get()).data();const s=C.schedule.map(x=>x.k===k?({...x,paid:chk.checked,paidAt:chk.checked?new Date().toISOString():null}):x);await ref.update({schedule:s});const t=computeTotals(s);box.querySelectorAll('.muted')[1].textContent=`Total ${fmtARS(t.total)} · Pagado ${fmtARS(t.pagado)} · Restante ${fmtARS(t.restante)}`;chk.nextElementSibling.textContent=chk.checked?'Pagada':'Pendiente';await reflectPublicSchedule(loanId,s);loadClients();};});
+  box.querySelector('#dContrato').onclick=()=>generateContractPdf(loanId,L);
+  box.querySelector('#dOtp').onclick=()=>startOtpForLoan(loanId,L);
+  const dep=box.querySelector('#dDep'); if(dep){dep.onclick=async()=>{const method=prompt('Método (transferencia/MP/etc.)','transferencia');const dest=L.borrower?.bankDest||prompt('Destino (CBU/CVU/alias)','');const refOp=prompt('Nº operación/ref','');await db.collection('loans').doc(loanId).update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),disbursement:{method,dest,ref:refOp}});await db.collection('public_loans').where('loanId','==',loanId).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp()});});alert('Acreditación registrada');loadAll();box.classList.add('hidden');};}
+  const act=box.querySelector('#dActivar'); if(act){act.onclick=async()=>{await db.collection('loans').doc(loanId).update({status:'active'});await db.collection('public_loans').where('loanId','==',loanId).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({status:'active'});});alert('Movido a Activo');loadAll();box.classList.add('hidden');};}
+  box.querySelector('#dInac').onclick=async()=>{await db.collection('loans').doc(loanId).update({status:'inactive',inactivatedAt:firebase.firestore.FieldValue.serverTimestamp()});await db.collection('public_loans').where('loanId','==',loanId).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({status:'inactive'});});alert('Marcado como inactivo');loadAll();box.classList.add('hidden');};
+}
+
+// ===== Listados =====
+async function loadRequests(){const box=$('#requestsList');box.innerHTML='Cargando…';const q=await db.collection('loan_requests').orderBy('createdAt','desc').get();box.innerHTML='';q.docs.forEach(d=>{const r=d.data();if((r.status||'pending')==='pending')box.appendChild(cardReq(d.id,r));});if(!box.innerHTML)box.textContent='Sin solicitudes pendientes';box.querySelectorAll('[data-ok]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-ok');const r=(await db.collection('loan_requests').doc(id).get()).data();await approveRequest(id,r);});box.querySelectorAll('[data-ko]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-ko');await db.collection('loan_requests').doc(id).delete();loadRequests();});}
+async function loadPreapproved(){const box=$('#preList');box.innerHTML='Cargando…';const q=await db.collection('loans').where('status','==','preapproved').get();box.innerHTML='';const arr=q.docs.map(d=>({id:d.id,L:d.data()}));arr.sort((a,b)=>{const ta=a.L.createdAt?.toMillis?.()||0,tb=b.L.createdAt?.toMillis?.()||0;return tb-ta;});arr.forEach(({id,L})=>box.appendChild(cardPre(id,L)));if(!box.innerHTML)box.textContent='Sin preaprobados';box.querySelectorAll('[data-contrato]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-contrato');const L=(await db.collection('loans').doc(id).get()).data();generateContractPdf(id,L);});box.querySelectorAll('[data-otp]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-otp');const L=(await db.collection('loans').doc(id).get()).data();startOtpForLoan(id,L);});box.querySelectorAll('[data-dep]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-dep');const snap=await db.collection('loans').doc(id).get();const L=snap.data();const method=prompt('Método (transferencia/MP/etc.)','transferencia');const dest=L.borrower?.bankDest||prompt('Destino (CBU/CVU/alias)','');const refOp=prompt('Nº operación/ref','');await db.collection('loans').doc(id).update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp(),disbursement:{method,dest,ref:refOp}});await db.collection('public_loans').where('loanId','==',id).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({disbursed:true,disbursedAt:firebase.firestore.FieldValue.serverTimestamp()});});alert('Acreditación registrada');loadAll();});box.querySelectorAll('[data-aprobar]').forEach(b=>b.onclick=async()=>{const id=b.getAttribute('data-aprobar');await db.collection('loans').doc(id).update({status:'active'});await db.collection('public_loans').where('loanId','==',id).limit(1).get().then(q=>{if(!q.empty)q.docs[0].ref.update({status:'active'});});alert('Movido a Activo');loadAll();});}
+async function loadLoans(){const activeBox=$('#loansListActive'),inactiveBox=$('#loansListInactive');activeBox.innerHTML='Cargando…';inactiveBox.innerHTML='';const snap=await db.collection('loans').orderBy('createdAt','desc').get();activeBox.innerHTML='';const groups={green:[],yellow:[],red:[]};snap.docs.forEach(d=>{const L=d.data();if(L.status==='active'){groups[statusKey(loanStatusColor(L.schedule))].push({id:d.id,L});}else if(L.status!=='preapproved'){const item=listItem(d.id,L,'🟦 ');inactiveBox.appendChild(item);}});['green','yellow','red'].forEach(k=>{const arr=groups[k];if(!arr.length)return;const sec=document.createElement('div');sec.innerHTML=`<div style="font-weight:700;margin:6px 0">${colorEmoji(k)} ${colorTitle(k)}</div>`;arr.forEach(({id,L})=>sec.appendChild(listItem(id,L)));activeBox.appendChild(sec);});if(!activeBox.innerHTML)activeBox.textContent='Sin préstamos activos';if(!inactiveBox.innerHTML)inactiveBox.textContent='Sin préstamos inactivos';document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>renderDetail(b.getAttribute('data-open')));}
+async function loadClients(){const tbody=$('#clientsTable');if(!tbody)return;tbody.innerHTML='<tr><td colspan="11">Cargando…</td></tr>';const snap=await db.collection('loans').get();const map=new Map();snap.docs.forEach(doc=>{const L=doc.data(),s=L.schedule||[];const key=L.borrower?.dni||'sin_dni';const e=map.get(key)||{dni:key,name:L.borrower?.name||'',email:L.borrower?.email||'',phone:L.borrower?.phone||'',activos:0,inactivos:0,pagadas:0,pendientes:0,restante:0,moraMax:0};if(L.status==='active')e.activos++;else if(L.status!=='preapproved')e.inactivos++;e.pagadas+=s.filter(x=>x.paid).length;e.pendientes+=s.filter(x=>!x.paid).length;const t=computeTotals(s);e.restante+=t.restante||0;e.moraMax=Math.max(e.moraMax,(function(){let md=0,today=new Date();(s||[]).forEach(c=>{if(!c.paid){const dd=Math.floor((today-new Date(c.dueDate))/86400000);if(dd>md)md=dd;}});return Math.max(0,md);})());e.name=e.name||L.borrower?.name||'';e.email=e.email||L.borrower?.email||'';e.phone=e.phone||L.borrower?.phone||'';map.set(key,e);});const rows=[...map.values()].sort((a,b)=>a.name.localeCompare(b.name));tbody.innerHTML='';rows.forEach(c=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${c.dni}</td><td>${c.name}</td><td>${c.email}</td><td>${c.phone}</td><td>${c.activos}</td><td>${c.inactivos}</td><td>${c.pagadas}</td><td>${c.pendientes}</td><td>${fmtARS(c.restante)}</td><td>${c.moraMax}</td><td><button class="btn ghost" data-open-dni="${c.dni}">Ver</button></td>`;tbody.appendChild(tr);});tbody.querySelectorAll('[data-open-dni]').forEach(btn=>{btn.onclick=async()=>{const dni=btn.getAttribute('data-open-dni');const q=await db.collection('loans').where('borrower.dni','==',dni).get();if(q.empty){alert('Sin resultados');return;}let newest=q.docs[0];let maxTs=newest.data().createdAt?.toMillis?.()||0;q.docs.forEach(d=>{const t=d.data().createdAt?.toMillis?.()||0;if(t>maxTs){newest=d;maxTs=t;}});renderDetail(newest.id,newest.data());};});}
+
+// ===== Montaje admin =====
+function mountAdmin(){loadAll();$('#btnSaveTna').onclick=async()=>{const tna=+$('#tnaInput').value;if(isNaN(tna)||tna<0)return alert('TNA inválida');await db.doc('settings/global').set({tna,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});alert('TNA actualizada');};$('#btnSearchLoans').onclick=async()=>{const dni=$('#searchDni').value.trim();if(!dni)return;const q=await db.collection('loans').where('borrower.dni','==',dni).limit(1).get();if(q.empty){alert('Sin resultados');return;}renderDetail(q.docs[0].id,q.docs[0].data());};}
+function loadAll(){loadRequests();loadPreapproved();loadLoans();loadClients();}
 </script>
 </body>
 </html>
