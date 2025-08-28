@@ -1,117 +1,98 @@
-9// sw.js — EstimaPres PWA
-// Coloca este archivo en la RAÍZ del sitio. Cambiá VERSION en cada deploy.
-const VERSION = 'v1.3.0';
-const CACHE_NAME = `estimapers-cache-${VERSION}`;
+/* EstimaPres SW v6 – limpio y estable */
+const CACHE_NAME = 'estimapres-v6';
 const APP_SHELL = [
-  '/',               // SPA fallback
+  '/',               // raíz
   '/index.html',
+  '/manifest.webmanifest',
+  '/favicon.ico'
 ];
 
-// --- utils
-async function putInCache(req, resp) {
-  const cache = await caches.open(CACHE_NAME);
-  try { await cache.put(req, resp.clone()); } catch (_) {}
-  return resp;
-}
+/* Helpers */
 async function cacheFirst(req) {
+  const cached = await caches.match(req, { ignoreVary: true, ignoreSearch: true });
+  if (cached) return cached;
+  const res = await fetch(req);
   const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(req);
-  if (cached) {
-    // revalida en background
-    fetch(req).then(r => putInCache(req, r)).catch(()=>{});
-    return cached;
-  }
-  const resp = await fetch(req);
-  return putInCache(req, resp);
+  cache.put(req, res.clone()).catch(()=>{});
+  return res;
 }
-async function networkFirst(req, fallbackUrl = '/index.html') {
+
+async function networkFirst(req) {
   try {
-    const resp = await fetch(req);
-    return putInCache(req, resp);
-  } catch (err) {
+    const res = await fetch(req);
     const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(fallbackUrl);
-    return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+    cache.put(req, res.clone()).catch(()=>{});
+    return res;
+  } catch (e) {
+    const cached = await caches.match(req, { ignoreVary: true, ignoreSearch: true });
+    if (cached) return cached;
+    // Si es navegación y no hay red, devolvemos el shell
+    if (req.mode === 'navigate') return caches.match('/index.html');
+    throw e;
   }
 }
 
-// --- install
+/* Install */
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.addAll(APP_SHELL);
-      await self.skipWaiting();
-    })()
+    caches.open(CACHE_NAME).then((c) => c.addAll(APP_SHELL))
   );
+  self.skipWaiting();
 });
 
-// --- activate
+/* Activate */
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      // habilita navigation preload si está disponible
-      if (self.registration.navigationPreload) {
-        try { await self.registration.navigationPreload.enable(); } catch (_) {}
-      }
-      // limpia caches viejos
       const keys = await caches.keys();
-      await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+      await Promise.all(
+        keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve()))
+      );
       await self.clients.claim();
     })()
   );
 });
 
-// --- mensaje (para forzar update desde la app)
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// --- fetch
+/* Fetch */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
+  if (req.method !== 'GET') return;
+
   const url = new URL(req.url);
 
-  // Dejá pasar todo lo sensible a datos (Firestore / APIs) sin cachear
-  const passthroughHosts = [
-    'firestore.googleapis.com',
-    'firebaseinstallations.googleapis.com',
-    'www.googleapis.com',
-    'identitytoolkit.googleapis.com'
-  ];
-  if (passthroughHosts.includes(url.hostname)) return; // network-only
+  // No interceptar páginas especiales
+  if (url.protocol === 'chrome-extension:' || url.origin === 'null') return;
 
-  // Navegación de SPA => network-first con fallback al index cacheado
-  if (req.mode === 'navigate') {
-    event.respondWith((async () => {
-      const preload = await event.preloadResponse;
-      if (preload) return putInCache(req, preload);
-      return networkFirst(req, '/index.html');
-    })());
-    return;
-  }
-
-  // Estáticos propios (misma origen): cache-first
-  if (url.origin === self.location.origin &&
-      /\.(?:js|css|png|jpg|jpeg|svg|webp|ico|woff2?|ttf)$/.test(url.pathname)) {
+  // Rutas propias: cache-first (HTML/CSS/JS/imágenes)
+  if (url.origin === self.location.origin) {
     event.respondWith(cacheFirst(req));
     return;
   }
 
-  // Firebase CDN y Google Fonts: cache-first
-  const cacheFirstHosts = [
-    'www.gstatic.com',
-    'fonts.googleapis.com',
-    'fonts.gstatic.com'
-  ];
+  // Google Fonts: cache-first
+  const cacheFirstHosts = ['fonts.googleapis.com', 'fonts.gstatic.com', 'www.gstatic.com'];
   if (cacheFirstHosts.includes(url.hostname)) {
     event.respondWith(cacheFirst(req));
     return;
   }
 
-  // Resto: stale-while-revalidate básico
+  // Servicios de Firebase: network-first para no servir datos viejos
+  const networkFirstHosts = [
+    'firestore.googleapis.com',
+    'identitytoolkit.googleapis.com',
+    'securetoken.googleapis.com',
+    'firebaseinstallations.googleapis.com'
+  ];
+  if (networkFirstHosts.includes(url.hostname)) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+
+  // Resto: cache-first por defecto
   event.respondWith(cacheFirst(req));
 });
-```0
+
+/* Mensaje opcional para forzar update desde la app */
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
