@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>EstimaPres · Préstamos en ARS</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f5f7fb; --panel:#ffffff; --text:#0f172a; --muted:#64748b;
@@ -17,18 +17,18 @@ html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,syst
 .shell{max-width:1024px;margin:0 auto;padding:20px 16px 60px}
 .topbar{background:linear-gradient(180deg,#0d47a1 0%,#0a3d8a 100%);color:#fff;padding:16px 0;margin:0 0 18px 0}
 .topwrap{max-width:1024px;margin:0 auto;padding:0 16px;display:flex;align-items:center;gap:12px}
-.logo{width:36px;height:36px;border-radius:12px;background:#173f7a;display:grid;place-items:center;font-weight:700}
+.logo{width:36px;height:36px;border-radius:12px;background:#173f7a;display:grid;place-items:center;font-weight:800}
 .brand{font-weight:800;font-size:20px;letter-spacing:.2px;margin-right:auto}
-.pill{background:#ffffff1a;border:1px solid #ffffff33;color:#fff;padding:12px 16px;border-radius:999px;font-weight:600}
-.pill:hover{background:#ffffff29;cursor:pointer}
-.pill.red{background:#ef4444;color:#fff;border-color:#ef4444}
+.pill{background:#ffffff1a;border:1px solid #ffffff33;color:#fff;padding:12px 16px;border-radius:999px;font-weight:600;cursor:pointer}
+.pill:hover{background:#ffffff29}
+.pill.red{background:#ef4444;border-color:#ef4444}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;margin-bottom:16px;box-shadow:0 6px 22px rgba(15,23,42,0.04)}
 .card h2{margin:4px 0 12px 0;font-size:28px}
 .line{height:1px;background:var(--line);margin:16px 0}
 .row{display:flex;gap:12px;flex-wrap:wrap}
 .in{flex:1 1 240px}
 input,button{font-family:inherit}
-input{width:100%;padding:14px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px;color:var(--text);outline:none}
+input{width:100%;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:16px;color:var(--text);outline:none}
 input:focus{border-color:#bcd1ff;box-shadow:0 0 0 3px #e6efff}
 .hint{color:var(--muted);font-size:14px}
 .btn{display:inline-block;background:var(--brand);border:1px solid var(--brand);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer}
@@ -53,6 +53,7 @@ small{color:var(--muted)}
 </style>
 </head>
 <body>
+  <!-- TOPBAR -->
   <div class="topbar">
     <div class="topwrap">
       <div class="logo">E</div>
@@ -64,6 +65,7 @@ small{color:var(--muted)}
   </div>
 
   <div class="shell">
+    <!-- SIMULADOR -->
     <div class="card">
       <h2>Simulador (pesos argentinos)</h2>
       <div class="row">
@@ -75,6 +77,7 @@ small{color:var(--muted)}
       <div id="simResult" class="muted" style="margin-top:10px">—</div>
     </div>
 
+    <!-- SOLICITUD -->
     <div class="card">
       <h2>Solicitar préstamo</h2>
       <div class="stack">
@@ -89,6 +92,7 @@ small{color:var(--muted)}
       </div>
     </div>
 
+    <!-- PANEL ADMIN -->
     <div id="adminPanel" class="card hidden">
       <h2>Panel de administrador</h2>
 
@@ -127,8 +131,10 @@ small{color:var(--muted)}
     <small class="muted">© EstimaPres</small>
   </div>
 
+<!-- APP -->
 <script type="module">
 'use strict';
+/* Firebase v10 */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -150,10 +156,13 @@ const auth= getAuth(app);
 
 /* ====== HELPERS ====== */
 const $ = (id)=>document.getElementById(id);
-const money = (n)=> n.toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0});
+const money = (n)=> Number(n||0).toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0});
 const dueDay = 10; $("dueDayLabel").textContent = String(dueDay);
-const allowedAdmins = ["fernandogastondelgado81@gmail.com"].map(x=>x.toLowerCase());
 
+/* === Admins habilitados (tu correo ya incluido) === */
+const allowedAdmins = ["fernandogastondelgado81@gmail.com"].map(x=>x.toLowerCase().trim());
+
+/* ====== TNA ====== */
 async function loadTna(){
   const r = doc(db,"config","general");
   const s = await getDoc(r);
@@ -170,9 +179,8 @@ $("btnSaveTna").onclick = async ()=>{
   alert("TNA guardada.");
 };
 
+/* ====== Simulador ====== */
 function cuota(P,tna,n){ const r=(tna/100)/12; return Math.round(P*(r/(1-Math.pow(1+r,-n)))); }
-
-/* ====== SIMULADOR ====== */
 $("btnSimulate").onclick = async ()=>{
   const P = Number($("simAmount").value||0);
   const n = Number($("simMonths").value||0);
@@ -183,14 +191,14 @@ $("btnSimulate").onclick = async ()=>{
   $("simResult").innerHTML = "<b>Cuota:</b> "+money(c)+" · <b>Total:</b> "+money(c*n)+"<br><small>La tasa se fija al aprobar.</small>";
 };
 
-/* ====== SOLICITUD ====== */
+/* ====== Solicitud (público) ====== */
 $("btnSendRequest").onclick = async ()=>{
   const amount = Number($("simAmount").value||0);
   const months = Number($("simMonths").value||0);
   const borrower = {
     name:$("rqName").value.trim(),
     dni:$("rqDni").value.trim(),
-    email:$("rqEmail").value.trim(),
+    email:$("rqEmail").value.trim().toLowerCase(),
     phone:$("rqPhone").value.trim(),
     cbu:$("rqCbu").value.trim()
   };
@@ -203,7 +211,7 @@ $("btnSendRequest").onclick = async ()=>{
   alert("Solicitud enviada. Un admin la revisará.");
 };
 
-/* ====== AUTH / ADMIN ====== */
+/* ====== Auth / Admin ====== */
 $("btnAdmin").onclick = async ()=>{
   if(!auth.currentUser){
     const email = prompt("Email de administrador:");
@@ -218,18 +226,18 @@ $("btnAdmin").onclick = async ()=>{
 $("btnSignOut").onclick = ()=> signOut(auth);
 
 onAuthStateChanged(auth, async (user)=>{
-  const isAdmin = !!user && allowedAdmins.includes((user.email||"").toLowerCase());
+  const isAdmin = !!user && allowedAdmins.includes((user.email||"").toLowerCase().trim());
   $("btnSignOut").style.display = user? "inline-block":"none";
   $("btnAdmin").textContent = user? "Admin":"Ingresar";
   $("adminPanel").classList.toggle("hidden", !isAdmin);
   if(isAdmin){ await loadTna(); loadPending(); loadPre(); loadActive(); loadInactive(); }
 });
 
-/* ====== UTILS ====== */
+/* ====== Utils ====== */
 const otp6 = ()=> String(Math.floor(100000 + Math.random()*900000));
 const shareWhats = (txt)=> window.open("https://wa.me/?text="+encodeURIComponent(txt), "_blank");
 
-/* ====== 2) PENDIENTES ====== */
+/* ====== 2) Pendientes ====== */
 async function loadPending(){
   const box = $("pendingList"); box.textContent="Cargando…";
   try{
@@ -268,7 +276,7 @@ async function preapprove(id,v){
   loadPending(); loadPre();
 }
 
-/* ====== 3) PREAPROBADOS ====== */
+/* ====== 3) Preaprobados ====== */
 async function loadPre(){
   const box = $("preList"); box.textContent="Cargando…";
   const snap = await getDocs(query(collection(db,"loans"), where("status","==","preapproved")));
@@ -314,7 +322,7 @@ function openContract(id,l){
   const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
 }
 
-/* ====== 4) ACTIVOS ====== */
+/* ====== 4) Activos (semaforizado) ====== */
 function dotByLoan(l){
   const today=new Date();
   const next=new Date(today.getFullYear(),today.getMonth(),l.dueDay||dueDay);
@@ -329,7 +337,7 @@ function scheduleHTML(l){
   for(let i=1;i<=l.months;i++){
     const pagada = i<=paid;
     const venc = String(l.dueDay||dueDay).padStart(2,"0")+"/"+String(((new Date().getMonth()+i)%12)+1).padStart(2,"0");
-    rows += '<tr><td>#'+i+'</td><td>'+venc+'</td><td>'+money(c)+'</td><td>'+(pagada?'Pagada ✅':'<button class="btn light" data-pay="'+i+'" data-id="'+l.id+'">Marcar pagada</button>')+'</td></tr>';
+    rows += '<tr><td>#'+i+'</td><td>'+venc+'</td><td>'+money(c)+'</td><td>'+ (pagada?'Pagada ✅':'<button class="btn light" data-pay="'+i+'" data-id="'+l.id+'">Marcar pagada</button>') +'</td></tr>';
   }
   return '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
@@ -356,8 +364,7 @@ async function loadActive(){
   const snap=await getDocs(query(collection(db,"loans"), where("status","==","active")));
   if(snap.empty){ box.textContent="Sin activos"; return; }
   const items=[]; snap.forEach(d=>items.push({id:d.id,...d.data()}));
-  const groups={green:[],yellow:[],red:[]};
-  items.forEach(l=>groups[dotByLoan(l)].push(l));
+  const groups={green:[],yellow:[],red:[]}; items.forEach(l=>groups[dotByLoan(l)].push(l));
   function section(title,color){
     if(!groups[color].length) return "";
     return '<div class="hr"></div><div class="row" style="align-items:center;gap:10px"><span class="dot '+color+'"></span><b>'+title+'</b></div><div class="stack">'+groups[color].map(renderActiveCard).join("")+'</div>';
@@ -413,7 +420,7 @@ document.addEventListener("click", async (ev)=>{
   }
 });
 
-/* ====== 5) INACTIVOS ====== */
+/* ====== 5) Inactivos ====== */
 async function loadInactive(){
   const fin=$("finishedList"), chg=$("chargedList");
   fin.textContent=chg.textContent="Cargando…";
@@ -438,7 +445,7 @@ async function loadInactive(){
                    '<div class="actions"><button class="btn light" data-legal="'+d.id+'">PDF legal</button><button class="btn bad" data-del="'+d.id+'">Eliminar</button></div>';
     el.querySelector("[data-legal]").onclick = ()=>{
       const html='<!doctype html><html><head><meta charset="utf-8"><title>Incobrable '+d.id+'</title><style>body{font:14px/1.5 system-ui;padding:24px}h1{font-size:20px}button{padding:8px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer}</style></head><body>'+
-        '<h1>Resumen Legal — EstimaPres</h1><p>Cliente: <b>'+l.borrower.name+'</b> · DNI '+l.borrower.dni+'</p>'+
+        '<h1>Resumen Legal — The EstimaPres</h1><p>Cliente: <b>'+l.borrower.name+'</b> · DNI '+l.borrower.dni+'</p>'+
         '<p>Monto original: '+money(l.amount)+' · Plazo: '+l.months+' meses · TNA: '+l.tna+'%</p>'+
         '<p>Contrato aceptado vía OTP: <b>'+l.otp+'</b></p><button onclick="window.print()">Imprimir</button></body></html>';
       const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
@@ -448,7 +455,7 @@ async function loadInactive(){
   });
 }
 
-/* ====== “VER MI PRÉSTAMO” (OTP) ====== */
+/* ====== “Ver mi préstamo” (OTP) ====== */
 $("btnMyLoan").onclick = async ()=>{
   const code = prompt("Ingresá tu código de 6 dígitos (OTP/firma):"); if(!code) return;
   const snap = await getDocs(query(collection(db,"loans"), where("otp","==",code)));
@@ -464,11 +471,11 @@ $("btnMyLoan").onclick = async ()=>{
   loadPre();
 };
 
-/* ====== Recargar secciones ====== */
-$("btnReloadPending").onclick = loadPending;
-$("btnReloadPre").onclick     = loadPre;
-$("btnReloadActive").onclick  = loadActive;
-$("btnReloadInactive").onclick= loadInactive;
+/* ====== Botones recargar ====== */
+$("btnReloadPending").onclick  = loadPending;
+$("btnReloadPre").onclick      = loadPre;
+$("btnReloadActive").onclick   = loadActive;
+$("btnReloadInactive").onclick = loadInactive;
 
 /* ====== Primera carga ====== */
 loadTna();
