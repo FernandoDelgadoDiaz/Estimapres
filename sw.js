@@ -1,4 +1,4 @@
-// sw.js — EstimaPres PWA
+9// sw.js — EstimaPres PWA
 // Coloca este archivo en la RAÍZ del sitio. Cambiá VERSION en cada deploy.
 const VERSION = 'v1.3.0';
 const CACHE_NAME = `estimapers-cache-${VERSION}`;
