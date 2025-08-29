@@ -2,10 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1"
-  />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
   <title>EstimaPres · Préstamos en ARS</title>
   <style>
     :root{
@@ -61,8 +58,8 @@
       </div>
       <div class="nav">
         <button id="btnMyLoan" class="btn ghost">Ver mi préstamo</button>
-        <button id="btnAdmin" class="btn ghost">Admin</button>
-        <button id="btnAuth" class="btn danger hidden">Salir</button>
+        <button id="btnAdmin" class="btn ghost hidden">Admin</button>
+        <button id="btnLogout" class="btn danger hidden">Salir</button>
         <button id="btnLogin" class="btn primary">Ingresar</button>
       </div>
     </div>
@@ -116,7 +113,7 @@
       <button id="btnReloadReq" class="btn">Recargar</button>
       <div id="reqList" style="margin-top:10px"></div>
 
-      <h2 style="margin-top:18px">3) Preaprobados (Contrato / OTP / Depósito / Aprobar)</h2>
+      <h2 style="margin-top:18px">3) Preaprobados</h2>
       <button id="btnReloadPre" class="btn">Recargar</button>
       <div id="preList" style="margin-top:10px"></div>
 
@@ -146,7 +143,7 @@
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // === TU CONFIG: la que me pasaste del proyecto "estimapres"
+    // === Config real (tu proyecto "estimapres") ===
     const firebaseConfig = {
       apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
       authDomain: "estimapres.firebaseapp.com",
@@ -161,31 +158,48 @@
 
     /******** Utils *********/
     const $ = (sel)=>document.querySelector(sel);
-    const $$ = (sel)=>document.querySelectorAll(sel);
     const money = (n)=> new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(Number(n||0));
     const toast = (m)=>{const t=$("#toast"); t.textContent=m; t.classList.remove("hidden"); setTimeout(()=>t.classList.add("hidden"),2500);};
-    const cuota = (P,tna,months)=>{ const i =(tna/100)/12; if(i===0) return Math.round(P/months);
+    const cuota = (P,tna,months)=>{ const i =(tna/100)/12; if(!i) return Math.round(P/months);
       return Math.round(P * (i*Math.pow(1+i,months)) / (Math.pow(1+i,months)-1)); };
 
-    const STATE = { tna:150, dueDay:10, user:null, isAdmin:false, lastSim:null };
+    const STATE = { tna:100, dueDay:10, user:null, isAdmin:false, lastSim:null };
 
-    /******** Auth + Admin gating *********/
-    async function isEmailAdmin(email){
-      try{
-        const snap = await getDoc(doc(db,"admins","admins"));
-        const arr = snap.exists()? (snap.data().emails||[]) : [];
-        return arr.includes(email);
-      }catch(_){ return false; }
+    /******** Admin check robusto *********/
+    async function isEmailAdmin(email) {
+      try {
+        const snap = await getDoc(doc(db, 'admins', 'admins'));
+        const list = (snap.exists() && Array.isArray(snap.data().emails))
+          ? snap.data().emails
+          : [];
+        const norm = s => String(s || '').trim().toLowerCase();
+        return list.map(norm).includes(norm(email));
+      } catch (e) {
+        console.error('isEmailAdmin error', e);
+        return false;
+      }
     }
+
+    function openAdmin() {
+      $('#adminPanel').classList.remove('hidden');
+      loadTna();
+      loadReq();
+      loadPre();
+      loadActive();
+      loadInactive();
+      const p = $('#adminPanel');
+      if (p && p.scrollIntoView) p.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+
     onAuthStateChanged(auth, async (user)=>{
-      STATE.user = user||null;
+      STATE.user = user || null;
       $("#btnLogin").classList.toggle("hidden", !!user);
-      $("#btnAuth").classList.toggle("hidden", !user);
+      $("#btnLogout").classList.toggle("hidden", !user);
       $("#btnAdmin").classList.toggle("hidden", !user);
-      $("#adminPanel").classList.add("hidden");
+      $('#adminPanel').classList.add('hidden');
 
       STATE.isAdmin = !!(user && await isEmailAdmin(user.email));
-      if(!STATE.isAdmin) $("#btnAdmin").classList.add("hidden");
+      if (STATE.isAdmin) openAdmin();
     });
 
     $("#btnLogin").onclick = async ()=>{
@@ -197,19 +211,20 @@
         toast("Sesión iniciada.");
       }catch(e){ console.error(e); alert("Error de acceso: "+(e.code||e.message)); }
     };
-    $("#btnAuth").onclick = async ()=>{ await signOut(auth); toast("Sesión cerrada."); };
-
-    $("#btnAdmin").onclick = ()=>{
-      if(!STATE.isAdmin){ alert("No tenés permisos de administrador."); return; }
-      $("#adminPanel").classList.toggle("hidden");
+    $("#btnLogout").onclick = async ()=>{ try{ await signOut(auth); toast("Sesión cerrada."); }catch(e){} };
+    $("#btnAdmin").onclick = async ()=>{
+      if(!STATE.user){ alert('Iniciá sesión para continuar.'); return; }
+      if(!STATE.isAdmin){ STATE.isAdmin = await isEmailAdmin(STATE.user.email); }
+      if(!STATE.isAdmin){ alert('No tenés permisos de administrador.'); return; }
+      openAdmin();
     };
 
-    /******** Config (TNA) desde settings/global *********/
+    /******** Config (TNA) desde /settings/global *********/
     async function loadTna(){
       try{
         const s = await getDoc(doc(db,"settings","global"));
         if(s.exists()){
-          STATE.tna = Number(s.data().tna||150);
+          STATE.tna = Number(s.data().tna||STATE.tna);
         }
       }catch(e){ console.warn("settings/global:",e.code||e.message); }
       $("#lblTna").textContent = STATE.tna+"%";
@@ -219,6 +234,7 @@
     $("#btnSaveTna").onclick = async ()=>{
       if(!STATE.isAdmin) return;
       const val = Number($("#inpTna").value||0);
+      if(!Number.isFinite(val) || val<0){ alert("TNA inválida"); return; }
       try{
         await setDoc(doc(db,"settings","global"),{tna:val, updatedAt:serverTimestamp()},{merge:true});
         STATE.tna = val;
@@ -233,8 +249,8 @@
       const months = Number($("#simMonths").value||0);
       if(!amount || !months){ toast("Completá monto y meses."); return; }
       const c = cuota(amount, STATE.tna, months);
-      const total = money(c*months);
-      $("#simOut").innerHTML = `Cuota: <b>${money(c)}</b> · <span class="muted">Total: ${total}</span><br>
+      const total = c*months;
+      $("#simOut").innerHTML = `Cuota: <b>${money(c)}</b> · <span class="muted">Total: ${money(total)}</span><br>
       <a href="#" id="lnkSched">Ver detalle de cuotas</a>`;
       $("#simSchedule").classList.add("hidden");
 
@@ -251,7 +267,7 @@
       STATE.lastSim = {amount, months, tna:STATE.tna};
     };
 
-    /******** Solicitudes *********/
+    /******** Solicitudes (público) *********/
     $("#btnSendReq").onclick = async ()=>{
       const name = $("#rqName").value.trim();
       const dni = $("#rqDni").value.trim();
@@ -271,7 +287,7 @@
           createdAt: serverTimestamp()
         });
         alert("Solicitud enviada. Un administrador la revisará en 48 hs.");
-        $("#rqName").value=$("#rqDni").value=$("#rqEmail").value=$("#rqPhone").value=$("#rqCbu").value="";
+        ["rqName","rqDni","rqEmail","rqPhone","rqCbu"].forEach(id=>$("#"+id).value="");
       }catch(e){
         alert("No se pudo enviar la solicitud: "+(e.code||e.message));
       }
@@ -281,7 +297,8 @@
     async function loadReq(){
       const box = $("#reqList"); box.innerHTML = "Cargando…";
       try{
-        const qy = query(collection(db,"loan_requests"), orderBy("createdAt","desc"), limit(80));
+        // sin índice compuesto: ordenamos por createdAt y filtramos en cliente
+        const qy = query(collection(db,"loan_requests"), orderBy("createdAt","desc"), limit(100));
         const snap = await getDocs(qy);
         if(snap.empty){ box.innerHTML = `<div class="list-empty">Sin solicitudes</div>`; return; }
         const items = [];
@@ -292,6 +309,7 @@
               <div>
                 <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}
                 <div class="note">${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
+                <div class="note">${l.borrower.email} · ${l.borrower.phone}</div>
               </div>
               <div class="actions">
                 <button data-act="pre" data-id="${l.id}" class="btn primary">Preaprobar</button>
@@ -310,10 +328,11 @@
     async function loadPre(){
       const box = $("#preList"); box.innerHTML = "Cargando…";
       try{
-        const qy = query(collection(db,"loans"), where("status","==","preapproved"), orderBy("createdAt","desc"), limit(80));
+        // single-field index (createdAt) + filtro por estado en memoria
+        const qy = query(collection(db,"loans"), orderBy("createdAt","desc"), limit(100));
         const snap = await getDocs(qy);
         if(snap.empty){ box.innerHTML = `<div class="list-empty">Sin preaprobados</div>`; return; }
-        const items = []; snap.forEach(d=>items.push({id:d.id, ...d.data()}));
+        const items = []; snap.forEach(d=>{ const v={id:d.id, ...d.data()}; if(v.status==="preapproved") items.push(v); });
         box.innerHTML = items.map(l=>(
           `<div class="card" style="padding:12px">
             <div class="row" style="justify-content:space-between">
@@ -341,7 +360,7 @@
     const dotByLoan = (l)=>{
       const today = new Date();
       const due = new Date(today.getFullYear(), today.getMonth(), STATE.dueDay);
-      if(today.getDate()<=STATE.dueDay) due.setMonth(today.getMonth()); else due.setMonth(today.getMonth()+1);
+      if(today.getDate()>STATE.dueDay) due.setMonth(today.getMonth()+1);
       const diff = Math.floor((today-due)/(1000*60*60*24));
       if(diff<=0) return "green"; if(diff<=10) return "yellow"; return "red";
     };
@@ -358,11 +377,11 @@
     async function loadActive(){
       const box = $("#activeList"); box.innerHTML = "Cargando…";
       try{
-        const qy = query(collection(db,"loans"), where("status","==","active"), orderBy("activeAt","desc"), limit(80));
+        // single-field index: activeAt
+        const qy = query(collection(db,"loans"), orderBy("activeAt","desc"), limit(150));
         const snap = await getDocs(qy);
-        if(snap.empty){ box.innerHTML = `<div class="list-empty">Sin activos</div>`; return; }
         const groups = {green:[],yellow:[],red:[]};
-        snap.forEach(d=>{ const l={id:d.id,...d.data()}; groups[dotByLoan(l)].push(l); });
+        snap.forEach(d=>{ const l={id:d.id,...d.data()}; if(l.status==="active") groups[dotByLoan(l)].push(l); });
         const section = (title,color)=> groups[color].length?`
           <h3 style="margin:12px 0">${title}</h3>
           ${groups[color].map(l=>`
@@ -381,7 +400,7 @@
               <div id="det-${l.id}" class="hidden" style="margin-top:8px">${scheduleHTML(l)}</div>
             </div>`).join("")}
         `:"";
-        box.innerHTML = section("Verde (al día)","green")+section("Amarillo (6–10 días)","yellow")+section("Rojo (&gt;10 días)","red");
+        box.innerHTML = (section("Verde (al día)","green")+section("Amarillo (6–10 días)","yellow")+section("Rojo (&gt;10 días)","red")) || `<div class="list-empty">Sin activos</div>`;
       }catch(e){
         box.innerHTML = `<div class="list-empty">No se pudo leer activos (${e.code||"reglas/índices"}).</div>`;
       }
@@ -393,9 +412,9 @@
       const box = $("#inactiveList"); box.innerHTML = "Cargando…";
       try{
         const get = async (st)=> {
-          const qy = query(collection(db,"loans"), where("status","==",st), orderBy("createdAt","desc"), limit(80));
+          const qy = query(collection(db,"loans"), orderBy("createdAt","desc"), limit(150));
           const snap = await getDocs(qy);
-          const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); return arr;
+          const arr=[]; snap.forEach(d=>{ const v={id:d.id,...d.data()}; if(v.status===st) arr.push(v); }); return arr;
         };
         const finished = await get("finished");
         const charged = await get("charged_off");
@@ -409,15 +428,15 @@
     }
     $("#btnReloadInactive").onclick = loadInactive;
 
-    /******** Delegación de eventos (admin) *********/
+    /******** Delegación de eventos *********/
     document.addEventListener("click", async (ev)=>{
       const b = ev.target.closest("button"); if(!b) return;
 
-      // Ver mi préstamo
+      // Ver mi préstamo (DNI)
       if(b.id==="btnMyLoan"){
         const dni = prompt("Ingresá tu DNI para consultar tu préstamo:"); if(!dni) return;
         try{
-          const res=[]; const snap=await getDocs(query(collection(db,"loans"), orderBy("createdAt","desc"), limit(80)));
+          const res=[]; const snap=await getDocs(query(collection(db,"loans"), orderBy("createdAt","desc"), limit(120)));
           snap.forEach(d=>{ const l=d.data(); if(l?.borrower?.dni==dni) res.push({id:d.id,...l}); });
           if(!res.length){ alert("No encontramos préstamos activos o preaprobados para ese DNI."); return; }
           const l = res[0];
@@ -426,10 +445,12 @@
         return;
       }
 
-      // Admin only below
-      if(!STATE.isAdmin) return;
+      // Solo admin desde acá
+      if(b.closest("#adminPanel")){
+        if(!STATE.isAdmin){ alert("No tenés permisos de administrador."); return; }
+      }
 
-      // Preaprobar solicitud
+      // Pending: preaprobar / eliminar
       if(b.dataset.act==="pre"){
         try{
           const r = await getDoc(doc(db,"loan_requests",b.dataset.id));
@@ -446,14 +467,14 @@
         }catch(e){ alert("No se pudo preaprobar: "+(e.code||e.message)); }
         return;
       }
-      // Eliminar solicitud
       if(b.dataset.act==="delreq"){
         if(!confirm("¿Eliminar solicitud?")) return;
         try{ await deleteDoc(doc(db,"loan_requests",b.dataset.id)); loadReq(); }
         catch(e){ alert("No se pudo eliminar: "+(e.code||e.message)); }
         return;
       }
-      // Acciones sobre preaprobados
+
+      // Preaprobados: contrato / OTP / depósito / aprobar / eliminar
       if(b.dataset.act==="contract"){
         try{
           const l = (await getDoc(doc(db,"loans",b.dataset.id))).data();
@@ -488,7 +509,7 @@
         return;
       }
 
-      // Activos
+      // Activos: ver / incobrables / finalizar / marcar pagada
       if(b.dataset.act==="ver"){ $("#det-"+b.dataset.id).classList.toggle("hidden"); return; }
       if(b.dataset.act==="inc"){
         if(!confirm("¿Pasar a incobrables?"))return;
@@ -515,8 +536,20 @@
       }
     });
 
+    /******** Ver mi préstamo (DNI) *********/
+    $("#btnMyLoan").onclick = async ()=>{
+      const dni = prompt("Ingresá tu DNI para consultar tu préstamo:"); if(!dni) return;
+      try{
+        const res=[]; const snap=await getDocs(query(collection(db,"loans"), orderBy("createdAt","desc"), limit(120)));
+        snap.forEach(d=>{ const l=d.data(); if(l?.borrower?.dni==dni) res.push({id:d.id,...l}); });
+        if(!res.length){ alert("No encontramos préstamos activos o preaprobados para ese DNI."); return; }
+        const l = res[0];
+        alert(`Estado: ${l.status}\nMonto: ${money(l.amount)}\nCuotas: ${l.months}\nTNA: ${l.tna}%`);
+      }catch(e){ alert("No se pudo consultar: "+(e.code||e.message)); }
+    };
+
     // Carga inicial
-    await loadTna();
+    loadTna();
   </script>
 </body>
 </html>
