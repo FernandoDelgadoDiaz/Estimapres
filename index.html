@@ -5,18 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>EstimaPres · Préstamos en ARS</title>
   <meta name="color-scheme" content="light only" />
-
-  <!-- Fuente & estilos rápidos -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#f6f8fb; --card:#ffffff; --text:#233043; --muted:#6b7a90;
-      --brand:#0b4ea2; --brand-2:#0b63c4; --ok:#138a36; --warn:#f0a202; --bad:#d7263d;
-      --ring: rgba(11,99,196,.15);
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.4 "Inter",system-ui,-apple-system,Segoe UI,Roboto}
+    :root{--bg:#f6f8fb;--card:#fff;--text:#233043;--muted:#6b7a90;--brand:#0b4ea2;--brand-2:#0b63c4;--ok:#138a36;--warn:#f0a202;--bad:#d7263d;--ring:rgba(11,99,196,.15)}
+    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 "Inter",system-ui}
     .container{max-width:1120px;margin:0 auto;padding:16px}
     .nav{background:linear-gradient(180deg,#0b4ea2,#0b63c4);color:#fff}
     .nav .bar{display:flex;align-items:center;gap:12px;padding:14px 16px}
@@ -24,16 +17,11 @@
     .avatar{width:34px;height:34px;border-radius:50%;background:#123d7a;color:#cde3ff;display:grid;place-items:center;font-weight:700}
     .spacer{flex:1}
     .btn{border:0;cursor:pointer;border-radius:14px;padding:10px 16px;font-weight:600}
-    .btn.ghost{background:rgba(255,255,255,.1);color:#fff}
-    .btn.ghost:hover{background:rgba(255,255,255,.18)}
+    .btn.ghost{background:rgba(255,255,255,.1);color:#fff}.btn.ghost:hover{background:rgba(255,255,255,.18)}
     .btn.danger{background:#e45050;color:#fff}
     .grid{display:grid;gap:16px;margin-top:16px}
-    @media(min-width:980px){.grid{grid-template-columns:1fr}}
     .card{background:var(--card);border-radius:18px;box-shadow:0 8px 28px rgba(11,99,196,.06),0 1px 0 rgba(0,0,0,.04);padding:18px}
-    h1,h2,h3{margin:0 0 14px 0}
-    h1{font-size:28px}
-    h2{font-size:24px}
-    h3{font-size:18px}
+    h1,h2,h3{margin:0 0 14px 0} h1{font-size:28px} h2{font-size:24px} h3{font-size:18px}
     .help{color:var(--muted);font-size:14px}
     .row{display:flex;gap:12px;align-items:center}
     .stack{display:grid;gap:10px}
@@ -41,33 +29,24 @@
     .in{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #dde3ee;background:#fff;outline:none}
     .in:focus{border-color:var(--brand-2);box-shadow:0 0 0 4px var(--ring)}
     .btn.primary{background:var(--brand-2);color:#fff;border-radius:12px;padding:12px 16px}
-    .btn.green{background:var(--ok);color:#fff}
-    .btn.yellow{background:var(--warn);color:#fff}
-    .btn.gray{background:#eef2f8;color:#0b2a4a}
+    .btn.green{background:var(--ok);color:#fff}.btn.yellow{background:var(--warn);color:#fff}.btn.gray{background:#eef2f8;color:#0b2a4a}
     .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#eef2f8;color:#0b2a4a;font-weight:600}
-    .dot{width:10px;height:10px;border-radius:50%}
-    .dot.green{background:var(--ok)} .dot.yellow{background:var(--warn)} .dot.red{background:var(--bad)}
+    .dot{width:10px;height:10px;border-radius:50%}.dot.green{background:var(--ok)}.dot.yellow{background:var(--warn)}.dot.red{background:var(--bad)}
     .hr{height:1px;background:#e9edf5;margin:10px 0}
     .small{font-size:13px;color:var(--muted)}
     details{background:#f7f9fc;border:1px dashed #dfe6f3;padding:10px 12px;border-radius:12px}
     details summary{cursor:pointer;font-weight:600;margin-bottom:8px}
-    table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid #e6ecf7;padding:8px;text-align:right}
-    th:first-child, td:first-child {text-align:left}
-    th{background:#f5f8fd}
+    table{width:100%;border-collapse:collapse} th,td{border:1px solid #e6ecf7;padding:8px;text-align:right}
+    th:first-child, td:first-child {text-align:left} th{background:#f5f8fd}
     .cardlet{background:#fbfdff;border:1px solid #e6ecf7;border-radius:14px;padding:12px}
     .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
     .hidden{display:none}
   </style>
 </head>
 <body>
-  <!-- NAV -->
   <div class="nav">
     <div class="bar container">
-      <div class="brand">
-        <div class="avatar">E</div>
-        <div>EstimaPres</div>
-      </div>
+      <div class="brand"><div class="avatar">E</div><div>EstimaPres</div></div>
       <div class="spacer"></div>
       <button id="btnMyLoan" class="btn ghost">Ver mi préstamo</button>
       <button id="btnAdmin" class="btn ghost">Ingresar</button>
@@ -76,8 +55,6 @@
   </div>
 
   <div class="container grid">
-
-    <!-- SIMULADOR -->
     <div class="card">
       <h1>Simulador (pesos argentinos)</h1>
       <div class="stack">
@@ -89,7 +66,6 @@
       </div>
     </div>
 
-    <!-- SOLICITAR -->
     <div class="card">
       <h1>Solicitar préstamo</h1>
       <div class="stack">
@@ -102,10 +78,8 @@
       </div>
     </div>
 
-    <!-- PANEL ADMIN -->
     <div id="adminPanel" class="card hidden">
       <h1>Panel de administrador</h1>
-
       <h3>1) Tasa (TNA %)</h3>
       <div class="row" style="gap:10px">
         <input id="adminTna" class="in" style="max-width:240px" type="number" />
@@ -131,7 +105,6 @@
       <div class="hr"></div>
       <h3>5) Inactivos (finalizados / incobrables)</h3>
       <div class="row" style="margin:8px 0"><button id="btnReloadInactive" class="btn gray">Recargar</button></div>
-
       <h3 class="small" style="margin-top:10px">Finalizados</h3>
       <div id="finishedList" class="stack small">—</div>
       <h3 class="small" style="margin-top:10px">Incobrables</h3>
@@ -139,244 +112,147 @@
     </div>
   </div>
 
-  <!-- Firebase SDK (v10 módulos) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs,
-      updateDoc, deleteDoc, query, where, orderBy, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import {
-      getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    // ===== CONFIG REAL (con storageBucket CORREGIDO) =====
+    // Config corregida (storageBucket correcto)
     const firebaseConfig = {
       apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
       authDomain: "estimapres.firebaseapp.com",
       projectId: "estimapres",
-      storageBucket: "estimapres.appspot.com",   // <- CORREGIDO
+      storageBucket: "estimapres.appspot.com",
       messagingSenderId: "578516597437",
       appId: "1:578516597437:web:f59994b87729aa1cd655d4"
     };
 
-    // --- Inicialización ---
-    let app, db, auth;
-    try{
-      app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-      auth = getAuth(app);
-    }catch(e){
-      alert("Error al inicializar Firebase:\n"+e.message);
-      throw e;
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    // --- Helpers ---
-    const $ = (id)=>document.getElementById(id);
-    const money = (n)=> Number(n||0).toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0});
+    const $ = id => document.getElementById(id);
+    const money = n => Number(n||0).toLocaleString("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0});
     const allowedAdmins = ["fernandogastondelgado81@gmail.com"];
     const dueDay = 10; $("dueDayLabel").textContent = dueDay;
 
-    // ======= TNA centralizada =======
+    // TNA
     async function loadTna(){
-      const ref = doc(db,"config","general");
-      const snap = await getDoc(ref);
-      let tna = 150;
-      if(snap.exists()) tna = Number(snap.data().tna)||tna;
-      else await setDoc(ref,{tna});
-      $("tnaLabel").textContent = `${tna}%`;
-      $("adminTna").value = tna;
+      const r=doc(db,"config","general"); const s=await getDoc(r);
+      const t = s.exists()? Number(s.data().tna):150;
+      if(!s.exists()) await setDoc(r,{tna:t});
+      $("tnaLabel").textContent = `${t}%`;
+      $("adminTna").value = t;
     }
-    async function saveTna(){
+    $("btnSaveTna").onclick = async ()=>{
       const val = Number($("adminTna").value||0);
-      await setDoc(doc(db,"config","general"), { tna: val }, { merge:true });
+      await setDoc(doc(db,"config","general"),{tna:val},{merge:true});
       $("tnaLabel").textContent = `${val}%`;
       alert("TNA guardada.");
-    }
-    $("btnSaveTna").onclick = saveTna;
-
-    // ======= Simulador =======
-    const cuota = (P,tna,n)=>{
-      const r=(tna/100)/12;
-      if(!P||!n||!r) return 0;
-      return Math.round(P*(r/(1-Math.pow(1+r,-n))));
     };
+
+    // Simulador
+    const cuota = (P,tna,n)=>{ const r=(tna/100)/12; if(!P||!n||!r) return 0; return Math.round(P*(r/(1-Math.pow(1+r,-n)))) };
     $("btnSimulate").onclick = async ()=>{
       const P = Number($("simAmount").value||0);
       const n = Number($("simMonths").value||0);
       if(!P||!n) return alert("Completá monto y cuotas.");
-
       let tna = Number($("adminTna").value||0);
-      if(!tna){
-        const s = await getDoc(doc(db,"config","general"));
-        tna = s.exists()? Number(s.data().tna):150;
-      }
-      const c = cuota(P,tna,n);
-      const total = c*n;
-
-      const rows = Array.from({length:n}, (_,i)=>{
-        const k=i+1;
-        return `<tr><td>#${k}</td><td>${String(dueDay).padStart(2,"0")}/${String(((new Date().getMonth()+k)%12)+1).padStart(2,"0")}</td><td>${money(c)}</td></tr>`;
-      }).join("");
-
-      $("simResult").innerHTML = `
-        <div><b>Cuota:</b> ${money(c)} · <b>Total:</b> ${money(total)}</div>
-        <details><summary>Ver detalle (${n} cuotas)</summary>
-          <table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th></tr></thead>
-          <tbody>${rows}</tbody></table>
-        </details>`;
+      if(!tna){ const s=await getDoc(doc(db,"config","general")); tna = s.exists()? Number(s.data().tna):150; }
+      const c = cuota(P,tna,n), total=c*n;
+      const rows = Array.from({length:n},(_,i)=>`<tr><td>#${i+1}</td><td>${String(dueDay).padStart(2,"0")}/${String(((new Date().getMonth()+i+1)%12)+1).padStart(2,"0")}</td><td>${money(c)}</td></tr>`).join("");
+      $("simResult").innerHTML = `<div><b>Cuota:</b> ${money(c)} · <b>Total:</b> ${money(total)}</div>
+      <details><summary>Ver detalle (${n} cuotas)</summary>
+      <table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th></tr></thead><tbody>${rows}</tbody></table></details>`;
     };
 
-    // ======= Solicitud de préstamo =======
+    // Solicitud
     $("btnSendRequest").onclick = async ()=>{
-      const amount = Number($("simAmount").value||0);
-      const months = Number($("simMonths").value||0);
-      const borrower = {
-        name:  $("rqName").value.trim(),
-        dni:   $("rqDni").value.trim(),
-        email: $("rqEmail").value.trim(),
-        phone: $("rqPhone").value.trim(),
-        cbu:   $("rqCbu").value.trim()
-      };
-      if(!amount||!months||!borrower.name||!borrower.dni||!borrower.email||!borrower.phone||!borrower.cbu){
-        return alert("Completá todos los campos y simulá primero.");
-      }
-      const tSnap = await getDoc(doc(db,"config","general"));
-      const tna = tSnap.exists()? Number(tSnap.data().tna):150;
-
-      await addDoc(collection(db,"loan_requests"),{
-        borrower, amount, months, tna, createdAt: serverTimestamp()
-      });
-      alert("Solicitud enviada. Un administrador la revisará.");
-      // limpia
-      ["rqName","rqDni","rqEmail","rqPhone","rqCbu"].forEach(id=>$(id).value="");
+      const amount=Number($("simAmount").value||0), months=Number($("simMonths").value||0);
+      const borrower={name:$("rqName").value.trim(),dni:$("rqDni").value.trim(),email:$("rqEmail").value.trim(),phone:$("rqPhone").value.trim(),cbu:$("rqCbu").value.trim()};
+      if(!amount||!months||!borrower.name||!borrower.dni||!borrower.email||!borrower.phone||!borrower.cbu) return alert("Completá todos los campos y simulá primero.");
+      const tSnap=await getDoc(doc(db,"config","general")); const tna=tSnap.exists()? Number(tSnap.data().tna):150;
+      await addDoc(collection(db,"loan_requests"),{borrower,amount,months,tna,createdAt:serverTimestamp()});
+      alert("Solicitud enviada."); ["rqName","rqDni","rqEmail","rqPhone","rqCbu"].forEach(id=>$(id).value="");
     };
 
-    // ======= Auth (Email/Password) =======
+    // Auth (email/contraseña)
     $("btnAdmin").onclick = async ()=>{
-      try{
-        const email = prompt("Email de administrador:");
-        if(!email) return;
-        const pass  = prompt("Contraseña:");
-        if(!pass) return;
-        await signInWithEmailAndPassword(auth,email,pass);
-      }catch(e){ alert("No se pudo iniciar sesión: "+(e.message||e)); }
+      try{ const email=prompt("Email de administrador:"); if(!email) return;
+           const pass =prompt("Contraseña:"); if(!pass) return;
+           await signInWithEmailAndPassword(auth,email,pass); }
+      catch(e){ alert("No se pudo iniciar sesión: "+(e.message||e)); }
     };
     $("btnSignOut").onclick = ()=> signOut(auth);
-
-    onAuthStateChanged(auth, async (user)=>{
-      const isAdmin = !!user && allowedAdmins.includes(user.email||"");
-      $("btnSignOut").classList.toggle("hidden", !user);
-      $("btnAdmin").textContent = user? "Admin" : "Ingresar";
+    onAuthStateChanged(auth, async (u)=>{
+      const isAdmin = !!u && allowedAdmins.includes(u.email||"");
+      $("btnSignOut").classList.toggle("hidden", !u);
+      $("btnAdmin").textContent = u? "Admin":"Ingresar";
       $("adminPanel").classList.toggle("hidden", !isAdmin);
-      if(isAdmin){
-        await loadTna();
-        await loadPending();
-        await loadPre();
-        await loadActive();
-        await loadInactive();
-      }
+      if(isAdmin){ await loadTna(); await loadPending(); await loadPre(); await loadActive(); await loadInactive(); }
     });
 
-    // Utilidades
-    const otp6 = ()=> String(Math.floor(100000 + Math.random()*900000));
-    const shareWA = (t)=> window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");
+    const otp6 = ()=> String(Math.floor(100000+Math.random()*900000));
+    const shareWA = t => window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");
 
-    // ======= 2) Pendientes =======
+    // 2) Pendientes
     $("btnReloadPending").onclick = ()=> loadPending();
     async function loadPending(){
-      const box = $("pendingList"); box.textContent = "Cargando…";
+      const box=$("pendingList"); box.textContent="Cargando…";
       try{
-        const snap = await getDocs(query(collection(db,"loan_requests"), orderBy("createdAt","desc")));
-        if(snap.empty){ box.textContent = "Sin solicitudes pendientes"; return; }
-        box.innerHTML = "";
-        snap.forEach(d=>{
-          const v=d.data();
-          const el=document.createElement("div");
-          el.className="cardlet";
-          el.innerHTML = `
-            <div class="row">
-              <span class="badge"><span class="dot yellow"></span>Pendiente</span>
-              <b>${v.borrower.name}</b> · DNI ${v.borrower.dni}
-            </div>
-            <div>Principal ${money(v.amount)} · ${v.months} cuotas · TNA ${v.tna}%</div>
-            <div class="actions">
-              <button class="btn green">Preaprobar</button>
-              <button class="btn danger">Rechazar</button>
-            </div>`;
-          el.querySelectorAll("button")[0].onclick = ()=> preapprove(d.id,v);
-          el.querySelectorAll("button")[1].onclick = async ()=>{
-            if(!confirm("¿Rechazar solicitud?")) return;
-            await deleteDoc(doc(db,"loan_requests",d.id));
-            loadPending();
-          };
+        const snap=await getDocs(query(collection(db,"loan_requests"),orderBy("createdAt","desc")));
+        if(snap.empty){ box.textContent="Sin solicitudes pendientes"; return; }
+        box.innerHTML=""; snap.forEach(d=>{
+          const v=d.data(); const el=document.createElement("div"); el.className="cardlet";
+          el.innerHTML=`<div class="row"><span class="badge"><span class="dot yellow"></span>Pendiente</span><b>${v.borrower.name}</b> · DNI ${v.borrower.dni}</div>
+                        <div>Principal ${money(v.amount)} · ${v.months} cuotas · TNA ${v.tna}%</div>
+                        <div class="actions"><button class="btn green">Preaprobar</button><button class="btn danger">Rechazar</button></div>`;
+          el.querySelectorAll("button")[0].onclick=()=>preapprove(d.id,v);
+          el.querySelectorAll("button")[1].onclick=async()=>{ if(!confirm("¿Rechazar?"))return; await deleteDoc(doc(db,"loan_requests",d.id)); loadPending(); };
           box.appendChild(el);
         });
-      }catch(e){
-        box.textContent = "No se pudieron leer las solicitudes (revisá reglas o índices).";
-        console.error(e);
-      }
+      }catch(e){ box.textContent="No se pudieron leer las solicitudes (reglas/índices)."; console.error(e); }
     }
     async function preapprove(id,v){
-      const code = otp6();
-      await addDoc(collection(db,"loans"),{
-        ...v, status:"preapproved", otp:code,
-        contractAccepted:false, depositDone:false,
-        paidCount:0, dueDay, createdAt: serverTimestamp()
-      });
+      const code=otp6();
+      await addDoc(collection(db,"loans"),{...v,status:"preapproved",otp:code,contractAccepted:false,depositDone:false,paidCount:0,dueDay,createdAt:serverTimestamp()});
       await deleteDoc(doc(db,"loan_requests",id));
-      alert("Preaprobado creado. Enviá el OTP al cliente.");
-      shareWA(`Hola ${v.borrower.name}, tu préstamo fue PRE-APROBADO.\nOTP/Firma: ${code}\nIngresá a EstimaPres y usá ese código para aceptar el contrato.`);
+      alert("Preaprobado creado."); shareWA(`Hola ${v.borrower.name}, tu préstamo fue PRE-APROBADO.\nOTP/Firma: ${code}\nIngresá a EstimaPres y usá ese código.`);
       loadPending(); loadPre();
     }
 
-    // ======= 3) Preaprobados =======
-    $("btnReloadPre").onclick = ()=> loadPre();
+    // 3) Preaprobados
+    $("btnReloadPre").onclick=()=>loadPre();
     async function loadPre(){
-      const box = $("preList"); box.textContent = "Cargando…";
+      const box=$("preList"); box.textContent="Cargando…";
       try{
-        const snap = await getDocs(query(collection(db,"loans"), where("status","==","preapproved"), orderBy("createdAt","desc")));
-        if(snap.empty){ box.textContent = "Sin preaprobados"; return; }
-        box.innerHTML = "";
-        snap.forEach(d=>{
-          const l=d.data(), id=d.id;
-          const el=document.createElement("div");
-          el.className="cardlet";
-          el.innerHTML = `
-            <div class="row">
-              <span class="badge"><span class="dot yellow"></span>Preaprobado</span>
-              <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}
-            </div>
-            <div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
-            <div class="actions">
-              <button class="btn gray">Contrato (PDF)</button>
-              <button class="btn gray">Enviar OTP</button>
-              <button class="btn yellow">Depósito hecho</button>
-              <button class="btn green">Aprobar</button>
-              <button class="btn danger">Eliminar</button>
-            </div>
-            <div class="small">Contrato: ${l.contractAccepted?"ACEPTADO ✅":"Pendiente"} · Depósito: ${l.depositDone?"Hecho ✅":"Pendiente"}</div>`;
-          const [b1,b2,b3,b4,b5] = el.querySelectorAll("button");
-          b1.onclick = ()=> openContract(id,l);
-          b2.onclick = ()=> shareWA(`OTP/Firma para EstimaPres: ${l.otp}`);
-          b3.onclick = async ()=>{ await updateDoc(doc(db,"loans",id),{depositDone:true}); loadPre(); };
-          b4.onclick = async ()=>{
+        const snap=await getDocs(query(collection(db,"loans"),where("status","==","preapproved"),orderBy("createdAt","desc")));
+        if(snap.empty){ box.textContent="Sin preaprobados"; return; }
+        box.innerHTML=""; snap.forEach(d=>{
+          const l=d.data(), id=d.id; const el=document.createElement("div"); el.className="cardlet";
+          el.innerHTML=`<div class="row"><span class="badge"><span class="dot yellow"></span>Preaprobado</span><b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</div>
+                        <div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
+                        <div class="actions">
+                          <button class="btn gray">Contrato (PDF)</button>
+                          <button class="btn gray">Enviar OTP</button>
+                          <button class="btn yellow">Depósito hecho</button>
+                          <button class="btn green">Aprobar</button>
+                          <button class="btn danger">Eliminar</button>
+                        </div>
+                        <div class="small">Contrato: ${l.contractAccepted?"ACEPTADO ✅":"Pendiente"} · Depósito: ${l.depositDone?"Hecho ✅":"Pendiente"}</div>`;
+          const [b1,b2,b3,b4,b5]=el.querySelectorAll("button");
+          b1.onclick=()=>openContract(id,l);
+          b2.onclick=()=>shareWA(`OTP/Firma para EstimaPres: ${l.otp}`);
+          b3.onclick=async()=>{await updateDoc(doc(db,"loans",id),{depositDone:true}); loadPre();};
+          b4.onclick=async()=>{
             const s=await getDoc(doc(db,"loans",id)); const L=s.data();
-            if(!L.contractAccepted) return alert("Falta firma OTP del cliente.");
-            if(!L.depositDone) return alert("Marcá el depósito antes de aprobar.");
-            await updateDoc(doc(db,"loans",id),{status:"active",activeAt:serverTimestamp()});
-            loadPre(); loadActive();
+            if(!L.contractAccepted) return alert("Falta firma OTP."); if(!L.depositDone) return alert("Marcá el depósito.");
+            await updateDoc(doc(db,"loans",id),{status:"active",activeAt:serverTimestamp()}); loadPre(); loadActive();
           };
-          b5.onclick = async ()=>{
-            if(!confirm("¿Eliminar preaprobado?")) return;
-            await deleteDoc(doc(db,"loans",id)); loadPre();
-          };
+          b5.onclick=async()=>{ if(!confirm("¿Eliminar?"))return; await deleteDoc(doc(db,"loans",id)); loadPre(); };
           box.appendChild(el);
         });
-      }catch(e){
-        box.textContent = "No se pudieron cargar los preaprobados (revisá índice status+createdAt).";
-        console.error(e);
-      }
+      }catch(e){ box.textContent="No se pudieron cargar los preaprobados (índice status+createdAt)."; console.error(e); }
     }
     function openContract(id,l){
       const html = `
@@ -386,186 +262,73 @@
           <h1>Contrato de Préstamo — EstimaPres</h1>
           <p>ID: ${id}</p>
           <p>Cliente: <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</p>
-          <ul>
-            <li>Monto: <b>${money(l.amount)}</b></li>
-            <li>Plazo: <b>${l.months} cuotas</b></li>
-            <li>TNA: <b>${l.tna}%</b></li>
-            <li>Vencimiento mensual: día <b>${l.dueDay||dueDay}</b></li>
-          </ul>
+          <ul><li>Monto: <b>${money(l.amount)}</b></li><li>Plazo: <b>${l.months} cuotas</b></li><li>TNA: <b>${l.tna}%</b></li><li>Vencimiento mensual: día <b>${l.dueDay||dueDay}</b></li></ul>
           <p>Para aceptar el contrato el cliente debe ingresar el código OTP: <b>${l.otp}</b>.</p>
-          <script>window.onload=()=>window.print()</script>
         </body></html>`;
-      const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
+      const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(html); w.document.close(); w.onload=()=>w.print();
     }
 
-    // ======= 4) Activos =======
-    $("btnReloadActive").onclick = ()=> loadActive();
-    const cuotaLoan = (P,tna,n)=> Math.round(P*((tna/100)/12)/(1-Math.pow(1+(tna/100)/12,-n)));
-    function dotByLoan(l){
-      const today=new Date();
-      const nextDue = new Date(today.getFullYear(), today.getMonth(), l.dueDay||dueDay);
-      if(today.getDate()<= (l.dueDay||dueDay)) nextDue.setMonth(today.getMonth());
-      else nextDue.setMonth(today.getMonth()+1);
-      const diff = Math.floor((today-nextDue)/(1000*60*60*24));
-      if(diff<=0) return "green"; if(diff<=10) return "yellow"; return "red";
-    }
+    // 4) Activos
+    $("btnReloadActive").onclick=()=>loadActive();
+    const cuotaLoan=(P,tna,n)=>Math.round(P*((tna/100)/12)/(1-Math.pow(1+(tna/100)/12,-n)));
+    function dotByLoan(l){ const today=new Date(); const next=new Date(today.getFullYear(),today.getMonth(),l.dueDay||dueDay); if(today.getDate()<=(l.dueDay||dueDay)) next.setMonth(today.getMonth()); else next.setMonth(today.getMonth()+1); const diff=Math.floor((today-next)/(1000*60*60*24)); if(diff<=0) return "green"; if(diff<=10) return "yellow"; return "red"; }
     function scheduleHTML(l){
-      const c = cuotaLoan(l.amount,l.tna,l.months);
-      const paid = Number(l.paidCount||0);
-      const rows = Array.from({length:l.months},(_,i)=>{
-        const n=i+1, pagada = n<=paid;
-        return `<tr>
-          <td>#${n}</td>
-          <td>${String(l.dueDay||dueDay).padStart(2,"0")}/${String(((new Date().getMonth()+n)%12)+1).padStart(2,"0")}</td>
-          <td>${money(c)}</td>
-          <td>${pagada?"Pagada ✅":`<button class="btn gray" data-pay="${n}" data-id="${l.id}">Marcar pagada</button>`}</td>
-        </tr>`;
-      }).join("");
+      const c=cuotaLoan(l.amount,l.tna,l.months); const paid=Number(l.paidCount||0);
+      const rows=Array.from({length:l.months},(_,i)=>{const n=i+1,p=n<=paid;return `<tr><td>#${n}</td><td>${String(l.dueDay||dueDay).padStart(2,"0")}/${String(((new Date().getMonth()+n)%12)+1).padStart(2,"0")}</td><td>${money(c)}</td><td>${p?"Pagada ✅":`<button class="btn gray" data-pay="${n}" data-id="${l.id}">Marcar pagada</button>`}</td></tr>`}).join("");
       return `<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table>`;
     }
     function renderActiveCard(l){
-      return `
-        <div class="cardlet" id="card-${l.id}">
-          <div class="row">
-            <span class="badge"><span class="dot ${dotByLoan(l)}"></span>Activo</span>
-            <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}
-            <span class="small">Estado: ${l.status}</span>
-          </div>
-          <div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
-          <div class="actions">
-            <button class="btn gray" data-act="ver" data-id="${l.id}">Ver</button>
-            <button class="btn yellow" data-act="inc" data-id="${l.id}">A incobrables</button>
-            <button class="btn green" data-act="fin" data-id="${l.id}">Finalizar</button>
-          </div>
-          <div class="hidden" id="det-${l.id}">${scheduleHTML(l)}</div>
-        </div>`;
+      return `<div class="cardlet" id="card-${l.id}">
+        <div class="row"><span class="badge"><span class="dot ${dotByLoan(l)}"></span>Activo</span><b>${l.borrower.name}</b> · DNI ${l.borrower.dni}<span class="small">Estado: ${l.status}</span></div>
+        <div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
+        <div class="actions"><button class="btn gray" data-act="ver" data-id="${l.id}">Ver</button><button class="btn yellow" data-act="inc" data-id="${l.id}">A incobrables</button><button class="btn green" data-act="fin" data-id="${l.id}">Finalizar</button></div>
+        <div class="hidden" id="det-${l.id}">${scheduleHTML(l)}</div></div>`;
     }
     async function loadActive(){
-      const box = $("activeList"); box.textContent = "Cargando…";
+      const box=$("activeList"); box.textContent="Cargando…";
       try{
-        const snap = await getDocs(query(collection(db,"loans"), where("status","==","active"), orderBy("activeAt","desc")));
+        const snap=await getDocs(query(collection(db,"loans"),where("status","==","active"),orderBy("activeAt","desc")));
         if(snap.empty){ box.textContent="Sin activos"; return; }
         const items=[]; snap.forEach(d=>items.push({id:d.id,...d.data()}));
-        const groups={green:[],yellow:[],red:[]};
-        items.forEach(l=>groups[dotByLoan(l)].push(l));
-        const section = (title,color)=> groups[color].length
-          ? `<div class="hr"></div><div class="row"><span class="dot ${color}"></span><b>${title}</b></div>
-             <div class="stack">${groups[color].map(renderActiveCard).join("")}</div>` : "";
-        box.innerHTML = section("Verde (al día)","green") + section("Amarillo (6–10 días)","yellow") + section("Rojo (>10 días)","red");
-      }catch(e){
-        box.textContent = "No se pudieron leer los activos (revisá índice status+activeAt).";
-        console.error(e);
-      }
+        const groups={green:[],yellow:[],red:[]}; items.forEach(l=>groups[dotByLoan(l)].push(l));
+        const section=(t,c)=>groups[c].length?`<div class="hr"></div><div class="row"><span class="dot ${c}"></span><b>${t}</b></div><div class="stack">${groups[c].map(renderActiveCard).join("")}</div>`:"";
+        box.innerHTML=section("Verde (al día)","green")+section("Amarillo (6–10 días)","yellow")+section("Rojo (>10 días)","red");
+      }catch(e){ box.textContent="No se pudieron leer los activos (índice status+activeAt)."; console.error(e); }
     }
-    document.addEventListener("click", async (ev)=>{
-      const b = ev.target.closest("button"); if(!b) return;
+    document.addEventListener("click",async ev=>{
+      const b=ev.target.closest("button"); if(!b) return;
       if(b.dataset.act==="ver"){ $("det-"+b.dataset.id).classList.toggle("hidden"); }
-      if(b.dataset.act==="inc"){
-        if(!confirm("¿Pasar a incobrables?")) return;
-        await updateDoc(doc(db,"loans",b.dataset.id),{status:"charged_off"});
-        loadActive(); loadInactive();
-      }
-      if(b.dataset.act==="fin"){
-        if(!confirm("¿Finalizar (pagado total)?")) return;
-        await updateDoc(doc(db,"loans",b.dataset.id),{status:"finished"});
-        loadActive(); loadInactive();
-      }
-      if(b.dataset.pay){
-        const id=b.dataset.id;
-        const s=await getDoc(doc(db,"loans",id));
-        const paid=Number(s.data().paidCount||0);
-        await updateDoc(doc(db,"loans",id),{paidCount:paid+1});
-        const l={...s.data(),id,paidCount:paid+1};
-        $("det-"+id).innerHTML=scheduleHTML(l);
-      }
+      if(b.dataset.act==="inc"){ if(!confirm("¿Pasar a incobrables?"))return; await updateDoc(doc(db,"loans",b.dataset.id),{status:"charged_off"}); loadActive(); loadInactive(); }
+      if(b.dataset.act==="fin"){ if(!confirm("¿Finalizar (pagado total)?"))return; await updateDoc(doc(db,"loans",b.dataset.id),{status:"finished"}); loadActive(); loadInactive(); }
+      if(b.dataset.pay){ const id=b.dataset.id; const s=await getDoc(doc(db,"loans",id)); const paid=Number(s.data().paidCount||0); await updateDoc(doc(db,"loans",id),{paidCount:paid+1}); const l={...s.data(),id,paidCount:paid+1}; $("det-"+id).innerHTML=scheduleHTML(l); }
     });
 
-    // ======= 5) Inactivos =======
-    $("btnReloadInactive").onclick = ()=> loadInactive();
+    // 5) Inactivos
+    $("btnReloadInactive").onclick=()=>loadInactive();
     async function loadInactive(){
-      const fin=$("finishedList"), chg=$("chargedList");
-      fin.textContent=chg.textContent="Cargando…";
+      const fin=$("finishedList"), chg=$("chargedList"); fin.textContent=chg.textContent="Cargando…";
       try{
-        const s1=await getDocs(query(collection(db,"loans"), where("status","==","finished")));
-        fin.innerHTML = s1.empty? "Sin finalizados" : "";
-        s1.forEach(d=>{
-          const l=d.data();
-          const el=document.createElement("div"); el.className="cardlet";
-          el.innerHTML = `
-            <div class="row"><span class="badge"><span class="dot green"></span>Finalizado</span> <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</div>
-            <div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
-            <div class="actions"><button class="btn danger" data-del="${d.id}">Eliminar</button></div>`;
-          el.querySelector("[data-del]").onclick = async ()=>{
-            if(!confirm("¿Eliminar definitivamente?")) return;
-            await deleteDoc(doc(db,"loans",d.id)); loadInactive();
-          };
-          fin.appendChild(el);
-        });
-
-        const s2=await getDocs(query(collection(db,"loans"), where("status","==","charged_off")));
-        chg.innerHTML = s2.empty? "Sin incobrables" : "";
-        s2.forEach(d=>{
-          const l=d.data();
-          const el=document.createElement("div"); el.className="cardlet";
-          el.innerHTML = `
-            <div class="row"><span class="badge"><span class="dot red"></span>Incobrable</span> <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</div>
-            <div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div>
-            <div class="actions">
-              <button class="btn gray" data-legal="${d.id}">PDF legal</button>
-              <button class="btn danger" data-del="${d.id}">Eliminar</button>
-            </div>`;
-          el.querySelector("[data-legal]").onclick = ()=> openLegal(d.id,l);
-          el.querySelector("[data-del]").onclick = async ()=>{
-            if(!confirm("¿Eliminar definitivamente?")) return;
-            await deleteDoc(doc(db,"loans",d.id)); loadInactive();
-          };
-          chg.appendChild(el);
-        });
-      }catch(e){
-        fin.textContent=chg.textContent="Error al cargar inactivos.";
-        console.error(e);
-      }
+        const s1=await getDocs(query(collection(db,"loans"),where("status","==","finished"))); fin.innerHTML=s1.empty?"Sin finalizados":""; s1.forEach(d=>{const l=d.data(); const el=document.createElement("div"); el.className="cardlet"; el.innerHTML=`<div class="row"><span class="badge"><span class="dot green"></span>Finalizado</span> <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</div><div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div><div class="actions"><button class="btn danger" data-del="${d.id}">Eliminar</button></div>`; el.querySelector("[data-del]").onclick=async()=>{if(!confirm("¿Eliminar definitivamente?"))return; await deleteDoc(doc(db,"loans",d.id)); loadInactive();}; fin.appendChild(el);});
+        const s2=await getDocs(query(collection(db,"loans"),where("status","==","charged_off"))); chg.innerHTML=s2.empty?"Sin incobrables":""; s2.forEach(d=>{const l=d.data(); const el=document.createElement("div"); el.className="cardlet"; el.innerHTML=`<div class="row"><span class="badge"><span class="dot red"></span>Incobrable</span> <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</div><div>Principal ${money(l.amount)} · ${l.months} cuotas · TNA ${l.tna}%</div><div class="actions"><button class="btn gray" data-legal="${d.id}">PDF legal</button><button class="btn danger" data-del="${d.id}">Eliminar</button></div>`; el.querySelector("[data-legal]").onclick=()=>openLegal(d.id,l); el.querySelector("[data-del]").onclick=async()=>{if(!confirm("¿Eliminar definitivamente?"))return; await deleteDoc(doc(db,"loans",d.id)); loadInactive();}; chg.appendChild(el);});
+      }catch(e){ fin.textContent=chg.textContent="Error al cargar inactivos."; console.error(e); }
     }
     function openLegal(id,l){
-      const html = `
-        <html><head><meta charset="utf-8"><title>Incobrable ${id}</title>
-        <style>body{font:14px/1.5 system-ui;padding:24px} h1{font-size:20px}</style></head>
-        <body>
-          <h1>Resumen Legal — EstimaPres</h1>
-          <p>Cliente: <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</p>
-          <p>Monto original: ${money(l.amount)} · Plazo: ${l.months} meses · TNA: ${l.tna}%</p>
-          <p>Contrato aceptado vía OTP: <b>${l.otp}</b></p>
-          <script>window.onload=()=>window.print()</script>
-        </body></html>`;
-      const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
+      const html=`<html><head><meta charset="utf-8"><title>Incobrable ${id}</title><style>body{font:14px/1.5 system-ui;padding:24px} h1{font-size:20px}</style></head><body><h1>Resumen Legal — EstimaPres</h1><p>Cliente: <b>${l.borrower.name}</b> · DNI ${l.borrower.dni}</p><p>Monto original: ${money(l.amount)} · Plazo: ${l.months} meses · TNA: ${l.tna}%</p><p>Contrato aceptado vía OTP: <b>${l.otp}</b></p></body></html>`;
+      const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(html); w.document.close(); w.onload=()=>w.print();
     }
 
-    // ======= “Ver mi préstamo” (OTP del cliente) =======
+    // Ver mi préstamo (cliente)
     $("btnMyLoan").onclick = async ()=>{
-      const code = prompt("Ingresá tu código de 6 dígitos (OTP/firma):");
-      if(!code) return;
-      const snap = await getDocs(query(collection(db,"loans"), where("otp","==",code)));
+      const code=prompt("Ingresá tu código de 6 dígitos (OTP/firma):"); if(!code) return;
+      const snap=await getDocs(query(collection(db,"loans"),where("otp","==",code)));
       if(snap.empty) return alert("No se encontró un préstamo con ese OTP.");
-      const d = snap.docs[0]; const l=d.data();
-      if(l.status==="preapproved" && !l.contractAccepted){
-        await updateDoc(doc(db,"loans",d.id),{contractAccepted:true});
-        loadPre();
-      }
-      const html = `
-        <html><head><meta charset="utf-8"><title>Mi préstamo</title>
-        <style>body{font:14px/1.5 system-ui;padding:16px} table{border-collapse:collapse;width:100%}
-               td,th{border:1px solid #ddd;padding:6px;text-align:right} th:first-child,td:first-child{text-align:left}</style></head>
-        <body>
-          <h2>Mi préstamo</h2>
-          <p>${l.borrower.name} · DNI ${l.borrower.dni}</p>
-          <p>Monto: ${money(l.amount)} · Plazo: ${l.months} meses · TNA: ${l.tna}% · Vence día ${l.dueDay||dueDay}</p>
-          ${scheduleHTML({...l,id:d.id})}
-          <p style="color:#666">* Marcar cuotas pagadas lo realiza un administrador.</p>
-        </body></html>`;
-      const w=window.open("about:blank","_blank"); w.document.write(html); w.document.close();
+      const d=snap.docs[0]; const l=d.data();
+      if(l.status==="preapproved"&&!l.contractAccepted){ await updateDoc(doc(db,"loans",d.id),{contractAccepted:true}); loadPre(); }
+      const html=`<html><head><meta charset="utf-8"><title>Mi préstamo</title><style>body{font:14px/1.5 system-ui;padding:16px} table{border-collapse:collapse;width:100%} td,th{border:1px solid #ddd;padding:6px;text-align:right} th:first-child,td:first-child{text-align:left}</style></head><body><h2>Mi préstamo</h2><p>${l.borrower.name} · DNI ${l.borrower.dni}</p><p>Monto: ${money(l.amount)} · Plazo: ${l.months} meses · TNA: ${l.tna}% · Vence día ${l.dueDay||dueDay}</p>${scheduleHTML({...l,id:d.id})}<p style="color:#666">* Marcar cuotas pagadas lo realiza un administrador.</p></body></html>`;
+      const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(html); w.document.close();
     };
 
-    // ======= Primera carga =======
+    // Carga inicial
     loadTna();
   </script>
 </body>
