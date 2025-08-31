@@ -235,7 +235,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
 import {
   getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs,
-  query, where, orderBy, limit, updateDoc, serverTimestamp
+  query, where, orderBy, limit, updateDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 import {
   getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword
@@ -258,11 +258,10 @@ const ADMIN_EMAIL = "fernandogastondelgado81@gmail.com";
 const $ = s => document.querySelector(s);
 const nowTS = () => serverTimestamp();
 const onlyDigits = v => String(v||'').replace(/\D+/g,'');
-const fmtMoney = n => {
-  const x = Math.round(Number(n||0));
-  return '$ ' + new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(x);
-};
-function parseMoney(s){ return Number(String(s||'').replace(/[^\d]/g,'')||0); }
+const fmtMoney = n => '$ ' + new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(Math.round(Number(n||0)));
+const parseMoney = s => Number(String(s||'').replace(/[^\d]/g,'')||0);
+const NORM = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+
 function formatCurrencyInput(el){
   const format = () => {
     const d = onlyDigits(el.value);
@@ -279,8 +278,7 @@ async function loadSettings(){
   let tna=0, dueDay=10;
   if(snap.exists()){ const d=snap.data(); tna=Number(d.tna||0); dueDay=Number(d.dueDay||10); }
   $('#simMeta').textContent = `TNA vigente: ${tna||'—'}% · Vencimiento: día ${tna?dueDay:'—'}`;
-  $('#setTna').value = tna||'';
-  $('#setDue').value = dueDay||'';
+  $('#setTna').value = tna||''; $('#setDue').value = dueDay||'';
   return {tna,dueDay};
 }
 $('#btnSaveSettings').onclick = async ()=>{
@@ -328,10 +326,9 @@ $('#btnSim').onclick = async ()=>{
 
   const L = {amount, months, tna, dueDay, paidCount:0};
   const rows = scheduleRows(L);
-  const tbody = rows.map(r=>(
-    '<tr><td>'+r.n+'</td><td>'+r.due+'</td><td>'+fmtMoney(r.amount)+'</td>'+
-    '<td><span class="badge b-amber">Pendiente</span></td></tr>'
-  )).join('');
+  const tbody = rows.map(r=>
+    `<tr><td>${r.n}</td><td>${r.due}</td><td>${fmtMoney(r.amount)}</td><td><span class="badge b-amber">Pendiente</span></td></tr>`
+  ).join('');
   $('#simTable').innerHTML =
     '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>'+
     '<tbody>'+tbody+'</tbody></table>';
@@ -423,7 +420,7 @@ async function loadPend(){
       };
       el.querySelector('[data-act="del"]').onclick = async ()=>{
         if(!confirm('¿Eliminar solicitud?')) return;
-        await updateDoc(ref('loans',d.id),{ status:'deleted', updatedAt: nowTS() });
+        await deleteDoc(ref('loans',d.id));
         await loadAllAdmin();
       };
       box.appendChild(el);
@@ -546,7 +543,15 @@ async function loadInact(which='paid_off'){
       el.innerHTML =
         '<div class="flex"><div><b>'+(d.borrower?.name||'')+
         '</b> · DNI '+(d.borrower?.dni||'')+'</div>'+
-        '<div class="right muted">Principal '+fmtMoney(d.amount)+' · '+d.months+' cuotas · TNA '+d.tna+'% · Contrato '+(d.contractId||'-')+'</div></div>';
+        '<div class="right muted">Principal '+fmtMoney(d.amount)+' · '+d.months+' cuotas · TNA '+d.tna+'% · Contrato '+(d.contractId||'-')+'</div></div>'+
+        '<div class="actions" style="margin-top:8px">'+
+          '<button class="btn-mini red" data-act="del">Eliminar</button>'+
+        '</div>';
+      el.querySelector('[data-act="del"]').onclick = async ()=>{
+        if(!confirm('Eliminar definitivamente este registro?')) return;
+        await deleteDoc(ref('loans',d.id));
+        await loadInact(which);
+      };
       box.appendChild(el);
     });
   }catch(e){ box.innerHTML='<div class="empty">Error leyendo inactivos.</div>'; }
@@ -564,15 +569,16 @@ $('#btnReloadInact').onclick= ()=>loadInact(currentInactTab);
 /* ---------------- Contrato (PDF / Firma) ---------------- */
 function contractHtml(L, forSigner){
   const rows = scheduleRows(L).map(r=>
-    '<tr><td>'+r.n+'</td><td>'+r.due+'</td><td>'+fmtMoney(r.amount)+'</td><td>'+(r.paid?'Pagada':'Pendiente')+'</td></tr>'
+    `<tr><td>${r.n}</td><td>${r.due}</td><td>${fmtMoney(r.amount)}</td><td>${r.paid?'Pagada':'Pendiente'}</td></tr>`
   ).join('');
   const signerBlock = forSigner
-    ? '<div style="margin-top:16px;padding:12px;border:1px solid #ddd;border-radius:10px">'+
-        '<label>Escribí tu nombre y apellido para aceptar el contrato</label>'+
-        '<input id="signName" style="width:100%;padding:10px;margin-top:8px"/>'+
-        '<button id="btnAccept" style="margin-top:10px;padding:10px 16px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:800">Acepto contrato</button>'+
-      '</div>'
-    : '<button id="btnPrint" style="margin-top:10px;padding:10px 16px;background:#0f172a;color:#fff;border:none;border-radius:10px;font-weight:800">Imprimir / Guardar PDF</button>';
+    ? `<div style="margin-top:16px;padding:12px;border:1px solid #ddd;border-radius:10px">
+        <div class="muted" style="margin-bottom:6px">Titular: <b>${(L.borrower?.name||'-')}</b> · DNI ${(L.borrower?.dni||'-')}</div>
+        <label>Escribí tu nombre y apellido exactamente como figura arriba</label>
+        <input id="signName" style="width:100%;padding:10px;margin-top:8px" placeholder="${(L.borrower?.name||'')}"/>
+        <button id="btnAccept" style="margin-top:10px;padding:10px 16px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:800">Acepto contrato</button>
+      </div>`
+    : `<button id="btnPrint" style="margin-top:10px;padding:10px 16px;background:#0f172a;color:#fff;border:none;border-radius:10px;font-weight:800">Imprimir / Guardar PDF</button>`;
 
   return '<!doctype html><html><head><meta charset="utf-8"><title>Contrato '+(L.contractId||'')+'</title>'+
   '<style>@page{size:A4;margin:20mm}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:18px;color:#111}h1{margin:0 0 6px}.muted{color:#666}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:left}th{background:#f2f2f2}.box{border:1px solid #ddd;padding:12px;border-radius:10px;margin-top:10px}</style></head>'+
@@ -582,21 +588,35 @@ function contractHtml(L, forSigner){
   '<div><b>Monto:</b> '+fmtMoney(L.amount)+' · <b>Cuotas:</b> '+L.months+' · <b>TNA:</b> '+L.tna+'%</div></div>'+
   '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>'+
   signerBlock+
-  '<script>(function(){var p=document.getElementById("btnPrint");if(p){p.addEventListener("click",function(){window.print()})}var a=document.getElementById("btnAccept");if(a){a.addEventListener("click",function(){var n=(document.getElementById("signName").value||"").trim();if(!n){alert("Escribí tu nombre y apellido");return}window.opener&&window.opener.postMessage({type:"signed",id:"'+L.id+'",value:n},"*");alert("Contrato aceptado!");window.close()})}})();<\/script>'+
+  '<script>(function(){function N(s){return String(s||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ").trim().toUpperCase()}var p=document.getElementById("btnPrint");if(p){p.addEventListener("click",function(){window.print()})}var a=document.getElementById("btnAccept");if(a){var expected=N("'+(L.borrower?.name||'')+'");a.addEventListener("click",function(){var n=(document.getElementById("signName").value||"").trim();if(!n){alert("Escribí tu nombre y apellido");return}if(N(n)!==expected){alert("El nombre no coincide con el titular. Verificá y volvé a intentar.");return}window.opener&&window.opener.postMessage({type:"signed",id:"'+L.id+'",value:n},"*");alert("Contrato aceptado!");window.close()})}})();<\/script>'+
   '</body></html>';
 }
 function openContract(L, forSigner){
   const w = window.open('about:blank','_blank');
   w.document.open(); w.document.write(contractHtml(L,forSigner)); w.document.close();
 }
+
+/* Revalida nombre del lado del panel antes de grabar */
 window.addEventListener('message', async (ev)=>{
   try{
     if(!ev?.data || ev.data.type!=='signed') return;
-    await updateDoc(ref('loans',ev.data.id), { signed:true, signedName: ev.data.value, signedAt: nowTS(), updatedAt: nowTS() });
+    const id = ev.data.id, signName = ev.data.value;
+    const snap = await getDoc(ref('loans',id));
+    if(!snap.exists()){ alert('No se encontró el préstamo para registrar firma.'); return; }
+    const d = snap.data();
+    const expected = NORM(d?.borrower?.name||'');
+    if(NORM(signName)!==expected){
+      alert('Firma rechazada: el nombre no coincide con el titular.');
+      try{ ev.source && ev.source.postMessage({type:'sign_error'},'*'); }catch(_){}
+      return;
+    }
+    await updateDoc(ref('loans',id), { signed:true, signedName: signName, signedAt: nowTS(), updatedAt: nowTS() });
     alert('Firma registrada. Podés aprobar desde el panel.');
     await loadAllAdmin();
-  }catch(e){ alert('No se pudo guardar la firma.'); }
+  }catch(e){ console.error(e); alert('No se pudo guardar la firma.'); }
 });
+
+/* Abrir contrato para firmar si viene con #sign- */
 (async function tryOpenSignFromHash(){
   if(!location.hash.startsWith('#sign-')) return;
   const id = location.hash.replace('#sign-','').trim();
@@ -605,7 +625,7 @@ window.addEventListener('message', async (ev)=>{
   const L = snap.data(); L.id=id; openContract(L,true);
 })();
 
-/* ---------------- Mi préstamo (usuario) — sin backticks ---------------- */
+/* ---------------- Mi préstamo (usuario) — DOM seguro ---------------- */
 $('#btnOpenMyLoan').onclick = ()=>$('#myloan').scrollIntoView({behavior:'smooth'});
 
 $('#btnFindMyLoan').onclick = async ()=>{
@@ -622,7 +642,6 @@ $('#btnFindMyLoan').onclick = async ()=>{
     const rows = scheduleRows(L);
     const paid = Number(L.paidCount||0);
 
-    // Construcción DOM segura
     box.innerHTML='';
     const wrapper = document.createElement('div'); wrapper.className='item';
 
