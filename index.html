@@ -49,6 +49,11 @@
   .note{color:var(--muted);font-size:14px}
   details summary{cursor:pointer;font-weight:800;margin:8px 0}
   .kpi{font-weight:800}
+  /* ===== Modal login ===== */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000}
+  .modal.show{display:flex}
+  .modal-box{background:#fff;border-radius:16px;padding:20px;max-width:420px;width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.15)}
+  .modal h3{margin:0 0 10px 0}
 </style>
 </head>
 <body>
@@ -166,6 +171,22 @@
 
 </main>
 
+<!-- ===== Modal de login admin (Email/Password) ===== -->
+<div id="loginModal" class="modal">
+  <div class="modal-box">
+    <h3>Acceso administrador</h3>
+    <label>Email</label>
+    <input id="admEmail" class="input" placeholder="tu@mail.com" />
+    <label>Contraseña</label>
+    <input id="admPass" class="input" type="password" placeholder="********" />
+    <div class="row" style="margin-top:10px">
+      <button id="btnDoLogin" class="primary">Entrar</button>
+      <button id="btnCancelLogin" class="btn-sm">Cancelar</button>
+    </div>
+    <p class="note">Debe ser una cuenta autorizada.</p>
+  </div>
+</div>
+
 <!-- =================== APP SCRIPT =================== -->
 <script type="module">
 /* ---------------- Firebase (CDN módulos) ---------------- */
@@ -175,8 +196,7 @@ import {
   serverTimestamp, query, where, limit, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithRedirect,
-  getRedirectResult, onAuthStateChanged, signOut
+  getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
 /* === TU CONFIG REAL (incrustada) === */
@@ -191,7 +211,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
 
 /* ---------------- Constantes ---------------- */
 const ADMIN_EMAILS = ["fernandogastondelgado81@gmail.com"]; // whitelist
@@ -292,26 +311,48 @@ $('#btnRequest').onclick = async ()=>{
   }catch(e){ alert('No se pudo enviar la solicitud.'); }
 };
 
-/* ---------------- Admin Auth (redirect forzado — funciona en incógnito) ---------------- */
-async function ensureAdmin(){
-  try { await getRedirectResult(auth); } catch {}
-  if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email||"")) return true;
-  await signInWithRedirect(auth, provider); // forzar redirect siempre
-  return false; // al volver, onAuthStateChanged muestra Admin
-}
+/* ---------------- Admin: Email/Password ---------------- */
+const adminAllowed = () => !!auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email||'');
+function showLoginModal(show){ $('#loginModal').classList.toggle('show', !!show); }
+$('#btnAdmin').onclick = async (e)=>{
+  e.preventDefault();
+  if(adminAllowed()){
+    $('#adminPanel').style.display='block';
+    loadAllAdmin();
+    window.scrollTo({top:$('#adminPanel').offsetTop-10,behavior:'smooth'});
+    return;
+  }
+  showLoginModal(true);
+};
+$('#btnCancelLogin').onclick = ()=> showLoginModal(false);
+$('#btnDoLogin').onclick = async ()=>{
+  const email = $('#admEmail').value.trim();
+  const pass  = $('#admPass').value;
+  if(!email||!pass){ alert('Ingresá email y contraseña.'); return; }
+  try{
+    await signInWithEmailAndPassword(auth, email, pass);
+    if(!ADMIN_EMAILS.includes(email)){
+      await signOut(auth);
+      alert('Esta cuenta no está autorizada como admin.');
+      return;
+    }
+    showLoginModal(false);
+    $('#btnLogout').style.display='inline-flex';
+    $('#adminPanel').style.display='block';
+    await loadAllAdmin();
+    window.scrollTo({top:$('#adminPanel').offsetTop-10,behavior:'smooth'});
+  }catch(err){
+    alert('Login inválido. Verificá email/contraseña del admin.');
+  }
+};
+$('#btnLogout').onclick = async (ev)=>{ ev.preventDefault(); await signOut(auth); $('#btnLogout').style.display='none'; $('#adminPanel').style.display='none'; alert('Sesión cerrada.'); };
+
 onAuthStateChanged(auth,(u)=>{
   const isAdmin = !!u && ADMIN_EMAILS.includes(u.email||'');
-  $('#adminPanel').style.display = isAdmin ? 'block' : 'none';
   $('#btnLogout').style.display  = isAdmin ? 'inline-flex' : 'none';
+  $('#adminPanel').style.display = isAdmin ? 'block' : 'none';
+  if(isAdmin) loadAllAdmin();
 });
-$('#btnAdmin').onclick = async (ev)=>{
-  ev.preventDefault();
-  const ok = await ensureAdmin();
-  if(!ok) return; // vuelve del redirect
-  await loadAllAdmin();
-  window.scrollTo({top:$('#adminPanel').offsetTop-10,behavior:'smooth'});
-};
-$('#btnLogout').onclick = async (ev)=>{ ev.preventDefault(); await signOut(auth); alert('Sesión cerrada.'); };
 
 /* ---------------- Listados ADMIN (sin índices compuestos) ---------------- */
 function tsToMs(ts){ if(!ts) return 0; if(typeof ts.toMillis==='function') return ts.toMillis(); if(ts.seconds) return ts.seconds*1000; return 0; }
@@ -450,7 +491,7 @@ $('#btnReloadInac').onclick=()=>loadInac('closed');
 $('#btnShowClosed').onclick=()=>loadInac('closed');
 $('#btnShowCharged').onclick=()=>loadInac('charged_off');
 
-/* ----------- Render schedule para Admin (marcar pagadas) ----------- */
+/* ----------- Cuotas (Admin marca en orden) ----------- */
 function renderScheduleAdmin(L){
   const rows = buildSchedule(L.amount, L.tna, L.months, L.dueDay||CFG.dueDay||10);
   const paid = Number(L.paidCount||0);
@@ -477,7 +518,7 @@ document.addEventListener('click', async (ev)=>{
     // refresco la tarjeta donde estoy
     const cont = btn.closest('.card').querySelector('[data-box]');
     cont.innerHTML = renderScheduleAdmin({id, ...d, paidCount:paid+1});
-  }catch{ alert('No se pudo marcar como pagada.'); }
+  }catch{ alert('No se pudo guardar el cambio.'); }
 });
 
 /* ---------------- Contrato / Firma ---------------- */
@@ -580,13 +621,6 @@ $('#btnFindMyLoan').onclick = async ()=>{
 /* ---------------- Init ---------------- */
 await loadSettings(true);
 tryOpenSignFromHash();
-function loadAllAdmin(){ loadPend(); loadPre(); loadAct(); loadInac('closed'); }
-$('#btnReloadPend').onclick=loadPend;
-$('#btnReloadPre').onclick=loadPre;
-$('#btnReloadAct').onclick=loadAct;
-$('#btnReloadInac').onclick=()=>loadInac('closed');
-$('#btnShowClosed').onclick=()=>loadInac('closed');
-$('#btnShowCharged').onclick=()=>loadInac('charged_off');
 ['#simAmount','#rqAmount'].forEach(sel=>{ const el=$(sel); if(el && !el.value) el.value='$ '; });
 </script>
 </body>
