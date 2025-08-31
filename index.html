@@ -9,8 +9,7 @@
 <style>
   :root{
     --brand:#0e5bd7; --brand2:#0a45a7; --ink:#0b1220; --muted:#57607a;
-    --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; --bg:#f6f7fb;
-    --chip:#0b2769;
+    --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; --bg:#f6f7fb; --chip:#0b2769;
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
@@ -44,7 +43,6 @@
   .pill{padding:6px 10px;border-radius:999px;font-weight:700}
   .paid{background:#dcfce7;color:#166534}
   .pend{background:#fff3d2;color:#8a5800}
-  .late{background:#ffe2e2;color:#991b1b}
   .btn-sm{padding:8px 12px;border-radius:10px;border:1px solid #dfe5f2;background:#fff;font-weight:700;cursor:pointer}
   .btn-green{background:#10b981;color:#fff;border-color:#10b981}
   .btn-red-ghost{border-color:#fecaca;color:#b91c1c;background:#fff}
@@ -170,14 +168,14 @@
 
 <!-- =================== APP SCRIPT =================== -->
 <script type="module">
-/* ---------------- Firebase (MÓDULO CDN) ---------------- */
+/* ---------------- Firebase (CDN módulos) ---------------- */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
 import {
   getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc,
   serverTimestamp, query, where, limit, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
+  getAuth, GoogleAuthProvider, signInWithRedirect,
   getRedirectResult, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
@@ -294,20 +292,12 @@ $('#btnRequest').onclick = async ()=>{
   }catch(e){ alert('No se pudo enviar la solicitud.'); }
 };
 
-/* ---------------- Admin Auth (Google + fallback redirect) ---------------- */
-const provider = new GoogleAuthProvider();
+/* ---------------- Admin Auth (redirect forzado — funciona en incógnito) ---------------- */
 async function ensureAdmin(){
-  if(auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
-  try{
-    await getRedirectResult(auth).catch(()=>{});
-    if(auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email)) return true;
-    // popup y fallback a redirect si falla (móvil)
-    await signInWithPopup(auth, provider).catch(async err=>{
-      if(String(err?.code||'').includes('popup')) await signInWithRedirect(auth, provider);
-      else throw err;
-    });
-    return ADMIN_EMAILS.includes((auth.currentUser||{}).email);
-  }catch{ return false; }
+  try { await getRedirectResult(auth); } catch {}
+  if (auth.currentUser && ADMIN_EMAILS.includes(auth.currentUser.email||"")) return true;
+  await signInWithRedirect(auth, provider); // forzar redirect siempre
+  return false; // al volver, onAuthStateChanged muestra Admin
 }
 onAuthStateChanged(auth,(u)=>{
   const isAdmin = !!u && ADMIN_EMAILS.includes(u.email||'');
@@ -317,19 +307,14 @@ onAuthStateChanged(auth,(u)=>{
 $('#btnAdmin').onclick = async (ev)=>{
   ev.preventDefault();
   const ok = await ensureAdmin();
-  if(!ok){ alert('Tu usuario no tiene permisos de administrador.'); return; }
+  if(!ok) return; // vuelve del redirect
   await loadAllAdmin();
   window.scrollTo({top:$('#adminPanel').offsetTop-10,behavior:'smooth'});
 };
 $('#btnLogout').onclick = async (ev)=>{ ev.preventDefault(); await signOut(auth); alert('Sesión cerrada.'); };
 
 /* ---------------- Listados ADMIN (sin índices compuestos) ---------------- */
-function tsToMs(ts){ // para ordenar client-side
-  if(!ts) return 0;
-  if(typeof ts.toMillis==='function') return ts.toMillis();
-  if(ts.seconds) return ts.seconds*1000;
-  return 0;
-}
+function tsToMs(ts){ if(!ts) return 0; if(typeof ts.toMillis==='function') return ts.toMillis(); if(ts.seconds) return ts.seconds*1000; return 0; }
 
 async function loadPend(){
   const box = $('#listPend'); box.textContent="Cargando…";
@@ -465,6 +450,36 @@ $('#btnReloadInac').onclick=()=>loadInac('closed');
 $('#btnShowClosed').onclick=()=>loadInac('closed');
 $('#btnShowCharged').onclick=()=>loadInac('charged_off');
 
+/* ----------- Render schedule para Admin (marcar pagadas) ----------- */
+function renderScheduleAdmin(L){
+  const rows = buildSchedule(L.amount, L.tna, L.months, L.dueDay||CFG.dueDay||10);
+  const paid = Number(L.paidCount||0);
+  return `<table>
+    <thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+      ${rows.map((r,i)=>`<tr>
+        <td>${r.n}</td><td>${r.due}</td><td>${money(r.amount)}</td>
+        <td>${i<paid?'<span class="pill paid">Pagada</span>':'<span class="pill pend">Pendiente</span>'}</td>
+        <td>${i===paid?`<button class="btn-sm btn-green" data-mark="${r.n}" data-id="${L.id}">Marcar pagada</button>`:''}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+document.addEventListener('click', async (ev)=>{
+  const btn = ev.target.closest('[data-mark]');
+  if(!btn) return;
+  const n = Number(btn.getAttribute('data-mark'));
+  const id = btn.getAttribute('data-id');
+  try{
+    const snap = await getDoc(doc(db,'loans',id));
+    const d = snap.data(); const paid = Number(d.paidCount||0);
+    if(n !== paid+1){ alert('Debés marcar en orden.'); return; }
+    await updateDoc(doc(db,'loans',id),{ paidCount: paid+1, updatedAt: serverTimestamp() });
+    // refresco la tarjeta donde estoy
+    const cont = btn.closest('.card').querySelector('[data-box]');
+    cont.innerHTML = renderScheduleAdmin({id, ...d, paidCount:paid+1});
+  }catch{ alert('No se pudo marcar como pagada.'); }
+});
+
 /* ---------------- Contrato / Firma ---------------- */
 function contractA4(L){
   const rows = buildSchedule(L.amount, L.tna, L.months, L.dueDay||CFG.dueDay||10)
@@ -542,10 +557,9 @@ $('#btnFindMyLoan').onclick = async ()=>{
   $('#myLoanResult').style.display='block';
   $('#myLoanResult').innerHTML = '<span class="note">Buscando…</span>';
   try{
-    // igualdad sobre campo anidado != requiere índice compuesto; para evitarlo, filtramos client-side:
-    const ss = await getDocs(query(collection(db,'loans'), limit(200)));
+    const ss = await getDocs(query(collection(db,'loans'), limit(200))); // filtro client-side para evitar índice por campo anidado
     const list=[]; ss.forEach(d=>{ const L=d.data(); if((L.borrower?.dni||'')===dni) list.push({id:d.id,...L}); });
-    if(!list.length){ $('#myLoanResult').innerHTML='No encontramos préstamos activos o preaprobados para ese DNI.'; return; }
+    if(!list.length){ $('#myLoanResult').innerHTML='No encontramos préstamos para ese DNI.'; return; }
     const L = list[0];
     const paid = Number(L.paidCount||0);
     const rows = buildSchedule(L.amount, L.tna, L.months, L.dueDay||CFG.dueDay||10)
@@ -573,8 +587,6 @@ $('#btnReloadAct').onclick=loadAct;
 $('#btnReloadInac').onclick=()=>loadInac('closed');
 $('#btnShowClosed').onclick=()=>loadInac('closed');
 $('#btnShowCharged').onclick=()=>loadInac('charged_off');
-
-/* Inicializo placeholders de $ */
 ['#simAmount','#rqAmount'].forEach(sel=>{ const el=$(sel); if(el && !el.value) el.value='$ '; });
 </script>
 </body>
