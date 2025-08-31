@@ -16,7 +16,7 @@
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif}
   .container{max-width:980px;margin:0 auto;padding:0 18px}
 
-  /* Header validado */
+  /* ======= ENCABEZADO VALIDADO ======= */
   .hero{background:linear-gradient(135deg,var(--bg),var(--bg2));color:#fff;padding:26px 0 18px}
   .brand{display:flex;align-items:center;gap:14px}
   .brand img{width:56px;height:56px;border-radius:14px;background:#fff;box-shadow:0 6px 18px #00000025;object-fit:cover}
@@ -29,7 +29,7 @@
   .btn:hover{background:#ffffff28}
   .btn.danger{background:#ff4d4d;color:#fff;border:none}
 
-  /* Cards / layout */
+  /* ======= Tarjetas / layout ======= */
   .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin:20px 0;box-shadow:var(--shadow)}
   .card h2{margin:0 0 14px;font-size:40px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -60,7 +60,7 @@
   .tabs .tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
   .empty{color:var(--muted);padding:6px 0}
 
-  /* Modal login (email+password) */
+  /* Modal login */
   .modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:50}
   .modal .box{background:#fff;border-radius:16px;padding:18px;max-width:420px;width:92%;box-shadow:var(--shadow)}
   .modal .box h3{margin:0 0 10px}
@@ -289,7 +289,7 @@ $('#btnSaveSettings').onclick = async ()=>{
   await loadSettings();
 };
 
-/* ---------------- Simulador ---------------- */
+/* ---------------- Simulador (máx. 24 cuotas) ---------------- */
 function monthlyPayment(amount, months, tna){
   amount = Number(amount||0);
   months = Number(months||0);
@@ -301,7 +301,7 @@ function monthlyPayment(amount, months, tna){
 function scheduleRows(L){
   const rows=[];
   const amount = Number(L.amount);
-  const months = Number(L.months);
+  const months = Math.min(24, Number(L.months));   // límite duro
   const tna = Number(L.tna||0);
   const dueDay = Number(L.dueDay||10);
   const cuota = Math.round(monthlyPayment(amount, months, tna));
@@ -321,7 +321,8 @@ $('#btnSim').onclick = async ()=>{
   const {tna,dueDay} = await loadSettings();
   if(!tna){ alert('Configurá la TNA desde Admin antes de simular.'); return; }
   const amount = parseMoney($('#simAmount').value);
-  const months = Number($('#simMonths').value||0);
+  let months = Number($('#simMonths').value||0);
+  if(months>24){ months=24; $('#simMonths').value=24; alert('El máximo permitido es 24 cuotas.'); }
   if(!amount || !months){ $('#simTable').innerHTML=''; return; }
 
   const L = {amount, months, tna, dueDay, paidCount:0};
@@ -334,7 +335,7 @@ $('#btnSim').onclick = async ()=>{
     '<tbody>'+tbody+'</tbody></table>';
 };
 
-/* ---------------- Solicitud ---------------- */
+/* ---------------- Solicitud (respeta máximo 24) ---------------- */
 $('#btnSendReq').onclick = async ()=>{
   const name = ($('#rName').value||'').trim();
   const dni  = onlyDigits($('#rDni').value);
@@ -346,7 +347,8 @@ $('#btnSendReq').onclick = async ()=>{
   if(!tna){ alert('Aún no hay TNA configurada.'); return; }
 
   const amount = parseMoney($('#simAmount').value) || 150000;
-  const months = Number($('#simMonths').value||6);
+  let months = Number($('#simMonths').value||6);
+  if(months>24){ months=24; $('#simMonths').value=24; alert('El máximo permitido es 24 cuotas.'); }
 
   const borrower = { name, dni, email, phone, cbu };
   await addDoc(collection(db,'loans'),{
@@ -523,8 +525,9 @@ async function loadAct(){
         await loadAllAdmin();
       };
       el.querySelector('[data-act="bad"]').onclick = async ()=>{
-        if(!confirm('Enviar a incobrables?')) return;
-        await updateDoc(ref('loans',L.id), { status:'charged_off', finishedAt: nowTS(), updatedAt: nowTS() });
+        const reason = prompt('Motivo o detalle del incumplimiento (obligatorio):','Mora prolongada');
+        if(!reason || !reason.trim()) return;
+        await updateDoc(ref('loans',L.id), { status:'charged_off', defaultAt: nowTS(), defaultNote: reason.trim(), updatedAt: nowTS() });
         await loadAllAdmin();
       };
       box.appendChild(el);
@@ -540,13 +543,37 @@ async function loadInact(which='paid_off'){
     q.forEach(s=>{
       const d = s.data(); d.id=s.id;
       const el = document.createElement('div'); el.className='item';
+      const extra = (which==='charged_off' && d.defaultNote)
+        ? `<div class="muted" style="margin:6px 0"><b>Incumplimiento:</b> ${d.defaultNote}</div>`
+        : '';
+      const buttons = (which==='charged_off')
+        ? `<button class="btn-mini" data-act="pdf">Contrato PDF</button>
+           <button class="btn-mini" data-act="share">Compartir</button>
+           <button class="btn-mini red" data-act="del">Eliminar</button>`
+        : `<button class="btn-mini red" data-act="del">Eliminar</button>`;
       el.innerHTML =
         '<div class="flex"><div><b>'+(d.borrower?.name||'')+
         '</b> · DNI '+(d.borrower?.dni||'')+'</div>'+
         '<div class="right muted">Principal '+fmtMoney(d.amount)+' · '+d.months+' cuotas · TNA '+d.tna+'% · Contrato '+(d.contractId||'-')+'</div></div>'+
+        extra+
         '<div class="actions" style="margin-top:8px">'+
-          '<button class="btn-mini red" data-act="del">Eliminar</button>'+
+          buttons+
         '</div>';
+      if(which==='charged_off'){
+        el.querySelector('[data-act="pdf"]').onclick = ()=> openContract(d,false);
+        el.querySelector('[data-act="share"]').onclick = ()=>{
+          const text = `Deudor: ${d.borrower?.name||'-'} · DNI ${d.borrower?.dni||'-'}%0A`+
+                       `Contrato: ${d.contractId||'-'} · Principal ${fmtMoney(d.amount)} · ${d.months} cuotas · TNA ${d.tna}%0A`+
+                       `Incumplimiento: ${d.defaultNote||'-'}`;
+          const urlWa = `https://wa.me/?text=${text}`;
+          const mail = `mailto:?subject=Gestión legal - Incumplimiento EstimaPres&body=${text}`;
+          if(navigator.share){
+            navigator.share({title:'Incumplimiento EstimaPres', text:decodeURIComponent(text)}).catch(()=>{});
+          }else{
+            window.open(urlWa,'_blank'); setTimeout(()=>window.location.href=mail,200);
+          }
+        };
+      }
       el.querySelector('[data-act="del"]').onclick = async ()=>{
         if(!confirm('Eliminar definitivamente este registro?')) return;
         await deleteDoc(ref('loans',d.id));
@@ -571,24 +598,65 @@ function contractHtml(L, forSigner){
   const rows = scheduleRows(L).map(r=>
     `<tr><td>${r.n}</td><td>${r.due}</td><td>${fmtMoney(r.amount)}</td><td>${r.paid?'Pagada':'Pendiente'}</td></tr>`
   ).join('');
+
+  const today = new Date();
+  const fecha = today.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+
+  const legal = `
+  <div class="box">
+    <h2 style="margin:0 0 6px;font-size:18px">Contrato de Préstamo Personal</h2>
+    <p>Entre <b>ESTIMAPRES</b>, en adelante <b>EL PRESTAMISTA</b>, y <b>${(L.borrower?.name||'-')}</b>, DNI ${(L.borrower?.dni||'-')}, con email ${(L.borrower?.email||'-')} y teléfono ${(L.borrower?.phone||'-')}, en adelante <b>EL PRESTATARIO</b>, se celebra el presente contrato en la ciudad de <b>Río Gallegos, Santa Cruz, Argentina</b>, a los <b>${fecha}</b>.</p>
+    <ol style="padding-left:18px;line-height:1.5">
+      <li><b>Monto y destino:</b> EL PRESTAMISTA entrega a EL PRESTATARIO la suma de <b>${fmtMoney(L.amount)}</b>, que este declara recibir a su entera satisfacción.</li>
+      <li><b>Tasa y sistema:</b> La TNA aplicable es del <b>${L.tna}%</b>. El cálculo de cuotas se efectúa por sistema francés. Cantidad de cuotas: <b>${L.months}</b>. Vencimiento mensual el día <b>${L.dueDay}</b>.</li>
+      <li><b>Pago:</b> Las cuotas deben abonarse en término. La falta de pago de una cuota habilita el devengamiento de intereses compensatorios hasta la fecha de pago efectivo.</li>
+      <li><b>Mora:</b> Verificado el atraso, EL PRESTATARIO incurre en mora automática, pudiendo EL PRESTAMISTA exigir la <b>aceleración</b> del saldo y gestionar el cobro por las vías correspondientes.</li>
+      <li><b>Medios de pago:</b> Transferencia a CBU/CVU/alias informado por EL PRESTAMISTA. EL PRESTATARIO declara su CBU/alias: ${(L.borrower?.cbu||'-')}.</li>
+      <li><b>Gastos:</b> Todo gasto y/o honorario derivado de la gestión de cobro será a cargo de EL PRESTATARIO.</li>
+      <li><b>Cesión:</b> EL PRESTAMISTA podrá ceder o endosar el crédito sin necesidad de autorización.</li>
+      <li><b>Jurisdicción:</b> Las partes se someten a los tribunales ordinarios de la ciudad de <b>Río Gallegos</b>, renunciando a cualquier otro fuero y/o jurisdicción.</li>
+      <li><b>Datos personales:</b> EL PRESTATARIO autoriza el tratamiento de sus datos a efectos del presente contrato y la eventual gestión de cobro.</li>
+    </ol>
+  </div>`;
+
+  const incumpl = (L.status==='charged_off')
+    ? `<div class="box" style="border-color:#fca5a5;background:#fff7f7">
+         <h2 style="margin:0 0 6px;font-size:18px;color:#b91c1c">Incumplimiento</h2>
+         <p>El presente crédito se encuentra en estado <b>INCOBRABLE</b>. Detalle informado por el área de cobranzas:</p>
+         <p style="white-space:pre-wrap"><b>${(L.defaultNote||'Sin detalle')}</b></p>
+         <p>Se autoriza su uso para gestión extrajudicial y/o judicial.</p>
+       </div>`
+    : '';
+
+  const accionesAdmin = forSigner
+    ? ''
+    : `<div class="box">
+        <button id="btnPrint" style="margin-right:8px;padding:10px 16px;background:#0f172a;color:#fff;border:none;border-radius:10px;font-weight:800">Imprimir / Guardar PDF</button>
+        <button id="btnShareWa" style="margin-right:8px;padding:10px 16px;border:1px solid #25d366;color:#075e54;background:#e8fff1;border-radius:10px;font-weight:800">WhatsApp</button>
+        <button id="btnShareMail" style="padding:10px 16px;border:1px solid #0ea5e9;color:#0ea5e9;background:#f0f9ff;border-radius:10px;font-weight:800">Email</button>
+      </div>`;
+
   const signerBlock = forSigner
-    ? `<div style="margin-top:16px;padding:12px;border:1px solid #ddd;border-radius:10px">
+    ? `<div class="box">
         <div class="muted" style="margin-bottom:6px">Titular: <b>${(L.borrower?.name||'-')}</b> · DNI ${(L.borrower?.dni||'-')}</div>
         <label>Escribí tu nombre y apellido exactamente como figura arriba</label>
         <input id="signName" style="width:100%;padding:10px;margin-top:8px" placeholder="${(L.borrower?.name||'')}"/>
         <button id="btnAccept" style="margin-top:10px;padding:10px 16px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:800">Acepto contrato</button>
       </div>`
-    : `<button id="btnPrint" style="margin-top:10px;padding:10px 16px;background:#0f172a;color:#fff;border:none;border-radius:10px;font-weight:800">Imprimir / Guardar PDF</button>`;
+    : '';
 
   return '<!doctype html><html><head><meta charset="utf-8"><title>Contrato '+(L.contractId||'')+'</title>'+
-  '<style>@page{size:A4;margin:20mm}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:18px;color:#111}h1{margin:0 0 6px}.muted{color:#666}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:left}th{background:#f2f2f2}.box{border:1px solid #ddd;padding:12px;border-radius:10px;margin-top:10px}</style></head>'+
-  '<body><h1>Firma de contrato</h1>'+
-  '<div class="muted">Contrato Nº '+(L.contractId||'-')+' — '+(L.borrower?.name||'')+' — DNI '+(L.borrower?.dni||'')+'</div>'+
-  '<div class="box"><div><b>Estado:</b> '+L.status+'</div>'+
-  '<div><b>Monto:</b> '+fmtMoney(L.amount)+' · <b>Cuotas:</b> '+L.months+' · <b>TNA:</b> '+L.tna+'%</div></div>'+
-  '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-  signerBlock+
-  '<script>(function(){function N(s){return String(s||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ").trim().toUpperCase()}var p=document.getElementById("btnPrint");if(p){p.addEventListener("click",function(){window.print()})}var a=document.getElementById("btnAccept");if(a){var expected=N("'+(L.borrower?.name||'')+'");a.addEventListener("click",function(){var n=(document.getElementById("signName").value||"").trim();if(!n){alert("Escribí tu nombre y apellido");return}if(N(n)!==expected){alert("El nombre no coincide con el titular. Verificá y volvé a intentar.");return}window.opener&&window.opener.postMessage({type:"signed",id:"'+L.id+'",value:n},"*");alert("Contrato aceptado!");window.close()})}})();<\/script>'+
+  '<style>@page{size:A4;margin:18mm}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:18px;color:#111}h1{margin:0 0 6px}h2{font-size:16px}.muted{color:#666}.box{border:1px solid #ddd;padding:12px;border-radius:10px;margin-top:10px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:left}th{background:#f2f2f2}</style></head>'+
+  '<body>'+
+    '<h1>Contrato de préstamo — EstimaPres</h1>'+
+    '<div class="muted">Nº '+(L.contractId||'-')+' · '+(L.borrower?.name||'')+' · DNI '+(L.borrower?.dni||'')+'</div>'+
+    legal+
+    '<div class="box"><b>Plan de pagos</b></div>'+
+    '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    incumpl+
+    accionesAdmin+
+    signerBlock+
+  '<script>(function(){function N(s){return String(s||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ").trim().toUpperCase()}var p=document.getElementById("btnPrint");if(p){p.addEventListener("click",function(){window.print()})}var wa=document.getElementById("btnShareWa"), em=document.getElementById("btnShareMail");if(wa||em){var txt="Contrato EstimaPres%0ADeudor: '+(L.borrower?.name||'-')+' · DNI '+(L.borrower?.dni||'-')+'%0ANº '+(L.contractId||'-')+' · Principal '+(''+'+fmtMoney(L.amount)+'').replace('$ ','$')+' · '+(L.months)+' cuotas · TNA '+(L.tna)+'%";if(wa){wa.addEventListener("click",function(){var u=\'https://wa.me/?text=\'+txt;window.open(u,"_blank")})}if(em){em.addEventListener("click",function(){var u=\'mailto:?subject=Contrato EstimaPres&body=\'+txt;location.href=u})}}var a=document.getElementById("btnAccept");if(a){var expected=N("'+(L.borrower?.name||'')+'");a.addEventListener("click",function(){var n=(document.getElementById("signName").value||"").trim();if(!n){alert("Escribí tu nombre y apellido");return}if(N(n)!==expected){alert("El nombre no coincide con el titular. Verificá y volvé a intentar.");return}window.opener&&window.opener.postMessage({type:"signed",id:"'+(L.id||'')+'",value:n},"*");alert("Contrato aceptado!");window.close()})}})();<\/script>'+
   '</body></html>';
 }
 function openContract(L, forSigner){
@@ -601,7 +669,7 @@ window.addEventListener('message', async (ev)=>{
   try{
     if(!ev?.data || ev.data.type!=='signed') return;
     const id = ev.data.id, signName = ev.data.value;
-    const snap = await getDoc(ref('loans',id));
+    const snap = await getDoc(doc(db,'loans',id));
     if(!snap.exists()){ alert('No se encontró el préstamo para registrar firma.'); return; }
     const d = snap.data();
     const expected = NORM(d?.borrower?.name||'');
@@ -610,7 +678,7 @@ window.addEventListener('message', async (ev)=>{
       try{ ev.source && ev.source.postMessage({type:'sign_error'},'*'); }catch(_){}
       return;
     }
-    await updateDoc(ref('loans',id), { signed:true, signedName: signName, signedAt: nowTS(), updatedAt: nowTS() });
+    await updateDoc(doc(db,'loans',id), { signed:true, signedName: signName, signedAt: nowTS(), updatedAt: nowTS() });
     alert('Firma registrada. Podés aprobar desde el panel.');
     await loadAllAdmin();
   }catch(e){ console.error(e); alert('No se pudo guardar la firma.'); }
@@ -620,7 +688,7 @@ window.addEventListener('message', async (ev)=>{
 (async function tryOpenSignFromHash(){
   if(!location.hash.startsWith('#sign-')) return;
   const id = location.hash.replace('#sign-','').trim();
-  const snap = await getDoc(ref('loans',id));
+  const snap = await getDoc(doc(db,'loans',id));
   if(!snap.exists()) return;
   const L = snap.data(); L.id=id; openContract(L,true);
 })();
