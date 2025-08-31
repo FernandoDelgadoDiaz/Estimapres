@@ -25,7 +25,7 @@
     padding:10px 16px;border-radius:16px;font-weight:600}
   .navrow{display:flex;gap:14px;margin-top:18px;flex-wrap:wrap}
   .btn{appearance:none;border:1px solid #ffffff40;background:#ffffff18;color:#fff;border-radius:14px;padding:12px 18px;
-    font-weight:700;display:inline-flex;align-items:center;gap:8px;backdrop-filter:blur(4px)}
+    font-weight:700;display:inline-flex;align-items:center;gap:8px;backdrop-filter:blur(4px);cursor:pointer}
   .btn:hover{background:#ffffff28}
   .btn.danger{background:#ff4d4d;color:#fff;border:none}
 
@@ -35,11 +35,11 @@
   .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media (max-width:760px){.row{grid-template-columns:1fr}.brand h1{font-size:38px}}
   label{font-weight:700;display:block;margin:8px 0 6px}
-  input[type="text"],input[type="number"],input[type="email"],input[type="tel"]{
+  input[type="text"],input[type="number"],input[type="email"],input[type="tel"],input[type="password"]{
     width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;font-size:16px;background:#fff}
   .muted{color:var(--muted)}
-  .btn-cta{background:var(--green);color:#fff;border:none;border-radius:14px;padding:12px 18px;font-weight:800}
-  .btn-ghost{background:#eef2ff;border:1px solid #e2e8f0;border-radius:12px;padding:9px 14px;font-weight:700}
+  .btn-cta{background:var(--green);color:#fff;border:none;border-radius:14px;padding:12px 18px;font-weight:800;cursor:pointer}
+  .btn-ghost{background:#eef2ff;border:1px solid #e2e8f0;border-radius:12px;padding:9px 14px;font-weight:700;cursor:pointer}
   .right{margin-left:auto}
   table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
   th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left;font-size:15px}
@@ -50,13 +50,13 @@
   .b-amber{background:#fef3c7;color:#92400e}
   .item{padding:14px;border:1px solid var(--border);border-radius:14px;margin:10px 0;background:#fff}
   .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .btn-mini{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700}
+  .btn-mini{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700;cursor:pointer}
   .btn-mini.green{background:#10b98122;border-color:#10b98144}
   .btn-mini.red{background:#ef444422;border-color:#ef444444}
   .group{border:1px dashed #e5e7eb;border-radius:14px;padding:12px 14px;margin:10px 0}
   .section-title{font-size:24px;margin:8px 0 10px}
   .tabs{display:flex;gap:10px;margin:8px 0 0}
-  .tabs .tab{padding:10px 14px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
+  .tabs .tab{padding:10px 14px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700;cursor:pointer}
   .tabs .tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
   .empty{color:var(--muted);padding:6px 0}
 
@@ -264,11 +264,11 @@ const fmtMoney = n => {
 };
 function parseMoney(s){ return Number(String(s||'').replace(/[^\d]/g,'')||0); }
 function formatCurrencyInput(el){
-  el.addEventListener('input', ()=>{
-    const digits = onlyDigits(el.value);
-    el.value = digits ? ('$ ' + new Intl.NumberFormat('es-AR').format(Number(digits))) : '$ ';
-  });
-  // si viene vacío, dejamos el símbolo
+  const format = () => {
+    const d = onlyDigits(el.value);
+    el.value = d ? ('$ ' + new Intl.NumberFormat('es-AR').format(Number(d))) : '$ ';
+  };
+  el.addEventListener('input', format);
   if(!el.value) el.value = '$ ';
 }
 formatCurrencyInput($('#simAmount'));
@@ -328,14 +328,13 @@ $('#btnSim').onclick = async ()=>{
 
   const L = {amount, months, tna, dueDay, paidCount:0};
   const rows = scheduleRows(L);
-  const tbody = rows.map(r=>`
-    <tr><td>${r.n}</td><td>${r.due}</td><td>${fmtMoney(r.amount)}</td>
-        <td><span class="badge b-amber">Pendiente</span></td></tr>`).join('');
-  $('#simTable').innerHTML = `
-    <table>
-      <thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>
-      <tbody>${tbody}</tbody>
-    </table>`;
+  const tbody = rows.map(r=>(
+    '<tr><td>'+r.n+'</td><td>'+r.due+'</td><td>'+fmtMoney(r.amount)+'</td>'+
+    '<td><span class="badge b-amber">Pendiente</span></td></tr>'
+  )).join('');
+  $('#simTable').innerHTML =
+    '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>'+
+    '<tbody>'+tbody+'</tbody></table>';
 };
 
 /* ---------------- Solicitud ---------------- */
@@ -410,15 +409,13 @@ async function loadPend(){
     q.forEach(s=>{
       const d = s.data(); d.id=s.id;
       const el = document.createElement('div'); el.className='item';
-      el.innerHTML = `
-        <div class="flex">
-          <div><b>${d.borrower?.name||''}</b> · DNI ${d.borrower?.dni||''}</div>
-          <div class="right muted">Principal ${fmtMoney(d.amount)} · ${d.months} cuotas · TNA ${d.tna}%</div>
-        </div>
-        <div class="actions" style="margin-top:8px">
-          <button class="btn-mini green" data-act="pre">Preaprobar</button>
-          <button class="btn-mini red" data-act="del">Eliminar</button>
-        </div>`;
+      el.innerHTML =
+        '<div class="flex"><div><b>'+ (d.borrower?.name||'') +
+        '</b> · DNI '+ (d.borrower?.dni||'') +'</div>'+
+        '<div class="right muted">Principal '+fmtMoney(d.amount)+' · '+d.months+' cuotas · TNA '+d.tna+'%</div></div>'+
+        '<div class="actions" style="margin-top:8px">'+
+        '<button class="btn-mini green" data-act="pre">Preaprobar</button>'+
+        '<button class="btn-mini red" data-act="del">Eliminar</button></div>';
       el.querySelector('[data-act="pre"]').onclick = async ()=>{
         if(!confirm('¿Preaprobar y generar contrato?')) return;
         await updateDoc(ref('loans',d.id),{ status:'preapproved', contractId:(Math.random().toString(36).slice(2,10)).toUpperCase(), updatedAt: nowTS() });
@@ -443,21 +440,18 @@ async function loadPre(){
       const d = s.data(); d.id=s.id;
       const el = document.createElement('div'); el.className='item';
       const signed = d.signed ? '<span class="badge b-green">Firmado</span>' : '<span class="badge b-amber">Esperando firma</span>';
-      el.innerHTML = `
-        <div class="flex">
-          <div><b>${d.borrower?.name||''}</b> · DNI ${d.borrower?.dni||''}</div>
-          <div class="right">${signed}</div>
-        </div>
-        <div class="muted" style="margin:6px 0">Contrato ${d.contractId||'-'}</div>
-        <div class="actions">
-          <button class="btn-mini" data-act="share">Compartir contrato</button>
-          <button class="btn-mini" data-act="pdf">Ver PDF</button>
-          <button class="btn-mini green" data-act="approve">Aprobar y depositar</button>
-        </div>`;
+      el.innerHTML =
+        '<div class="flex"><div><b>'+ (d.borrower?.name||'') +
+        '</b> · DNI '+ (d.borrower?.dni||'') +'</div><div class="right">'+signed+'</div></div>'+
+        '<div class="muted" style="margin:6px 0">Contrato '+(d.contractId||'-')+'</div>'+
+        '<div class="actions">'+
+          '<button class="btn-mini" data-act="share">Compartir contrato</button>'+
+          '<button class="btn-mini" data-act="pdf">Ver PDF</button>'+
+          '<button class="btn-mini green" data-act="approve">Aprobar y depositar</button>'+
+        '</div>';
       el.querySelector('[data-act="share"]').onclick = ()=>{
-        const url = `${location.origin}${location.pathname}#sign-${d.id}`;
-        navigator.clipboard.writeText(url);
-        alert('Enlace copiado:\n'+url);
+        const url = location.origin+location.pathname+'#sign-'+d.id;
+        navigator.clipboard.writeText(url); alert('Enlace copiado:\n'+url);
       };
       el.querySelector('[data-act="pdf"]').onclick = ()=> openContract(d,false);
       el.querySelector('[data-act="approve"]').onclick = async ()=>{
@@ -470,6 +464,19 @@ async function loadPre(){
   }catch(e){ box.innerHTML='<div class="empty">Error leyendo preaprobados.</div>'; }
 }
 
+function moraDot(L){
+  const rows = scheduleRows(L);
+  const idx = rows.findIndex(r=>!r.paid);
+  if(idx===-1) return '🟢';
+  const nxt = rows[idx];
+  const [dd,mm,yy] = nxt.due.split('/');
+  const d = new Date(+yy, +mm-1, +dd);
+  const delay = Math.floor((Date.now()-d.getTime())/86400000);
+  if(delay>10) return '🔴';
+  if(delay>=6) return '🟡';
+  return '🟢';
+}
+
 async function loadAct(){
   const box = $('#listAct'); box.innerHTML="";
   try{
@@ -478,41 +485,30 @@ async function loadAct(){
     q.forEach(s=>{
       const L = s.data(); L.id=s.id;
       const el = document.createElement('div'); el.className='item';
-      const rows = scheduleRows(L);
-      const dueIdx = rows.findIndex(r=>!r.paid);
-      let dot='🟢';
-      if(dueIdx!==-1){
-        const nxt = rows[dueIdx];
-        const [dd,mm,yy] = nxt.due.split('/');
-        const d = new Date(+yy, +mm-1, +dd);
-        const delay = Math.floor((Date.now()-d.getTime())/86400000);
-        if(delay>10) dot='🔴'; else if(delay>=6) dot='🟡';
-      }
-      el.innerHTML = `
-        <div class="flex">
-          <div><b>${L.borrower?.name||''}</b> · DNI ${L.borrower?.dni||''} · ${dot}</div>
-          <div class="right muted">Principal ${fmtMoney(L.amount)} · ${L.months} cuotas · TNA ${L.tna}%</div>
-        </div>
-        <div class="actions" style="margin-top:8px">
-          <button class="btn-mini" data-act="cuotas">Ver cuotas</button>
-          <button class="btn-mini green" data-act="paidall">Pagado total</button>
-          <button class="btn-mini red" data-act="bad">A incobrables</button>
-        </div>
-        <div class="hide" data-box="cuotas"></div>`;
+      el.innerHTML =
+        '<div class="flex"><div><b>'+(L.borrower?.name||'')+
+        '</b> · DNI '+(L.borrower?.dni||'')+' · '+moraDot(L)+'</div>'+
+        '<div class="right muted">Principal '+fmtMoney(L.amount)+' · '+L.months+' cuotas · TNA '+L.tna+'%</div></div>'+
+        '<div class="actions" style="margin-top:8px">'+
+          '<button class="btn-mini" data-act="cuotas">Ver cuotas</button>'+
+          '<button class="btn-mini green" data-act="paidall">Pagado total</button>'+
+          '<button class="btn-mini red" data-act="bad">A incobrables</button>'+
+        '</div>'+
+        '<div class="hide" data-box="cuotas"></div>';
       el.querySelector('[data-act="cuotas"]').onclick = ()=>{
+        const rows = scheduleRows(L);
         const box2 = el.querySelector('[data-box="cuotas"]');
-        const table = rows.map(r=>`
-          <tr>
-            <td>${r.n}</td>
-            <td>${r.due}</td>
-            <td>${fmtMoney(r.amount)}</td>
-            <td>${r.paid?'<span class="badge b-green">Pagada</span>':'<button class="btn-mini" data-n="'+r.n+'">Marcar pagada</button>'}</td>
-          </tr>`).join('');
-        box2.innerHTML = `
-          <div style="margin-top:10px">
-            <div class="muted" style="margin-bottom:6px">Progreso: <b>${L.paidCount||0}/${L.months}</b></div>
-            <table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>${table}</tbody></table>
-          </div>`;
+        const body = rows.map(r=>{
+          const action = r.paid
+            ? '<span class="badge b-green">Pagada</span>'
+            : '<button class="btn-mini" data-n="'+r.n+'">Marcar pagada</button>';
+          return '<tr><td>'+r.n+'</td><td>'+r.due+'</td><td>'+fmtMoney(r.amount)+'</td><td>'+action+'</td></tr>';
+        }).join('');
+        box2.innerHTML =
+          '<div style="margin-top:10px">'+
+            '<div class="muted" style="margin-bottom:6px">Progreso: <b>'+(L.paidCount||0)+'/'+L.months+'</b></div>'+
+            '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>'+
+            '<tbody>'+body+'</tbody></table></div>';
         box2.classList.toggle('hide');
         box2.querySelectorAll('[data-n]')?.forEach(btn=>{
           btn.onclick = async ()=>{
@@ -547,11 +543,10 @@ async function loadInact(which='paid_off'){
     q.forEach(s=>{
       const d = s.data(); d.id=s.id;
       const el = document.createElement('div'); el.className='item';
-      el.innerHTML = `
-        <div class="flex">
-          <div><b>${d.borrower?.name||''}</b> · DNI ${d.borrower?.dni||''}</div>
-          <div class="right muted">Principal ${fmtMoney(d.amount)} · ${d.months} cuotas · TNA ${d.tna}% · Contrato ${d.contractId||'-'}</div>
-        </div>`;
+      el.innerHTML =
+        '<div class="flex"><div><b>'+(d.borrower?.name||'')+
+        '</b> · DNI '+(d.borrower?.dni||'')+'</div>'+
+        '<div class="right muted">Principal '+fmtMoney(d.amount)+' · '+d.months+' cuotas · TNA '+d.tna+'% · Contrato '+(d.contractId||'-')+'</div></div>';
       box.appendChild(el);
     });
   }catch(e){ box.innerHTML='<div class="empty">Error leyendo inactivos.</div>'; }
@@ -568,58 +563,27 @@ $('#btnReloadInact').onclick= ()=>loadInact(currentInactTab);
 
 /* ---------------- Contrato (PDF / Firma) ---------------- */
 function contractHtml(L, forSigner){
-  const rows = scheduleRows(L).map(r=>`
-    <tr><td>${r.n}</td><td>${r.due}</td><td>${fmtMoney(r.amount)}</td><td>${r.paid?'Pagada':'Pendiente'}</td></tr>`).join('');
-  const signerBlock = forSigner ? `
-    <div style="margin-top:16px;padding:12px;border:1px solid #ddd;border-radius:10px">
-      <label>Escribí tu nombre y apellido para aceptar el contrato</label>
-      <input id="signName" style="width:100%;padding:10px;margin-top:8px"/>
-      <button id="btnAccept" style="margin-top:10px;padding:10px 16px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:800">Acepto contrato</button>
-    </div>` : `
-    <button id="btnPrint" style="margin-top:10px;padding:10px 16px;background:#0f172a;color:#fff;border:none;border-radius:10px;font-weight:800">Imprimir / Guardar PDF</button>`;
-  return `<!doctype html>
-  <html><head><meta charset="utf-8"><title>Contrato ${L.contractId||''}</title>
-  <style>
-    @page{ size:A4; margin:20mm }
-    body{ font-family:Arial,Helvetica,sans-serif; margin:0; padding:18px; color:#111 }
-    h1{ margin:0 0 6px }
-    .muted{ color:#666 }
-    table{ width:100%; border-collapse:collapse; margin-top:10px }
-    th,td{ border:1px solid #ccc; padding:6px 8px; font-size:12px; text-align:left }
-    th{ background:#f2f2f2 }
-    .box{ border:1px solid #ddd; padding:12px; border-radius:10px; margin-top:10px }
-  </style></head>
-  <body>
-    <h1>Firma de contrato</h1>
-    <div class="muted">Contrato Nº ${L.contractId||'-'} — ${L.borrower?.name||''} — DNI ${L.borrower?.dni||''}</div>
+  const rows = scheduleRows(L).map(r=>
+    '<tr><td>'+r.n+'</td><td>'+r.due+'</td><td>'+fmtMoney(r.amount)+'</td><td>'+(r.paid?'Pagada':'Pendiente')+'</td></tr>'
+  ).join('');
+  const signerBlock = forSigner
+    ? '<div style="margin-top:16px;padding:12px;border:1px solid #ddd;border-radius:10px">'+
+        '<label>Escribí tu nombre y apellido para aceptar el contrato</label>'+
+        '<input id="signName" style="width:100%;padding:10px;margin-top:8px"/>'+
+        '<button id="btnAccept" style="margin-top:10px;padding:10px 16px;background:#16a34a;color:#fff;border:none;border-radius:10px;font-weight:800">Acepto contrato</button>'+
+      '</div>'
+    : '<button id="btnPrint" style="margin-top:10px;padding:10px 16px;background:#0f172a;color:#fff;border:none;border-radius:10px;font-weight:800">Imprimir / Guardar PDF</button>';
 
-    <div class="box">
-      <div><b>Estado:</b> ${L.status}</div>
-      <div><b>Monto:</b> ${fmtMoney(L.amount)} · <b>Cuotas:</b> ${L.months} · <b>TNA:</b> ${L.tna}%</div>
-    </div>
-
-    <table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>
-    <tbody>${rows}</tbody></table>
-
-    ${signerBlock}
-
-    <script>
-      (function(){
-        const btnP = document.getElementById('btnPrint');
-        if(btnP){ btnP.addEventListener('click', ()=> window.print()); }
-        const btnA = document.getElementById('btnAccept');
-        if(btnA){
-          btnA.addEventListener('click', ()=>{
-            const n = (document.getElementById('signName').value||'').trim();
-            if(!n){ alert('Escribí tu nombre y apellido'); return; }
-            window.opener && window.opener.postMessage({type:'signed', id:'${L.id}', value:n}, '*');
-            alert('Contrato aceptado!');
-            window.close();
-          });
-        }
-      })();
-    </script>
-  </body></html>`;
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Contrato '+(L.contractId||'')+'</title>'+
+  '<style>@page{size:A4;margin:20mm}body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:18px;color:#111}h1{margin:0 0 6px}.muted{color:#666}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px 8px;font-size:12px;text-align:left}th{background:#f2f2f2}.box{border:1px solid #ddd;padding:12px;border-radius:10px;margin-top:10px}</style></head>'+
+  '<body><h1>Firma de contrato</h1>'+
+  '<div class="muted">Contrato Nº '+(L.contractId||'-')+' — '+(L.borrower?.name||'')+' — DNI '+(L.borrower?.dni||'')+'</div>'+
+  '<div class="box"><div><b>Estado:</b> '+L.status+'</div>'+
+  '<div><b>Monto:</b> '+fmtMoney(L.amount)+' · <b>Cuotas:</b> '+L.months+' · <b>TNA:</b> '+L.tna+'%</div></div>'+
+  '<table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+  signerBlock+
+  '<script>(function(){var p=document.getElementById("btnPrint");if(p){p.addEventListener("click",function(){window.print()})}var a=document.getElementById("btnAccept");if(a){a.addEventListener("click",function(){var n=(document.getElementById("signName").value||"").trim();if(!n){alert("Escribí tu nombre y apellido");return}window.opener&&window.opener.postMessage({type:"signed",id:"'+L.id+'",value:n},"*");alert("Contrato aceptado!");window.close()})}})();<\/script>'+
+  '</body></html>';
 }
 function openContract(L, forSigner){
   const w = window.open('about:blank','_blank');
@@ -641,54 +605,65 @@ window.addEventListener('message', async (ev)=>{
   const L = snap.data(); L.id=id; openContract(L,true);
 })();
 
-/* ---------------- Mi préstamo (usuario) ---------------- */
+/* ---------------- Mi préstamo (usuario) — sin backticks ---------------- */
 $('#btnOpenMyLoan').onclick = ()=>$('#myloan').scrollIntoView({behavior:'smooth'});
 
 $('#btnFindMyLoan').onclick = async ()=>{
   const dni = onlyDigits($('#myDni').value);
-  if(!dni){ $('#myLoanResult').textContent='Ingresá un DNI.'; return; }
-  $('#myLoanResult').textContent='Buscando…';
+  const box = $('#myLoanResult');
+  if(!dni){ box.textContent='Ingresá un DNI.'; return; }
+  box.textContent='Buscando…';
   try{
     const qs = await getDocs(query(collection(db,'loans'), orderBy('createdAt','desc'), limit(100)));
-    const list=[];
-    qs.forEach(d=>{ const L=d.data(); if((L?.borrower?.dni||'')===dni) list.push({id:d.id,...L}); });
-    if(!list.length){ $('#myLoanResult').textContent='No encontramos préstamos activos o preaprobados para ese DNI.'; return; }
+    const list=[]; qs.forEach(d=>{ const L=d.data(); if((L?.borrower?.dni||'')===dni) list.push({id:d.id,...L}); });
+    if(!list.length){ box.textContent='No encontramos préstamos activos o preaprobados para ese DNI.'; return; }
 
     const L = list[0];
     const rows = scheduleRows(L);
     const paid = Number(L.paidCount||0);
 
-    const table = rows.map(r => `
-      <tr>
-        <td>${r.n}</td>
-        <td>${r.due}</td>
-        <td>${fmtMoney(r.amount)}</td>
-        <td>${r.paid?'<span class="badge b-green">Pagada</span>':'<span class="badge b-amber">Pendiente</span>'}</td>
-      </tr>`).join('');
+    // Construcción DOM segura
+    box.innerHTML='';
+    const wrapper = document.createElement('div'); wrapper.className='item';
 
-    const btnPdf = L.contractId ? `<button class="btn-cta" id="btnPDF">Contrato PDF</button>` : '';
+    const top = document.createElement('div'); top.className='flex';
+    const strong = document.createElement('strong');
+    strong.textContent = 'Estado: '+L.status;
+    const meta = document.createElement('span'); meta.className='right muted';
+    meta.innerHTML = ' Monto: '+fmtMoney(L.amount)+' · Cuotas: '+L.months+' · TNA: '+L.tna+'% · Progreso: <b>'+paid+'/'+L.months+'</b>';
+    top.appendChild(strong); top.appendChild(meta);
+    wrapper.appendChild(top);
 
-    $('#myLoanResult').innerHTML = `
-      <div class="item">
-        <div class="flex">
-          <strong>Estado: ${L.status}</strong>
-          <span class="right muted"> Monto: ${fmtMoney(L.amount)} · Cuotas: ${L.months} · TNA: ${L.tna}% · Progreso: <b>${paid}/${L.months}</b></span>
-        </div>
-        <div class="flex" style="margin-top:8px">${btnPdf}</div>
-        <div style="margin-top:10px">
-          <table>
-            <thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr></thead>
-            <tbody>${table}</tbody>
-          </table>
-        </div>
-      </div>`;
+    if(L.contractId){
+      const btn = document.createElement('button');
+      btn.className='btn-cta'; btn.textContent='Contrato PDF';
+      btn.style.marginTop='8px';
+      btn.addEventListener('click', ()=>openContract(L,false));
+      wrapper.appendChild(btn);
+    }
 
-    const pdfBtn = document.getElementById('btnPDF');
-    if(pdfBtn) pdfBtn.addEventListener('click', ()=>openContract(L,false));
+    const table = document.createElement('table'); table.style.marginTop='10px';
+    const thead = document.createElement('thead');
+    thead.innerHTML = '<tr><th>#</th><th>Vencimiento</th><th>Cuota</th><th>Estado</th></tr>';
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    rows.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>'+r.n+'</td>'+
+        '<td>'+r.due+'</td>'+
+        '<td>'+fmtMoney(r.amount)+'</td>'+
+        '<td>'+(r.paid?'<span class="badge b-green">Pagada</span>':'<span class="badge b-amber">Pendiente</span>')+'</td>';
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+
+    box.appendChild(wrapper);
 
   }catch(e){
     console.error(e);
-    $('#myLoanResult').textContent='Error consultando.';
+    box.textContent='Error consultando.';
   }
 };
 
