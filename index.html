@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>EstimaPres · Préstamos personales</title>
 <link rel="icon" href="assets/ping.png" />
 <style>
   :root{--bg:#0e48c7;--bg2:#0a3aa1;--card:#fff;--muted:#6b7280;--ok:#16a34a;--bad:#ef4444;--ink:#0f172a}
   *{box-sizing:border-box}
   html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#f5f7fb}
-  /* HERO VALIDADO */
+  /* HERO VALIDADO (NO TOCAR) */
   .hero{background:linear-gradient(135deg,var(--bg),var(--bg2));color:#fff;padding:22px 16px 18px;position:sticky;top:0;z-index:5}
   .brand{display:flex;align-items:center;gap:12px}
   .brand img{width:54px;height:54px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
@@ -53,11 +53,10 @@
     <h1>EstimaPres</h1>
   </div>
   <div class="slogan">Préstamos personales · <em>simple y claro</em></div>
-
   <div class="actions">
-    <button id="btnOpenMyLoan" class="btn" title="Ver mi préstamo">🔎 Ver mi préstamo</button>
-    <button id="btnAdmin" class="btn" title="Panel admin">🛡️ Admin</button>
-    <button id="btnLogout" class="btn red" title="Cerrar sesión">↪ Salir</button>
+    <button id="btnOpenMyLoan" class="btn">🔎 Ver mi préstamo</button>
+    <button id="btnAdmin" class="btn">🛡️ Admin</button>
+    <button id="btnLogout" class="btn red">↪ Salir</button>
   </div>
 </header>
 
@@ -114,19 +113,19 @@
     <details class="card" style="padding:16px">
       <summary class="section-title">Solicitudes pendientes</summary>
       <div class="toolbar"><button id="btnReloadPend" class="btn-outline">Recargar</button></div>
-      <div id="listPend" class="list"></div>
+      <div id="listPend"></div>
     </details>
 
     <details class="card" style="padding:16px">
       <summary class="section-title">Preaprobados</summary>
       <div class="toolbar"><button id="btnReloadPre" class="btn-outline">Recargar</button></div>
-      <div id="listPre" class="list"></div>
+      <div id="listPre"></div>
     </details>
 
     <details open class="card" style="padding:16px">
       <summary class="section-title">Activos</summary>
       <div class="toolbar"><button id="btnReloadAct" class="btn-outline">Recargar</button></div>
-      <div id="listAct" class="list"></div>
+      <div id="listAct"></div>
     </details>
 
     <details class="card" style="padding:16px">
@@ -136,7 +135,7 @@
         <button id="btnTabCharged" class="btn-outline">Incobrables</button>
         <button id="btnReloadInact" class="btn-outline">Recargar</button>
       </div>
-      <div id="listInact" class="list"></div>
+      <div id="listInact"></div>
     </details>
   </section>
 
@@ -152,7 +151,6 @@
 
 </main>
 
-<!-- Firebase + App -->
 <script type="module">
 /* ================ Firebase ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -504,26 +502,30 @@ window.addEventListener("message", async(ev)=>{
   const snap=await getDoc(doc(db,"loans",id)); if(!snap.exists()) return;
   const L=snap.data(); L.id=id; openContract(L,true);
 })();
-/* PDF de deuda (incobrables) */
+
+/* ===== PDF de deuda (incobrables) SIN BACKTICKS ===== */
 function openDebtPdf(L){
-  const today=new Date().toLocaleDateString("es-AR");
-  const late=scheduleRows(L).filter(r=>!r.paid);
-  const total=late.reduce((a,b)=>a+Number(b.amount||0),0);
-  const rows=late.map(r=>`<tr><td>${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td>${fmtMoney(r.amount)}</td></tr>`).join("");
-  const html=
-    `<html><head><meta charset="utf-8"><title>Deuda ${L.contractId||''}</title>
-      <style>@page{size:A4;margin:22mm}body{font-family:Arial}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style>
-     </head><body>
-      <h1>Informe de Deuda · EstimaPres</h1>
-      <p>Fecha: ${today}</p>
-      <p>Deudor: <b>${L.borrower?.name}</b> · DNI <b>${L.borrower?.dni}</b></p>
-      <p>Contrato: <b>${L.contractId||'-'}</b> · Monto original: <b>${fmtMoney(L.amount)}</b> · TNA: <b>${L.tna}%</b></p>
-      <h3>Cuotas impagas</h3>
-      <table><thead><tr><th>#</th><th>Vencimiento</th><th>Importe</th></tr></thead><tbody>${rows}</tbody></table>
-      <h3>Total adeudado: ${fmtMoney(total)}</h3>
-      <p>Este documento puede ser compartido para gestiones de cobro.</p>
-     </body></html>`;
-  const w=window.open('about:blank','_blank'); w.document.open(); w.document.write(html); w.document.close();
+  const today = new Date().toLocaleDateString("es-AR");
+  const late  = scheduleRows(L).filter(r => !r.paid);
+  const total = late.reduce((a,b)=> a + Number(b.amount||0), 0);
+  let rowsHtml = "";
+  late.forEach(r=>{
+    rowsHtml += "<tr><td>"+r.n+"</td><td>"+new Date(r.due).toLocaleDateString("es-AR")+"</td><td>"+fmtMoney(r.amount)+"</td></tr>";
+  });
+  const html =
+    "<html><head><meta charset='utf-8'><title>Deuda "+(L.contractId||"")+"</title>"+
+    "<style>@page{size:A4;margin:22mm}body{font-family:Arial}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style>"+
+    "</head><body>"+
+      "<h1>Informe de Deuda · EstimaPres</h1>"+
+      "<p>Fecha: "+today+"</p>"+
+      "<p>Deudor: <b>"+(L.borrower?.name||"-")+"</b> · DNI <b>"+(L.borrower?.dni||"-")+"</b></p>"+
+      "<p>Contrato: <b>"+(L.contractId||"-")+"</b> · Monto original: <b>"+fmtMoney(L.amount)+"</b> · TNA: <b>"+L.tna+"%</b></p>"+
+      "<h3>Cuotas impagas</h3>"+
+      "<table><thead><tr><th>#</th><th>Vencimiento</th><th>Importe</th></tr></thead><tbody>"+rowsHtml+"</tbody></table>"+
+      "<h3>Total adeudado: "+fmtMoney(total)+"</h3>"+
+      "<p>Este documento puede ser compartido para gestiones de cobro.</p>"+
+    "</body></html>";
+  const w = window.open('about:blank','_blank'); w.document.open(); w.document.write(html); w.document.close();
 }
 
 /* Inputs formateados */
@@ -538,9 +540,9 @@ $("#simMonths").addEventListener("input",e=>{
   e.target.value=n?n:"";
 });
 
+/* Carga inicial */
 await loadSettings();
 await loadInact();
-/* FIN */
 </script>
 </body>
 </html>
