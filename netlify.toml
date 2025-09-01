@@ -1,0 +1,13 @@
+[build]
+  publish = "."
+  command = ""
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."create-payment"]
+  included_files = []
+
+[functions."webhook-mp"]
+  included_files = []
