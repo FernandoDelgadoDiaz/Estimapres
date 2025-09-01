@@ -397,7 +397,7 @@ async function loadInact(){
     box.insertAdjacentHTML("beforeend", loanCard(d, actions));
   });
   box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{ const s=await getDoc(doc(db,"loans",b.getAttribute("data-open"))); if(!s.exists())return; openContract({...s.data(),id:b.getAttribute("data-open")},false); });
-  box.querySelectorAll("[data-debt]").forEach(b=>b.onclick=async()=>{ const s=await getDoc(doc(db,"loans",b.getAttribute("data-debt"))); if(!s.exists())return; openDebtPdf({...s.data(),id:b.getAttribute("data-debt")}); });
+  box.querySelectorAll("[data-debt]").forEach(b=>b.onclick=async()=>{ const s=await getDoc(doc(db,"loans",b.getAttribute("data-debt"))); if(!s.exists())return; const L={...s.data(),id:b.getAttribute("data-debt")}; openDebtPdf(L); });
   box.querySelectorAll("[data-share]").forEach(b=>b.onclick=async()=>{ const s=await getDoc(doc(db,"loans",b.getAttribute("data-share"))); if(!s.exists())return; const L={...s.data(),id:b.getAttribute("data-share")}; const link=location.href; const msg=`Deuda en gestión - EstimaPres \n${L.borrower?.name} DNI ${L.borrower?.dni}\nMonto: ${fmtMoney(L.amount)} · Cuotas: ${L.months}\nContrato: ${L.contractId}\n${link}`; if(navigator.share){ try{await navigator.share({title:"Deuda EstimaPres", text:msg}); }catch{} } else prompt("Copiá para compartir:", msg); });
   box.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{ if(!confirm("¿Eliminar definitivamente este registro?")) return; await deleteDoc(doc(db,"loans",b.getAttribute("data-del"))); await loadInact(); });
 }
@@ -481,7 +481,7 @@ function contractHtml(L,forSigner){
           alert('¡Contrato aceptado!'); window.close();
         };
       })();
-    </script>
+    <\/script>
   </body></html>`;
 }
 function openContract(L,forSigner){
