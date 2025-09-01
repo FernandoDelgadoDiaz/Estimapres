@@ -9,7 +9,7 @@
   :root{--bg:#0e48c7;--bg2:#0a3aa1;--card:#fff;--muted:#6b7280;--ok:#16a34a;--bad:#ef4444;--ink:#0f172a}
   *{box-sizing:border-box}
   html,body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#f5f7fb}
-  /* HERO VALIDADO (NO TOCAR) */
+  /* HERO VALIDADO */
   .hero{background:linear-gradient(135deg,var(--bg),var(--bg2));color:#fff;padding:22px 16px 18px;position:sticky;top:0;z-index:5}
   .brand{display:flex;align-items:center;gap:12px}
   .brand img{width:54px;height:54px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
@@ -193,7 +193,7 @@ function scheduleRows(L){
   }
   return rows;
 }
-function daysLate(iso){ const d=new Date(iso), t=new Date(); const diff=Math.floor((t-d)/(1000*60*60*24)); return diff>0?diff:0; }
+const daysLate = iso => Math.max(0, Math.floor((new Date()-new Date(iso))/(1000*60*60*24)));
 
 /* ===== Estado / settings ===== */
 let gSettings={tna:null,dueDay:null}; let gUser=null;
@@ -503,7 +503,7 @@ window.addEventListener("message", async(ev)=>{
   const L=snap.data(); L.id=id; openContract(L,true);
 })();
 
-/* ===== PDF de deuda (incobrables) SIN BACKTICKS ===== */
+/* ===== PDF de deuda (incobrables) — armado seguro con arrays ===== */
 function openDebtPdf(L){
   const today = new Date().toLocaleDateString("es-AR");
   const late  = scheduleRows(L).filter(r => !r.paid);
@@ -512,19 +512,20 @@ function openDebtPdf(L){
   late.forEach(r=>{
     rowsHtml += "<tr><td>"+r.n+"</td><td>"+new Date(r.due).toLocaleDateString("es-AR")+"</td><td>"+fmtMoney(r.amount)+"</td></tr>";
   });
-  const html =
-    "<html><head><meta charset='utf-8'><title>Deuda "+(L.contractId||"")+"</title>"+
-    "<style>@page{size:A4;margin:22mm}body{font-family:Arial}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}</style>"+
-    "</head><body>"+
-      "<h1>Informe de Deuda · EstimaPres</h1>"+
-      "<p>Fecha: "+today+"</p>"+
-      "<p>Deudor: <b>"+(L.borrower?.name||"-")+"</b> · DNI <b>"+(L.borrower?.dni||"-")+"</b></p>"+
-      "<p>Contrato: <b>"+(L.contractId||"-")+"</b> · Monto original: <b>"+fmtMoney(L.amount)+"</b> · TNA: <b>"+L.tna+"%</b></p>"+
-      "<h3>Cuotas impagas</h3>"+
-      "<table><thead><tr><th>#</th><th>Vencimiento</th><th>Importe</th></tr></thead><tbody>"+rowsHtml+"</tbody></table>"+
-      "<h3>Total adeudado: "+fmtMoney(total)+"</h3>"+
-      "<p>Este documento puede ser compartido para gestiones de cobro.</p>"+
-    "</body></html>";
+  const p = [];
+  p.push("<html><head><meta charset='utf-8'><title>Deuda "+(L.contractId||"")+"</title>");
+  p.push("<style>@page{size:A4;margin:22mm}body{font-family:Arial}h1{margin:0 0 12px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ddd;padding:8px}th{background:#f1f5f9;text-align:left}</style>");
+  p.push("</head><body>");
+  p.push("<h1>Informe de Deuda · EstimaPres</h1>");
+  p.push("<p>Fecha: "+today+"</p>");
+  p.push("<p>Deudor: <b>"+((L.borrower&&L.borrower.name)||"-")+"</b> · DNI <b>"+((L.borrower&&L.borrower.dni)||"-")+"</b></p>");
+  p.push("<p>Contrato: <b>"+(L.contractId||"-")+"</b> · Monto original: <b>"+fmtMoney(L.amount)+"</b> · TNA: <b>"+L.tna+"%</b></p>");
+  p.push("<h3>Cuotas impagas</h3>");
+  p.push("<table><thead><tr><th>#</th><th>Vencimiento</th><th>Importe</th></tr></thead><tbody>"+rowsHtml+"</tbody></table>");
+  p.push("<h3>Total adeudado: "+fmtMoney(total)+"</h3>");
+  p.push("<p>Este documento puede ser compartido para gestiones de cobro.</p>");
+  p.push("</body></html>");
+  const html = p.join("");
   const w = window.open('about:blank','_blank'); w.document.open(); w.document.write(html); w.document.close();
 }
 
