@@ -14,19 +14,21 @@
   .brand img{width:54px;height:54px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
   .brand h1{margin:0;font-weight:800;letter-spacing:.2px;font-size:44px;line-height:1}
   .slogan{display:inline-block;margin-top:12px;background:rgba(255,255,255,.14);padding:10px 14px;border-radius:14px}
+  .slogan em{font-style:normal;text-decoration:underline;font-weight:600}
   .actions{margin-top:16px;display:flex;gap:14px;overflow-x:auto}
-  .btn{display:inline-flex;align-items:center;gap:10px;border:2px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;padding:10px 14px;border-radius:14px;font-weight:700}
+  .btn{display:inline-flex;align-items:center;gap:10px;border:2px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;padding:10px 14px;border-radius:14px;font-weight:700;font-size:15px}
   .btn.red{background:#e74a4a;border-color:#e74a4a}
   .wrap{max-width:980px;margin:0 auto;padding:18px 14px 80px}
-  .card{background:#fff;border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 10px 24px rgba(2,8,23,.06)}
+  .card{background:var(--card);border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 10px 24px rgba(2,8,23,.06)}
+  .card h2{margin:0 0 12px;font-size:40px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media (max-width:760px){.row{grid-template-columns:1fr}}
-  label{font-size:14px;color:#6b7280}
-  input{width:100%;padding:14px;border-radius:12px;border:1px solid #e5e7eb}
-  .cta{background:#16a34a;color:#fff;border:none;padding:14px 18px;border-radius:14px;font-weight:800}
+  @media (max-width:760px){.row{grid-template-columns:1fr}.brand h1{font-size:40px}}
+  label{font-size:14px;color:var(--muted);display:block;margin:8px 0 6px}
+  input{width:100%;padding:14px;border-radius:12px;border:1px solid #e5e7eb;font-size:16px}
+  .cta{background:var(--ok);color:#fff;border:none;padding:14px 18px;border-radius:14px;font-weight:800}
+  .muted{color:var(--muted)}
 </style>
 </head>
-
 <body>
 
 <header class="hero">
@@ -44,28 +46,45 @@
 
 <main class="wrap">
 
-<!-- CONTENIDO SIN CAMBIOS -->
-<!-- SIMULADOR, SOLICITAR, ADMIN, MI PRÉSTAMO -->
-<!-- TODO IGUAL AL ARCHIVO VALIDADO -->
+<section class="card">
+  <h2>Simulador</h2>
+  <div class="row">
+    <div><label>Monto</label><input id="simAmount" /></div>
+    <div><label>Meses</label><input id="simMonths" /></div>
+  </div>
+  <div class="muted" id="lblCfg"></div>
+  <button id="btnSim" class="cta">Simular</button>
+  <div id="simResult"></div>
+</section>
 
+<section class="card">
+  <h2>Solicitar préstamo</h2>
+  <div class="row">
+    <div><label>Nombre</label><input id="bName"></div>
+    <div><label>DNI</label><input id="bDni"></div>
+    <div><label>Email</label><input id="bEmail"></div>
+    <div><label>Teléfono</label><input id="bPhone"></div>
+    <div><label>Alias / CBU</label><input id="bAlias"></div>
+  </div>
+  <button id="btnSendReq" class="cta">Enviar solicitud</button>
+</section>
+
+<section id="admin" class="card" style="display:none">
+  <h2>Panel administrador</h2>
+  <label>TNA %</label><input id="cfgTna">
+  <label>Vencimiento</label><input id="cfgDue">
+  <button id="btnSaveCfg" class="cta">Guardar</button>
+  <p id="forgotPass" class="muted" style="margin-top:12px;cursor:pointer;text-decoration:underline">
+    ¿Olvidaste tu contraseña?
+  </p>
+</section>
+
+</main>
 <script type="module">
-/* ================= Firebase ================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { 
-  getAuth,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail   /* 👈 NUEVO */
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-import {
-  getFirestore, collection, doc, getDoc, getDocs,
-  setDoc, addDoc, updateDoc, deleteDoc,
-  serverTimestamp, query, where, orderBy, limit
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
-/* Config REAL */
 const firebaseConfig = {
   apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
   authDomain: "estimapres.firebaseapp.com",
@@ -77,74 +96,41 @@ const firebaseConfig = {
 
 const ADMIN_EMAIL = "fernandogastondelgado81@gmail.com";
 
-const app  = initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db   = getFirestore(app);
+const db = getFirestore(app);
 
-/* Helpers */
 const $ = s => document.querySelector(s);
 
-/* ===== AUTH ADMIN ===== */
 onAuthStateChanged(auth,(u)=>{
-  $("#admin").style.display=(u && u.email===ADMIN_EMAIL)?"":"none";
+  $("#admin").style.display = (u && u.email===ADMIN_EMAIL) ? "" : "none";
 });
 
-$("#btnAdmin").onclick=async()=>{
+$("#btnAdmin").onclick = async()=>{
   if(!auth.currentUser){
-    const email = prompt("Email administrador:", ADMIN_EMAIL) || "";
-    const pass  = prompt("Contraseña:") || "";
+    const email = prompt("Email admin:", ADMIN_EMAIL);
+    const pass  = prompt("Contraseña:");
     try{
-      const {user}=await signInWithEmailAndPassword(auth,email,pass);
-      if(user.email!==ADMIN_EMAIL){
-        alert("No autorizado");
-        await signOut(auth);
-      }
+      await signInWithEmailAndPassword(auth,email,pass);
     }catch{
-      const r = confirm("Contraseña incorrecta.\n¿Recuperar por email?");
-      if(r){
-        await sendPasswordResetEmail(auth,email);
-        alert("Email de recuperación enviado.");
-      }
+      alert("No se pudo iniciar sesión");
     }
   }
-};/* ================= RESTO DEL CÓDIGO (SIN CAMBIOS) ================= */
-
-/* Logout */
-$("#btnLogout").onclick = async () => {
-  try { await signOut(auth); } catch {}
 };
 
-/* Helpers generales */
-const fmtMoney = n => isNaN(n) ? "$ 0" : "$ " + Number(n).toLocaleString("es-AR");
-const onlyDigits = v => (v||"").replace(/\D+/g,"");
-const nowTS = () => serverTimestamp();
+$("#btnLogout").onclick = async()=>{ await signOut(auth); };
 
-/* El resto del archivo JS permanece EXACTAMENTE IGUAL
-   al index validado que tenías:
-   - simulador
-   - solicitudes
-   - admin
-   - firestore
-   - contratos
-   - firmas
-   - PDFs
-   - listados
-   - lógica de negocio
-*/
-
-/* ⚠️ NO SE TOCÓ NADA MÁS ⚠️ */
-
-/* ================= CARGA INICIAL ================= */
-(async ()=>{
+$("#forgotPass").onclick = async()=>{
+  const email = prompt("Ingresá tu email de administrador:");
+  if(!email) return;
   try{
-    await loadSettings();
-    await loadInact();
-  }catch(e){
-    console.error(e);
+    await sendPasswordResetEmail(auth,email);
+    alert("Te enviamos un email para restablecer la contraseña.");
+  }catch{
+    alert("No se pudo enviar el email.");
   }
-})();
-</script>
+};
 
-</main>
+</script>
 </body>
 </html>
