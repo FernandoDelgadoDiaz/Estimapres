@@ -43,6 +43,34 @@
   .btn-danger{background:var(--bad);color:#fff;border:none;padding:10px 12px;border-radius:12px;font-weight:700}
   .btn-success{background:var(--ok);color:#fff;border:none;padding:10px 12px;border-radius:12px;font-weight:700}
   .section-title{font-size:22px;font-weight:800;margin:8px 0 6px}
+@media (max-width: 600px) {
+
+  .actions{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:10px;
+    margin-top:14px;
+  }
+
+  .btn{
+    flex:unset;
+    width:100%;
+    justify-content:center;
+    font-size:14px;
+    padding:12px 10px;
+    border-radius:16px;
+  }
+
+  .btn span{
+    display:block;
+    font-size:12px;
+    opacity:.9;
+  }
+
+  .btn::before{
+    font-size:18px;
+  }
+}
 </style>
 </head>
 <body>
