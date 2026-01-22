@@ -230,7 +230,17 @@ $("#btnAdmin").onclick=async()=>{
   }else{ $("#admin").scrollIntoView({behavior:"smooth"}); }
 };
 $("#btnLogout").onclick=async()=>{ try{await signOut(auth);}catch{} };
+$("#btnResetPass").onclick = async () => {
+  const email = prompt("Ingresá tu email de administrador:");
+  if (!email) return;
 
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert("Te enviamos un email para restablecer la contraseña.");
+  } catch (e) {
+    alert("No se pudo enviar el email. Verificá el correo.");
+  }
+};
 /* ===== Simulador ===== */
 $("#btnSim").onclick=()=>{
   const P=Number(onlyDigits($("#simAmount").value));
