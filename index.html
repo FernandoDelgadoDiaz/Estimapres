@@ -3,130 +3,127 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title>EstimaF · Premium Fintech</title>
+    <title>EstimaF · Sistema Profesional</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --primary: #2563eb; --accent: #10b981; --bg: #f8fafc; 
-            --white: #ffffff; --text: #0f172a; --dim: #64748b;
+            --main-blue: #1e40af; --accent-green: #10b981;
+            --white: #ffffff; --text-dark: #0f172a; --text-muted: #64748b;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body { 
             margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); 
-            color: var(--text); min-height: 100vh; overflow-x: hidden;
-        }
-        
-        /* Navbar */
-        .nav { padding: 25px 5%; display: flex; justify-content: space-between; align-items: center; }
-        .logo { color: white; font-weight: 800; font-size: 26px; letter-spacing: -1px; }
-        .logo span { background: white; color: var(--primary); padding: 2px 10px; border-radius: 10px; margin-right: 5px; }
-        
-        .main { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; }
-        @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
-
-        /* Typography */
-        .hero-h1 { color: white; font-size: 56px; font-weight: 800; line-height: 1.1; margin: 0; }
-        .hero-p { color: rgba(255,255,255,0.8); font-size: 18px; margin: 20px 0 40px; }
-
-        /* Cards */
-        .glass { 
-            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
-            border-radius: 35px; padding: 35px; border: 1px solid rgba(255,255,255,0.4);
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); 
+            background-attachment: fixed; color: var(--text-dark); min-height: 100vh;
         }
 
-        /* Inputs & Buttons */
-        .input-box { margin-bottom: 20px; }
-        label { display: block; font-size: 13px; font-weight: 700; color: var(--dim); margin-bottom: 8px; text-transform: uppercase; }
+        /* Navbar estilo Imagen 5 */
+        .header { padding: 25px 6%; display: flex; justify-content: space-between; align-items: center; }
+        .logo { color: white; font-weight: 800; font-size: 26px; display: flex; align-items: center; gap: 10px; }
+        .logo span { background: white; color: var(--main-blue); padding: 5px 12px; border-radius: 12px; }
+        .admin-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1fr 1.1fr; gap: 50px; align-items: start; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+        /* Card Estilo "Ideal" */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(25px);
+            border-radius: 40px; padding: 40px; border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.2);
+        }
+
+        h1 { color: white; font-size: 64px; font-weight: 800; margin: 0; letter-spacing: -2px; line-height: 1; }
+        .hero-sub { color: rgba(255,255,255,0.85); font-size: 18px; margin: 20px 0 40px; font-weight: 600; }
+
+        /* Inputs Premium */
+        .field { margin-bottom: 25px; }
+        label { display: block; font-size: 14px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
         input { 
-            width: 100%; padding: 18px; border-radius: 16px; border: 1px solid #e2e8f0;
-            background: #f1f5f9; font-size: 16px; font-weight: 700; color: var(--text);
+            width: 100%; padding: 20px; border-radius: 18px; border: 1px solid #e2e8f0;
+            background: #f8fafc; font-size: 16px; font-weight: 700; color: var(--text-dark); transition: 0.3s;
         }
-        .btn { 
-            width: 100%; padding: 20px; border-radius: 18px; border: none; 
-            font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s;
-        }
-        .btn-primary { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(37,99,235,0.2); }
-        .btn-send { background: linear-gradient(90deg, #10b981, #059669); color: white; margin-top: 15px; }
-        
-        /* Elements */
-        .status-tag { padding: 6px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-        .item-row { 
-            background: white; border-radius: 20px; padding: 20px; margin-bottom: 12px;
-            display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9;
-        }
-        
-        .floating-exit { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2000; }
-        .exit-pill { background: white; color: black; padding: 15px 35px; border-radius: 50px; font-weight: 800; border: none; box-shadow: 0 15px 30px rgba(0,0,0,0.3); cursor: pointer; }
+        input:focus { outline: none; border-color: var(--main-blue); background: white; box-shadow: 0 0 0 5px rgba(37,99,235,0.1); }
 
-        #admin-view, #client-dashboard, #form-solicitud, .hidden { display: none; }
+        .btn-main { 
+            width: 100%; padding: 22px; border-radius: 20px; border: none; 
+            background: var(--main-blue); color: white; font-weight: 800; font-size: 16px; 
+            cursor: pointer; box-shadow: 0 15px 30px rgba(30, 64, 175, 0.25); transition: 0.3s;
+        }
+        .btn-main:active { transform: scale(0.98); }
+
+        /* Listas y Admin */
+        .loan-card { background: white; border-radius: 28px; padding: 25px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
+        .cuota-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
+        .cuota-item:last-child { border: none; }
+        .pay-pill { background: var(--main-blue); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .pay-pill.done { background: #d1fae5; color: #065f46; cursor: default; }
+
+        .floating-bar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; }
+        .exit-pill { background: white; color: black; padding: 16px 45px; border-radius: 100px; font-weight: 800; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.3); cursor: pointer; }
+
+        #admin-panel, #client-dashboard, #solicitud-extra, .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<nav class="nav">
+<nav class="header">
     <div class="logo"><span>F</span> EstimaF</div>
-    <button id="authAdmin" style="background:rgba(255,255,255,0.15); border:none; color:white; padding:10px 20px; border-radius:12px; font-weight:700; cursor:pointer;">Acceso Admin</button>
+    <button id="adminLogin" class="admin-btn">Admin Access</button>
 </nav>
 
-<div id="exitBar" class="hidden floating-exit">
-    <button onclick="cerrarSesion()" class="exit-pill">SALIR / MODO CLIENTE ←</button>
+<div id="exitContainer" class="hidden floating-bar">
+    <button onclick="realLogout()" class="exit-pill">SALIR / MODO CLIENTE ←</button>
 </div>
 
-<main class="main">
-    <div id="hero-side">
-        <h1 class="hero-h1">Prestar</h1>
-        <p class="hero-p">Gestión inteligente de créditos personales con aprobación en 24hs.</p>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div class="glass" style="padding:20px; text-align:center;">
-                <div style="font-size:24px; font-weight:800; color:var(--primary);">+500</div>
-                <div style="font-size:12px; font-weight:700; color:var(--dim);">CRÉDITOS</div>
-            </div>
-            <div class="glass" style="padding:20px; text-align:center;">
-                <div style="font-size:24px; font-weight:800; color:var(--accent);">100%</div>
-                <div style="font-size:12px; font-weight:700; color:var(--dim);">SEGURO</div>
-            </div>
+<main class="container">
+    <div id="hero">
+        <h1>Prestar</h1>
+        <p class="hero-sub">Tecnología financiera para préstamos personales de aprobación rápida.</p>
+        <div style="display:flex; gap:15px; margin-top:20px;">
+            <div style="background:rgba(255,255,255,0.1); padding:15px 25px; border-radius:20px; color:white; font-weight:700; border:1px solid rgba(255,255,255,0.1);">✓ SSL Seguro</div>
+            <div style="background:rgba(255,255,255,0.1); padding:15px 25px; border-radius:20px; color:white; font-weight:700; border:1px solid rgba(255,255,255,0.1);">✓ Firebase DB</div>
         </div>
     </div>
 
-    <div id="user-view" class="glass">
-        <h2 style="margin-top:0; font-size:24px;">Simulador</h2>
-        <div class="input-box">
-            <label>Monto del Préstamo</label>
-            <input id="amt" type="number" placeholder="$ 500.000">
+    <div id="user-ui" class="glass-card">
+        <h2 style="margin-top:0; font-size:28px; margin-bottom:30px;">Simulador</h2>
+        <div class="field">
+            <label>Monto a solicitar</label>
+            <input id="amt" type="number" placeholder="$ 0.00">
         </div>
-        <div class="input-box">
-            <label>Plazo en Meses</label>
+        <div class="field">
+            <label>Plazo (Meses)</label>
             <input id="mos" type="number" placeholder="Ej: 12">
         </div>
-        <button id="calc" class="btn btn-primary">CALCULAR CUOTA</button>
+        <button id="btnCalc" class="btn-main">CALCULAR CUOTA</button>
 
-        <div id="form-solicitud" style="margin-top:30px; border-top:2px solid #f1f5f9; padding-top:25px;">
-            <input id="cName" placeholder="Nombre completo" style="margin-bottom:12px;">
-            <input id="cDni" placeholder="DNI sin puntos" style="margin-bottom:12px;">
-            <input id="cEmail" placeholder="correo@ejemplo.com" style="margin-bottom:15px;">
-            <button id="sendSol" class="btn btn-send">SOLICITAR CRÉDITO</button>
+        <div id="solicitud-extra" style="margin-top:35px; padding-top:30px; border-top:2px solid #f1f5f9;">
+            <div class="field"><label>Nombre Completo</label><input id="cName" placeholder="Juan Pérez"></div>
+            <div class="field"><label>DNI</label><input id="cDni" placeholder="Sin puntos ni espacios"></div>
+            <div class="field"><label>Email</label><input id="cEmail" placeholder="ejemplo@correo.com"></div>
+            <button id="btnSubmit" class="btn-main" style="background:var(--accent-green); box-shadow: 0 15px 30px rgba(16,185,129,0.2);">SOLICITAR PRÉSTAMO</button>
         </div>
-        <button onclick="verEstadoDni()" style="width:100%; background:none; border:none; color:var(--primary); margin-top:20px; font-weight:700; cursor:pointer; text-decoration:underline;">Ya soy cliente, ver mi préstamo</button>
+        <button onclick="verDni()" style="width:100%; background:none; border:none; color:var(--main-blue); margin-top:25px; font-weight:800; cursor:pointer; text-decoration:underline; font-size:14px;">CONSULTAR MI ESTADO (DNI)</button>
     </div>
 
-    <div id="client-dashboard" class="glass" style="grid-column: 1 / -1;">
-        <h2 id="clientWelcome" style="font-size:32px; margin-bottom:5px;">Hola, Bienvenido</h2>
-        <p style="color:var(--dim); margin-bottom:30px;">Aquí tienes el detalle de tu plan de pagos.</p>
-        <div id="cuotasContainer"></div>
-    </div>
-
-    <div id="admin-view" class="glass" style="grid-column: 1 / -1;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-            <h2 style="margin:0;">Panel de Control</h2>
-            <div style="display:flex; align-items:center; gap:10px; background:#f1f5f9; padding:10px; border-radius:15px;">
-                <label style="margin:0;">Interés (%):</label>
-                <input id="sysTasa" type="number" style="width:70px; padding:8px; background:white;">
-                <button id="saveTasa" class="btn-primary" style="padding:8px 15px; border-radius:8px; border:none; cursor:pointer;">OK</button>
+    <div id="admin-panel" class="glass-card" style="grid-column: 1 / -1;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+            <h2 style="margin:0;">Gestión de Créditos</h2>
+            <div style="display:flex; align-items:center; gap:12px; background:#f8fafc; padding:10px 20px; border-radius:20px; border:1px solid #e2e8f0;">
+                <label style="margin:0; font-size:12px;">INTERÉS (%):</label>
+                <input id="sysTasa" type="number" style="width:80px; padding:8px; background:white;">
+                <button id="saveT" style="padding:10px 20px; border-radius:12px; background:var(--main-blue); color:white; border:none; font-weight:800; cursor:pointer;">OK</button>
             </div>
         </div>
-        <div id="adminLoans"></div>
+        <div id="adminData"></div>
+    </div>
+
+    <div id="client-dashboard" class="glass-card" style="grid-column: 1 / -1;">
+        <h2 id="cliTitle" style="font-size:32px; margin-bottom:10px;">Tu Préstamo</h2>
+        <p id="cliDni" style="color:var(--text-muted); margin-bottom:40px; font-weight:700;"></p>
+        <div id="cliCuotas"></div>
     </div>
 </main>
 
@@ -149,85 +146,89 @@
     const auth = getAuth(app);
     const $ = id => document.getElementById(id);
 
-    let tVal = 100;
+    let tGlobal = 100;
 
-    // Load Config
-    async function getT() {
+    async function initSys() {
         const d = await getDoc(doc(db, "config", "interes"));
-        if(d.exists()) { tVal = d.data().valor; $("sysTasa").value = tVal; }
+        if(d.exists()) { tGlobal = d.data().valor; $("sysTasa").value = tGlobal; }
     }
-    getT();
+    initSys();
 
-    $("saveTasa").onclick = async () => {
+    $("saveT").onclick = async () => {
         await setDoc(doc(db, "config", "interes"), { valor: Number($("sysTasa").value) });
-        tVal = Number($("sysTasa").value);
-        alert("Configuración actualizada.");
+        tGlobal = Number($("sysTasa").value);
+        alert("Configuración Guardada");
     };
 
-    window.cerrarSesion = () => signOut(auth).then(() => location.reload());
+    window.realLogout = () => signOut(auth).then(() => { window.location.href = window.location.pathname; });
 
-    // Flow
-    $("calc").onclick = () => { if($("amt").value && $("mos").value) $("form-solicitud").style.display = "block"; };
+    $("btnCalc").onclick = () => { if($("amt").value && $("mos").value) $("solicitud-extra").style.display = "block"; };
 
-    $("sendSol").onclick = async () => {
+    $("btnSubmit").onclick = async () => {
         const m = Number($("amt").value); const p = Number($("mos").value);
-        const vc = Math.round((m * (1 + (tVal/100))) / p);
+        const vc = Math.round((m * (1 + (tGlobal/100))) / p);
         const plan = Array.from({length: p}, (_, i) => ({ n: i+1, v: vc, s: "pendiente" }));
         
         await addDoc(collection(db, "loans"), {
-            name: $("cName").value, dni: $("cDni").value, amount: m,
-            plan: plan, status: "preaprobado", date: serverTimestamp()
+            name: $("cName").value || "Cliente", 
+            dni: $("cDni").value || "0", 
+            amount: m,
+            plan: plan, 
+            status: "preaprobado", 
+            date: serverTimestamp()
         });
-        alert("Solicitud recibida. Nos contactaremos pronto."); location.reload();
+        alert("Solicitud Enviada con Éxito"); location.reload();
     };
 
-    window.verEstadoDni = async () => {
+    window.verDni = async () => {
         const d = prompt("Ingrese su DNI:");
         if(!d) return;
         const q = query(collection(db, "loans"), where("dni", "==", d));
         const s = await getDocs(q);
-        if(s.empty) return alert("No registrado.");
+        if(s.empty) return alert("DNI No encontrado");
 
-        $("user-view").style.display = "none";
-        $("hero-side").style.display = "none";
-        $("exitBar").classList.remove("hidden");
+        $("user-ui").style.display = "none";
+        $("hero").style.display = "none";
+        $("exitContainer").classList.remove("hidden");
         $("client-dashboard").style.display = "block";
 
         s.forEach(snap => {
-            const l = snap.data();
-            $("clientWelcome").innerText = `Hola, ${l.name.split(' ')[0]}`;
+            const data = snap.data();
+            $("cliTitle").innerText = `Crédito de ${data.name}`;
+            $("cliDni").innerText = `DNI: ${data.dni} | Monto Base: $${data.amount.toLocaleString()}`;
             let h = "";
-            l.plan.forEach(c => h += `
-                <div class="item-row">
-                    <div><b>Cuota ${c.n}</b><br><small style="color:var(--dim)">$${c.v.toLocaleString()}</small></div>
-                    <span class="status-tag" style="background:${c.s==='pagado'?'#d1fae5':'#f1f5f9'}; color:${c.s==='pagado'?'#065f46':'#64748b'}">${c.s}</span>
+            data.plan.forEach(c => h += `
+                <div class="cuota-item">
+                    <div><b>Cuota ${c.n}</b><br><small style="color:var(--text-muted)">$${c.v.toLocaleString()}</small></div>
+                    <span style="font-weight:800; color:${c.s==='pagado'?'var(--accent-green)':'#e2e8f0'}">${c.s.toUpperCase()}</span>
                 </div>`);
-            $("cuotasContainer").innerHTML = h;
+            $("cliCuotas").innerHTML = h;
         });
     };
 
-    // Admin Panel
     async function loadAdmin() {
         const s = await getDocs(collection(db, "loans"));
-        $("adminLoans").innerHTML = "";
+        $("adminData").innerHTML = "";
         s.forEach(snap => {
             const l = snap.data();
-            let cList = l.plan.map((c, i) => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f1f5f9;">
-                    <span>C${c.n} ($${c.v})</span>
-                    <button onclick="window.payC('${snap.id}', ${i})" style="padding:5px 10px; border:none; border-radius:8px; cursor:pointer; background:${c.s==='pagado'?'#10b981':'#2563eb'}; color:white;">${c.s==='pagado'?'LISTO':'PAGAR'}</button>
+            if(!l.name) return;
+            
+            let cHtml = l.plan.map((c, i) => `
+                <div class="cuota-item">
+                    <span>C${c.n} ($${c.v.toLocaleString()})</span>
+                    <button class="pay-pill ${c.s==='pagado'?'done':''}" onclick="window.payC('${snap.id}', ${i})">${c.s==='pagado'?'PAGADO':'COBRAR'}</button>
                 </div>`).join('');
 
-            $("adminLoans").innerHTML += `
-                <div class="glass" style="margin-bottom:20px; border-radius:24px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            $("adminData").innerHTML += `
+                <div class="loan-card">
+                    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:20px;">
                         <div>
-                            <h3 style="margin:0;">${l.name}</h3>
-                            <small style="color:var(--dim)">DNI: ${l.dni} | Total: $${l.amount}</small>
+                            <b style="font-size:20px;">${l.name}</b><br>
+                            <small style="color:var(--text-muted)">DNI: ${l.dni} | Total: $${(l.amount * (1 + (tGlobal/100))).toLocaleString()}</small>
                         </div>
-                        <button onclick="window.delL('${snap.id}')" style="background:#fee2e2; border:none; padding:10px; border-radius:12px; cursor:pointer;">🗑️</button>
+                        <button onclick="window.delL('${snap.id}')" style="background:#fee2e2; border:none; padding:12px; border-radius:15px; cursor:pointer;">🗑️</button>
                     </div>
-                    <div style="margin-top:15px; max-height:150px; overflow-y:auto;">${cList}</div>
+                    <div style="max-height:200px; overflow-y:auto; padding-right:10px;">${cHtml}</div>
                 </div>`;
         });
     }
@@ -238,19 +239,19 @@
         await updateDoc(dr, { plan: p });
         loadAdmin();
     };
-    window.delL = async (id) => { if(confirm("¿Borrar?")) { await deleteDoc(doc(db, "loans", id)); loadAdmin(); } };
+    window.delL = async (id) => { if(confirm("¿Eliminar registro?")) { await deleteDoc(doc(db, "loans", id)); loadAdmin(); } };
 
-    $("authAdmin").onclick = () => {
-        const m = prompt("Email:"); const p = prompt("Password:");
+    $("adminLogin").onclick = () => {
+        const m = prompt("Email:"); const p = prompt("Pass:");
         if(m && p) signInWithEmailAndPassword(auth, m, p).catch(() => alert("Error de acceso"));
     };
 
     onAuthStateChanged(auth, u => {
         if(u && u.email === "fernandogastondelgado81@gmail.com") {
-            $("user-view").style.display = "none";
-            $("hero-side").style.display = "none";
-            $("exitBar").classList.remove("hidden");
-            $("admin-view").style.display = "block";
+            $("user-ui").style.display = "none";
+            $("hero").style.display = "none";
+            $("exitContainer").classList.remove("hidden");
+            $("admin-panel").style.display = "block";
             loadAdmin();
         }
     });
