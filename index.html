@@ -8,7 +8,7 @@
     <link rel="icon" href="ping.png" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0b0e14; --card-bg: #161b22; --accent: #00ff88; --accent-dark: #00bd65; --text-main: #f0f6fc; --text-dim: #8b949e; --border: rgba(255, 255, 255, 0.08); --danger: #ff4d4d; }
+        :root { --bg: #0b0e14; --card-bg: #161b22; --accent: #00ff88; --accent-dark: #00bd65; --text-main: #f0f6fc; --text-dim: #8b949e; --border: rgba(255, 255, 255, 0.08); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text-main); line-height: 1.5; }
         .hero { background: rgba(11, 14, 20, 0.85); backdrop-filter: blur(16px); padding: 18px 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
@@ -17,20 +17,24 @@
         h2 { font-size: 20px; font-weight: 800; margin: 0 0 22px 0; }
         .field-group { margin-bottom: 20px; }
         label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; display: block; font-weight: 700; }
-        input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 16px; border-radius: 18px; color: #fff; font-size: 16px; }
-        .file-label { display: block; border: 2px dashed var(--border); padding: 30px; text-align: center; border-radius: 20px; cursor: pointer; color: var(--accent); font-weight: 800; transition: 0.3s; }
-        .cta { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #0b0e14; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 15px; text-transform: uppercase; cursor: pointer; box-shadow: 0 8px 20px rgba(0, 255, 136, 0.2); }
+        input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 16px; border-radius: 18px; color: #fff; font-size: 16px; outline: none; }
+        input:focus { border-color: var(--accent); }
+        .file-label { display: block; border: 2px dashed var(--border); padding: 30px; text-align: center; border-radius: 20px; cursor: pointer; color: var(--accent); font-weight: 800; }
+        .cta { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #0b0e14; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 15px; text-transform: uppercase; cursor: pointer; }
         .admin-loan-item { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 18px; margin-bottom: 12px; border: 1px solid var(--border); }
-        #admin-view { display: none; }
-        .hidden { display: none; }
+        .btn-link { background: none; border: none; color: var(--text-dim); font-size: 11px; text-decoration: underline; cursor: pointer; margin-top: 10px; }
+        #admin-view, .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <header class="hero">
     <div style="max-width:480px; margin:0 auto; display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="font-size:22px; margin:0;">Pres<span>Tar</span></h1>
-        <button id="btnAdminLogin" style="background:none; border:none; color:var(--accent); font-weight:800; cursor:pointer">ADMIN</button>
+        <h1 style="font-size:22px; margin:0;">Pres<span>Star</span></h1>
+        <div style="text-align: right;">
+            <button id="btnAdminLogin" style="background:none; border:none; color:var(--accent); font-weight:800; cursor:pointer">ADMIN</button><br>
+            <button id="btnResetPass" class="btn-link">¿Olvidaste tu clave?</button>
+        </div>
     </div>
 </header>
 
@@ -69,10 +73,9 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
     import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyBlwqu9bPryzGv92cR5Vbret29R2WU7_FQ",
@@ -80,22 +83,21 @@
         projectId: "estimaprespremium",
         storageBucket: "estimaprespremium.firebasestorage.app",
         messagingSenderId: "802556214169",
-        appId: "1:802556214169:web:9c5394c014c8dcc1dbb108",
-        measurementId: "G-PNZLPJDKQL"
+        appId: "1:802556214169:web:9c5394c014c8dcc1dbb108"
     };
 
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const db = getFirestore(app);
     const storage = getStorage(app);
     const auth = getAuth(app);
 
     const $ = s => document.querySelector(s);
-    let dniDownloadUrl = "";
+    let dniUrl = "";
 
+    // Registro PWA
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
 
-    // Subida de DNI
+    // Subida de DNI a Storage
     $("#fileDni").onchange = async (e) => {
         const file = e.target.files[0];
         if(!file) return;
@@ -103,12 +105,10 @@
         try {
             const sRef = ref(storage, `dni/${Date.now()}_${file.name}`);
             await uploadBytes(sRef, file);
-            dniDownloadUrl = await getDownloadURL(sRef);
+            dniUrl = await getDownloadURL(sRef);
             $("#txtDni").textContent = "✅ DNI CARGADO";
             $("#dniLabel").style.borderColor = "var(--accent)";
-        } catch (err) {
-            $("#txtDni").textContent = "ERROR AL SUBIR";
-        }
+        } catch (err) { alert("Error al subir DNI. Revisa las reglas de Storage."); }
     };
 
     // Simulador
@@ -116,61 +116,49 @@
         const amt = $("#simAmount").value;
         const mos = $("#simMonths").value;
         if(amt && mos) {
-            const cuota = (amt * 1.45) / mos; // TNA estimada en el cálculo
+            const cuota = (amt * 1.5) / mos; 
             $("#simResult").textContent = `Cuota: $${Math.round(cuota).toLocaleString()}`;
         }
     };
 
     // Enviar Solicitud
     $("#btnSendReq").onclick = async () => {
-        if(!dniDownloadUrl) return alert("Por favor, sube la foto de tu DNI primero.");
+        if(!dniUrl) return alert("Sube la foto del DNI.");
         const data = {
             amount: Number($("#simAmount").value),
             months: Number($("#simMonths").value),
-            borrower: {
-                name: $("#bName").value,
-                email: $("#bEmail").value,
-                dni: $("#bDni").value,
-                dniUrl: dniDownloadUrl
-            },
-            status: "pending",
-            createdAt: serverTimestamp()
+            borrower: { name: $("#bName").value, email: $("#bEmail").value, dni: $("#bDni").value, dniUrl: dniUrl },
+            status: "pending", createdAt: serverTimestamp()
         };
-        try {
-            await addDoc(collection(db, "loans"), data);
-            alert("Solicitud enviada con éxito.");
-            location.reload();
-        } catch (e) { alert("Error al enviar solicitud."); }
+        await addDoc(collection(db, "loans"), data);
+        alert("Solicitud enviada.");
+        location.reload();
     };
 
-    // Aprobación y Pago (Netlify Function)
-    window.processApproval = async (loanId, amt, email) => {
-        try {
-            const resp = await fetch('/.netlify/functions/create-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount: amt,
-                    description: `Crédito EstimaPres #${loanId.slice(-5)}`,
-                    payer_email: email,
-                    loanId: loanId,
-                    success_url: window.location.origin + "/?pago=ok",
-                    failure_url: window.location.origin + "/?pago=error"
-                })
-            });
-            const data = await resp.json();
-            if(data.init_point) window.location.href = data.init_point;
-        } catch (e) { alert("Error al conectar con la pasarela de pagos."); }
+    // --- LÓGICA DE ADMIN & PLAN B ---
+
+    // Plan B: Recuperar contraseña
+    $("#btnResetPass").onclick = async () => {
+        const email = prompt("Ingresa tu correo de administrador para recibir el link de cambio de clave:");
+        if (email) {
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert("Email enviado. Revisa tu bandeja de entrada o spam.");
+            } catch (e) { alert("Error: " + e.message); }
+        }
     };
 
-    // Lógica Admin
     $("#btnAdminLogin").onclick = () => {
         const email = prompt("Email Admin:");
-        const pass = prompt("Contraseña:");
-        if(email && pass) signInWithEmailAndPassword(auth, email, pass).catch(() => alert("Acceso denegado"));
+        const pass = prompt("Password:");
+        if(email && pass) {
+            signInWithEmailAndPassword(auth, email, pass)
+                .catch(e => alert("Acceso denegado: " + e.message));
+        }
     };
 
     onAuthStateChanged(auth, u => {
+        // IMPORTANTE: Verifica que este mail sea exactamente el tuyo
         if(u && u.email === "fernandogastondelgado81@gmail.com") {
             $("#user-view").style.display = "none";
             $("#admin-view").style.display = "block";
@@ -188,12 +176,22 @@
             list.innerHTML += `
                 <div class="admin-loan-item">
                     <div style="font-weight:800">${l.borrower.name}</div>
-                    <div style="font-size:12px; color:var(--text-dim)">DNI: ${l.borrower.dni} | $${l.amount.toLocaleString()}</div>
-                    <div style="margin: 15px 0;"><a href="${l.borrower.dniUrl}" target="_blank" style="color:var(--accent); text-decoration:none; font-size:12px">Ver Foto DNI ↗</a></div>
-                    <button class="cta" style="font-size:12px; padding:12px" onclick="processApproval('${d.id}', ${l.amount}, '${l.borrower.email}')">APROBAR Y COBRAR</button>
+                    <div style="font-size:12px; color:var(--text-dim)">$${l.amount.toLocaleString()} | DNI: ${l.borrower.dni}</div>
+                    <a href="${l.borrower.dniUrl}" target="_blank" style="color:var(--accent); font-size:11px; display:block; margin:10px 0;">VER DNI ↗</a>
+                    <button class="cta" style="font-size:11px; padding:10px" onclick="payLoan('${d.id}', ${l.amount}, '${l.borrower.email}')">APROBAR Y COBRAR</button>
                 </div>`;
         });
     }
+
+    window.payLoan = async (id, amt, mail) => {
+        // Aquí conectamos con tu Netlify Function existente
+        const resp = await fetch('/.netlify/functions/create-payment', {
+            method: 'POST',
+            body: JSON.stringify({ amount: amt, payer_email: mail, loanId: id })
+        });
+        const data = await resp.json();
+        if(data.init_point) window.location.href = data.init_point;
+    };
 </script>
 </body>
 </html>
