@@ -3,114 +3,91 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title>EstimaPres Pro · Sistema de Gestión</title>
+    <title>EstimaPres Pro · Fintech</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #0b0e14; --card: #161b22; --accent: #00ff88; --text: #f0f6fc; --dim: #8b949e; --border: rgba(255, 255, 255, 0.08); --danger: #ff4757; }
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
-        
-        /* UI Components */
-        .hero { padding: 18px; background: rgba(11, 14, 20, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-        .wrap { max-width: 500px; margin: 0 auto; padding: 20px; min-height: 100vh; }
-        .card { background: var(--card); border-radius: 28px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Inputs & Buttons */
-        input, select { width: 100%; background: #000; border: 1px solid var(--border); padding: 16px; border-radius: 16px; color: #fff; margin-bottom: 12px; font-size: 16px; outline: none; transition: 0.3s; }
-        input:focus { border-color: var(--accent); }
-        .cta { width: 100%; background: var(--accent); color: #0b0e14; border: none; padding: 18px; border-radius: 18px; font-weight: 800; font-size: 14px; text-transform: uppercase; cursor: pointer; transition: 0.2s; }
-        .cta:active { transform: scale(0.98); }
-        .cta.secondary { background: #fff; color: #000; }
-        .cta.danger { background: var(--danger); color: #fff; margin-top: 10px; font-size: 11px; padding: 10px; }
-        
-        /* Tabs System */
-        .tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
-        .tab { padding: 10px 20px; background: var(--card); border: 1px solid var(--border); border-radius: 50px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--dim); }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
+        .hero { padding: 18px; background: rgba(11, 14, 20, 0.95); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .wrap { max-width: 500px; margin: 0 auto; padding: 20px; }
+        .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+        input { width: 100%; background: #000; border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: #fff; margin-bottom: 15px; font-size: 16px; outline: none; }
+        .cta { width: 100%; background: var(--accent); color: #0b0e14; border: none; padding: 16px; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; }
+        .tab { padding: 10px 18px; background: var(--card); border: 1px solid var(--border); border-radius: 50px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--dim); }
         .tab.active { background: var(--accent); color: #0b0e14; border-color: var(--accent); }
-        
-        /* Loan Items */
-        .loan-box { border-bottom: 1px solid var(--border); padding: 15px 0; }
-        .cuota-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 13px; }
-        
-        /* Views Management */
+        .cuota-card { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .badge { font-size: 9px; padding: 3px 7px; border-radius: 5px; font-weight: 800; }
         #admin-view, #client-dashboard, #contract-view, .hidden { display: none; }
-        
-        /* Modal-like buttons */
-        .floating-back { position: fixed; bottom: 20px; right: 20px; background: #fff; color: #000; padding: 12px 20px; border-radius: 50px; font-weight: 800; font-size: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); cursor: pointer; z-index: 2000; }
+        .btn-exit { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 12px 25px; border-radius: 50px; font-weight: 800; z-index: 2000; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <header class="hero">
-    <div style="display:flex; align-items:center; gap:10px;">
-        <div style="width:35px; height:35px; background:var(--accent); border-radius:10px;"></div>
-        <h1 style="font-size:20px; margin:0; letter-spacing:-0.5px;">EstimaPres</h1>
-    </div>
-    <div style="text-align: right;">
-        <button id="btnAdminAuth" style="color:var(--accent); background:none; border:none; font-weight:800; cursor:pointer; font-size:14px;">ADMIN</button>
-    </div>
+    <h1 style="font-size:20px; margin:0;">EstimaPres</h1>
+    <button id="btnAdminLogin" style="color:var(--accent); background:none; border:none; font-weight:800; cursor:pointer;">ADMIN</button>
 </header>
 
-<div id="btnBackToClient" class="hidden floating-back">MANDO CLIENTE ←</div>
+<div id="exitBtn" class="hidden btn-exit" onclick="location.reload()">MODO CLIENTE ←</div>
 
 <main class="wrap">
     <div id="user-view">
-        <section class="card">
-            <h2 style="margin-top:0;">Simulador</h2>
-            <label style="font-size:11px; color:var(--dim); font-weight:700; text-transform:uppercase;">Monto Deseado</label>
-            <input id="amt" type="number" placeholder="$ 0.00">
-            <label style="font-size:11px; color:var(--dim); font-weight:700; text-transform:uppercase;">Plazo (Meses)</label>
-            <input id="mos" type="number" placeholder="Ej: 12">
-            <button id="btnSimular" class="cta">Calcular Cuotas</button>
+        <div class="card">
+            <h2>Simulador</h2>
+            <input id="amt" type="number" placeholder="Monto ($)">
+            <input id="mos" type="number" placeholder="Meses">
+            <button id="btnSim" class="cta">Ver Plan de Cuotas</button>
             <div id="simRes" style="margin-top:20px;"></div>
-        </section>
-
-        <section class="card" id="formSolicitud" style="display:none;">
-            <h2>Solicitud de Crédito</h2>
-            <input id="cName" placeholder="Nombre y Apellido">
-            <input id="cDni" type="number" placeholder="DNI">
-            <input id="cEmail" type="email" placeholder="Correo Electrónico">
-            <button id="btnEnviarSol" class="cta secondary">Enviar Solicitud</button>
-        </section>
-
-        <button onclick="loginDni()" style="width:100%; background:none; border:none; color:var(--dim); text-decoration:underline; font-size:13px; cursor:pointer;">Ya tengo un crédito, consultar por DNI</button>
+        </div>
+        <div class="card" id="formSol" style="display:none;">
+            <h2>Datos de Solicitud</h2>
+            <input id="cName" placeholder="Nombre completo">
+            <input id="cDni" placeholder="DNI">
+            <input id="cEmail" placeholder="Email">
+            <button id="btnSend" class="cta" style="background:#fff">Enviar Preaprobado</button>
+        </div>
+        <button onclick="loginDni()" style="width:100%; background:none; border:none; color:var(--accent); cursor:pointer; text-decoration:underline;">Ver mis cuotas por DNI</button>
     </div>
 
     <div id="contract-view">
         <div class="card">
-            <h2 style="color:var(--accent)">Firma de Contrato</h2>
-            <div id="dataContrato" style="margin-bottom:20px; font-size:14px; line-height:1.6;"></div>
-            <div style="background:#000; padding:15px; border-radius:12px; font-size:11px; color:var(--dim); height:120px; overflow-y:auto; margin-bottom:20px; border:1px solid var(--border);">
-                TERMINOS Y CONDICIONES: El solicitante declara que los datos son veraces. El préstamo devengará un interés del 50% total sobre el capital. Las cuotas deben ser abonadas del 1 al 10 de cada mes. El incumplimiento autoriza a EstimaPres a iniciar acciones de cobro extrajudicial y judicial, informando a las bases de riesgo crediticio.
-            </div>
-            <button id="btnAceptarContrato" class="cta">Acepto Términos y Firmo</button>
+            <h2>Contrato Digital</h2>
+            <div id="contractData"></div>
+            <button id="btnSign" class="cta">Acepto y Firmo</button>
         </div>
     </div>
 
     <div id="client-dashboard">
         <div class="card">
-            <h2 id="clientNameTitle">Mi Crédito</h2>
-            <div id="clientStatusBadge"></div>
-            <div id="clientPlanList" style="margin-top:20px;"></div>
+            <h2 id="cliTitle">Mis Cuotas</h2>
+            <div id="cliStatus"></div>
+            <div id="cuotasList" style="margin-top:20px;"></div>
         </div>
     </div>
 
     <div id="admin-view">
-        <div class="tabs">
-            <div class="tab active" onclick="changeTab('preaprobado', this)">Preaprobados</div>
-            <div class="tab" onclick="changeTab('aprobado', this)">Aprobados</div>
-            <div class="tab" onclick="changeTab('firmado', this)">Firmados</div>
-            <div class="tab" onclick="changeTab('finalizado', this)">Finalizados</div>
+        <div class="card" style="border-color:var(--accent)">
+            <label>Tasa de Interés (%)</label>
+            <div style="display:flex; gap:10px;">
+                <input id="sysTasa" type="number" value="50">
+                <button onclick="saveTasa()" class="cta" style="width:100px; padding:0;">OK</button>
+            </div>
         </div>
-        <div id="adminDataList"></div>
+        <div class="tabs">
+            <div class="tab active" onclick="loadAdmin('preaprobado', this)">Preaprobados</div>
+            <div class="tab" onclick="loadAdmin('aprobado', this)">Aprobados</div>
+            <div class="tab" onclick="loadAdmin('finalizado', this)">Finalizados</div>
+        </div>
+        <div id="adminData"></div>
     </div>
 </main>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
@@ -126,139 +103,141 @@
     const auth = getAuth(app);
     const $ = id => document.getElementById(id);
 
-    // --- MANEJO DE VISTAS ---
-    function hideAll() {
-        $("user-view").style.display = "none";
-        $("admin-view").style.display = "none";
-        $("client-dashboard").style.display = "none";
-        $("contract-view").style.display = "none";
-        $("btnBackToClient").classList.add("hidden");
+    let currentTasa = 50;
+    
+    // Cargar Tasa inicial
+    async function getTasa() {
+        const d = await getDoc(doc(db, "config", "interes"));
+        if(d.exists()) {
+            currentTasa = d.data().valor;
+            $("sysTasa").value = currentTasa;
+        }
     }
+    getTasa();
 
-    $("btnBackToClient").onclick = () => {
-        signOut(auth).then(() => {
-            location.reload();
-        });
+    window.saveTasa = async () => {
+        await setDoc(doc(db, "config", "interes"), { valor: Number($("sysTasa").value) });
+        currentTasa = $("sysTasa").value;
+        alert("Tasa actualizada");
     };
 
-    // --- CLIENTE: FLUJO ---
-    $("btnSimular").onclick = () => {
+    // SIMULACIÓN CON DETALLE
+    $("btnSim").onclick = () => {
         const m = $("amt").value; const p = $("mos").value;
-        if(!m || !p) return;
-        const c = Math.round((m * 1.5) / p);
-        let h = `<div style="background:rgba(0,255,136,0.1); padding:15px; border-radius:15px; border:1px solid var(--accent);">`;
-        h += `<small style="color:var(--accent)">CUOTA MENSUAL ESTIMADA</small><div style="font-size:24px; font-weight:800;">$${c.toLocaleString()}</div></div>`;
+        const totalConInteres = m * (1 + (currentTasa/100));
+        const cuotaVal = Math.round(totalConInteres / p);
+        let h = "<h3>Plan de Pagos:</h3>";
+        for(let i=1; i<=p; i++){
+            h += `<div class="cuota-card">Cuota ${i} <b>$${cuotaVal.toLocaleString()}</b></div>`;
+        }
         $("simRes").innerHTML = h;
-        $("formSolicitud").style.display = "block";
+        $("formSol").style.display = "block";
     };
 
-    $("btnEnviarSol").onclick = async () => {
-        const m = $("amt").value; const p = $("mos").value;
-        const cuota = Math.round((m * 1.5) / p);
-        const plan = Array.from({length: p}, (_, i) => ({ n: i+1, m: cuota, p: false }));
-        
+    // SOLICITUD
+    $("btnSend").onclick = async () => {
+        const total = $("amt").value * (1 + (currentTasa/100));
+        const valCuota = Math.round(total / $("mos").value);
+        const plan = Array.from({length: $("mos").value}, (_, i) => ({
+            num: i+1, monto: valCuota, estado: "pendiente", fecha: ""
+        }));
         await addDoc(collection(db, "loans"), {
-            name: $("cName").value, dni: $("cDni").value, email: $("cEmail").value,
-            amount: m, months: p, plan: plan, status: "preaprobado", signed: false, date: serverTimestamp()
+            name: $("cName").value, dni: $("cDni").value, amount: $("amt").value,
+            plan: plan, status: "preaprobado", signed: false, date: serverTimestamp()
         });
-        alert("Solicitud enviada con éxito.");
+        alert("Solicitud enviada.");
         location.reload();
     };
 
+    // CONSULTA CLIENTE (DETALLE CUOTAS)
     window.loginDni = async () => {
-        const d = prompt("DNI del titular:");
-        if(!d) return;
+        const d = prompt("DNI:");
         const q = query(collection(db, "loans"), where("dni", "==", d));
         const s = await getDocs(q);
-        if(s.empty) return alert("No hay registros con ese DNI.");
+        if(s.empty) return alert("No encontrado");
         
-        hideAll();
+        $("user-view").style.display = "none";
         s.forEach(snap => {
             const l = snap.data();
             if(l.status === "aprobado" && !l.signed) {
-                showContractView(snap.id, l);
+                $("contract-view").style.display = "block";
+                $("contractData").innerHTML = `<p>${l.name}, confirmas el préstamo de $${l.amount}?</p>`;
+                $("btnSign").onclick = async () => {
+                    await updateDoc(doc(db, "loans", snap.id), { signed: true, status: "aprobado" });
+                    alert("Firmado"); location.reload();
+                };
             } else {
-                showDashboardView(l);
+                $("client-dashboard").style.display = "block";
+                $("cliTitle").innerText = l.name;
+                let h = "";
+                l.plan.forEach(c => {
+                    h += `<div class="cuota-card">
+                        <span>Cuota ${c.num}</span> 
+                        <b>$${c.monto}</b>
+                        <span class="badge" style="background:${c.estado==='pagado'?'#00ff88':'#333'}">${c.estado}</span>
+                        <small>${c.fecha || ''}</small>
+                    </div>`;
+                });
+                $("cuotasList").innerHTML = h;
+                $("exitBtn").classList.remove("hidden");
             }
         });
     };
 
-    function showContractView(id, l) {
-        $("contract-view").style.display = "block";
-        $("dataContrato").innerHTML = `<b>${l.name}</b>, confirmas la solicitud de <b>$${l.amount}</b> a pagar en <b>${l.months} cuotas</b>?`;
-        $("btnAceptarContrato").onclick = async () => {
-            await updateDoc(doc(db, "loans", id), { signed: true, status: "firmado" });
-            const { jsPDF } = window.jspdf;
-            const docPdf = new jsPDF();
-            docPdf.text("CONTRATO DE PRESTAMO ESTIMAPRES", 10, 10);
-            docPdf.text(`Titular: ${l.name} | DNI: ${l.dni}`, 10, 20);
-            docPdf.text(`Monto: $${l.amount} | Cuotas: ${l.months}`, 10, 30);
-            docPdf.save(`Contrato_${l.dni}.pdf`);
-            alert("Contrato firmado. Te contactaremos para el desembolso.");
-            location.reload();
-        };
-    }
-
-    function showDashboardView(l) {
-        $("client-dashboard").style.display = "block";
-        $("clientNameTitle").innerText = l.name;
-        $("clientStatusBadge").innerHTML = `<span style="background:var(--accent); color:#000; padding:4px 10px; border-radius:10px; font-size:10px; font-weight:800;">${l.status.toUpperCase()}</span>`;
-        let h = "";
-        l.plan.forEach(c => h += `<div class="cuota-row"><span>Cuota ${c.n}</span> <b>$${c.m}</b> <span>${c.p?'PAGADA':'PENDIENTE'}</span></div>`);
-        $("clientPlanList").innerHTML = h;
-        $("btnBackToClient").classList.remove("hidden");
-    }
-
-    // --- ADMIN: FLUJO ---
-    $("btnAdminAuth").onclick = () => {
-        const m = prompt("Email:"); const p = prompt("Password:");
-        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(e => alert("Acceso denegado."));
-    };
-
-    onAuthStateChanged(auth, u => {
-        if(u && u.email === "fernandogastondelgado81@gmail.com") {
-            hideAll();
-            $("admin-view").style.display = "block";
-            $("btnBackToClient").classList.remove("hidden");
-            changeTab('preaprobado', document.querySelector('.tab'));
-        }
-    });
-
-    window.changeTab = async (status, el) => {
+    // ADMIN
+    window.loadAdmin = async (filter, el) => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
-        const q = query(collection(db, "loans"), where("status", "==", status));
+        const q = query(collection(db, "loans"), where("status", "==", filter));
         const s = await getDocs(q);
-        const list = $("adminDataList");
-        list.innerHTML = "";
-        
+        $("adminData").innerHTML = "";
         s.forEach(snap => {
             const l = snap.data();
-            list.innerHTML += `
+            let hCuotas = l.plan.map(c => `
+                <div style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid #333; padding:5px 0;">
+                    Cuota ${c.num} ($${c.monto}) 
+                    <button onclick="payCuota('${snap.id}', ${c.num-1})">${c.estado==='pagado'?'✅':'PAGAR'}</button>
+                </div>`).join('');
+
+            $("adminData").innerHTML += `
                 <div class="card">
-                    <div style="font-weight:800; font-size:16px;">${l.name}</div>
-                    <div style="color:var(--dim); font-size:12px;">DNI: ${l.dni} | Total: $${l.amount}</div>
-                    <div style="margin-top:15px; display:flex; gap:10px;">
-                        ${status === 'preaprobado' ? `<button class="cta" style="padding:10px; font-size:11px;" onclick="updateLoan('${snap.id}', 'aprobado')">Aprobar</button>` : ''}
-                        ${status === 'firmado' ? `<button class="cta" style="padding:10px; font-size:11px; background:#fff" onclick="updateLoan('${snap.id}', 'finalizado')">Finalizar</button>` : ''}
-                        <button class="cta danger" onclick="delLoan('${snap.id}')">Eliminar</button>
+                    <b>${l.name} (DNI: ${l.dni})</b><br>
+                    <div style="margin:10px 0;">${hCuotas}</div>
+                    <div style="display:flex; gap:5px;">
+                        ${filter==='preaprobado'?`<button class="cta" onclick="upd('${snap.id}', 'aprobado')">Aprobar</button>`:''}
+                        ${filter==='aprobado'?`<button class="cta" onclick="upd('${snap.id}', 'finalizado')">Finalizar</button>`:''}
+                        <button class="cta" style="background:var(--danger); width:50px;" onclick="del('${snap.id}')">🗑️</button>
                     </div>
                 </div>`;
         });
     };
 
-    window.updateLoan = async (id, st) => {
-        await updateDoc(doc(db, "loans", id), { status: st });
-        alert("Estado actualizado.");
+    window.payCuota = async (id, index) => {
+        const d = await getDoc(doc(db, "loans", id));
+        let plan = d.data().plan;
+        plan[index].estado = "pagado";
+        plan[index].fecha = new Date().toLocaleDateString();
+        await updateDoc(doc(db, "loans", id), { plan: plan });
+        alert("Cuota marcada como pagada");
         location.reload();
     };
 
-    window.delLoan = async (id) => {
-        if(confirm("¿Eliminar este registro permanentemente?")) {
-            await deleteDoc(doc(db, "loans", id));
-            location.reload();
-        }
+    window.upd = async (id, st) => { await updateDoc(doc(db, "loans", id), { status: st }); location.reload(); };
+    window.del = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db, "loans", id)); location.reload(); };
+
+    $("btnAdminLogin").onclick = () => {
+        const m = prompt("Email:"); const p = prompt("Pass:");
+        if(m && p) signInWithEmailAndPassword(auth, m, p);
     };
+
+    onAuthStateChanged(auth, u => {
+        if(u && u.email === "fernandogastondelgado81@gmail.com") {
+            $("user-view").style.display = "none";
+            $("admin-view").style.display = "block";
+            $("exitBtn").classList.remove("hidden");
+            loadAdmin('preaprobado', document.querySelector('.tab'));
+        }
+    });
 </script>
 </body>
 </html>
