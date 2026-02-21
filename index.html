@@ -3,78 +3,165 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title>EstimaPres Pro</title>
+    <title>EstimaPres · Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0b0e14; --card: #161b22; --accent: #00ff88; --text: #f0f6fc; --dim: #8b949e; --border: rgba(255, 255, 255, 0.08); --danger: #ff4757; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); padding-bottom: 100px; }
-        .hero { padding: 18px; background: rgba(11, 14, 20, 0.95); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
-        .wrap { max-width: 500px; margin: 0 auto; padding: 20px; }
-        .card { background: var(--card); border-radius: 28px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
-        input { width: 100%; background: #000; border: 1px solid var(--border); padding: 16px; border-radius: 16px; color: #fff; margin-bottom: 12px; font-size: 16px; box-sizing: border-box; }
-        .cta { width: 100%; background: var(--accent); color: #0b0e14; border: none; padding: 18px; border-radius: 18px; font-weight: 800; cursor: pointer; text-transform: uppercase; transition: 0.2s; }
-        .cta:active { transform: scale(0.96); }
-        .tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-        .tab { padding: 10px 20px; background: var(--card); border: 1px solid var(--border); border-radius: 50px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--dim); }
-        .tab.active { background: var(--accent); color: #0b0e14; border-color: var(--accent); }
-        .cuota-item { background: rgba(0,0,0,0.4); padding: 16px; border-radius: 16px; margin-bottom: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .btn-pay { background: var(--accent); color: #000; border: none; padding: 8px 12px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 11px; }
+        :root { 
+            --bg: #05070a; 
+            --card: #111418; 
+            --accent: #00ff88; 
+            --accent-dim: rgba(0, 255, 136, 0.1);
+            --text: #ffffff; 
+            --dim: #94a3b8; 
+            --border: rgba(255, 255, 255, 0.05); 
+            --danger: #ff4757; 
+            --surface: #1c2128;
+        }
+        
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+        
+        /* Header Estilo App */
+        .hero { 
+            padding: 20px; 
+            background: rgba(5, 7, 10, 0.8); 
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border); 
+            display: flex; justify-content: space-between; align-items: center; 
+            position: sticky; top: 0; z-index: 1000; 
+        }
+        .logo { font-weight: 800; font-size: 22px; letter-spacing: -1px; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .wrap { max-width: 480px; margin: 0 auto; padding: 20px; }
+        
+        /* Tarjetas Estilo Premium */
+        .card { 
+            background: var(--card); 
+            border-radius: 24px; 
+            padding: 24px; 
+            margin-bottom: 20px; 
+            border: 1px solid var(--border); 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        
+        h2 { font-size: 18px; font-weight: 700; margin: 0 0 20px 0; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Inputs Modernos */
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-size: 12px; font-weight: 600; color: var(--dim); margin-bottom: 8px; margin-left: 4px; }
+        input { 
+            width: 100%; background: var(--surface); border: 1px solid var(--border); 
+            padding: 16px; border-radius: 16px; color: #fff; font-size: 16px; font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 20px var(--accent-dim); }
+
+        /* Botones Estilo Fintech */
+        .cta { 
+            width: 100%; background: var(--accent); color: #000; border: none; 
+            padding: 18px; border-radius: 18px; font-weight: 800; font-size: 15px;
+            cursor: pointer; box-shadow: 0 10px 20px rgba(0, 255, 136, 0.2);
+            transition: transform 0.2s;
+        }
+        .cta:active { transform: scale(0.97); }
+        .cta-secondary { background: #fff; color: #000; box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
+        
+        /* Tabs de Navegación */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding: 5px; scrollbar-width: none; }
+        .tab { 
+            padding: 12px 24px; background: var(--surface); border: 1px solid var(--border); 
+            border-radius: 16px; font-size: 13px; font-weight: 700; cursor: pointer; 
+            white-space: nowrap; color: var(--dim); transition: 0.3s;
+        }
+        .tab.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 8px 15px var(--accent-dim); }
+
+        /* Item de Cuota (Ticket) */
+        .cuota-card { 
+            background: var(--surface); padding: 18px; border-radius: 20px; 
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+            border-left: 4px solid var(--accent);
+        }
+        .cuota-card.pendiente { border-left-color: #333; opacity: 0.8; }
+        .status-pill { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
+        .paid { background: var(--accent-dim); color: var(--accent); }
+        .unpaid { background: rgba(255,255,255,0.05); color: var(--dim); }
+
+        /* Admin UI */
+        .admin-loan-card { border-radius: 24px; background: var(--card); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
+        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-small { padding: 10px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer; border: none; flex: 1; }
+        .btn-danger { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
+
+        /* Vistas */
         #admin-view, #client-dashboard, #contract-view, .hidden { display: none; }
-        .floating-exit { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2000; }
-        .btn-exit { background: #fff; color: #000; padding: 14px 30px; border-radius: 50px; font-weight: 800; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer; }
+        
+        .floating-exit { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 400px; }
     </style>
 </head>
 <body>
 
 <header class="hero">
-    <h1 style="font-size:20px; margin:0;">EstimaPres</h1>
-    <button id="btnAdminLogin" style="color:var(--accent); background:none; border:none; font-weight:800; cursor:pointer;">ADMIN</button>
+    <div class="logo">EstimaPres</div>
+    <button id="btnAdminLogin" style="background: var(--accent-dim); color: var(--accent); border: none; padding: 8px 16px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer;">SOCIO ADMIN</button>
 </header>
 
 <div id="exitContainer" class="hidden floating-exit">
-    <button id="btnRealExit" class="btn-exit">MODO CLIENTE ←</button>
+    <button id="btnRealExit" class="cta cta-secondary">CERRAR SESIÓN Y VOLVER</button>
 </div>
 
 <main class="wrap">
     <div id="user-view">
         <div class="card">
-            <h2>Simulador</h2>
-            <input id="amt" type="number" placeholder="Monto ($)">
-            <input id="mos" type="number" placeholder="Meses">
-            <button id="btnSim" class="cta">Ver Plan de Cuotas</button>
-            <div id="simRes" style="margin-top:20px;"></div>
+            <h2>Préstamo Inmediato</h2>
+            <div class="input-group">
+                <label>¿Cuánto dinero necesitas?</label>
+                <input id="amt" type="number" placeholder="$ 0.00">
+            </div>
+            <div class="input-group">
+                <label>¿En cuántos meses?</label>
+                <input id="mos" type="number" placeholder="Ej: 12">
+            </div>
+            <button id="btnSim" class="cta">Simular mi crédito</button>
         </div>
-        <div class="card" id="formSol" style="display:none;">
-            <h2>Solicitud</h2>
+        
+        <div id="simRes"></div>
+
+        <div class="card" id="formSol" style="display:none; margin-top: 20px;">
+            <h2>Completa tu Perfil</h2>
             <input id="cName" placeholder="Nombre completo">
-            <input id="cDni" placeholder="DNI">
-            <input id="cEmail" placeholder="Email">
-            <button id="btnSend" class="cta" style="background:#fff">Enviar Solicitud</button>
+            <input id="cDni" type="number" placeholder="DNI">
+            <input id="cEmail" type="email" placeholder="Email de contacto">
+            <button id="btnSend" class="cta" style="background: #fff; color: #000;">Solicitar Ahora</button>
         </div>
-        <button onclick="loginDni()" style="width:100%; background:none; border:none; color:var(--accent); cursor:pointer; text-decoration:underline;">Consultar mi crédito por DNI</button>
+        
+        <button onclick="loginDni()" style="width:100%; background:none; border:none; color: var(--dim); font-weight: 600; text-decoration: underline; margin-top: 20px; font-size: 14px; cursor: pointer;">Ya soy cliente, consultar DNI</button>
     </div>
 
     <div id="client-dashboard">
-        <div class="card">
-            <h2 id="cliTitle">Mi Crédito</h2>
-            <div id="cuotasList"></div>
+        <div class="card" style="background: linear-gradient(135deg, #111418 0%, #05070a 100%);">
+            <div style="font-size: 12px; color: var(--accent); font-weight: 800; margin-bottom: 5px;">BIENVENIDO/A</div>
+            <h1 id="cliTitle" style="margin:0; font-size: 28px; letter-spacing: -1px;"></h1>
         </div>
+        <h2 style="margin-left: 10px;">Mis Cuotas</h2>
+        <div id="cuotasList"></div>
     </div>
 
     <div id="admin-view">
-        <div class="card" style="border-color:var(--accent)">
-            <label style="font-size:12px; font-weight:800;">Tasa de Interés (%)</label>
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <input id="sysTasa" type="number" style="margin:0;">
-                <button id="btnSaveTasa" class="cta" style="width:80px; padding:0;">OK</button>
+        <div class="card">
+            <label>Tasa Nominal Anual (%)</label>
+            <div style="display:flex; gap:12px; align-items: center;">
+                <input id="sysTasa" type="number" style="margin:0; flex: 1;">
+                <button id="btnSaveTasa" class="cta" style="width:80px; padding: 14px;">OK</button>
             </div>
         </div>
+        
         <div class="tabs">
             <div class="tab active" data-status="preaprobado">Preaprobados</div>
             <div class="tab" data-status="aprobado">Aprobados</div>
             <div class="tab" data-status="finalizado">Finalizados</div>
         </div>
+        
         <div id="adminData"></div>
     </div>
 </main>
@@ -100,7 +187,6 @@
 
     let currentTasa = 50;
 
-    // CARGAR TASA
     async function loadConfig() {
         const d = await getDoc(doc(db, "config", "interes"));
         if(d.exists()) { currentTasa = d.data().valor; $("sysTasa").value = currentTasa; }
@@ -110,45 +196,46 @@
     $("btnSaveTasa").onclick = async () => {
         await setDoc(doc(db, "config", "interes"), { valor: Number($("sysTasa").value) });
         currentTasa = Number($("sysTasa").value);
-        alert("Tasa actualizada.");
+        alert("Tasa Global Actualizada");
     };
 
-    // SALIR REAL
     $("btnRealExit").onclick = () => {
         signOut(auth).then(() => { location.reload(); });
     };
 
-    // SIMULADOR
     $("btnSim").onclick = () => {
         const m = Number($("amt").value); const p = Number($("mos").value);
         if(!m || !p) return;
         const total = m * (1 + (currentTasa/100));
-        const cuotaVal = Math.round(total / p);
-        let h = `<small>Total: $${total.toLocaleString()}</small>`;
-        for(let i=1; i<=p; i++) h += `<div class="cuota-item">Cuota ${i} <b>$${cuotaVal.toLocaleString()}</b></div>`;
+        const valC = Math.round(total / p);
+        
+        let h = `<div class="card" style="border-color: var(--accent-dim)">
+                    <div style="font-size: 13px; color: var(--dim); margin-bottom: 5px;">Cuota Mensual Estimada</div>
+                    <div style="font-size: 32px; font-weight: 800; color: var(--accent);">$ ${valC.toLocaleString()}</div>
+                    <div style="font-size: 11px; color: var(--dim); margin-top: 10px;">Costo total: $ ${total.toLocaleString()}</div>
+                 </div>`;
         $("simRes").innerHTML = h;
         $("formSol").style.display = "block";
+        $("formSol").scrollIntoView({ behavior: 'smooth' });
     };
 
-    // ENVIAR
     $("btnSend").onclick = async () => {
         const total = $("amt").value * (1 + (currentTasa/100));
         const valC = Math.round(total / $("mos").value);
         const plan = Array.from({length: $("mos").value}, (_, i) => ({ n: i+1, v: valC, s: "pendiente" }));
         await addDoc(collection(db, "loans"), {
-            name: $("cName").value, dni: $("cDni").value, amount: $("amt").value,
+            name: $("cName").value, dni: $("cDni").value, amount: Number($("amt").value),
             plan: plan, status: "preaprobado", signed: false, date: serverTimestamp()
         });
-        alert("Solicitud enviada."); location.reload();
+        alert("¡Solicitud enviada! Analizaremos tu perfil."); location.reload();
     };
 
-    // CONSULTA DNI
     window.loginDni = async () => {
-        const d = prompt("DNI:");
+        const d = prompt("Ingresa tu DNI:");
         if(!d) return;
         const q = query(collection(db, "loans"), where("dni", "==", d));
         const s = await getDocs(q);
-        if(s.empty) return alert("No encontrado");
+        if(s.empty) return alert("No encontramos créditos con ese DNI.");
 
         $("user-view").style.display = "none";
         $("exitContainer").classList.remove("hidden");
@@ -156,14 +243,20 @@
         
         s.forEach(snap => {
             const l = snap.data();
-            $("cliTitle").innerText = l.name;
+            $("cliTitle").innerText = l.name.split(' ')[0];
             let h = "";
-            l.plan.forEach(c => h += `<div class="cuota-item"><span>Cuota ${c.n}</span> <b>$${c.v.toLocaleString()}</b> <small>${c.s}</small></div>`);
+            l.plan.forEach(c => h += `
+                <div class="cuota-card ${c.s === 'pendiente' ? 'pendiente' : ''}">
+                    <div>
+                        <div style="font-size: 12px; color: var(--dim);">Cuota ${c.n}</div>
+                        <div style="font-size: 18px; font-weight: 800;">$ ${c.v.toLocaleString()}</div>
+                    </div>
+                    <span class="status-pill ${c.s === 'pagado' ? 'paid' : 'unpaid'}">${c.s}</span>
+                </div>`);
             $("cuotasList").innerHTML = h;
         });
     };
 
-    // ADMIN RENDER
     async function loadAdmin(status) {
         const q = query(collection(db, "loans"), where("status", "==", status));
         const s = await getDocs(q);
@@ -171,23 +264,28 @@
         s.forEach(snap => {
             const l = snap.data();
             let hCuotas = l.plan.map((c, i) => `
-                <div style="font-size:11px; display:flex; justify-content:space-between; margin-bottom:5px;">
-                    C${c.n} ($${c.v}) <button class="btn-pay" onclick="window.payC('${snap.id}', ${i})">${c.s==='pagado'?'✅':'Pagar'}</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom: 1px solid rgba(255,255,255,0.02);">
+                    <span style="font-size: 13px;">Cuota ${c.n} ($${c.v})</span>
+                    <button class="btn-small" style="max-width: 80px; background: ${c.s==='pagado'?'var(--accent-dim)':'#fff'}; color: #000;" 
+                        onclick="window.payC('${snap.id}', ${i})">${c.s==='pagado'?'LISTO':'PAGAR'}</button>
                 </div>`).join('');
             
             $("adminData").innerHTML += `
-                <div class="card">
-                    <b>${l.name} - $${l.amount}</b>
-                    <div style="margin:15px 0;">${hCuotas}</div>
-                    <div style="display:flex; gap:10px;">
-                        ${status==='preaprobado'?`<button class="cta" onclick="window.updSt('${snap.id}', 'aprobado')">Aprobar</button>`:''}
-                        <button class="cta" style="background:var(--danger); width:50px" onclick="window.delL('${snap.id}')">🗑️</button>
+                <div class="admin-loan-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <b style="font-size: 16px;">${l.name}</b>
+                        <span style="font-size: 12px; color: var(--accent); font-weight: 800;">$${l.amount}</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--dim); margin-bottom: 15px;">DNI: ${l.dni}</div>
+                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; max-height: 150px; overflow-y: auto;">${hCuotas}</div>
+                    <div class="action-btns">
+                        ${status==='preaprobado'?`<button class="btn-small" style="background: var(--accent); color:#000;" onclick="window.updSt('${snap.id}', 'aprobado')">APROBAR</button>`:''}
+                        <button class="btn-small btn-danger" onclick="window.delL('${snap.id}')">BORRAR</button>
                     </div>
                 </div>`;
         });
     }
 
-    // Funciones Globales para Admin
     window.payC = async (id, i) => {
         const dr = doc(db, "loans", id); const d = await getDoc(dr);
         let p = d.data().plan; p[i].s = "pagado";
@@ -195,9 +293,8 @@
         loadAdmin(document.querySelector('.tab.active').dataset.status);
     };
     window.updSt = async (id, st) => { await updateDoc(doc(db, "loans", id), { status: st }); location.reload(); };
-    window.delL = async (id) => { if(confirm("Borrar?")) { await deleteDoc(doc(db, "loans", id)); location.reload(); } };
+    window.delL = async (id) => { if(confirm("¿Eliminar este registro permanentemente?")) { await deleteDoc(doc(db, "loans", id)); location.reload(); } };
 
-    // TABS
     document.querySelectorAll('.tab').forEach(t => {
         t.onclick = () => {
             document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -206,10 +303,9 @@
         };
     });
 
-    // AUTH
     $("btnAdminLogin").onclick = () => {
-        const m = prompt("Email:"); const p = prompt("Pass:");
-        if(m && p) signInWithEmailAndPassword(auth, m, p);
+        const m = prompt("Fintech Auth - Email:"); const p = prompt("Password:");
+        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(e => alert("Credenciales incorrectas"));
     };
 
     onAuthStateChanged(auth, u => {
