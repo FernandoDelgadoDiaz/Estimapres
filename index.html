@@ -4,64 +4,81 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
     <title>EstimaPres · Control Total</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0b0e14; --card: #161b22; --accent: #00ff88; --text: #f0f6fc; --dim: #8b949e; --border: rgba(255, 255, 255, 0.08); }
+        :root { --bg: #0b0e14; --card: #161b22; --accent: #00ff88; --text: #f0f6fc; --dim: #8b949e; --border: rgba(255, 255, 255, 0.08); --danger: #ff4757; }
         body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
-        .hero { padding: 18px; background: rgba(11, 14, 20, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .wrap { max-width: 480px; margin: 0 auto; padding: 20px; }
+        .hero { padding: 18px; background: rgba(11, 14, 20, 0.9); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .wrap { max-width: 500px; margin: 0 auto; padding: 20px; }
         .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
         input { width: 100%; background: #000; border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: #fff; margin-bottom: 15px; font-size: 16px; }
-        .cta { width: 100%; background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; cursor: pointer; }
-        .file-box { border: 2px dashed var(--border); padding: 20px; text-align: center; border-radius: 15px; color: var(--accent); cursor: pointer; margin-bottom: 15px; }
-        #admin-view, .hidden { display: none; }
-        .btn-reset { background: none; border: none; color: var(--dim); font-size: 11px; cursor: pointer; text-decoration: underline; }
+        .cta { width: 100%; background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+        .btn-del { background: var(--danger); color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; margin-top: 10px; }
+        .cuota-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; overflow-x: auto; }
+        .tab { padding: 8px 15px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        .tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+        #admin-view, #client-dashboard, #contract-view, .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <header class="hero">
-    <h1 style="font-size:20px; margin:0;">EstimaPres</h1>
-    <div style="text-align: right;">
-        <button id="btnAdmin" style="color:var(--accent); background:none; border:none; font-weight:800; cursor:pointer;">ADMIN</button><br>
-        <button id="btnPlanB" class="btn-reset">Recuperar Clave</button>
-    </div>
+    <h1 style="font-size:20px; margin:0;" onclick="location.reload()">EstimaPres</h1>
+    <button id="btnAdmin" style="color:var(--accent); background:none; border:none; font-weight:800; cursor:pointer;">ADMIN</button>
 </header>
 
 <main class="wrap">
     <div id="user-view">
         <div class="card">
-            <h2>Simulador</h2>
-            <input id="amt" type="number" placeholder="Monto a pedir">
+            <h2>Simulador Profesional</h2>
+            <input id="amt" type="number" placeholder="Monto ($)">
             <input id="mos" type="number" placeholder="Meses">
-            <button id="btnCalc" class="cta">Calcular</button>
-            <div id="res" style="margin-top:15px; font-weight:800; color:var(--accent)"></div>
+            <button id="btnCalc" class="cta">Ver Plan de Pagos</button>
+            <div id="simDetail" style="margin-top:20px;"></div>
         </div>
+        <div class="card" id="request-form" style="display:none;">
+            <h2>Solicitud de Crédito</h2>
+            <input id="name" placeholder="Nombre completo">
+            <input id="dni" placeholder="DNI">
+            <input id="email" type="email" placeholder="Email">
+            <button id="btnSend" class="cta" style="background:#fff">Enviar para Preaprobación</button>
+        </div>
+        <button onclick="showLogin()" style="width:100%; background:none; border:none; color:var(--accent); cursor:pointer;">Consultar mi Crédito (DNI)</button>
+    </div>
 
+    <div id="contract-view" class="hidden">
         <div class="card">
-            <h2>Solicitud</h2>
-            <div class="file-box" id="dropZone">📷 <span id="fileTxt">SUBIR FOTO DNI</span></div>
-            <input type="file" id="fileInp" class="hidden" accept="image/*">
-            <input id="name" placeholder="Tu nombre completo">
-            <input id="email" type="email" placeholder="Tu email">
-            <button id="btnSend" class="cta" style="background:#fff">Enviar Crédito</button>
+            <h2>Firma de Contrato Digital</h2>
+            <div id="contractText"></div>
+            <p style="font-size:11px; color:var(--dim)">Al hacer clic en el botón, acepto los términos y condiciones de EstimaPres y confirmo la recepción del plan de pagos detallado.</p>
+            <button id="btnSign" class="cta">Acepto y Firmo Contrato</button>
         </div>
     </div>
 
     <div id="admin-view">
-        <h2>Solicitudes Pendientes</h2>
-        <div id="loanList"></div>
-        <button onclick="location.reload()" class="cta" style="margin-top:20px; background:none; border:1px solid var(--border); color:#fff">Salir</button>
+        <div class="tabs">
+            <div class="tab active" onclick="loadAdmin('preaprobado')">Preaprobados</div>
+            <div class="tab" onclick="loadAdmin('firmado')">Firmados</div>
+            <div class="tab" onclick="loadAdmin('finalizado')">Finalizados</div>
+        </div>
+        <div id="adminList"></div>
+    </div>
+
+    <div id="client-dashboard" class="hidden">
+        <div class="card">
+            <h2 id="clientTitle">Mi Crédito</h2>
+            <div id="clientContent"></div>
+        </div>
     </div>
 </main>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-    // Credenciales del proyecto "estimapres"
     const firebaseConfig = {
       apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
       authDomain: "estimapres.firebaseapp.com",
@@ -73,88 +90,115 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
     const auth = getAuth(app);
-
-    let dniUrl = "";
     const $ = id => document.getElementById(id);
 
-    // Lógica de archivo
-    $("dropZone").onclick = () => $("fileInp").click();
-    $("fileInp").onchange = async (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        $("fileTxt").innerText = "SUBIENDO...";
-        try {
-            const r = ref(storage, `dni/${Date.now()}_${file.name}`);
-            await uploadBytes(r, file);
-            dniUrl = await getDownloadURL(r);
-            $("fileTxt").innerText = "✅ DNI CARGADO";
-        } catch (err) { 
-            alert("Error: Verifica las REGLAS de Storage en la consola.");
-            $("fileTxt").innerText = "ERROR AL SUBIR";
-        }
-    };
-
-    // Simulador
+    // SIMULACIÓN
     $("btnCalc").onclick = () => {
-        const total = ($("amt").value * 1.5) / $("mos").value;
-        $("res").innerText = "Cuota mensual: $" + Math.round(total).toLocaleString();
+        const val = Math.round(($("amt").value * 1.5) / $("mos").value);
+        let h = "<h3>Detalle de cuotas:</h3>";
+        for(let i=1; i<=$("mos").value; i++) h += `<div class="cuota-item">Cuota ${i} <span>$${val.toLocaleString()}</span></div>`;
+        $("simDetail").innerHTML = h;
+        $("request-form").style.display = "block";
     };
 
-    // Enviar solicitud
+    // SOLICITUD
     $("btnSend").onclick = async () => {
-        if(!dniUrl) return alert("Sube la foto del DNI primero");
+        const cuota = Math.round(($("amt").value * 1.5) / $("mos").value);
+        const plan = Array.from({length: $("mos").value}, (_, i) => ({ n: i+1, m: cuota, p: false }));
         await addDoc(collection(db, "loans"), {
-            amount: $("amt").value,
-            name: $("name").value,
-            email: $("email").value,
-            dniUrl: dniUrl,
-            status: "pending",
-            date: serverTimestamp()
+            name: $("name").value, dni: $("dni").value, email: $("email").value,
+            amount: $("amt").value, plan: plan, status: "preaprobado", signed: false, date: serverTimestamp()
         });
-        alert("¡Solicitud enviada!");
+        alert("Solicitud en proceso de preaprobación.");
         location.reload();
     };
 
-    // --- ADMIN & PLAN B ---
+    // LOGIN CLIENTE
+    window.showLogin = () => {
+        const d = prompt("DNI:");
+        if(d) checkClient(d);
+    };
 
-    // Plan B: Recuperar clave
-    $("btnPlanB").onclick = async () => {
-        const mail = prompt("Email del admin:");
-        if(mail) {
-            await sendPasswordResetEmail(auth, mail);
-            alert("Email enviado para cambiar clave.");
+    async function checkClient(dni) {
+        const q = query(collection(db, "loans"), where("dni", "==", dni));
+        const s = await getDocs(q);
+        if(s.empty) return alert("No hay datos.");
+        s.forEach(docSnap => {
+            const l = docSnap.data();
+            if(l.status === "aprobado" && !l.signed) {
+                showContract(docSnap.id, l);
+            } else {
+                showClientDashboard(l);
+            }
+        });
+    }
+
+    function showContract(id, data) {
+        $("user-view").style.display = "none";
+        $("contract-view").style.display = "block";
+        $("contractText").innerHTML = `<h3>Contrato para ${data.name}</h3><p>Monto: $${data.amount} en ${data.plan.length} cuotas.</p>`;
+        $("btnSign").onclick = async () => {
+            await updateDoc(doc(db, "loans", id), { signed: true, status: "firmado" });
+            generatePDF(data);
+            alert("Firmado. Se ha generado tu contrato.");
+            location.reload();
+        };
+    }
+
+    function generatePDF(l) {
+        const { jsPDF } = window.jspdf;
+        const d = new jsPDF();
+        d.text("CONTRATO ESTIMA PRES", 20, 20);
+        d.text(`Titular: ${l.name} | DNI: ${l.dni}`, 20, 40);
+        d.text(`Monto: $${l.amount} | Estado: FIRMADO DIGITALMENTE`, 20, 50);
+        d.save(`Contrato_${l.dni}.pdf`);
+    }
+
+    // ADMIN CON OPCIÓN DE ELIMINAR
+    window.loadAdmin = async (statusFilter = 'preaprobado') => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        const q = query(collection(db, "loans"), where("status", "==", statusFilter));
+        const snap = await getDocs(q);
+        $("adminList").innerHTML = "";
+        snap.forEach(d => {
+            const l = d.data();
+            $("adminList").innerHTML += `
+                <div class="card">
+                    <b>${l.name}</b> ($${l.amount})<br>
+                    <small>Estado: ${l.status}</small><br>
+                    ${statusFilter === 'preaprobado' ? `<button class="cta" onclick="updateSt('${d.id}', 'aprobado')" style="margin-top:10px; padding:8px">Dar Aprobación</button>` : ''}
+                    ${statusFilter === 'firmado' ? `<button class="cta" onclick="updateSt('${d.id}', 'finalizado')" style="margin-top:10px; padding:8px; background:#fff">Marcar como Finalizado</button>` : ''}
+                    <br><button class="btn-del" onclick="deleteLoan('${d.id}')">🗑️ ELIMINAR REGISTRO</button>
+                </div>`;
+        });
+    };
+
+    window.updateSt = async (id, st) => {
+        await updateDoc(doc(db, "loans", id), { status: st });
+        loadAdmin();
+    };
+
+    window.deleteLoan = async (id) => {
+        if(confirm("¿Seguro que quieres borrar este préstamo?")) {
+            await deleteDoc(doc(db, "loans", id));
+            alert("Registro eliminado.");
+            loadAdmin();
         }
     };
 
     $("btnAdmin").onclick = () => {
-        const m = prompt("Email Admin:");
-        const p = prompt("Password:");
-        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(e => alert("Error: " + e.message));
+        const m = prompt("Email:"); const p = prompt("Pass:");
+        if(m && p) signInWithEmailAndPassword(auth, m, p);
     };
 
     onAuthStateChanged(auth, u => {
-        if(u) {
+        if(u && u.email === "fernandogastondelgado81@gmail.com") {
             $("user-view").style.display = "none";
             $("admin-view").style.display = "block";
-            loadAdmin();
+            loadAdmin('preaprobado');
         }
     });
-
-    async function loadAdmin() {
-        const snap = await getDocs(collection(db, "loans"));
-        const box = $("loanList");
-        box.innerHTML = "";
-        snap.forEach(d => {
-            const l = d.data();
-            box.innerHTML += `
-                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid var(--border);">
-                    <b>${l.name}</b> - $${l.amount}<br>
-                    <a href="${l.dniUrl}" target="_blank" style="color:var(--accent); font-size:12px;">Ver DNI</a>
-                </div>`;
-        });
-    }
 </script>
 </body>
 </html>
