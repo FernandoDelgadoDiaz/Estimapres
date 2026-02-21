@@ -3,166 +3,130 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title>EstimaPres · Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <title>EstimaF · Premium Fintech</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --bg: #05070a; 
-            --card: #111418; 
-            --accent: #00ff88; 
-            --accent-dim: rgba(0, 255, 136, 0.1);
-            --text: #ffffff; 
-            --dim: #94a3b8; 
-            --border: rgba(255, 255, 255, 0.05); 
-            --danger: #ff4757; 
-            --surface: #1c2128;
+            --primary: #2563eb; --accent: #10b981; --bg: #f8fafc; 
+            --white: #ffffff; --text: #0f172a; --dim: #64748b;
         }
-        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
-        
-        /* Header Estilo App */
-        .hero { 
-            padding: 20px; 
-            background: rgba(5, 7, 10, 0.8); 
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border); 
-            display: flex; justify-content: space-between; align-items: center; 
-            position: sticky; top: 0; z-index: 1000; 
-        }
-        .logo { font-weight: 800; font-size: 22px; letter-spacing: -1px; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        .wrap { max-width: 480px; margin: 0 auto; padding: 20px; }
-        
-        /* Tarjetas Estilo Premium */
-        .card { 
-            background: var(--card); 
-            border-radius: 24px; 
-            padding: 24px; 
-            margin-bottom: 20px; 
-            border: 1px solid var(--border); 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        body { 
+            margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); 
+            color: var(--text); min-height: 100vh; overflow-x: hidden;
         }
         
-        h2 { font-size: 18px; font-weight: 700; margin: 0 0 20px 0; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+        /* Navbar */
+        .nav { padding: 25px 5%; display: flex; justify-content: space-between; align-items: center; }
+        .logo { color: white; font-weight: 800; font-size: 26px; letter-spacing: -1px; }
+        .logo span { background: white; color: var(--primary); padding: 2px 10px; border-radius: 10px; margin-right: 5px; }
+        
+        .main { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; }
+        @media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
 
-        /* Inputs Modernos */
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-size: 12px; font-weight: 600; color: var(--dim); margin-bottom: 8px; margin-left: 4px; }
+        /* Typography */
+        .hero-h1 { color: white; font-size: 56px; font-weight: 800; line-height: 1.1; margin: 0; }
+        .hero-p { color: rgba(255,255,255,0.8); font-size: 18px; margin: 20px 0 40px; }
+
+        /* Cards */
+        .glass { 
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px);
+            border-radius: 35px; padding: 35px; border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        /* Inputs & Buttons */
+        .input-box { margin-bottom: 20px; }
+        label { display: block; font-size: 13px; font-weight: 700; color: var(--dim); margin-bottom: 8px; text-transform: uppercase; }
         input { 
-            width: 100%; background: var(--surface); border: 1px solid var(--border); 
-            padding: 16px; border-radius: 16px; color: #fff; font-size: 16px; font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%; padding: 18px; border-radius: 16px; border: 1px solid #e2e8f0;
+            background: #f1f5f9; font-size: 16px; font-weight: 700; color: var(--text);
         }
-        input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 20px var(--accent-dim); }
-
-        /* Botones Estilo Fintech */
-        .cta { 
-            width: 100%; background: var(--accent); color: #000; border: none; 
-            padding: 18px; border-radius: 18px; font-weight: 800; font-size: 15px;
-            cursor: pointer; box-shadow: 0 10px 20px rgba(0, 255, 136, 0.2);
-            transition: transform 0.2s;
+        .btn { 
+            width: 100%; padding: 20px; border-radius: 18px; border: none; 
+            font-weight: 800; font-size: 16px; cursor: pointer; transition: 0.3s;
         }
-        .cta:active { transform: scale(0.97); }
-        .cta-secondary { background: #fff; color: #000; box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1); }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 10px 20px rgba(37,99,235,0.2); }
+        .btn-send { background: linear-gradient(90deg, #10b981, #059669); color: white; margin-top: 15px; }
         
-        /* Tabs de Navegación */
-        .tabs { display: flex; gap: 10px; margin-bottom: 25px; overflow-x: auto; padding: 5px; scrollbar-width: none; }
-        .tab { 
-            padding: 12px 24px; background: var(--surface); border: 1px solid var(--border); 
-            border-radius: 16px; font-size: 13px; font-weight: 700; cursor: pointer; 
-            white-space: nowrap; color: var(--dim); transition: 0.3s;
+        /* Elements */
+        .status-tag { padding: 6px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .item-row { 
+            background: white; border-radius: 20px; padding: 20px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9;
         }
-        .tab.active { background: var(--accent); color: #000; border-color: var(--accent); box-shadow: 0 8px 15px var(--accent-dim); }
-
-        /* Item de Cuota (Ticket) */
-        .cuota-card { 
-            background: var(--surface); padding: 18px; border-radius: 20px; 
-            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
-            border-left: 4px solid var(--accent);
-        }
-        .cuota-card.pendiente { border-left-color: #333; opacity: 0.8; }
-        .status-pill { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
-        .paid { background: var(--accent-dim); color: var(--accent); }
-        .unpaid { background: rgba(255,255,255,0.05); color: var(--dim); }
-
-        /* Admin UI */
-        .admin-loan-card { border-radius: 24px; background: var(--card); border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; }
-        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
-        .btn-small { padding: 10px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer; border: none; flex: 1; }
-        .btn-danger { background: rgba(255, 71, 87, 0.15); color: #ff4757; }
-
-        /* Vistas */
-        #admin-view, #client-dashboard, #contract-view, .hidden { display: none; }
         
-        .floating-exit { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 400px; }
+        .floating-exit { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 2000; }
+        .exit-pill { background: white; color: black; padding: 15px 35px; border-radius: 50px; font-weight: 800; border: none; box-shadow: 0 15px 30px rgba(0,0,0,0.3); cursor: pointer; }
+
+        #admin-view, #client-dashboard, #form-solicitud, .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<header class="hero">
-    <div class="logo">EstimaPres</div>
-    <button id="btnAdminLogin" style="background: var(--accent-dim); color: var(--accent); border: none; padding: 8px 16px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer;">SOCIO ADMIN</button>
-</header>
+<nav class="nav">
+    <div class="logo"><span>F</span> EstimaF</div>
+    <button id="authAdmin" style="background:rgba(255,255,255,0.15); border:none; color:white; padding:10px 20px; border-radius:12px; font-weight:700; cursor:pointer;">Acceso Admin</button>
+</nav>
 
-<div id="exitContainer" class="hidden floating-exit">
-    <button id="btnRealExit" class="cta cta-secondary">CERRAR SESIÓN Y VOLVER</button>
+<div id="exitBar" class="hidden floating-exit">
+    <button onclick="cerrarSesion()" class="exit-pill">SALIR / MODO CLIENTE ←</button>
 </div>
 
-<main class="wrap">
-    <div id="user-view">
-        <div class="card">
-            <h2>Préstamo Inmediato</h2>
-            <div class="input-group">
-                <label>¿Cuánto dinero necesitas?</label>
-                <input id="amt" type="number" placeholder="$ 0.00">
+<main class="main">
+    <div id="hero-side">
+        <h1 class="hero-h1">Prestar</h1>
+        <p class="hero-p">Gestión inteligente de créditos personales con aprobación en 24hs.</p>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="glass" style="padding:20px; text-align:center;">
+                <div style="font-size:24px; font-weight:800; color:var(--primary);">+500</div>
+                <div style="font-size:12px; font-weight:700; color:var(--dim);">CRÉDITOS</div>
             </div>
-            <div class="input-group">
-                <label>¿En cuántos meses?</label>
-                <input id="mos" type="number" placeholder="Ej: 12">
+            <div class="glass" style="padding:20px; text-align:center;">
+                <div style="font-size:24px; font-weight:800; color:var(--accent);">100%</div>
+                <div style="font-size:12px; font-weight:700; color:var(--dim);">SEGURO</div>
             </div>
-            <button id="btnSim" class="cta">Simular mi crédito</button>
         </div>
-        
-        <div id="simRes"></div>
-
-        <div class="card" id="formSol" style="display:none; margin-top: 20px;">
-            <h2>Completa tu Perfil</h2>
-            <input id="cName" placeholder="Nombre completo">
-            <input id="cDni" type="number" placeholder="DNI">
-            <input id="cEmail" type="email" placeholder="Email de contacto">
-            <button id="btnSend" class="cta" style="background: #fff; color: #000;">Solicitar Ahora</button>
-        </div>
-        
-        <button onclick="loginDni()" style="width:100%; background:none; border:none; color: var(--dim); font-weight: 600; text-decoration: underline; margin-top: 20px; font-size: 14px; cursor: pointer;">Ya soy cliente, consultar DNI</button>
     </div>
 
-    <div id="client-dashboard">
-        <div class="card" style="background: linear-gradient(135deg, #111418 0%, #05070a 100%);">
-            <div style="font-size: 12px; color: var(--accent); font-weight: 800; margin-bottom: 5px;">BIENVENIDO/A</div>
-            <h1 id="cliTitle" style="margin:0; font-size: 28px; letter-spacing: -1px;"></h1>
+    <div id="user-view" class="glass">
+        <h2 style="margin-top:0; font-size:24px;">Simulador</h2>
+        <div class="input-box">
+            <label>Monto del Préstamo</label>
+            <input id="amt" type="number" placeholder="$ 500.000">
         </div>
-        <h2 style="margin-left: 10px;">Mis Cuotas</h2>
-        <div id="cuotasList"></div>
+        <div class="input-box">
+            <label>Plazo en Meses</label>
+            <input id="mos" type="number" placeholder="Ej: 12">
+        </div>
+        <button id="calc" class="btn btn-primary">CALCULAR CUOTA</button>
+
+        <div id="form-solicitud" style="margin-top:30px; border-top:2px solid #f1f5f9; padding-top:25px;">
+            <input id="cName" placeholder="Nombre completo" style="margin-bottom:12px;">
+            <input id="cDni" placeholder="DNI sin puntos" style="margin-bottom:12px;">
+            <input id="cEmail" placeholder="correo@ejemplo.com" style="margin-bottom:15px;">
+            <button id="sendSol" class="btn btn-send">SOLICITAR CRÉDITO</button>
+        </div>
+        <button onclick="verEstadoDni()" style="width:100%; background:none; border:none; color:var(--primary); margin-top:20px; font-weight:700; cursor:pointer; text-decoration:underline;">Ya soy cliente, ver mi préstamo</button>
     </div>
 
-    <div id="admin-view">
-        <div class="card">
-            <label>Tasa Nominal Anual (%)</label>
-            <div style="display:flex; gap:12px; align-items: center;">
-                <input id="sysTasa" type="number" style="margin:0; flex: 1;">
-                <button id="btnSaveTasa" class="cta" style="width:80px; padding: 14px;">OK</button>
+    <div id="client-dashboard" class="glass" style="grid-column: 1 / -1;">
+        <h2 id="clientWelcome" style="font-size:32px; margin-bottom:5px;">Hola, Bienvenido</h2>
+        <p style="color:var(--dim); margin-bottom:30px;">Aquí tienes el detalle de tu plan de pagos.</p>
+        <div id="cuotasContainer"></div>
+    </div>
+
+    <div id="admin-view" class="glass" style="grid-column: 1 / -1;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+            <h2 style="margin:0;">Panel de Control</h2>
+            <div style="display:flex; align-items:center; gap:10px; background:#f1f5f9; padding:10px; border-radius:15px;">
+                <label style="margin:0;">Interés (%):</label>
+                <input id="sysTasa" type="number" style="width:70px; padding:8px; background:white;">
+                <button id="saveTasa" class="btn-primary" style="padding:8px 15px; border-radius:8px; border:none; cursor:pointer;">OK</button>
             </div>
         </div>
-        
-        <div class="tabs">
-            <div class="tab active" data-status="preaprobado">Preaprobados</div>
-            <div class="tab" data-status="aprobado">Aprobados</div>
-            <div class="tab" data-status="finalizado">Finalizados</div>
-        </div>
-        
-        <div id="adminData"></div>
+        <div id="adminLoans"></div>
     </div>
 </main>
 
@@ -185,103 +149,85 @@
     const auth = getAuth(app);
     const $ = id => document.getElementById(id);
 
-    let currentTasa = 50;
+    let tVal = 100;
 
-    async function loadConfig() {
+    // Load Config
+    async function getT() {
         const d = await getDoc(doc(db, "config", "interes"));
-        if(d.exists()) { currentTasa = d.data().valor; $("sysTasa").value = currentTasa; }
+        if(d.exists()) { tVal = d.data().valor; $("sysTasa").value = tVal; }
     }
-    loadConfig();
+    getT();
 
-    $("btnSaveTasa").onclick = async () => {
+    $("saveTasa").onclick = async () => {
         await setDoc(doc(db, "config", "interes"), { valor: Number($("sysTasa").value) });
-        currentTasa = Number($("sysTasa").value);
-        alert("Tasa Global Actualizada");
+        tVal = Number($("sysTasa").value);
+        alert("Configuración actualizada.");
     };
 
-    $("btnRealExit").onclick = () => {
-        signOut(auth).then(() => { location.reload(); });
-    };
+    window.cerrarSesion = () => signOut(auth).then(() => location.reload());
 
-    $("btnSim").onclick = () => {
+    // Flow
+    $("calc").onclick = () => { if($("amt").value && $("mos").value) $("form-solicitud").style.display = "block"; };
+
+    $("sendSol").onclick = async () => {
         const m = Number($("amt").value); const p = Number($("mos").value);
-        if(!m || !p) return;
-        const total = m * (1 + (currentTasa/100));
-        const valC = Math.round(total / p);
+        const vc = Math.round((m * (1 + (tVal/100))) / p);
+        const plan = Array.from({length: p}, (_, i) => ({ n: i+1, v: vc, s: "pendiente" }));
         
-        let h = `<div class="card" style="border-color: var(--accent-dim)">
-                    <div style="font-size: 13px; color: var(--dim); margin-bottom: 5px;">Cuota Mensual Estimada</div>
-                    <div style="font-size: 32px; font-weight: 800; color: var(--accent);">$ ${valC.toLocaleString()}</div>
-                    <div style="font-size: 11px; color: var(--dim); margin-top: 10px;">Costo total: $ ${total.toLocaleString()}</div>
-                 </div>`;
-        $("simRes").innerHTML = h;
-        $("formSol").style.display = "block";
-        $("formSol").scrollIntoView({ behavior: 'smooth' });
-    };
-
-    $("btnSend").onclick = async () => {
-        const total = $("amt").value * (1 + (currentTasa/100));
-        const valC = Math.round(total / $("mos").value);
-        const plan = Array.from({length: $("mos").value}, (_, i) => ({ n: i+1, v: valC, s: "pendiente" }));
         await addDoc(collection(db, "loans"), {
-            name: $("cName").value, dni: $("cDni").value, amount: Number($("amt").value),
-            plan: plan, status: "preaprobado", signed: false, date: serverTimestamp()
+            name: $("cName").value, dni: $("cDni").value, amount: m,
+            plan: plan, status: "preaprobado", date: serverTimestamp()
         });
-        alert("¡Solicitud enviada! Analizaremos tu perfil."); location.reload();
+        alert("Solicitud recibida. Nos contactaremos pronto."); location.reload();
     };
 
-    window.loginDni = async () => {
-        const d = prompt("Ingresa tu DNI:");
+    window.verEstadoDni = async () => {
+        const d = prompt("Ingrese su DNI:");
         if(!d) return;
         const q = query(collection(db, "loans"), where("dni", "==", d));
         const s = await getDocs(q);
-        if(s.empty) return alert("No encontramos créditos con ese DNI.");
+        if(s.empty) return alert("No registrado.");
 
         $("user-view").style.display = "none";
-        $("exitContainer").classList.remove("hidden");
+        $("hero-side").style.display = "none";
+        $("exitBar").classList.remove("hidden");
         $("client-dashboard").style.display = "block";
-        
+
         s.forEach(snap => {
             const l = snap.data();
-            $("cliTitle").innerText = l.name.split(' ')[0];
+            $("clientWelcome").innerText = `Hola, ${l.name.split(' ')[0]}`;
             let h = "";
             l.plan.forEach(c => h += `
-                <div class="cuota-card ${c.s === 'pendiente' ? 'pendiente' : ''}">
-                    <div>
-                        <div style="font-size: 12px; color: var(--dim);">Cuota ${c.n}</div>
-                        <div style="font-size: 18px; font-weight: 800;">$ ${c.v.toLocaleString()}</div>
-                    </div>
-                    <span class="status-pill ${c.s === 'pagado' ? 'paid' : 'unpaid'}">${c.s}</span>
+                <div class="item-row">
+                    <div><b>Cuota ${c.n}</b><br><small style="color:var(--dim)">$${c.v.toLocaleString()}</small></div>
+                    <span class="status-tag" style="background:${c.s==='pagado'?'#d1fae5':'#f1f5f9'}; color:${c.s==='pagado'?'#065f46':'#64748b'}">${c.s}</span>
                 </div>`);
-            $("cuotasList").innerHTML = h;
+            $("cuotasContainer").innerHTML = h;
         });
     };
 
-    async function loadAdmin(status) {
-        const q = query(collection(db, "loans"), where("status", "==", status));
-        const s = await getDocs(q);
-        $("adminData").innerHTML = "";
+    // Admin Panel
+    async function loadAdmin() {
+        const s = await getDocs(collection(db, "loans"));
+        $("adminLoans").innerHTML = "";
         s.forEach(snap => {
             const l = snap.data();
-            let hCuotas = l.plan.map((c, i) => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom: 1px solid rgba(255,255,255,0.02);">
-                    <span style="font-size: 13px;">Cuota ${c.n} ($${c.v})</span>
-                    <button class="btn-small" style="max-width: 80px; background: ${c.s==='pagado'?'var(--accent-dim)':'#fff'}; color: #000;" 
-                        onclick="window.payC('${snap.id}', ${i})">${c.s==='pagado'?'LISTO':'PAGAR'}</button>
+            let cList = l.plan.map((c, i) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f1f5f9;">
+                    <span>C${c.n} ($${c.v})</span>
+                    <button onclick="window.payC('${snap.id}', ${i})" style="padding:5px 10px; border:none; border-radius:8px; cursor:pointer; background:${c.s==='pagado'?'#10b981':'#2563eb'}; color:white;">${c.s==='pagado'?'LISTO':'PAGAR'}</button>
                 </div>`).join('');
-            
-            $("adminData").innerHTML += `
-                <div class="admin-loan-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <b style="font-size: 16px;">${l.name}</b>
-                        <span style="font-size: 12px; color: var(--accent); font-weight: 800;">$${l.amount}</span>
+
+            $("adminLoans").innerHTML += `
+                <div class="glass" style="margin-bottom:20px; border-radius:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <h3 style="margin:0;">${l.name}</h3>
+                            <small style="color:var(--dim)">DNI: ${l.dni} | Total: $${l.amount}</small>
+                        </div>
+                        <button onclick="window.delL('${snap.id}')" style="background:#fee2e2; border:none; padding:10px; border-radius:12px; cursor:pointer;">🗑️</button>
                     </div>
-                    <div style="font-size: 11px; color: var(--dim); margin-bottom: 15px;">DNI: ${l.dni}</div>
-                    <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; max-height: 150px; overflow-y: auto;">${hCuotas}</div>
-                    <div class="action-btns">
-                        ${status==='preaprobado'?`<button class="btn-small" style="background: var(--accent); color:#000;" onclick="window.updSt('${snap.id}', 'aprobado')">APROBAR</button>`:''}
-                        <button class="btn-small btn-danger" onclick="window.delL('${snap.id}')">BORRAR</button>
-                    </div>
+                    <div style="margin-top:15px; max-height:150px; overflow-y:auto;">${cList}</div>
                 </div>`;
         });
     }
@@ -290,30 +236,22 @@
         const dr = doc(db, "loans", id); const d = await getDoc(dr);
         let p = d.data().plan; p[i].s = "pagado";
         await updateDoc(dr, { plan: p });
-        loadAdmin(document.querySelector('.tab.active').dataset.status);
+        loadAdmin();
     };
-    window.updSt = async (id, st) => { await updateDoc(doc(db, "loans", id), { status: st }); location.reload(); };
-    window.delL = async (id) => { if(confirm("¿Eliminar este registro permanentemente?")) { await deleteDoc(doc(db, "loans", id)); location.reload(); } };
+    window.delL = async (id) => { if(confirm("¿Borrar?")) { await deleteDoc(doc(db, "loans", id)); loadAdmin(); } };
 
-    document.querySelectorAll('.tab').forEach(t => {
-        t.onclick = () => {
-            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-            t.classList.add('active');
-            loadAdmin(t.dataset.status);
-        };
-    });
-
-    $("btnAdminLogin").onclick = () => {
-        const m = prompt("Fintech Auth - Email:"); const p = prompt("Password:");
-        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(e => alert("Credenciales incorrectas"));
+    $("authAdmin").onclick = () => {
+        const m = prompt("Email:"); const p = prompt("Password:");
+        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(() => alert("Error de acceso"));
     };
 
     onAuthStateChanged(auth, u => {
         if(u && u.email === "fernandogastondelgado81@gmail.com") {
             $("user-view").style.display = "none";
+            $("hero-side").style.display = "none";
+            $("exitBar").classList.remove("hidden");
             $("admin-view").style.display = "block";
-            $("exitContainer").classList.remove("hidden");
-            loadAdmin('preaprobado');
+            loadAdmin();
         }
     });
 </script>
