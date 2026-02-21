@@ -3,87 +3,72 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title>EstimaPres Pro · Fintech</title>
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" href="ping.png" />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <title>EstimaPres · Control Total</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #0b0e14; --card-bg: #161b22; --accent: #00ff88; --accent-dark: #00bd65; --text-main: #f0f6fc; --text-dim: #8b949e; --border: rgba(255, 255, 255, 0.08); }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: var(--text-main); line-height: 1.5; }
-        .hero { background: rgba(11, 14, 20, 0.85); backdrop-filter: blur(16px); padding: 18px 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-        .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 100px; }
-        .card { background: var(--card-bg); border-radius: 28px; padding: 26px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
-        h2 { font-size: 20px; font-weight: 800; margin: 0 0 22px 0; }
-        .field-group { margin-bottom: 20px; }
-        label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 8px; display: block; font-weight: 700; }
-        input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 16px; border-radius: 18px; color: #fff; font-size: 16px; outline: none; }
-        input:focus { border-color: var(--accent); }
-        .file-label { display: block; border: 2px dashed var(--border); padding: 30px; text-align: center; border-radius: 20px; cursor: pointer; color: var(--accent); font-weight: 800; }
-        .cta { width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #0b0e14; border: none; padding: 18px; border-radius: 20px; font-weight: 800; font-size: 15px; text-transform: uppercase; cursor: pointer; }
-        .admin-loan-item { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 18px; margin-bottom: 12px; border: 1px solid var(--border); }
-        .btn-link { background: none; border: none; color: var(--text-dim); font-size: 11px; text-decoration: underline; cursor: pointer; margin-top: 10px; }
+        :root { --bg: #0b0e14; --card: #161b22; --accent: #00ff88; --text: #f0f6fc; --dim: #8b949e; --border: rgba(255, 255, 255, 0.08); }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
+        .hero { padding: 18px; background: rgba(11, 14, 20, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .wrap { max-width: 480px; margin: 0 auto; padding: 20px; }
+        .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+        input { width: 100%; background: #000; border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: #fff; margin-bottom: 15px; font-size: 16px; }
+        .cta { width: 100%; background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; cursor: pointer; }
+        .file-box { border: 2px dashed var(--border); padding: 20px; text-align: center; border-radius: 15px; color: var(--accent); cursor: pointer; margin-bottom: 15px; }
         #admin-view, .hidden { display: none; }
+        .btn-reset { background: none; border: none; color: var(--dim); font-size: 11px; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <header class="hero">
-    <div style="max-width:480px; margin:0 auto; display:flex; justify-content:space-between; align-items:center;">
-        <h1 style="font-size:22px; margin:0;">Pres<span>Star</span></h1>
-        <div style="text-align: right;">
-            <button id="btnAdminLogin" style="background:none; border:none; color:var(--accent); font-weight:800; cursor:pointer">ADMIN</button><br>
-            <button id="btnResetPass" class="btn-link">¿Olvidaste tu clave?</button>
-        </div>
+    <h1 style="font-size:20px; margin:0;">EstimaPres</h1>
+    <div style="text-align: right;">
+        <button id="btnAdmin" style="color:var(--accent); background:none; border:none; font-weight:800; cursor:pointer;">ADMIN</button><br>
+        <button id="btnPlanB" class="btn-reset">Recuperar Clave</button>
     </div>
 </header>
 
 <main class="wrap">
     <div id="user-view">
-        <section class="card">
+        <div class="card">
             <h2>Simulador</h2>
-            <div class="field-group"><label>Monto</label><input id="simAmount" type="number" placeholder="$ 0" /></div>
-            <div class="field-group"><label>Plazo (Meses)</label><input id="simMonths" type="number" placeholder="12" /></div>
-            <button id="btnSim" class="cta">Calcular Cuota</button>
-            <div id="simResult" style="margin-top:20px; font-weight:800; color:var(--accent); font-size:22px"></div>
-        </section>
+            <input id="amt" type="number" placeholder="Monto a pedir">
+            <input id="mos" type="number" placeholder="Meses">
+            <button id="btnCalc" class="cta">Calcular</button>
+            <div id="res" style="margin-top:15px; font-weight:800; color:var(--accent)"></div>
+        </div>
 
-        <section class="card">
+        <div class="card">
             <h2>Solicitud</h2>
-            <div class="field-group">
-                <label>Documentación (Foto DNI)</label>
-                <label class="file-label" id="dniLabel">
-                    <input type="file" id="fileDni" class="hidden" accept="image/*">
-                    <span id="txtDni">📷 SUBIR FOTO DNI</span>
-                </label>
-            </div>
-            <div class="field-group"><label>Nombre</label><input id="bName" /></div>
-            <div class="field-group"><label>Email</label><input id="bEmail" type="email" /></div>
-            <div class="field-group"><label>DNI</label><input id="bDni" type="number" /></div>
-            <button id="btnSendReq" class="cta" style="background:#fff; color:#000">Enviar Solicitud</button>
-        </section>
+            <div class="file-box" id="dropZone">📷 <span id="fileTxt">SUBIR FOTO DNI</span></div>
+            <input type="file" id="fileInp" class="hidden" accept="image/*">
+            <input id="name" placeholder="Tu nombre completo">
+            <input id="email" type="email" placeholder="Tu email">
+            <button id="btnSend" class="cta" style="background:#fff">Enviar Crédito</button>
+        </div>
     </div>
 
     <div id="admin-view">
-        <h2 style="color:var(--accent)">Gestión de Créditos</h2>
-        <div id="adminList"></div>
-        <button onclick="location.reload()" style="background:none; border:1px solid var(--border); color:#fff; width:100%; padding:15px; border-radius:15px; margin-top:20px; cursor:pointer">Cerrar Sesión</button>
+        <h2>Solicitudes Pendientes</h2>
+        <div id="loanList"></div>
+        <button onclick="location.reload()" class="cta" style="margin-top:20px; background:none; border:1px solid var(--border); color:#fff">Salir</button>
     </div>
 </main>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
+    // Credenciales del proyecto "estimapres"
     const firebaseConfig = {
-        apiKey: "AIzaSyBlwqu9bPryzGv92cR5Vbret29R2WU7_FQ",
-        authDomain: "estimaprespremium.firebaseapp.com",
-        projectId: "estimaprespremium",
-        storageBucket: "estimaprespremium.firebasestorage.app",
-        messagingSenderId: "802556214169",
-        appId: "1:802556214169:web:9c5394c014c8dcc1dbb108"
+      apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
+      authDomain: "estimapres.firebaseapp.com",
+      projectId: "estimapres",
+      storageBucket: "estimapres.firebasestorage.app",
+      messagingSenderId: "578516597437",
+      appId: "1:578516597437:web:f59994b87729aa1cd655d4"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -91,107 +76,85 @@
     const storage = getStorage(app);
     const auth = getAuth(app);
 
-    const $ = s => document.querySelector(s);
     let dniUrl = "";
+    const $ = id => document.getElementById(id);
 
-    // Registro PWA
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
-
-    // Subida de DNI a Storage
-    $("#fileDni").onchange = async (e) => {
+    // Lógica de archivo
+    $("dropZone").onclick = () => $("fileInp").click();
+    $("fileInp").onchange = async (e) => {
         const file = e.target.files[0];
         if(!file) return;
-        $("#txtDni").textContent = "SUBIENDO...";
+        $("fileTxt").innerText = "SUBIENDO...";
         try {
-            const sRef = ref(storage, `dni/${Date.now()}_${file.name}`);
-            await uploadBytes(sRef, file);
-            dniUrl = await getDownloadURL(sRef);
-            $("#txtDni").textContent = "✅ DNI CARGADO";
-            $("#dniLabel").style.borderColor = "var(--accent)";
-        } catch (err) { alert("Error al subir DNI. Revisa las reglas de Storage."); }
+            const r = ref(storage, `dni/${Date.now()}_${file.name}`);
+            await uploadBytes(r, file);
+            dniUrl = await getDownloadURL(r);
+            $("fileTxt").innerText = "✅ DNI CARGADO";
+        } catch (err) { 
+            alert("Error: Verifica las REGLAS de Storage en la consola.");
+            $("fileTxt").innerText = "ERROR AL SUBIR";
+        }
     };
 
     // Simulador
-    $("#btnSim").onclick = () => {
-        const amt = $("#simAmount").value;
-        const mos = $("#simMonths").value;
-        if(amt && mos) {
-            const cuota = (amt * 1.5) / mos; 
-            $("#simResult").textContent = `Cuota: $${Math.round(cuota).toLocaleString()}`;
-        }
+    $("btnCalc").onclick = () => {
+        const total = ($("amt").value * 1.5) / $("mos").value;
+        $("res").innerText = "Cuota mensual: $" + Math.round(total).toLocaleString();
     };
 
-    // Enviar Solicitud
-    $("#btnSendReq").onclick = async () => {
-        if(!dniUrl) return alert("Sube la foto del DNI.");
-        const data = {
-            amount: Number($("#simAmount").value),
-            months: Number($("#simMonths").value),
-            borrower: { name: $("#bName").value, email: $("#bEmail").value, dni: $("#bDni").value, dniUrl: dniUrl },
-            status: "pending", createdAt: serverTimestamp()
-        };
-        await addDoc(collection(db, "loans"), data);
-        alert("Solicitud enviada.");
+    // Enviar solicitud
+    $("btnSend").onclick = async () => {
+        if(!dniUrl) return alert("Sube la foto del DNI primero");
+        await addDoc(collection(db, "loans"), {
+            amount: $("amt").value,
+            name: $("name").value,
+            email: $("email").value,
+            dniUrl: dniUrl,
+            status: "pending",
+            date: serverTimestamp()
+        });
+        alert("¡Solicitud enviada!");
         location.reload();
     };
 
-    // --- LÓGICA DE ADMIN & PLAN B ---
+    // --- ADMIN & PLAN B ---
 
-    // Plan B: Recuperar contraseña
-    $("#btnResetPass").onclick = async () => {
-        const email = prompt("Ingresa tu correo de administrador para recibir el link de cambio de clave:");
-        if (email) {
-            try {
-                await sendPasswordResetEmail(auth, email);
-                alert("Email enviado. Revisa tu bandeja de entrada o spam.");
-            } catch (e) { alert("Error: " + e.message); }
+    // Plan B: Recuperar clave
+    $("btnPlanB").onclick = async () => {
+        const mail = prompt("Email del admin:");
+        if(mail) {
+            await sendPasswordResetEmail(auth, mail);
+            alert("Email enviado para cambiar clave.");
         }
     };
 
-    $("#btnAdminLogin").onclick = () => {
-        const email = prompt("Email Admin:");
-        const pass = prompt("Password:");
-        if(email && pass) {
-            signInWithEmailAndPassword(auth, email, pass)
-                .catch(e => alert("Acceso denegado: " + e.message));
-        }
+    $("btnAdmin").onclick = () => {
+        const m = prompt("Email Admin:");
+        const p = prompt("Password:");
+        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(e => alert("Error: " + e.message));
     };
 
     onAuthStateChanged(auth, u => {
-        // IMPORTANTE: Verifica que este mail sea exactamente el tuyo
-        if(u && u.email === "fernandogastondelgado81@gmail.com") {
-            $("#user-view").style.display = "none";
-            $("#admin-view").style.display = "block";
-            loadLoans();
+        if(u) {
+            $("user-view").style.display = "none";
+            $("admin-view").style.display = "block";
+            loadAdmin();
         }
     });
 
-    async function loadLoans() {
-        const q = query(collection(db, "loans"), where("status", "==", "pending"));
-        const snap = await getDocs(q);
-        const list = $("#adminList");
-        list.innerHTML = "";
+    async function loadAdmin() {
+        const snap = await getDocs(collection(db, "loans"));
+        const box = $("loanList");
+        box.innerHTML = "";
         snap.forEach(d => {
             const l = d.data();
-            list.innerHTML += `
-                <div class="admin-loan-item">
-                    <div style="font-weight:800">${l.borrower.name}</div>
-                    <div style="font-size:12px; color:var(--text-dim)">$${l.amount.toLocaleString()} | DNI: ${l.borrower.dni}</div>
-                    <a href="${l.borrower.dniUrl}" target="_blank" style="color:var(--accent); font-size:11px; display:block; margin:10px 0;">VER DNI ↗</a>
-                    <button class="cta" style="font-size:11px; padding:10px" onclick="payLoan('${d.id}', ${l.amount}, '${l.borrower.email}')">APROBAR Y COBRAR</button>
+            box.innerHTML += `
+                <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid var(--border);">
+                    <b>${l.name}</b> - $${l.amount}<br>
+                    <a href="${l.dniUrl}" target="_blank" style="color:var(--accent); font-size:12px;">Ver DNI</a>
                 </div>`;
         });
     }
-
-    window.payLoan = async (id, amt, mail) => {
-        // Aquí conectamos con tu Netlify Function existente
-        const resp = await fetch('/.netlify/functions/create-payment', {
-            method: 'POST',
-            body: JSON.stringify({ amount: amt, payer_email: mail, loanId: id })
-        });
-        const data = await resp.json();
-        if(data.init_point) window.location.href = data.init_point;
-    };
 </script>
 </body>
 </html>
