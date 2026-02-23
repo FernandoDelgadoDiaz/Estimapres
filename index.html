@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title id="pageTitle">EstimaPres · Sistema de Gestión Crediticia</title>
+    <title id="pageTitle">EstimaPres · Gestión Profesional</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -14,18 +14,15 @@
         h1, h3 { color: var(--brand); font-weight: 800; margin: 0 0 15px 0; letter-spacing: -0.5px; }
         label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
         input, select { width: 100%; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; font-size: 16px; margin-bottom: 14px; box-sizing: border-box; font-weight: 600; background: #f8fafc; transition: 0.3s; }
-        input:focus { border-color: var(--brand); outline: none; background: white; }
         .btn-main { width: 100%; background: var(--brand); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 800; cursor: pointer; font-size: 16px; transition: 0.3s; box-shadow: 0 4px 12px rgba(14, 72, 199, 0.3); }
-        .btn-main:active { transform: scale(0.98); }
         .btn-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding: 5px; }
-        .tab { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 12px 20px; border-radius: 30px; font-size: 12px; cursor: pointer; white-space: nowrap; font-weight: 700; transition: 0.3s; }
-        .tab.active { background: white; color: var(--brand); border: 1px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .tab { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 12px 20px; border-radius: 30px; font-size: 12px; cursor: pointer; white-space: nowrap; font-weight: 700; }
+        .tab.active { background: white; color: var(--brand); }
         .loan-card { background: #f1f5f9; padding: 20px; border-radius: 22px; margin-bottom: 15px; border: 1px solid #e2e8f0; position: relative; }
-        #sig-canvas { border: 2px dashed #cbd5e1; border-radius: 18px; background: #fff; touch-action: none; cursor: crosshair; }
+        #sig-canvas { border: 2px dashed #cbd5e1; border-radius: 18px; background: #fff; touch-action: none; width: 100%; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         .stat-box { background: linear-gradient(135deg, var(--brand), #1e40af); color: white; padding: 18px; border-radius: 20px; text-align: center; }
         .hidden { display: none !important; }
-        .badge { font-size: 10px; padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; }
         .btn-del { position: absolute; top: 15px; right: 15px; background: #fee2e2; color: var(--danger); border: none; padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 800; cursor: pointer; }
     </style>
 </head>
@@ -33,7 +30,7 @@
 
 <header style="text-align: center; color: white; padding: 40px 0 20px;">
     <h1 id="brandName" style="color:white; margin:0; font-size: 34px;">EstimaPres</h1>
-    <p id="brandLocation" style="opacity: 0.8; font-weight: 600; margin: 5px 0 0 0;">Gestión de Créditos</p>
+    <p id="brandLocation" style="opacity: 0.8; font-weight: 600; margin: 5px 0 0 0;">Gestión Profesional de Créditos</p>
 </header>
 
 <div class="container">
@@ -41,12 +38,17 @@
         <div class="glass-card">
             <h3>📊 Simulador Cuotas</h3>
             <label>Monto a solicitar</label>
-            <input type="number" id="sMonto" placeholder="Suma en pesos">
+            <input type="text" id="sMonto" placeholder="$ 0" inputmode="numeric">
             <label>Plazo de devolución</label>
-            <select id="sCuotas"><option value="12">12 Meses</option><option value="18">18 Meses</option><option value="24">24 Meses</option></select>
+            <select id="sCuotas">
+                <option value="6">6 Meses</option>
+                <option value="12">12 Meses</option>
+                <option value="18">18 Meses</option>
+                <option value="24">24 Meses</option>
+            </select>
             <button id="btnSim" class="btn-main">Calcular Mi Cuota</button>
             <div id="resSim" class="hidden" style="text-align:center; margin-top:20px; padding:20px; background:#eff6ff; border-radius:20px; border: 2px solid var(--brand);">
-                <label>Pagarás mensualmente:</label>
+                <label>Tu cuota mensual será de:</label>
                 <div id="txtCuota" style="font-size:36px; font-weight:800; color:var(--brand);"></div>
             </div>
         </div>
@@ -55,49 +57,44 @@
             <h3>📝 Nueva Solicitud</h3>
             <input id="fName" placeholder="Nombre y Apellido">
             <input id="fDni" type="number" placeholder="DNI (Sin puntos)">
-            <input id="fTel" type="tel" placeholder="Teléfono / WhatsApp">
-            <input id="fAlias" placeholder="CBU/Alias donde recibís">
-            <button id="btnSend" class="btn-main" style="background:var(--success)">Enviar para Aprobación</button>
+            <input id="fTel" type="tel" placeholder="WhatsApp (Ej: 2966...)">
+            <input id="fAlias" placeholder="CBU/CVU o Alias">
+            <button id="btnSend" class="btn-main" style="background:var(--success)">Enviar Solicitud</button>
         </div>
 
         <div class="glass-card">
-            <h3>🔍 Seguimiento</h3>
+            <h3>🔍 Consultar Mi Estado</h3>
             <div style="display:flex; gap:8px;">
-                <input id="searchDni" type="number" placeholder="Tu DNI">
-                <button id="btnSearch" class="btn-main" style="width:120px;">Consultar</button>
+                <input id="searchDni" type="number" placeholder="DNI">
+                <button id="btnSearch" class="btn-main" style="width:120px;">Buscar</button>
             </div>
             <div id="searchRes" class="hidden" style="margin-top:20px;"></div>
         </div>
-        <center><button id="btnStaff" style="background:none; border:none; color:rgba(255,255,255,0.4); font-size:12px; cursor:pointer;">Acceso Administrador</button></center>
+        <center><button id="btnStaff" style="background:none; border:none; color:rgba(255,255,255,0.4); font-size:12px; cursor:pointer; margin-top:20px;">Acceso Staff</button></center>
     </div>
 
     <div id="viewAdmin" class="hidden">
         <div class="glass-card" style="background:#f1f5f9; border:none;">
-            <h4 style="margin:0 0 15px 0">Configuración del Sistema</h4>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <div><label>Nombre Empresa</label><input id="cfgEmpresa"></div>
-                <div><label>Jurisdicción</label><input id="cfgCiudad"></div>
-            </div>
-            <label>Alias de Cobro (CBU)</label>
-            <input id="cfgAlias">
+            <h4 style="margin:0 0 15px 0">⚙️ Configuración Global</h4>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <div><label>Interés Anual %</label><input type="number" id="cfgTasa"></div>
                 <div><label>Día Vencimiento</label><input type="number" id="cfgDia"></div>
             </div>
-            <button onclick="saveConfig()" class="btn-main" style="padding:12px; background:var(--text)">Actualizar Plataforma</button>
+            <label>CBU/Alias de Cobro</label>
+            <input id="cfgAlias">
+            <button onclick="saveConfig()" class="btn-main" style="padding:12px; background:var(--text)">Guardar Ajustes</button>
         </div>
 
         <div class="stats-grid">
-            <div class="stat-box"><small>Capital en Calle</small><div id="statTotal" style="font-size:22px; font-weight:800;">$ 0</div></div>
-            <div class="stat-box" style="background:var(--warning)"><small>Mora Estimada</small><div id="statMora" style="font-size:22px; font-weight:800;">$ 0</div></div>
+            <div class="stat-box"><small>Capital Activo</small><div id="statTotal" style="font-size:22px; font-weight:800;">$ 0</div></div>
+            <div class="stat-box" style="background:var(--warning)"><small>En Mora</small><div id="statMora" style="font-size:22px; font-weight:800;">$ 0</div></div>
         </div>
 
         <div class="btn-tabs">
-            <div class="tab active" onclick="tabAdmin('pending')">Nuevos</div>
-            <div class="tab" onclick="tabAdmin('waiting_signature')">Firma</div>
+            <div class="tab active" onclick="tabAdmin('pending')">Solicitudes</div>
+            <div class="tab" onclick="tabAdmin('waiting_signature')">Por Firmar</div>
             <div class="tab" onclick="tabAdmin('active')">Activos</div>
-            <div class="tab" onclick="tabAdmin('bad_debt')">Incobrables</div>
-            <button onclick="exportData()" class="tab" style="background:var(--success); border:none;">Excel</button>
+            <div class="tab" onclick="tabAdmin('bad_debt')">Mora</div>
             <button id="btnLogout" class="tab" style="background:var(--danger); border:none;">Salir</button>
         </div>
         <div id="adminContent"></div>
@@ -105,14 +102,13 @@
 </div>
 
 <div id="modalFirma" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(8, 33, 94, 0.95); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
-    <div class="glass-card" style="width:100%; max-width:450px; border:none;">
-        <h3 style="text-align:center">CONFORMIDAD DIGITAL</h3>
-        <div id="resumenContrato" style="font-size:12px; background:#f8fafc; padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid #e2e8f0; line-height:1.5;"></div>
-        <label>Firme con el dedo aquí abajo:</label>
-        <canvas id="sig-canvas" width="350" height="180" style="width:100%;"></canvas>
+    <div class="glass-card" style="width:100%; max-width:450px;">
+        <h3 style="text-align:center">FIRMA DIGITAL</h3>
+        <div id="resumenContrato" style="font-size:12px; background:#f8fafc; padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid #e2e8f0;"></div>
+        <canvas id="sig-canvas" height="180"></canvas>
         <div style="display:flex; gap:12px; margin-top:20px;">
             <button onclick="closeFirma()" class="btn-main" style="background:#64748b; flex:1">Cancelar</button>
-            <button onclick="confirmarFirma()" class="btn-main" style="flex:1">ACEPTAR CRÉDITO</button>
+            <button onclick="confirmarFirma()" class="btn-main" style="flex:1">CONFIRMAR</button>
         </div>
     </div>
 </div>
@@ -138,18 +134,14 @@
     const $ = s => document.querySelector(s);
     const fmt = n => "$ " + (Number(n) || 0).toLocaleString("es-AR", {minimumFractionDigits:0});
     
-    let CONFIG = { name: "EstimaPres", location: "Río Gallegos, SC", alias: "CARGANDO...", tasa: 65, dia: 10 };
+    let CONFIG = { name: "EstimaF", location: "Río Gallegos, SC", alias: "Cargando...", tasa: 65, dia: 10 };
     let currentLoanId = null;
 
-    // --- CARGA DE CONFIGURACIÓN GLOBAL ---
     async function init() {
         const d = await getDoc(doc(db, "settings", "main"));
         if(d.exists()) {
             CONFIG = d.data();
             $("#brandName").innerText = CONFIG.name;
-            $("#brandLocation").innerText = CONFIG.location;
-            $("#cfgEmpresa").value = CONFIG.name;
-            $("#cfgCiudad").value = CONFIG.location;
             $("#cfgAlias").value = CONFIG.alias;
             $("#cfgTasa").value = CONFIG.tasa;
             $("#cfgDia").value = CONFIG.dia;
@@ -158,171 +150,124 @@
     init();
 
     window.saveConfig = async () => {
-        const data = { 
-            name: $("#cfgEmpresa").value, location: $("#cfgCiudad").value, 
+        await setDoc(doc(db, "settings", "main"), { 
+            name: CONFIG.name, location: CONFIG.location, 
             alias: $("#cfgAlias").value, tasa: Number($("#cfgTasa").value), 
             dia: Number($("#cfgDia").value) 
-        };
-        await setDoc(doc(db, "settings", "main"), data);
-        alert("Plataforma configurada con éxito."); location.reload();
-    };
-
-    // --- LÓGICA DE FIRMA (CANVAS) ---
-    const canvas = $("#sig-canvas");
-    const ctx = canvas.getContext("2d");
-    let drawing = false;
-
-    const startDraw = (e) => { drawing = true; ctx.beginPath(); ctx.lineWidth = 2; ctx.strokeStyle = "#08215e"; };
-    const endDraw = () => { drawing = false; };
-    const draw = (e) => {
-        if(!drawing) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX || e.touches[0].clientX) - rect.left;
-        const y = (e.clientY || e.touches[0].clientY) - rect.top;
-        ctx.lineTo(x, y); ctx.stroke();
-    };
-
-    canvas.addEventListener("mousedown", startDraw); canvas.addEventListener("touchstart", startDraw);
-    canvas.addEventListener("mouseup", endDraw); canvas.addEventListener("touchend", endDraw);
-    canvas.addEventListener("mousemove", draw); canvas.addEventListener("touchmove", draw);
-
-    window.firmar = async (id) => { 
-        currentLoanId = id; 
-        const s = await getDoc(doc(db, "loans", id));
-        const d = s.data();
-        $("#resumenContrato").innerHTML = `<b>CONTRATO DE ADHESIÓN:</b> Yo, ${d.name}, acepto el préstamo de ${fmt(d.amount)} para ser devuelto en ${d.months} cuotas fijas de ${fmt(d.quota)}. El vencimiento opera el día ${d.diaVence} de cada mes. Declaro recibir el dinero en mi alias declarado y acepto la jurisdicción de ${CONFIG.location}.`;
-        $("#modalFirma").classList.remove("hidden"); 
-    };
-    window.closeFirma = () => { ctx.clearRect(0,0,canvas.width,canvas.height); $("#modalFirma").classList.add("hidden"); };
-    
-    window.confirmarFirma = async () => {
-        const firmaImg = canvas.toDataURL("image/png");
-        await updateDoc(doc(db, "loans", currentLoanId), { 
-            status: "active", 
-            fechaFirma: new Date().toLocaleDateString(), 
-            firmaData: firmaImg 
         });
-        alert("¡Crédito Confirmado! El dinero será enviado a la brevedad."); 
-        location.reload();
+        alert("Configuración guardada."); location.reload();
     };
 
-    // --- SIMULADOR ---
+    // --- CORRECCIÓN INPUT MONEDA EN TIEMPO REAL ---
+    $("#sMonto").addEventListener("input", (e) => {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value) {
+            e.target.value = new Intl.NumberFormat('es-AR', {
+                style: 'currency', currency: 'ARS', minimumFractionDigits: 0
+            }).format(value);
+        }
+    });
+
+    // --- CORRECCIÓN BOTÓN SIMULAR ---
     $("#btnSim").onclick = () => {
-        const m = Number($("#sMonto").value);
-        if(!m) return;
+        let raw = $("#sMonto").value.replace(/[^\d]/g, "");
+        const m = Number(raw);
+        if(!m) return alert("Ingresa un monto");
         const q = Math.round((m * (1 + (CONFIG.tasa/100))) / $("#sCuotas").value);
         $("#resSim").classList.remove("hidden");
         $("#txtCuota").innerText = fmt(q);
     };
 
-    // --- ENVÍO DE SOLICITUD ---
+    // --- SOLICITUD ---
     $("#btnSend").onclick = async () => {
-        const m = Number($("#sMonto").value);
-        if(!m || !$("#fName").value || !$("#fDni").value) return alert("Complete los campos obligatorios");
+        let raw = $("#sMonto").value.replace(/[^\d]/g, "");
+        const m = Number(raw);
+        if(!m || !$("#fName").value) return alert("Completa los datos");
         await addDoc(collection(db, "loans"), {
             name: $("#fName").value, dni: $("#fDni").value, phone: $("#fTel").value, alias: $("#fAlias").value,
             amount: m, months: Number($("#sCuotas").value), rate: CONFIG.tasa, diaVence: CONFIG.dia,
             quota: Math.round((m * (1 + (CONFIG.tasa/100))) / $("#sCuotas").value),
             status: "pending", paidCount: 0, createdAt: serverTimestamp()
         });
-        alert("Solicitud enviada. Aguarde nuestra revisión."); location.reload();
+        alert("Solicitud Enviada"); location.reload();
     };
 
-    // --- BUSCADOR CLIENTE ---
+    // --- BUSCADOR ---
     $("#btnSearch").onclick = async () => {
         const snap = await getDocs(query(collection(db, "loans"), where("dni", "==", $("#searchDni").value)));
         const res = $("#searchRes"); res.classList.remove("hidden");
-        if(snap.empty) return res.innerHTML = "<center><small>No posees créditos registrados con este DNI.</small></center>";
+        if(snap.empty) return res.innerHTML = "<small>No encontrado.</small>";
         const d = snap.docs[0].data(); const id = snap.docs[0].id;
-        
-        let html = `<div class="loan-card">
-            <span class="badge" style="background:var(--brand); color:white">${d.status.replace('_',' ')}</span>
-            <div style="font-size:20px; font-weight:800; margin-top:10px;">${d.name}</div>
-            <p>Monto: <b>${fmt(d.amount)}</b> | Cuota: <b>${fmt(d.quota)}</b></p>`;
-        
-        if(d.status === 'waiting_signature') {
-            html += `<button class="btn-main" style="background:var(--warning)" onclick="window.firmar('${id}')">LEER Y FIRMAR CONTRATO</button>`;
-        } else if(d.status === 'active') {
-            html += `<div style="background:#fff; padding:10px; border-radius:10px; border:1px dashed #ccc; font-size:12px;"><b>Información de Pago:</b><br>Enviar transferencia al Alias: <b>${CONFIG.alias}</b></div>`;
-        }
-        res.innerHTML = html + `</div>`;
+        let h = `<div class="loan-card"><b>ESTADO: ${d.status.toUpperCase()}</b><br>${d.name}<br>Cuota: ${fmt(d.quota)}`;
+        if(d.status === 'waiting_signature') h += `<button class="btn-main" style="background:var(--warning); margin-top:10px;" onclick="window.firmar('${id}')">LEER Y FIRMAR CONTRATO</button>`;
+        res.innerHTML = h + `</div>`;
     };
 
-    // --- PANEL ADMINISTRATIVO ---
-    let currentTab = 'pending';
-    window.tabAdmin = (t) => {
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-        event.target.classList.add('active'); currentTab = t; loadAdmin();
+    // --- FIRMA ---
+    const canvas = $("#sig-canvas");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+    canvas.addEventListener("mousedown", () => drawing = true);
+    canvas.addEventListener("touchstart", () => drawing = true);
+    window.addEventListener("mouseup", () => drawing = false);
+    window.addEventListener("touchend", () => drawing = false);
+    canvas.addEventListener("mousemove", (e) => {
+        if(!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        ctx.lineWidth = 2; ctx.lineTo((e.clientX || e.touches[0].clientX) - rect.left, (e.clientY || e.touches[0].clientY) - rect.top); ctx.stroke();
+    });
+    window.firmar = async (id) => { 
+        currentLoanId = id; 
+        const s = await getDoc(doc(db, "loans", id));
+        $("#resumenContrato").innerText = `Yo ${s.data().name} acepto el préstamo de ${fmt(s.data().amount)} en ${s.data().months} cuotas de ${fmt(s.data().quota)}.`;
+        $("#modalFirma").classList.remove("hidden"); 
+    };
+    window.closeFirma = () => { ctx.clearRect(0,0,canvas.width,canvas.height); $("#modalFirma").classList.add("hidden"); };
+    window.confirmarFirma = async () => {
+        await updateDoc(doc(db, "loans", currentLoanId), { status: "active", firmaImg: canvas.toDataURL() });
+        location.reload();
     };
 
+    // --- ADMIN ---
+    let curTab = 'pending';
+    window.tabAdmin = (t) => { document.querySelectorAll('.tab').forEach(e => e.classList.remove('active')); event.target.classList.add('active'); curTab = t; loadAdmin(); };
     async function loadAdmin() {
         const snap = await getDocs(query(collection(db, "loans"), orderBy("createdAt", "desc")));
         const cont = $("#adminContent"); cont.innerHTML = "";
-        let capCalle = 0; let capMora = 0;
-
+        let tCalle = 0; let tMora = 0;
         snap.forEach(docu => {
             const d = { id: docu.id, ...docu.data() };
-            const pendienteTotal = d.quota * (d.months - d.paidCount);
-            if(d.status === 'active') capCalle += pendienteTotal;
-            if(d.status === 'bad_debt') capMora += pendienteTotal;
-
-            if(d.status !== currentTab) return;
+            if(d.status === 'active') tCalle += (d.quota * (d.months - d.paidCount));
+            if(d.status === 'bad_debt') tMora += (d.quota * (d.months - d.paidCount));
+            if(d.status !== curTab) return;
             const card = document.createElement("div"); card.className = "loan-card";
-            card.innerHTML = `
-                <button class="btn-del" onclick="window.borrar('${d.id}')">BORRAR</button>
-                <div style="font-weight:800; font-size:16px;">${d.name} <small>(${d.dni})</small></div>
-                <div style="font-size:12px; color:#64748b; margin-bottom:10px;">Alias Destino: ${d.alias || 'N/D'}</div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>${fmt(d.amount)} @ ${d.rate}%</span>
-                    <b style="color:var(--brand)">C${d.paidCount}/${d.months}</b>
-                </div>
-                <div style="margin-top:15px;">
-                    ${d.status === 'pending' ? `<button class="btn-main" style="padding:10px; font-size:12px; background:var(--success)" onclick="window.toFirma('${d.id}')">APROBAR PARA FIRMA</button>` : renderQuotas(d)}
-                </div>
-            `;
+            card.innerHTML = `<button class="btn-del" onclick="window.borrar('${d.id}')">BORRAR</button>
+                <b>${d.name}</b><br><small>DNI: ${d.dni} | Cuota: ${fmt(d.quota)}</small>
+                <div style="margin-top:10px;">${d.status==='pending' ? `<button onclick="window.toFirma('${d.id}')">APROBAR</button>` : renderCuotasAdmin(d)}</div>`;
             cont.appendChild(card);
         });
-        $("#statTotal").innerText = fmt(capCalle); $("#statMora").innerText = fmt(capMora);
+        $("#statTotal").innerText = fmt(tCalle); $("#statMora").innerText = fmt(tMora);
     }
-
-    function renderQuotas(d) {
-        if(d.status === 'waiting_signature') return `<center><small style="color:var(--warning)">Esperando Firma Biométrica...</small></center>`;
-        let h = `<div style="margin-top:10px; border-top:1px solid #e2e8f0; padding-top:10px;">`;
-        for(let i=1; i<=d.months; i++){
+    function renderCuotasAdmin(d) {
+        if(d.status === 'waiting_signature') return `<small>Esperando firma...</small>`;
+        let h = `<div style="font-size:12px; margin-top:10px; border-top:1px solid #ccc;">`;
+        for(let i=1; i<=d.months; i++) {
             const p = d.paidCount >= i;
-            h += `<div style="display:flex; justify-content:space-between; font-size:12px; padding:6px 0; border-bottom:1px solid #f1f5f9;">
-                    <span>Cuota ${i}</span>
-                    <span>${fmt(d.quota)}</span>
-                    ${p ? '<b style="color:var(--success)">PAGO</b>' : `<button onclick="window.cobrar('${d.id}',${i})" style="font-size:10px; padding:2px 8px;">Cobrar</button>`}
-                  </div>`;
+            h += `<div style="display:flex; justify-content:space-between; padding:4px 0;"><span>Cuota ${i}</span>${p ? '<b>PAGADO</b>' : `<button onclick="window.cobrar('${d.id}',${i})">Cobrar</button>`}</div>`;
         }
-        h += `</div><div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px; margin-top:12px;">
-                <button onclick="window.pdf('${d.id}','contrato')" style="font-size:9px; padding:8px;">CONTRATO</button>
-                <button onclick="window.pdf('${d.id}','legal')" style="font-size:9px; background:var(--warning); padding:8px;">LEGAL</button>
-                ${d.status !== 'bad_debt' ? `<button onclick="window.toMora('${d.id}')" style="font-size:9px; background:var(--danger); padding:8px;">MORA</button>` : ''}
-              </div>`;
-        return h;
+        return h + `</div>`;
     }
-
-    // --- ACCIONES ---
-    window.borrar = async id => { if(confirm("¿Eliminar registro permanentemente?")) { await deleteDoc(doc(db,"loans",id)); loadAdmin(); } };
+    window.borrar = async id => { if(confirm("¿Borrar?")) { await deleteDoc(doc(db,"loans",id)); loadAdmin(); } };
     window.toFirma = async id => { await updateDoc(doc(db,"loans",id), {status:"waiting_signature"}); loadAdmin(); };
-    window.toMora = async id => { await updateDoc(doc(db,"loans",id), {status:"bad_debt"}); loadAdmin(); };
-    window.cobrar = async (id, n) => {
-        const s = await getDoc(doc(db, "loans", id));
-        const st = n >= s.data().months ? "finished" : "active";
-        await updateDoc(doc(db, "loans", id), { paidCount: n, status: st });
-        loadAdmin();
-    };
+    window.cobrar = async (id, n) => { await updateDoc(doc(db,"loans",id), {paidCount: n}); loadAdmin(); };
 
-    window.pdf = async (id, tipo) => {
-        const s = await getDoc(doc(db, "loans", id)); const d = s.data();
-        const docPDF = new jspdf.jsPDF();
-        if(tipo === 'contrato') {
-            docPDF.setFontSize(20); docPDF.setTextColor(14,72,199); docPDF.text(CONFIG.name.toUpperCase(), 105, 20, {align:"center"});
-            docPDF.setFontSize(10); docPDF.setTextColor(0);
-            let txt = `Por medio del presente, en ${CONFIG.location}, el Sr/Sra ${d.name} (DNI ${d.dni}) declara recibir la suma de ${fmt(d.amount)}... (Cláusulas omitidas por espacio). \n\nFECHA DE FIRMA: ${d.fechaFirma || 'PENDIENTE'}`;
-            docPDF.text(docPDF.splitTextToSize(txt, 170), 20, 40);
-            if(d.firmaData) docPDF.addImage(d.firmaData, 'PNG', 20, 100, 60, 30);
-        } else {
-            const mora = Math.round((d.quota * (d.months - d.paidCount
+    // --- ACCESO STAFF ---
+    $("#btnStaff").onclick = () => {
+        const p = prompt("Clave de Administrador:");
+        if(p) signInWithEmailAndPassword(auth, "fernandogastondelgado81@gmail.com", p).catch(() => alert("Error"));
+    };
+    onAuthStateChanged(auth, u => { if(u){ $("#viewClient").classList.add("hidden"); $("#viewAdmin").classList.remove("hidden"); loadAdmin(); } });
+    $("#btnLogout").onclick = () => signOut(auth).then(()=>location.reload());
+</script>
+</body>
+</html>
