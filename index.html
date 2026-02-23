@@ -1,432 +1,453 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-<title>EstimaF · Premium Management System</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
+    <title>EstimaF · Plataforma de Gestión Financiera Pro</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.0/lucide.min.js"></script>
 
-<style>
-  :root {
-    --brand-blue: #0e48c7;
-    --brand-gradient: radial-gradient(circle at top right, #1e52d5, #08215e);
-    --glass: rgba(255, 255, 255, 0.96);
-    --glass-border: rgba(255, 255, 255, 0.6);
-    --text-main: #1e293b;
-    --text-muted: #64748b;
-    --success: #10b981;
-    --danger: #ef4444;
-  }
+    <style>
+        :root {
+            --brand-blue: #0e48c7;
+            --brand-gradient: linear-gradient(135deg, #0e48c7 0%, #08215e 100%);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --glass: rgba(255, 255, 255, 0.98);
+            --border: rgba(226, 232, 240, 0.8);
+        }
 
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  
-  body { 
-    margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; 
-    background: var(--brand-gradient); background-attachment: fixed;
-    min-height: 100vh; color: var(--text-main); line-height: 1.5;
-  }
+        /* --- RESET Y BASE --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #f1f5f9;
+            color: #1e293b;
+            min-height: 100vh;
+        }
 
-  /* --- HEADER & NAVIGATION --- */
-  header { padding: 30px 20px; max-width: 1000px; margin: 0 auto; color: white; }
-  .nav-top { display: flex; justify-content: space-between; align-items: center; }
-  .logo-box { display: flex; align-items: center; gap: 12px; }
-  .logo-box img { width: 50px; height: 50px; border-radius: 15px; background: white; padding: 7px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-  .logo-box h1 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .bg-gradient {
+            position: fixed; top: 0; left: 0; right: 0; height: 350px;
+            background: var(--brand-gradient);
+            z-index: -1;
+            border-radius: 0 0 50px 50px;
+        }
 
-  /* --- CONTAINERS & GLASS --- */
-  .container { max-width: 1000px; margin: 0 auto; padding: 0 20px 100px; }
-  
-  .glass-card {
-    background: var(--glass); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-    border-radius: 35px; padding: 30px; border: 1px solid var(--glass-border);
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); margin-bottom: 30px;
-    transition: transform 0.3s ease;
-  }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px 20px 100px; }
 
-  h3 { font-size: 22px; font-weight: 800; color: var(--brand-blue); margin: 0 0 25px; display: flex; align-items: center; gap: 10px; }
+        /* --- COMPONENTES GLASS --- */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 35px;
+            border: 1px solid white;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
 
-  /* --- FORMS & UI ELEMENTS --- */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 650px) { .grid-2 { grid-template-columns: 1fr; } }
+        /* --- TIPOGRAFÍA --- */
+        h1 { color: white; font-weight: 800; font-size: 32px; letter-spacing: -1px; margin: 0; }
+        h2, h3 { color: var(--brand-blue); font-weight: 800; margin-top: 0; }
+        p.subtitle { color: rgba(255,255,255,0.8); font-size: 14px; margin: 5px 0 20px; }
 
-  .field { margin-bottom: 20px; }
-  label { display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-  
-  input, select {
-    width: 100%; padding: 16px 20px; border-radius: 18px; border: 1px solid #e2e8f0;
-    background: #f8fafc; font-size: 16px; font-weight: 600; font-family: inherit; transition: 0.3s;
-  }
-  input:focus { outline: none; border-color: var(--brand-blue); background: white; box-shadow: 0 0 0 4px rgba(14, 72, 199, 0.1); }
+        /* --- FORMULARIOS --- */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
 
-  /* --- BUTTONS --- */
-  .btn-main {
-    width: 100%; background: var(--brand-blue); color: white; border: none; padding: 18px;
-    border-radius: 20px; font-size: 17px; font-weight: 800; cursor: pointer;
-    box-shadow: 0 10px 25px rgba(14, 72, 199, 0.4); transition: 0.3s;
-  }
-  .btn-main:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(14, 72, 199, 0.5); }
-  
-  .btn-sec { 
-    background: white; border: 1.5px solid #e2e8f0; padding: 10px 20px; border-radius: 14px;
-    font-size: 13px; font-weight: 700; cursor: pointer; color: var(--text-main); transition: 0.2s;
-  }
-  .btn-sec:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .field { margin-bottom: 20px; }
+        label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        
+        input, select {
+            width: 100%; padding: 16px; border-radius: 16px; border: 1.5px solid #e2e8f0;
+            background: #f8fafc; font-size: 15px; font-weight: 600; transition: all 0.3s ease;
+        }
+        input:focus { outline: none; border-color: var(--brand-blue); background: white; box-shadow: 0 0 0 4px rgba(14, 72, 199, 0.1); }
 
-  .btn-wa {
-    background: #25d366; color: white; border: none; padding: 12px 20px; border-radius: 15px;
-    font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px;
-  }
+        /* --- BOTONES --- */
+        .btn-main {
+            width: 100%; background: var(--brand-blue); color: white; border: none; padding: 18px;
+            border-radius: 20px; font-size: 16px; font-weight: 800; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(14, 72, 199, 0.3); transition: 0.3s;
+        }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 15px 25px rgba(14, 72, 199, 0.4); }
+        .btn-main:disabled { background: #cbd5e1; cursor: not-allowed; transform: none; box-shadow: none; }
 
-  /* --- ADMIN CARDS (TABLERO DE CUOTAS) --- */
-  .loan-card { 
-    background: white; border-radius: 28px; padding: 25px; margin-bottom: 20px;
-    border: 1px solid #f1f5f9; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
-  }
-  .loan-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-  .user-info b { font-size: 19px; color: var(--brand-blue); display: block; }
-  .user-info span { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        .btn-sec {
+            background: white; border: 1.5px solid #e2e8f0; padding: 10px 20px; border-radius: 14px;
+            font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s;
+        }
 
-  .quota-grid { margin-top: 15px; border-top: 1px solid #f1f5f9; }
-  .quota-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 14px 0; border-bottom: 1px solid #f8fafc; font-size: 14px; font-weight: 600;
-  }
-  
-  .badge { padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-  .badge-paid { background: #dcfce7; color: #166534; }
-  .badge-pend { background: #fff7ed; color: #9a3412; }
-  .badge-status { background: #eff6ff; color: #1e40af; }
+        .btn-wa {
+            background: #25d366; color: white; border: none; padding: 12px; border-radius: 15px;
+            font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
 
-  .hidden { display: none !important; }
-  
-  /* --- PDF PREVIEW --- */
-  .contract-box {
-    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 20px;
-    padding: 25px; font-size: 14px; color: #334155; line-height: 1.7;
-    margin-bottom: 20px; max-height: 400px; overflow-y: auto;
-  }
-</style>
+        /* --- ELEMENTOS DE LISTA (DASHBOARD) --- */
+        .loan-card {
+            background: white; border-radius: 24px; padding: 25px; border: 1px solid #f1f5f9;
+            margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .status-badge {
+            padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase;
+        }
+        .status-pending { background: #fff7ed; color: #9a3412; }
+        .status-signed { background: #eff6ff; color: #1e40af; }
+        .status-active { background: #dcfce7; color: #166534; }
+
+        /* --- TABLA DE CUOTAS --- */
+        .quota-table { margin-top: 20px; border-top: 2px solid #f8fafc; }
+        .quota-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 0; border-bottom: 1px solid #f8fafc;
+        }
+        .quota-num { font-weight: 800; color: #64748b; font-size: 13px; }
+        .quota-val { font-weight: 700; color: #1e293b; }
+
+        .hidden { display: none !important; }
+
+        /* --- FIRMA BOX --- */
+        .signature-box {
+            border: 2px dashed #cbd5e1; border-radius: 20px; padding: 30px;
+            text-align: center; background: #f8fafc; margin: 20px 0;
+        }
+
+        /* --- NOTIFICACIONES --- */
+        #toast {
+            position: fixed; bottom: 20px; right: 20px; padding: 15px 25px;
+            border-radius: 15px; color: white; font-weight: 700; transform: translateY(100px);
+            transition: 0.5s; z-index: 9999;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <div class="nav-top">
-    <div class="logo-box">
-      <img src="assets/ping.png" alt="Logo">
-      <h1>EstimaF</h1>
+<div class="bg-gradient"></div>
+
+<header class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>EstimaF</h1>
+            <p class="subtitle">Gestión Inteligente de Créditos</p>
+        </div>
+        <div id="authHeader">
+            <button id="btnStaff" class="btn-sec">Acceso Staff</button>
+            <button id="btnLogout" class="btn-sec hidden" style="color:var(--danger)">Salir</button>
+        </div>
     </div>
-    <div id="topNavActions">
-      <button id="btnAdminLogin" class="btn-sec">Acceso Staff</button>
-      <button id="btnLogout" class="btn-sec hidden" style="color:var(--danger)">Cerrar Sesión</button>
-    </div>
-  </div>
 </header>
 
 <main class="container">
 
-  <div id="viewClient">
-    <section class="glass-card">
-      <h3>📊 Simulador de Cuotas</h3>
-      <div class="grid-2">
-        <div class="field">
-          <label>Monto del crédito</label>
-          <input id="simAmount" inputmode="numeric" placeholder="$ 0">
+    <div id="sectionClient">
+        <div class="glass-card">
+            <h3>📊 Simulador de Cuotas</h3>
+            <div class="grid">
+                <div class="field">
+                    <label>Monto del Préstamo</label>
+                    <input type="number" id="simMonto" placeholder="Ej: 50000">
+                </div>
+                <div class="field">
+                    <label>Plazo de Devolución</label>
+                    <select id="simCuotas">
+                        <option value="6">6 Meses</option>
+                        <option value="12" selected>12 Meses</option>
+                        <option value="18">18 Meses</option>
+                        <option value="24">24 Meses</option>
+                    </select>
+                </div>
+            </div>
+            <button id="btnCalcular" class="btn-main">Calcular Mi Cuota</button>
+            <div id="simResult" class="hidden" style="margin-top: 25px; padding: 20px; background: #eff6ff; border-radius: 20px; text-align: center;">
+                <label>Tu cuota fija mensual será de:</label>
+                <div id="valCuota" style="font-size: 32px; font-weight: 800; color: var(--brand-blue);"></div>
+            </div>
         </div>
-        <div class="field">
-          <label>Plazo de devolución</label>
-          <select id="simMonths">
-            <option value="6">6 Meses</option>
-            <option value="12" selected>12 Meses</option>
-            <option value="18">18 Meses</option>
-            <option value="24">24 Meses</option>
-          </select>
+
+        <div class="glass-card">
+            <h3>📝 Iniciar Solicitud</h3>
+            <div class="field"><label>Nombre y Apellido</label><input id="cName" placeholder="Completo"></div>
+            <div class="grid">
+                <div class="field"><label>DNI (Sin puntos)</label><input id="cDni" type="number"></div>
+                <div class="field"><label>WhatsApp (Cod. Area)</label><input id="cPhone" type="tel" placeholder="11..."></div>
+            </div>
+            <div class="field"><label>CBU / CVU / Alias</label><input id="cAlias" placeholder="Donde recibes el dinero"></div>
+            <button id="btnEnviar" class="btn-main" style="background: var(--success);">Enviar Solicitud</button>
         </div>
-      </div>
-      <button id="btnSimulate" class="btn-main">Calcular Cuota Mensual</button>
-      <div id="simDisplay"></div>
-    </section>
-
-    <section id="reqSection" class="glass-card">
-      <h3>📝 Formulario de Solicitud</h3>
-      <div class="field">
-        <label>Nombre y Apellido completo</label>
-        <input id="formName" placeholder="Como figura en tu DNI">
-      </div>
-      <div class="grid-2">
-        <div class="field"><label>DNI</label><input id="formDni" inputmode="numeric"></div>
-        <div class="field"><label>Teléfono / WhatsApp</label><input id="formPhone" type="tel"></div>
-      </div>
-      <div class="field"><label>CBU / CVU o Alias de cobro</label><input id="formAlias"></div>
-      <button id="btnSubmitReq" class="btn-main" style="background: linear-gradient(to right, #0e48c7, #10b981);">Enviar mi Solicitud</button>
-    </section>
-  </div>
-
-  <div id="viewSign" class="hidden">
-    <section class="glass-card">
-      <h3>🖋️ Firma de Contrato Digital</h3>
-      <div id="contractContent" class="contract-box">
-        </div>
-      <div class="field">
-        <label>Escribe tu nombre completo para confirmar la firma</label>
-        <input id="signatureInput" placeholder="Firma electrónica">
-      </div>
-      <button id="btnConfirmSign" class="btn-main">Firmar y Confirmar Crédito</button>
-    </section>
-  </div>
-
-  <div id="viewAdmin" class="hidden">
-    <section class="glass-card">
-      <h3>⚙️ Parámetros del Día</h3>
-      <div class="grid-2">
-        <div class="field"><label>TNA (%)</label><input id="cfgTna" value="120"></div>
-        <div class="field"><label>Día de Vencimiento</label><input id="cfgDue" value="10"></div>
-      </div>
-      <button id="btnUpdateSettings" class="btn-sec" style="width:100%">Guardar Cambios</button>
-    </section>
-
-    <section class="glass-card">
-      <h3>📥 Bandeja de Entrada</h3>
-      <div id="adminSolicitudes"></div>
-    </section>
-
-    <section class="glass-card">
-      <h3>🚀 Cartera de Préstamos Activos</h3>
-      <div id="adminActivos"></div>
-    </section>
-  </div>
-
-  <section class="glass-card" style="background: rgba(255,255,255,0.8);">
-    <h3 style="font-size: 16px;">🔎 Mi Préstamo</h3>
-    <div style="display: flex; gap: 10px;">
-      <input id="searchDni" placeholder="Ingresa tu DNI">
-      <button id="btnSearch" class="btn-sec">Consultar</button>
     </div>
-    <div id="searchResult" style="margin-top:20px"></div>
-  </section>
+
+    <div id="sectionSign" class="hidden">
+        <div class="glass-card">
+            <h3>🖋️ Firma de Contrato Digital</h3>
+            <div id="legalText" style="height: 250px; overflow-y: auto; background: #f8fafc; padding: 20px; border-radius: 15px; font-size: 13px; line-height: 1.6; border: 1px solid #e2e8f0;">
+                </div>
+            <div class="signature-box">
+                <label>Escribe tu nombre completo para firmar electrónicamente</label>
+                <input id="signInput" style="text-align: center; font-family: 'Courier New', Courier, monospace; font-size: 24px;" placeholder="Tu Nombre Aquí">
+            </div>
+            <button id="btnConfirmSign" class="btn-main">Firmar y Aceptar Préstamo</button>
+        </div>
+    </div>
+
+    <div id="sectionAdmin" class="hidden">
+        <div class="glass-card">
+            <h3>📥 Solicitudes Entrantes</h3>
+            <div id="inboxList"></div>
+        </div>
+        <div class="glass-card">
+            <h3>🚀 Cartera Activa</h3>
+            <div id="activeList"></div>
+        </div>
+    </div>
 
 </main>
 
+<div id="toast"></div>
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, orderBy, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, where, orderBy, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
-  authDomain: "estimapres.firebaseapp.com",
-  projectId: "estimapres",
-  storageBucket: "estimapres.firebasestorage.app",
-  messagingSenderId: "578516597437",
-  appId: "1:578516597437:web:f59994b87729aa1cd655d4"
-};
+    // Configuración Firebase (Original del usuario)
+    const firebaseConfig = {
+        apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
+        authDomain: "estimapres.firebaseapp.com",
+        projectId: "estimapres",
+        storageBucket: "estimapres.firebasestorage.app",
+        messagingSenderId: "578516597437",
+        appId: "1:578516597437:web:f59994b87729aa1cd655d4"
+    };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const ADMIN_EMAIL = "fernandogastondelgado81@gmail.com";
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const ADMIN_MAIL = "fernandogastondelgado81@gmail.com";
 
-const $ = s => document.querySelector(s);
-const fmt = n => "$ " + Number(n).toLocaleString("es-AR");
-
-// --- MATEMÁTICA FINANCIERA ---
-function calcCuota(monto, meses, tna) {
-  const i = (tna/100)/12;
-  return Math.round(monto * (i * Math.pow(1+i, meses)) / (Math.pow(1+i, meses) - 1));
-}
-
-// --- MANEJO DE VISTAS (CLIENTE/ADMIN/FIRMA) ---
-onAuthStateChanged(auth, async (user) => {
-  const hash = window.location.hash;
-  
-  if (user && user.email === ADMIN_EMAIL) {
-    toggleView("admin");
-    loadAdminData();
-  } else if (hash.startsWith("#firmar-")) {
-    toggleView("sign");
-    initSignatureProcess(hash.replace("#firmar-", ""));
-  } else {
-    toggleView("client");
-  }
-});
-
-function toggleView(v) {
-  $("#viewClient").classList.toggle("hidden", v !== "client");
-  $("#viewAdmin").classList.toggle("hidden", v !== "admin");
-  $("#viewSign").classList.toggle("hidden", v !== "sign");
-  $("#btnLogout").classList.toggle("hidden", v !== "admin");
-  $("#btnAdminLogin").classList.toggle("hidden", v === "admin");
-}
-
-// --- LÓGICA DE FIRMA (PROCESO MICAELA SOTO) ---
-async function initSignatureProcess(id) {
-  const snap = await getDoc(doc(db, "loans", id));
-  if (!snap.exists()) return;
-  const d = snap.data();
-  
-  $("#contractContent").innerHTML = `
-    <strong>CONTRATO DE MUTUO - ESTIFAMF</strong><br><br>
-    Por la presente, el Sr./Sra. <b>${d.client.name}</b>, DNI <b>${d.client.dni}</b>, en adelante EL MUTUARIO,
-    acepta un préstamo de <b>${fmt(d.amount)}</b> pagadero en <b>${d.months}</b> cuotas mensuales fijas de <b>${fmt(d.installment)}</b>.
-    El incumplimiento de pago habilitará las acciones legales correspondientes...
-  `;
-
-  $("#btnConfirmSign").onclick = async () => {
-    const sign = $("#signatureInput").value;
-    if (sign.length < 5) return alert("Firma inválida");
-    await updateDoc(doc(db, "loans", id), { 
-      signed: true, 
-      status: "signed", 
-      signName: sign, 
-      signedAt: serverTimestamp() 
-    });
-    alert("¡Contrato firmado con éxito! El dinero será enviado a tu cuenta.");
-    window.location.hash = "";
-    location.reload();
-  };
-}
-
-// --- PANEL ADMIN (ESTILO OCTAVIO DELGADO) ---
-async function loadAdminData() {
-  const snap = await getDocs(query(collection(db, "loans"), orderBy("createdAt", "desc")));
-  $("#adminSolicitudes").innerHTML = "";
-  $("#adminActivos").innerHTML = "";
-
-  snap.forEach(docu => {
-    const d = { id: docu.id, ...docu.data() };
-    if (d.status === "pending" || d.status === "signed") {
-      renderSolicitud(d);
-    } else if (d.status === "active") {
-      renderActivo(d);
+    // --- UTILIDADES ---
+    const $ = s => document.querySelector(s);
+    const formatMoney = n => "$ " + Number(n).toLocaleString("es-AR");
+    
+    function showToast(msg, color = "#10b981") {
+        const t = $("#toast");
+        t.innerText = msg;
+        t.style.background = color;
+        t.style.transform = "translateY(0)";
+        setTimeout(() => t.style.transform = "translateY(100px)", 3000);
     }
-  });
-}
 
-function renderSolicitud(d) {
-  const isSigned = d.status === "signed";
-  const link = `${window.location.origin}${window.location.pathname}#firmar-${d.id}`;
-  
-  $("#adminSolicitudes").innerHTML += `
-    <div class="loan-card">
-      <div class="loan-header">
-        <div class="user-info"><b>${d.client.name}</b><span>DNI: ${d.client.dni}</span></div>
-        <span class="badge badge-status">${d.status.toUpperCase()}</span>
-      </div>
-      <div>Solicita: ${fmt(d.amount)} en ${d.months} meses</div>
-      
-      ${d.status === "pending" ? `
-        <button class="btn-main" style="padding:10px; margin-top:10px" onclick="window.preAprobar('${d.id}')">Preaprobar y Enviar Link</button>
-      ` : ""}
+    // --- LÓGICA FINANCIERA (ROBUSTA) ---
+    function calcularCuotaMensual(monto, meses) {
+        const TNA = 120; // 120% anual
+        const i = (TNA / 100) / 12;
+        const cuota = monto * (i * Math.pow(1 + i, meses)) / (Math.pow(1 + i, meses) - 1);
+        return Math.round(cuota);
+    }
 
-      ${d.status === "preapproved" || d.status === "pending" ? `
-        <button class="btn-wa" onclick="window.open('https://wa.me/${d.client.phone}?text=Hola! Firma tu contrato aquí: ${encodeURIComponent(link)}')">Enviar por WhatsApp</button>
-      ` : ""}
+    // --- MANEJO DE VISTAS Y RUTAS ---
+    onAuthStateChanged(auth, user => {
+        const h = window.location.hash;
+        if (user && user.email === ADMIN_MAIL) {
+            switchView("admin");
+            loadAdminData();
+        } else if (h.startsWith("#sign-")) {
+            switchView("sign");
+            setupSignatureView(h.replace("#sign-", ""));
+        } else {
+            switchView("client");
+        }
+    });
 
-      ${isSigned ? `
-        <div style="margin-top:15px; background:#f0fdf4; padding:15px; border-radius:15px">
-          <div style="font-size:12px"><b>FIRMADO POR:</b> ${d.signName}</div>
-          <button class="btn-main" style="background:var(--success); margin-top:10px" onclick="window.activarLoan('${d.id}')">ENTREGAR DINERO Y ACTIVAR</button>
-        </div>
-      ` : ""}
-    </div>
-  `;
-}
+    function switchView(v) {
+        $("#sectionClient").classList.toggle("hidden", v !== "client");
+        $("#sectionAdmin").classList.toggle("hidden", v !== "admin");
+        $("#sectionSign").classList.toggle("hidden", v !== "sign");
+        $("#btnLogout").classList.toggle("hidden", v !== "admin");
+        $("#btnStaff").classList.toggle("hidden", v === "admin");
+    }
 
-function renderActivo(d) {
-  let cuotasList = "";
-  for(let i=1; i<=d.months; i++) {
-    const pagada = (d.payments || 0) >= i;
-    cuotasList += `
-      <div class="quota-row">
-        <span>Cuota ${i}</span>
-        <span>${fmt(d.installment)}</span>
-        ${pagada ? '<span class="badge badge-paid">PAGADO</span>' : `<button class="btn-sec" onclick="window.cobrarCuota('${d.id}', ${i})">COBRAR</button>`}
-      </div>
-    `;
-  }
+    // --- FUNCIONES DE CLIENTE ---
+    $("#btnCalcular").onclick = () => {
+        const m = $("#simMonto").value;
+        const c = $("#simCuotas").value;
+        if (!m) return showToast("Ingresa un monto", "#ef4444");
+        const val = calcularCuotaMensual(m, c);
+        $("#simResult").classList.remove("hidden");
+        $("#valCuota").innerText = formatMoney(val);
+    };
 
-  $("#adminActivos").innerHTML += `
-    <div class="loan-card">
-      <div class="loan-header">
-        <div class="user-info"><b>${d.client.name}</b><span>DNI: ${d.client.dni}</span></div>
-        <div align="right"><small>Faltan: ${d.months - (d.payments||0)}</small></div>
-      </div>
-      <div class="quota-grid">${cuotasList}</div>
-    </div>
-  `;
-}
+    $("#btnEnviar").onclick = async () => {
+        const monto = $("#simMonto").value;
+        const cuotas = $("#simCuotas").value;
+        if (!monto || !$("#cName").value) return showToast("Faltan datos", "#ef4444");
 
-// --- WINDOW ACTIONS ---
-window.preAprobar = async (id) => {
-  await updateDoc(doc(db, "loans", id), { status: "preapproved" });
-  loadAdminData();
-};
+        try {
+            const data = {
+                name: $("#cName").value,
+                dni: $("#cDni").value,
+                phone: $("#cPhone").value,
+                alias: $("#cAlias").value,
+                amount: Number(monto),
+                months: Number(cuotas),
+                installment: calcularCuotaMensual(monto, cuotas),
+                status: "pending",
+                createdAt: serverTimestamp()
+            };
+            await addDoc(collection(db, "loans"), data);
+            showToast("Solicitud enviada con éxito");
+            setTimeout(() => location.reload(), 2000);
+        } catch (e) { showToast("Error al enviar", "#ef4444"); }
+    };
 
-window.activarLoan = async (id) => {
-  await updateDoc(doc(db, "loans", id), { status: "active", payments: 0, activatedAt: serverTimestamp() });
-  loadAdminData();
-};
+    // --- FUNCIONES DE FIRMA ---
+    async function setupSignatureView(id) {
+        const snap = await getDoc(doc(db, "loans", id));
+        if (!snap.exists()) return;
+        const d = snap.data();
 
-window.cobrarCuota = async (id, n) => {
-  await updateDoc(doc(db, "loans", id), { payments: n, updatedAt: serverTimestamp() });
-  loadAdminData();
-};
+        $("#legalText").innerHTML = `
+            <strong>CONTRATO DE PRÉSTAMO DE DINERO (MUTUO)</strong><br><br>
+            Entre ESTIMAF y el Sr/Sra <b>${d.name}</b>, DNI <b>${d.dni}</b>...<br>
+            1. El prestador entrega la suma de ${formatMoney(d.amount)}.<br>
+            2. La devolución será en ${d.months} cuotas de ${formatMoney(d.installment)}.<br>
+            3. El vencimiento opera el día 10 de cada mes.<br>
+            4. En caso de mora, se aplicarán intereses punitorios...
+        `;
 
-// --- SIMULADOR ---
-$("#btnSimulate").onclick = () => {
-  const m = Number($("#simAmount").value.replace(/\D/g,''));
-  const t = Number($("#simMonths").value);
-  const cuota = calcCuota(m, t, 120);
-  $("#simDisplay").innerHTML = `
-    <div style="margin-top:20px; text-align:center; background:#eff6ff; padding:20px; border-radius:20px">
-      <label>Valor Cuota Mensual</label>
-      <div style="font-size:32px; font-weight:800; color:var(--brand-blue)">${fmt(cuota)}</div>
-    </div>
-  `;
-};
+        $("#btnConfirmSign").onclick = async () => {
+            const signature = $("#signInput").value;
+            if (signature.length < 5) return showToast("Escribe tu nombre completo", "#ef4444");
 
-// --- ENVIO SOLICITUD ---
-$("#btnSubmitReq").onclick = async () => {
-  const monto = Number($("#simAmount").value.replace(/\D/g,''));
-  const meses = Number($("#simMonths").value);
-  const data = {
-    amount: monto, months: meses, installment: calcCuota(monto, meses, 120),
-    status: "pending", signed: false,
-    client: {
-      name: $("#formName").value,
-      dni: $("#formDni").value,
-      phone: $("#formPhone").value,
-      alias: $("#formAlias").value
-    },
-    createdAt: serverTimestamp()
-  };
-  await addDoc(collection(db, "loans"), data);
-  alert("Solicitud enviada. Recibirás un WhatsApp pronto.");
-  location.reload();
-};
+            await updateDoc(doc(db, "loans", id), {
+                status: "signed",
+                signatureName: signature,
+                signedAt: serverTimestamp()
+            });
+            showToast("Contrato Firmado Correctamente");
+            window.location.hash = "";
+            setTimeout(() => location.reload(), 2000);
+        };
+    }
 
-// --- LOGIN ---
-$("#btnAdminLogin").onclick = async () => {
-  const pass = prompt("Password Staff:");
-  if(pass) signInWithEmailAndPassword(auth, ADMIN_EMAIL, pass).catch(()=>alert("Error"));
-};
-$("#btnLogout").onclick = () => signOut(auth);
+    // --- FUNCIONES DE ADMIN (GESTIÓN OCTAVIO) ---
+    async function loadAdminData() {
+        const q = query(collection(db, "loans"), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        $("#inboxList").innerHTML = "";
+        $("#activeList").innerHTML = "";
 
-// --- BUSCADOR ---
-$("#btnSearch").onclick = async () => {
-  const dni = $("#searchDni").value;
-  const q = query(collection(db, "loans"), where("client.dni", "==", dni));
-  const snap = await getDocs(q);
-  if(snap.empty) return $("#searchResult").innerHTML = "No se encontraron registros.";
-  const d = snap.docs[0].data();
-  $("#searchResult").innerHTML = `
-    <div class="loan-card" style="background:#f1f5f9">
-      <b>Estado: ${d.status.toUpperCase()}</b><br>
-      Crédito por: ${fmt(d.amount)}<br>
-      Pagos realizados: ${d.payments || 0} / ${d.months}
-    </div>
-  `;
-};
+        snap.forEach(docu => {
+            const d = { id: docu.id, ...docu.data() };
+            const link = window.location.origin + window.location.pathname + "#sign-" + d.id;
+
+            const card = `
+                <div class="loan-card">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <span class="status-badge status-${d.status}">${d.status}</span>
+                            <div style="font-weight:800; font-size:18px; margin-top:5px;">${d.name}</div>
+                            <div style="font-size:12px; color:#64748b;">DNI: ${d.dni} | Alias: ${d.alias}</div>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-weight:800; color:var(--brand-blue)">${formatMoney(d.amount)}</div>
+                            <div style="font-size:11px;">${d.months} cuotas de ${formatMoney(d.installment)}</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:20px;">
+                        ${d.status === 'pending' ? `
+                            <button class="btn-wa" onclick="window.sendWhatsApp('${d.phone}', '${link}')">
+                                Enviar Link de Firma
+                            </button>
+                            <button class="btn-sec" style="width:100%; margin-top:10px" onclick="window.updateStatus('${d.id}', 'rejected')">Rechazar</button>
+                        ` : ''}
+
+                        ${d.status === 'signed' ? `
+                            <div style="background:#f0fdf4; padding:15px; border-radius:15px; margin-bottom:10px; font-size:12px;">
+                                <b>Firmado por:</b> ${d.signatureName}
+                            </div>
+                            <button class="btn-main" onclick="window.activarPrestamo('${d.id}')">ACTIVAR Y ENTREGAR DINERO</button>
+                        ` : ''}
+
+                        ${d.status === 'active' ? renderCuotasDetalle(d) : ''}
+                    </div>
+                </div>
+            `;
+
+            if (d.status === 'active') $("#activeList").innerHTML += card;
+            else $("#inboxList").innerHTML += card;
+        });
+    }
+
+    function renderCuotasDetalle(d) {
+        let rows = '<div class="quota-table">';
+        for (let i = 1; i <= d.months; i++) {
+            const pagada = (d.paidCount || 0) >= i;
+            rows += `
+                <div class="quota-row">
+                    <span class="quota-num">CUOTA ${i}</span>
+                    <span class="quota-val">${formatMoney(d.installment)}</span>
+                    ${pagada ? '<span class="status-badge status-active">PAGADO</span>' : 
+                    `<button class="btn-sec" style="padding:5px 10px" onclick="window.registrarPago('${d.id}', ${i})">Cobrar</button>`}
+                </div>
+            `;
+        }
+        return rows + '</div><button class="btn-sec" style="width:100%; margin-top:15px" onclick="window.generarPDF(\''+d.id+'\')">Descargar Contrato PDF</button>';
+    }
+
+    // --- ACCIONES WINDOW (ADMIN) ---
+    window.sendWhatsApp = (phone, link) => {
+        const msg = encodeURIComponent("Hola! Tu préstamo en EstimaF ha sido preaprobado. Por favor, firma el contrato aquí para recibir el dinero: " + link);
+        window.open(`https://wa.me/${phone}?text=${msg}`);
+    };
+
+    window.updateStatus = async (id, status) => {
+        await updateDoc(doc(db, "loans", id), { status });
+        loadAdminData();
+    };
+
+    window.activarPrestamo = async (id) => {
+        if (!confirm("¿Ya transferiste el dinero al cliente?")) return;
+        await updateDoc(doc(db, "loans", id), { status: "active", paidCount: 0, startDate: serverTimestamp() });
+        showToast("Préstamo Activado");
+        loadAdminData();
+    };
+
+    window.registrarPago = async (id, n) => {
+        await updateDoc(doc(db, "loans", id), { paidCount: n, lastPayment: serverTimestamp() });
+        showToast("Pago registrado");
+        loadAdminData();
+    };
+
+    window.generarPDF = async (id) => {
+        const snap = await getDoc(doc(db, "loans", id));
+        const d = snap.data();
+        const { jsPDF } = window.jspdf;
+        const docPDF = new jsPDF();
+        
+        docPDF.setFontSize(22); docPDF.text("EstimaF - Comprobante de Crédito", 20, 30);
+        docPDF.setFontSize(12);
+        docPDF.text(`Cliente: ${d.name}`, 20, 50);
+        docPDF.text(`DNI: ${d.dni}`, 20, 60);
+        docPDF.text(`Monto Total: ${formatMoney(d.amount)}`, 20, 70);
+        docPDF.text(`Plan: ${d.months} cuotas de ${formatMoney(d.installment)}`, 20, 80);
+        docPDF.text(`Firma Digital: ${d.signatureName}`, 20, 100);
+        docPDF.text(`ID Transacción: ${id}`, 20, 110);
+        
+        docPDF.save(`Contrato_${d.dni}.pdf`);
+    };
+
+    // --- AUTH STAFF ---
+    $("#btnStaff").onclick = () => {
+        const pass = prompt("Contraseña de Administrador:");
+        if (pass) signInWithEmailAndPassword(auth, ADMIN_MAIL, pass).catch(() => showToast("Acceso Denegado", "#ef4444"));
+    };
+    $("#btnLogout").onclick = () => signOut(auth).then(() => location.reload());
+
 </script>
 </body>
 </html>
