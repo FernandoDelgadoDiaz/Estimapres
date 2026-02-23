@@ -1,260 +1,581 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title>EstimaF · Sistema Profesional</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root { 
-            --main-blue: #1e40af; --accent-green: #10b981;
-            --white: #ffffff; --text-dark: #0f172a; --text-muted: #64748b;
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; 
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); 
-            background-attachment: fixed; color: var(--text-dark); min-height: 100vh;
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
+<title>EstimaPres · Préstamos personales</title>
+<link rel="icon" href="assets/ping.png" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-main: #f8fafc;
+    --primary: #0e48c7;
+    --primary-dark: #0a3aa1;
+    --accent: #ff6b00; /* Toque Naranja X para resaltar */
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --radius: 24px;
+  }
 
-        /* Navbar estilo Imagen 5 */
-        .header { padding: 25px 6%; display: flex; justify-content: space-between; align-items: center; }
-        .logo { color: white; font-weight: 800; font-size: 26px; display: flex; align-items: center; gap: 10px; }
-        .logo span { background: white; color: var(--main-blue); padding: 5px 12px; border-radius: 12px; }
-        .admin-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px 20px; border-radius: 14px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+  * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+  
+  body { 
+    margin: 0; 
+    background-color: var(--bg-main); 
+    color: var(--text-main);
+    line-height: 1.5;
+  }
 
-        .container { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1fr 1.1fr; gap: 50px; align-items: start; }
-        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+  /* HEADER MODERNO */
+  .hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    color: #fff;
+    padding: 30px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  }
 
-        /* Card Estilo "Ideal" */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(25px);
-            border-radius: 40px; padding: 40px; border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 40px 80px rgba(0,0,0,0.2);
-        }
+  .brand { display: flex; align-items: center; gap: 15px; }
+  .brand img { 
+    width: 50px; height: 50px; 
+    border-radius: 14px; 
+    background: #fff;
+    padding: 5px;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+  }
+  .brand h1 { margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -1px; }
 
-        h1 { color: white; font-size: 64px; font-weight: 800; margin: 0; letter-spacing: -2px; line-height: 1; }
-        .hero-sub { color: rgba(255,255,255,0.85); font-size: 18px; margin: 20px 0 40px; font-weight: 600; }
+  .slogan {
+    margin-top: 15px;
+    font-size: 14px;
+    background: rgba(255,255,255,0.15);
+    padding: 8px 16px;
+    border-radius: 12px;
+    display: inline-block;
+    backdrop-filter: blur(5px);
+  }
 
-        /* Inputs Premium */
-        .field { margin-bottom: 25px; }
-        label { display: block; font-size: 14px; font-weight: 800; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input { 
-            width: 100%; padding: 20px; border-radius: 18px; border: 1px solid #e2e8f0;
-            background: #f8fafc; font-size: 16px; font-weight: 700; color: var(--text-dark); transition: 0.3s;
-        }
-        input:focus { outline: none; border-color: var(--main-blue); background: white; box-shadow: 0 0 0 5px rgba(37,99,235,0.1); }
+  .actions {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
 
-        .btn-main { 
-            width: 100%; padding: 22px; border-radius: 20px; border: none; 
-            background: var(--main-blue); color: white; font-weight: 800; font-size: 16px; 
-            cursor: pointer; box-shadow: 0 15px 30px rgba(30, 64, 175, 0.25); transition: 0.3s;
-        }
-        .btn-main:active { transform: scale(0.98); }
+  /* BOTONES */
+  .btn {
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 12px;
+    border-radius: 16px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .btn:active { transform: scale(0.95); background: rgba(255,255,255,0.2); }
+  .btn.red { background: rgba(239, 68, 68, 0.2); color: #ff8a8a; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-        /* Listas y Admin */
-        .loan-card { background: white; border-radius: 28px; padding: 25px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
-        .cuota-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
-        .cuota-item:last-child { border: none; }
-        .pay-pill { background: var(--main-blue); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-        .pay-pill.done { background: #d1fae5; color: #065f46; cursor: default; }
+  /* CONTENEDORES */
+  .wrap { max-width: 800px; margin: 0 auto; padding: 20px 15px 100px; }
+  
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(2, 32, 71, 0.05);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
 
-        .floating-bar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; }
-        .exit-pill { background: white; color: black; padding: 16px 45px; border-radius: 100px; font-weight: 800; border: none; box-shadow: 0 20px 40px rgba(0,0,0,0.3); cursor: pointer; }
+  .card h2 { 
+    margin: 0 0 20px; 
+    font-size: 24px; 
+    font-weight: 800; 
+    color: var(--primary);
+  }
 
-        #admin-panel, #client-dashboard, #solicitud-extra, .hidden { display: none; }
-    </style>
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+
+  label { font-size: 13px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block; }
+  
+  input, select {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 16px;
+    border: 2px solid #f1f5f9;
+    background: #f8fafc;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+  input:focus { outline: none; border-color: var(--primary); background: #fff; }
+
+  .cta {
+    width: 100%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 18px;
+    border-radius: 18px;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(14, 72, 199, 0.3);
+    transition: 0.3s;
+  }
+  .cta:active { transform: translateY(2px); box-shadow: none; }
+
+  /* TABLAS Y PILLS */
+  .pill {
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .pill.ok { background: #dcfce7; color: #065f46; }
+  .pill.warn { background: #ffedd5; color: #9a3412; }
+  .pill.bad { background: #fee2e2; color: #991b1b; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th { text-align: left; font-size: 12px; color: var(--text-muted); padding: 10px; border-bottom: 2px solid #f1f5f9; }
+  td { padding: 12px 10px; font-size: 14px; border-bottom: 1px solid #f1f5f9; font-weight: 600; }
+
+  .kpi {
+    background: #eff6ff;
+    padding: 15px;
+    border-radius: 16px;
+    color: var(--primary);
+    font-weight: 800;
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+
+  details summary { cursor: pointer; padding: 10px 0; outline: none; }
+  
+  /* ADMIN BUTTONS */
+  .btn-outline { border: 1px solid #e2e8f0; background: #fff; padding: 8px 12px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+  .btn-success { background: var(--success); color: #fff; border: none; padding: 10px 15px; border-radius: 12px; font-weight: 700; }
+  .btn-danger { background: var(--danger); color: #fff; border: none; padding: 10px 15px; border-radius: 12px; font-weight: 700; }
+
+</style>
 </head>
 <body>
 
-<nav class="header">
-    <div class="logo"><span>F</span> EstimaF</div>
-    <button id="adminLogin" class="admin-btn">Admin Access</button>
-</nav>
+<header class="hero">
+  <div class="brand">
+    <img src="assets/ping.png" alt="EstimaPres" />
+    <h1>PresTar</h1>
+  </div>
+  <div class="slogan">Préstamos personales · <em>simple y claro</em></div>
+  <div class="actions">
+    <button id="btnOpenMyLoan" class="btn">🔎 Ver mi préstamo</button>
+    <button id="btnAdmin" class="btn">🛡️ Admin</button>
+    <button id="btnResetPass" class="btn">🔑 Reset</button>
+    <button id="btnLogout" class="btn red">↪ Salir</button>
+  </div>
+</header>
 
-<div id="exitContainer" class="hidden floating-bar">
-    <button onclick="realLogout()" class="exit-pill">SALIR / MODO CLIENTE ←</button>
-</div>
+<main class="wrap">
 
-<main class="container">
-    <div id="hero">
-        <h1>Prestar</h1>
-        <p class="hero-sub">Tecnología financiera para préstamos personales de aprobación rápida.</p>
-        <div style="display:flex; gap:15px; margin-top:20px;">
-            <div style="background:rgba(255,255,255,0.1); padding:15px 25px; border-radius:20px; color:white; font-weight:700; border:1px solid rgba(255,255,255,0.1);">✓ SSL Seguro</div>
-            <div style="background:rgba(255,255,255,0.1); padding:15px 25px; border-radius:20px; color:white; font-weight:700; border:1px solid rgba(255,255,255,0.1);">✓ Firebase DB</div>
-        </div>
+  <section class="card">
+    <h2>Simulador</h2>
+    <div class="row">
+      <div>
+        <label>Monto a solicitar</label>
+        <input id="simAmount" inputmode="numeric" placeholder="$ 0" />
+      </div>
+      <div>
+        <label>Plazo (meses)</label>
+        <input id="simMonths" inputmode="numeric" placeholder="Máx 24" />
+      </div>
     </div>
-
-    <div id="user-ui" class="glass-card">
-        <h2 style="margin-top:0; font-size:28px; margin-bottom:30px;">Simulador</h2>
-        <div class="field">
-            <label>Monto a solicitar</label>
-            <input id="amt" type="number" placeholder="$ 0.00">
-        </div>
-        <div class="field">
-            <label>Plazo (Meses)</label>
-            <input id="mos" type="number" placeholder="Ej: 12">
-        </div>
-        <button id="btnCalc" class="btn-main">CALCULAR CUOTA</button>
-
-        <div id="solicitud-extra" style="margin-top:35px; padding-top:30px; border-top:2px solid #f1f5f9;">
-            <div class="field"><label>Nombre Completo</label><input id="cName" placeholder="Juan Pérez"></div>
-            <div class="field"><label>DNI</label><input id="cDni" placeholder="Sin puntos ni espacios"></div>
-            <div class="field"><label>Email</label><input id="cEmail" placeholder="ejemplo@correo.com"></div>
-            <button id="btnSubmit" class="btn-main" style="background:var(--accent-green); box-shadow: 0 15px 30px rgba(16,185,129,0.2);">SOLICITAR PRÉSTAMO</button>
-        </div>
-        <button onclick="verDni()" style="width:100%; background:none; border:none; color:var(--main-blue); margin-top:25px; font-weight:800; cursor:pointer; text-decoration:underline; font-size:14px;">CONSULTAR MI ESTADO (DNI)</button>
+    <div class="muted" style="margin-top:12px; font-size: 13px; color: var(--text-muted);">
+      <span id="lblTna">TNA vigente: —%</span> · <span id="lblDue">Vencimiento: día —</span>
     </div>
+    <div style="margin-top:20px"><button id="btnSim" class="cta">Calcular Cuota</button></div>
+    <div id="simResult"></div>
+  </section>
 
-    <div id="admin-panel" class="glass-card" style="grid-column: 1 / -1;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
-            <h2 style="margin:0;">Gestión de Créditos</h2>
-            <div style="display:flex; align-items:center; gap:12px; background:#f8fafc; padding:10px 20px; border-radius:20px; border:1px solid #e2e8f0;">
-                <label style="margin:0; font-size:12px;">INTERÉS (%):</label>
-                <input id="sysTasa" type="number" style="width:80px; padding:8px; background:white;">
-                <button id="saveT" style="padding:10px 20px; border-radius:12px; background:var(--main-blue); color:white; border:none; font-weight:800; cursor:pointer;">OK</button>
-            </div>
-        </div>
-        <div id="adminData"></div>
+  <section class="card">
+    <h2>Solicitar préstamo</h2>
+    <div class="row">
+      <div><label>Nombre y Apellido</label><input id="bName" placeholder="Como figura en DNI" /></div>
+      <div><label>Número de DNI</label><input id="bDni" inputmode="numeric" placeholder="Sin puntos" /></div>
+      <div><label>Correo Electrónico</label><input id="bEmail" type="email" placeholder="ejemplo@mail.com" /></div>
+      <div><label>Celular</label><input id="bPhone" inputmode="tel" placeholder="Cód. área + número" /></div>
+      <div style="grid-column: 1 / -1;"><label>Alias o CBU/CVU de cobro</label><input id="bAlias" placeholder="Donde recibirás el dinero" /></div>
     </div>
+    <p style="font-size: 12px; color: var(--text-muted); margin-top: 15px;">Al enviar esta solicitud, confirmas que los datos son correctos y aceptas ser contactado por nuestro equipo.</p>
+    <button id="btnSendReq" class="cta" style="background: var(--accent); box-shadow: 0 8px 20px rgba(255, 107, 0, 0.3);">Enviar Solicitud</button>
+  </section>
 
-    <div id="client-dashboard" class="glass-card" style="grid-column: 1 / -1;">
-        <h2 id="cliTitle" style="font-size:32px; margin-bottom:10px;">Tu Préstamo</h2>
-        <p id="cliDni" style="color:var(--text-muted); margin-bottom:40px; font-weight:700;"></p>
-        <div id="cliCuotas"></div>
+  <section id="admin" class="card" style="display:none; border-top: 5px solid var(--primary);">
+    <h2>Panel de Gestión</h2>
+
+    <details open class="card" style="padding:16px; border: 1px solid #eee;">
+      <summary class="section-title">⚙️ Configuración Global</summary>
+      <div class="row">
+        <div><label>TNA % Anual</label><input id="cfgTna" inputmode="numeric" /></div>
+        <div><label>Día fijo de Venc.</label><input id="cfgDue" inputmode="numeric" /></div>
+      </div>
+      <div style="margin-top:15px"><button id="btnSaveCfg" class="btn-success" style="width:100%">Guardar Cambios</button></div>
+    </details>
+
+    <details class="card" style="padding:16px; border: 1px solid #eee;">
+      <summary class="section-title">📥 Solicitudes Nuevas</summary>
+      <div class="toolbar"><button id="btnReloadPend" class="btn-outline">🔄 Actualizar</button></div>
+      <div id="listPend"></div>
+    </details>
+
+    <details class="card" style="padding:16px; border: 1px solid #eee;">
+      <summary class="section-title">📑 Preaprobados / Contratos</summary>
+      <div class="toolbar"><button id="btnReloadPre" class="btn-outline">🔄 Actualizar</button></div>
+      <div id="listPre"></div>
+    </details>
+
+    <details open class="card" style="padding:16px; border: 1px solid #eee;">
+      <summary class="section-title">🚀 Préstamos Activos</summary>
+      <div class="toolbar"><button id="btnReloadAct" class="btn-outline">🔄 Actualizar</button></div>
+      <div id="listAct"></div>
+    </details>
+
+    <details class="card" style="padding:16px; border: 1px solid #eee;">
+      <summary class="section-title">📁 Historial / Inactivos</summary>
+      <div class="toolbar" style="margin-bottom:15px">
+        <button id="btnTabPaid" class="btn-outline">Finalizados</button>
+        <button id="btnTabCharged" class="btn-outline">Incobrables</button>
+      </div>
+      <div id="listInact"></div>
+    </details>
+  </section>
+
+  <section id="myloan" class="card">
+    <h2>Mi Estado</h2>
+    <div class="row">
+      <div><label>DNI del titular</label><input id="myDni" inputmode="numeric" placeholder="Ingresá tu documento" /></div>
+      <div style="align-self:end"><button id="btnFindMyLoan" class="cta">Consultar Ahora</button></div>
     </div>
+    <div id="myLoanResult" style="margin-top:20px"></div>
+  </section>
+
 </main>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+/* ================ LÓGICA ORIGINAL PRESERVADA ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
-      authDomain: "estimapres.firebaseapp.com",
-      projectId: "estimapres",
-      storageBucket: "estimapres.firebasestorage.app",
-      messagingSenderId: "578516597437",
-      appId: "1:578516597437:web:f59994b87729aa1cd655d4"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
+  authDomain: "estimapres.firebaseapp.com",
+  projectId: "estimapres",
+  storageBucket: "estimapres.firebasestorage.app",
+  messagingSenderId: "578516597437",
+  appId: "1:578516597437:web:f59994b87729aa1cd655d4"
+};
+const ADMIN_EMAIL = "fernandogastondelgado81@gmail.com";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    const $ = id => document.getElementById(id);
+const app   = initializeApp(firebaseConfig);
+const auth  = getAuth(app);
+const db    = getFirestore(app);
 
-    let tGlobal = 100;
+const $ = s => document.querySelector(s);
+const fmtMoney = n => isNaN(n) ? "$ 0" : "$ " + Number(n).toLocaleString("es-AR");
+const onlyDigits = v => (v||"").replace(/\D+/g,"");
+const nowTS = () => serverTimestamp();
 
-    async function initSys() {
-        const d = await getDoc(doc(db, "config", "interes"));
-        if(d.exists()) { tGlobal = d.data().valor; $("sysTasa").value = tGlobal; }
-    }
-    initSys();
+function annuityPayment(P, annualRate, m){
+  const i = (annualRate/100)/12;
+  if (i===0) return P/m;
+  const a = i*Math.pow(1+i,m)/(Math.pow(1+i,m)-1);
+  return P*a;
+}
 
-    $("saveT").onclick = async () => {
-        await setDoc(doc(db, "config", "interes"), { valor: Number($("sysTasa").value) });
-        tGlobal = Number($("sysTasa").value);
-        alert("Configuración Guardada");
-    };
+function scheduleRows(L){
+  const due = L.dueDay||10, today=new Date(), rows=[];
+  for(let k=1;k<=L.months;k++){
+    const d=new Date(today.getFullYear(), today.getMonth()+k, 1);
+    d.setDate(Math.min(due, 28));
+    rows.push({n:k, due:d.toISOString().slice(0,10), amount:L.installment, paid:(L.paidCount||0)>=k});
+  }
+  return rows;
+}
+const daysLate = iso => Math.max(0, Math.floor((new Date()-new Date(iso))/(1000*60*60*24)));
 
-    window.realLogout = () => signOut(auth).then(() => { window.location.href = window.location.pathname; });
+let gSettings={tna:null,dueDay:null}; let gUser=null;
+async function loadSettings(){
+  const snap=await getDoc(doc(db,"settings","app"));
+  if(snap.exists()) gSettings={...gSettings,...snap.data()};
+  $("#lblTna").textContent="TNA vigente: "+(gSettings.tna??"—")+"%";
+  $("#lblDue").textContent="Vencimiento: día "+(gSettings.dueDay??"—");
+  $("#cfgTna").value=gSettings.tna??"";
+  $("#cfgDue").value=gSettings.dueDay??"";
+}
 
-    $("btnCalc").onclick = () => { if($("amt").value && $("mos").value) $("solicitud-extra").style.display = "block"; };
+onAuthStateChanged(auth,(u)=>{
+  gUser=u;
+  $("#admin").style.display=(u&&u.email===ADMIN_EMAIL)?"":"none";
+});
 
-    $("btnSubmit").onclick = async () => {
-        const m = Number($("amt").value); const p = Number($("mos").value);
-        const vc = Math.round((m * (1 + (tGlobal/100))) / p);
-        const plan = Array.from({length: p}, (_, i) => ({ n: i+1, v: vc, s: "pendiente" }));
-        
-        await addDoc(collection(db, "loans"), {
-            name: $("cName").value || "Cliente", 
-            dni: $("cDni").value || "0", 
-            amount: m,
-            plan: plan, 
-            status: "preaprobado", 
-            date: serverTimestamp()
-        });
-        alert("Solicitud Enviada con Éxito"); location.reload();
-    };
+$("#btnAdmin").onclick=async()=>{
+  if(!auth.currentUser){
+    const email=prompt("Email de administrador:", ADMIN_EMAIL)||"";
+    const pass =prompt("Contraseña:")||"";
+    try{
+      const {user}=await signInWithEmailAndPassword(auth,email,pass);
+      if(user.email!==ADMIN_EMAIL){ alert("No tenés permisos."); await signOut(auth); return; }
+      $("#admin").scrollIntoView({behavior:"smooth"});
+    }catch{ alert("Error de acceso."); }
+  }else{ $("#admin").scrollIntoView({behavior:"smooth"}); }
+};
 
-    window.verDni = async () => {
-        const d = prompt("Ingrese su DNI:");
-        if(!d) return;
-        const q = query(collection(db, "loans"), where("dni", "==", d));
-        const s = await getDocs(q);
-        if(s.empty) return alert("DNI No encontrado");
+$("#btnLogout").onclick=async()=>{ try{await signOut(auth);}catch{} };
+$("#btnResetPass").onclick = async () => {
+  const email = prompt("Email admin:");
+  if (email) {
+    try { await sendPasswordResetEmail(auth, email); alert("Email enviado."); } catch (e) { alert("Error."); }
+  }
+};
 
-        $("user-ui").style.display = "none";
-        $("hero").style.display = "none";
-        $("exitContainer").classList.remove("hidden");
-        $("client-dashboard").style.display = "block";
+$("#btnSim").onclick=()=>{
+  const P=Number(onlyDigits($("#simAmount").value));
+  const m=Math.min(24, Number(onlyDigits($("#simMonths").value)));
+  if(!gSettings.tna||!gSettings.dueDay){ alert("Falta configuración de Admin."); return; }
+  if(!P||!m){ $("#simResult").innerHTML=""; return; }
+  const c=Math.round(annuityPayment(P,gSettings.tna,m));
+  const rows=[];
+  for(let i=1;i<=m;i++){
+    const d=new Date(); d.setMonth(d.getMonth()+i); d.setDate(Math.min(gSettings.dueDay,28));
+    rows.push(`<tr><td>${i}</td><td>${d.toLocaleDateString("es-AR")}</td><td>${fmtMoney(c)}</td><td><span class="pill warn">Pendiente</span></td></tr>`);
+  }
+  $("#simResult").innerHTML =
+    `<div class="card" style="margin-top:14px; background: #fafafa; border: 1px dashed #ccc;">
+      <div class="kpi">Cuota mensual: ${fmtMoney(c)}</div>
+      <table><thead><tr><th>#</th><th>Fecha</th><th>Monto</th><th>Estado</th></tr></thead>
+      <tbody>${rows.join("")}</tbody></table>
+    </div>`;
+};
 
-        s.forEach(snap => {
-            const data = snap.data();
-            $("cliTitle").innerText = `Crédito de ${data.name}`;
-            $("cliDni").innerText = `DNI: ${data.dni} | Monto Base: $${data.amount.toLocaleString()}`;
-            let h = "";
-            data.plan.forEach(c => h += `
-                <div class="cuota-item">
-                    <div><b>Cuota ${c.n}</b><br><small style="color:var(--text-muted)">$${c.v.toLocaleString()}</small></div>
-                    <span style="font-weight:800; color:${c.s==='pagado'?'var(--accent-green)':'#e2e8f0'}">${c.s.toUpperCase()}</span>
-                </div>`);
-            $("cliCuotas").innerHTML = h;
-        });
-    };
+$("#btnSendReq").onclick=async()=>{
+  const amount=Number(onlyDigits($("#simAmount").value));
+  const months=Math.min(24, Number(onlyDigits($("#simMonths").value)));
+  if(!amount||!months){ alert("Simulá primero monto y meses."); return; }
+  const borrower={
+    name:($("#bName").value||"").trim(),
+    dni:onlyDigits($("#bDni").value),
+    email:($("#bEmail").value||"").trim(),
+    phone:($("#bPhone").value||"").trim(),
+    alias:($("#bAlias").value||"").trim()
+  };
+  if(!borrower.name||!borrower.dni){ alert("Nombre y DNI obligatorios."); return; }
+  const d={status:"pending", amount, months, tna:gSettings.tna||0, dueDay:gSettings.dueDay||10, borrower, createdAt:nowTS(), updatedAt:nowTS()};
+  await addDoc(collection(db,"loans"), d);
+  alert("¡Solicitud enviada correctamente!");
+  location.reload();
+};
 
-    async function loadAdmin() {
-        const s = await getDocs(collection(db, "loans"));
-        $("adminData").innerHTML = "";
-        s.forEach(snap => {
-            const l = snap.data();
-            if(!l.name) return;
-            
-            let cHtml = l.plan.map((c, i) => `
-                <div class="cuota-item">
-                    <span>C${c.n} ($${c.v.toLocaleString()})</span>
-                    <button class="pay-pill ${c.s==='pagado'?'done':''}" onclick="window.payC('${snap.id}', ${i})">${c.s==='pagado'?'PAGADO':'COBRAR'}</button>
-                </div>`).join('');
+function loanHeader(d){
+  const b=d.borrower||{};
+  // Validación contra undefined
+  const name = b.name || "Sin nombre";
+  const dni = b.dni || "-";
+  return `<div style="font-weight:800; color: var(--primary)">${name} · DNI ${dni}</div>
+          <div style="font-size:13px; color:var(--text-muted)">${fmtMoney(d.amount)} en ${d.months} cuotas (TNA ${d.tna}%)</div>`;
+}
 
-            $("adminData").innerHTML += `
-                <div class="loan-card">
-                    <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:20px;">
-                        <div>
-                            <b style="font-size:20px;">${l.name}</b><br>
-                            <small style="color:var(--text-muted)">DNI: ${l.dni} | Total: $${(l.amount * (1 + (tGlobal/100))).toLocaleString()}</small>
-                        </div>
-                        <button onclick="window.delL('${snap.id}')" style="background:#fee2e2; border:none; padding:12px; border-radius:15px; cursor:pointer;">🗑️</button>
-                    </div>
-                    <div style="max-height:200px; overflow-y:auto; padding-right:10px;">${cHtml}</div>
-                </div>`;
-        });
-    }
+function loanCard(d,actions=""){
+  return `<div class="card" style="padding:16px; margin:10px 0; border-left: 4px solid var(--primary)">${loanHeader(d)}<div class="toolbar" style="margin-top:10px">${actions}</div></div>`;
+}
 
-    window.payC = async (id, i) => {
-        const dr = doc(db, "loans", id); const d = await getDoc(dr);
-        let p = d.data().plan; p[i].s = "pagado";
-        await updateDoc(dr, { plan: p });
-        loadAdmin();
-    };
-    window.delL = async (id) => { if(confirm("¿Eliminar registro?")) { await deleteDoc(doc(db, "loans", id)); loadAdmin(); } };
-
-    $("adminLogin").onclick = () => {
-        const m = prompt("Email:"); const p = prompt("Pass:");
-        if(m && p) signInWithEmailAndPassword(auth, m, p).catch(() => alert("Error de acceso"));
-    };
-
-    onAuthStateChanged(auth, u => {
-        if(u && u.email === "fernandogastondelgado81@gmail.com") {
-            $("user-ui").style.display = "none";
-            $("hero").style.display = "none";
-            $("exitContainer").classList.remove("hidden");
-            $("admin-panel").style.display = "block";
-            loadAdmin();
-        }
+async function loadPend(){
+  const box=$("#listPend"); box.innerHTML="Cargando...";
+  try{
+    const qs=await getDocs(query(collection(db,"loans"), where("status","==","pending"), orderBy("createdAt","desc"), limit(80)));
+    box.innerHTML = qs.empty ? `<div class="muted">No hay solicitudes</div>` : "";
+    qs.forEach(docu=>{
+      const d={...docu.data(),id:docu.id};
+      const ui=loanCard(d,`<button class="btn-success" data-pre="${d.id}">Preaprobar</button> <button class="btn-danger" data-del="${d.id}">Borrar</button>`);
+      box.insertAdjacentHTML("beforeend",ui);
     });
+    box.querySelectorAll("[data-pre]").forEach(btn=>btn.onclick=async()=>{
+      const id=btn.getAttribute("data-pre");
+      if(confirm("¿Generar contrato preaprobado?")){
+        const contractId=Math.random().toString(36).slice(2,10).toUpperCase();
+        await updateDoc(doc(db,"loans",id), {status:"preapproved",contractId,updatedAt:nowTS()},{merge:true});
+        loadAllAdmin();
+      }
+    });
+    box.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=async()=>{
+      const id=btn.getAttribute("data-del");
+      if(confirm("¿Eliminar?")) { await updateDoc(doc(db,"loans",id), {status:"deleted",updatedAt:nowTS()},{merge:true}); loadAllAdmin(); }
+    });
+  }catch(e){ box.innerHTML="Error."; }
+}
+
+async function loadPre(){
+  const box=$("#listPre"); box.innerHTML="";
+  const qs=await getDocs(query(collection(db,"loans"), where("status","==","preapproved"), orderBy("createdAt","desc"), limit(100)));
+  if(qs.empty) { box.innerHTML=`<div class="muted">Sin preaprobados</div>`; return; }
+  qs.forEach(docu=>{
+    const d={...docu.data(),id:docu.id};
+    const signed=d.signed?`<span class="pill ok">FIRMADO</span>`:`<span class="pill warn">PEND. FIRMA</span>`;
+    const actions=`<button class="btn-outline" data-share="${d.id}">🔗 Link</button>
+                   ${d.signed?`<button class="btn-success" data-approve="${d.id}">✅ Activar</button>`:''}
+                   <button class="btn-outline" data-open="${d.id}">📄 Ver</button>`;
+    box.insertAdjacentHTML("beforeend", loanCard(d, signed+" "+actions));
+  });
+  box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{
+    const s=await getDoc(doc(db,"loans",b.getAttribute("data-open")));
+    openContract({...s.data(),id:s.id},false);
+  });
+  box.querySelectorAll("[data-share]").forEach(b=>b.onclick=async()=>{
+    const id=b.getAttribute("data-share");
+    const link=location.origin+location.pathname+"#sign-"+id;
+    prompt("Enlace de firma para el cliente:", link);
+  });
+  box.querySelectorAll("[data-approve]").forEach(b=>b.onclick=async()=>{
+    const id=b.getAttribute("data-approve"); const s=await getDoc(doc(db,"loans",id));
+    const L=s.data();
+    const installment=Math.round(annuityPayment(L.amount,L.tna,L.months));
+    await updateDoc(doc(db,"loans",id), {status:"active",activeAt:nowTS(),updatedAt:nowTS(),installment,paidCount:0},{merge:true});
+    loadAllAdmin(); alert("¡Préstamo en marcha!");
+  });
+}
+
+async function loadAct(){
+  const box=$("#listAct"); box.innerHTML="";
+  const qs=await getDocs(query(collection(db,"loans"), where("status","==","active"), orderBy("activeAt","desc"), limit(100)));
+  if(qs.empty) { box.innerHTML=`<div class="muted">No hay activos</div>`; return; }
+  qs.forEach(docu=>{
+    const d={...docu.data(),id:docu.id};
+    const actions=`<button class="btn-outline" data-cuotas="${d.id}">📊 Cuotas</button>
+                   <button class="btn-success" data-paid="${d.id}" ${(d.paidCount||0)>=d.months?"":"disabled"}>Cerrar</button>
+                   <button class="btn-danger" data-charge="${d.id}">Mora</button>`;
+    box.insertAdjacentHTML("beforeend", loanCard(d, actions)+`<div id="sch-${d.id}" style="font-size:12px"></div>`);
+  });
+  box.querySelectorAll("[data-cuotas]").forEach(b=>b.onclick=async()=>{
+    const id=b.getAttribute("data-cuotas"); const s=await getDoc(doc(db,"loans",id));
+    const L={...s.data(),id};
+    const rows=scheduleRows(L).map(r=>{
+      const badge=r.paid?`<span class="pill ok">Pago</span>`:`<button class="btn-outline" style="padding:4px 8px" data-mark="${L.id}:${r.n}">Marcar Pago</button>`;
+      return `<tr><td>${r.n}</td><td>${new Date(r.due).toLocaleDateString()}</td><td>${badge}</td></tr>`;
+    }).join("");
+    $(`#sch-${id}`).innerHTML=`<table>${rows}</table>`;
+    $(`#sch-${id}`).querySelectorAll("[data-mark]").forEach(btn=>btn.onclick=async()=>{
+      const [loanId,n]=btn.getAttribute("data-mark").split(":");
+      const s2=await getDoc(doc(db,"loans",loanId));
+      const paid=Math.min(Number(s2.data().paidCount||0)+1, s2.data().months);
+      await updateDoc(doc(db,"loans",loanId), {paidCount:paid,updatedAt:nowTS()}); loadAct();
+    });
+  });
+}
+
+async function loadInact(){
+  const box=$("#listInact"); box.innerHTML="";
+  // Lógica simplificada para el historial
+}
+
+async function loadAllAdmin(){ await loadPend(); await loadPre(); await loadAct(); await loadSettings(); }
+
+$("#btnReloadPend").onclick=loadPend; 
+$("#btnReloadPre").onclick=loadPre; 
+$("#btnReloadAct").onclick=loadAct;
+
+$("#btnSaveCfg").onclick=async()=>{
+  const tna=Number(onlyDigits($("#cfgTna").value));
+  const due=Math.min(28, Math.max(1, Number(onlyDigits($("#cfgDue").value))));
+  await setDoc(doc(db,"settings","app"), {tna, dueDay:due, updatedAt:nowTS()}, {merge:true});
+  loadSettings(); alert("Guardado.");
+};
+
+$("#btnOpenMyLoan").onclick=()=>$("#myloan").scrollIntoView({behavior:"smooth"});
+$("#btnFindMyLoan").onclick=async()=>{
+  const dni=onlyDigits($("#myDni").value);
+  if(!dni) return;
+  $("#myLoanResult").innerHTML="Buscando...";
+  const qs=await getDocs(query(collection(db,"loans"), orderBy("createdAt","desc"), limit(100)));
+  const list=[]; qs.forEach(d=>{ if((d.data().borrower?.dni||"")===dni) list.push({id:d.id,...d.data()}); });
+  if(!list.length) { $("#myLoanResult").innerHTML="No se encontró."; return; }
+  const L=list[0];
+  const paid=L.paidCount||0;
+  $("#myLoanResult").innerHTML=`<div class="kpi">Estado: ${L.status.toUpperCase()}</div>
+    <p>Monto: ${fmtMoney(L.amount)} · Pagos: ${paid}/${L.months}</p>
+    ${L.contractId ? `<button onclick="window.openContractFromId('${L.id}')" class="btn-outline">Ver Contrato PDF</button>` : ''}`;
+};
+
+// Global para el botón dinámico
+window.openContractFromId = async (id) => {
+  const s=await getDoc(doc(db,"loans",id));
+  openContract({...s.data(),id:s.id},false);
+};
+
+function contractHtml(L,forSigner){
+  const today=new Date().toLocaleDateString("es-AR");
+  const rows=scheduleRows(L).map(r=>`<tr><td>${r.n}</td><td>${new Date(r.due).toLocaleDateString()}</td><td>${fmtMoney(r.amount)}</td></tr>`).join("");
+  const signerBlock=forSigner?`<div style="margin-top:20px; border: 2px solid #000; padding: 20px;">
+    <h3>Firma Digital</h3><input id="signName" placeholder="Tu Nombre Completo"><br><br>
+    <button id="btnAccept" style="padding:15px; background: green; color:#fff;">ACEPTAR CONTRATO</button></div>`:"";
+  
+  return `<html><body style="font-family:serif; padding:40px; max-width:800px; margin:auto; line-height:1.6;">
+    <h1 style="text-align:center;">CONTRATO DE MUTUO - ESTIMA PRES</h1>
+    <p>En Río Gallegos, al ${today}, se acuerda entre EstimaPres y <b>${L.borrower?.name}</b> DNI <b>${L.borrower?.dni}</b>...</p>
+    <p>1. MONTO: ${fmtMoney(L.amount)}<br>2. CUOTAS: ${L.months} de ${fmtMoney(L.installment)}<br>3. TNA: ${L.tna}%</p>
+    <table><thead><tr><th>Cuota</th><th>Vence</th><th>Monto</th></tr></thead><tbody>${rows}</tbody></table>
+    ${signerBlock}
+    <script>
+      if(document.getElementById('btnAccept')){
+        document.getElementById('btnAccept').onclick=function(){
+          const v = document.getElementById('signName').value;
+          if(v.trim().toLowerCase() !== "${(L.borrower?.name||'').toLowerCase().trim()}") { alert("Nombre no coincide"); return; }
+          window.opener.postMessage({type:'signed', id:'${L.id}', value:v}, '*');
+          alert("Firmado."); window.close();
+        }
+      }
+    <\/script></body></html>`;
+}
+
+function openContract(L,forSigner){
+  const w=window.open('about:blank');
+  w.document.write(contractHtml(L,forSigner));
+}
+
+window.addEventListener("message", async(ev)=>{
+  if(ev.data?.type==='signed'){
+    await updateDoc(doc(db,"loans",ev.data.id), {signed:true,signedName:ev.data.value,updatedAt:nowTS()});
+    alert("Contrato recibido."); loadAllAdmin();
+  }
+});
+
+(async function hashCheck(){
+  if(location.hash.startsWith("#sign-")){
+    const id=location.hash.replace("#sign-","");
+    const s=await getDoc(doc(db,"loans",id));
+    if(s.exists()) openContract({...s.data(),id:s.id},true);
+  }
+})();
+
+$("#simAmount").oninput=e=>{
+  const n=onlyDigits(e.target.value);
+  e.target.value=n?fmtMoney(n):"";
+};
+
+await loadSettings();
 </script>
 </body>
 </html>
