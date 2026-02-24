@@ -3,17 +3,17 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0" />
-    <title id="pageTitle">EstimaPres · Gestión Profesional</title>
+    <title id="pageTitle">Gestión de Créditos</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root { --brand: #0e48c7; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #08215e; --text: #1e293b; }
         body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 50px; }
         .container { max-width: 550px; margin: 0 auto; padding: 15px; }
-        .glass-card { background: white; border-radius: 28px; padding: 25px; margin-bottom: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); position: relative; overflow: hidden; }
+        .glass-card { background: white; border-radius: 28px; padding: 25px; margin-bottom: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); position: relative; }
         h1, h3 { color: var(--brand); font-weight: 800; margin: 0 0 15px 0; letter-spacing: -0.5px; }
         label { display: block; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; font-size: 16px; margin-bottom: 14px; box-sizing: border-box; font-weight: 600; background: #f8fafc; transition: 0.3s; }
+        input, select { width: 100%; padding: 15px; border-radius: 16px; border: 1px solid #e2e8f0; font-size: 16px; margin-bottom: 14px; box-sizing: border-box; font-weight: 600; background: #f8fafc; }
         .btn-main { width: 100%; background: var(--brand); color: white; border: none; padding: 18px; border-radius: 20px; font-weight: 800; cursor: pointer; font-size: 16px; transition: 0.3s; box-shadow: 0 4px 12px rgba(14, 72, 199, 0.3); }
         .btn-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding: 5px; }
         .tab { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 12px 20px; border-radius: 30px; font-size: 12px; cursor: pointer; white-space: nowrap; font-weight: 700; }
@@ -24,13 +24,14 @@
         .stat-box { background: linear-gradient(135deg, var(--brand), #1e40af); color: white; padding: 18px; border-radius: 20px; text-align: center; }
         .hidden { display: none !important; }
         .btn-del { position: absolute; top: 15px; right: 15px; background: #fee2e2; color: var(--danger); border: none; padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 800; cursor: pointer; }
+        .badge-alert { background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 5px; }
     </style>
 </head>
 <body>
 
 <header style="text-align: center; color: white; padding: 40px 0 20px;">
     <h1 id="brandHeader" style="color:white; margin:0; font-size: 34px;">Cargando...</h1>
-    <p id="brandSub" style="opacity: 0.8; font-weight: 600; margin: 5px 0 0 0;">Gestión de Créditos</p>
+    <p id="brandSub" style="opacity: 0.8; font-weight: 600; margin: 5px 0 0 0;">Gestión Profesional de Créditos</p>
 </header>
 
 <div class="container">
@@ -57,8 +58,8 @@
             <h3>📝 Nueva Solicitud</h3>
             <input id="fName" placeholder="Nombre y Apellido">
             <input id="fDni" type="number" placeholder="DNI (Sin puntos)">
-            <input id="fTel" type="tel" placeholder="WhatsApp (Ej: 11...)">
-            <input id="fAlias" placeholder="CBU/CVU o Alias">
+            <input id="fTel" type="tel" placeholder="WhatsApp (Ej: 2966...)">
+            <input id="fAliasClient" placeholder="Tu CBU/Alias para recibir">
             <button id="btnSend" class="btn-main" style="background:var(--success)">Enviar Solicitud</button>
         </div>
 
@@ -75,17 +76,19 @@
 
     <div id="viewAdmin" class="hidden">
         <div class="glass-card" style="background:#f1f5f9; border:none;">
-            <h4 style="margin:0 0 15px 0">⚙️ Configuración Global</h4>
-            <label>Nombre del Negocio</label>
-            <input id="cfgName" placeholder="Ej: MiPrestamoYa">
+            <h4 style="margin:0 0 15px 0">⚙️ Configuración del Negocio</h4>
+            <label>Nombre Comercial</label>
+            <input id="cfgName">
+            <label>Localidad y Provincia</label>
+            <input id="cfgLoc" placeholder="Ej: Río Gallegos, Santa Cruz">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <div><label>Interés Anual %</label><input type="number" id="cfgTasa"></div>
                 <div><label>Día Vencimiento</label><input type="number" id="cfgDia"></div>
             </div>
-            <label>CBU/Alias de Cobro</label>
+            <label>CBU/Alias donde el cliente paga</label>
             <input id="cfgAlias">
-            <button onclick="saveConfig()" class="btn-main" style="padding:12px; background:var(--text)">Guardar y Actualizar Nombre</button>
-            <button onclick="switchToClient()" class="btn-main" style="margin-top:10px; background:#64748b; padding:8px; font-size:12px;">Ver como Cliente</button>
+            <button onclick="saveConfig()" class="btn-main" style="padding:12px; background:var(--text)">Guardar Cambios</button>
+            <button onclick="switchToClient()" class="btn-main" style="margin-top:10px; background:#64748b; padding:8px; font-size:12px;">Modo Cliente</button>
         </div>
 
         <div class="stats-grid">
@@ -95,7 +98,7 @@
 
         <div class="btn-tabs">
             <div class="tab active" onclick="tabAdmin('pending')">Solicitudes</div>
-            <div class="tab" onclick="tabAdmin('waiting_signature')">Por Firmar</div>
+            <div class="tab" onclick="tabAdmin('alerts')" style="color:var(--danger); border:1px solid var(--danger)">⚠️ ALERTAS</div>
             <div class="tab" onclick="tabAdmin('active')">Activos</div>
             <div class="tab" onclick="tabAdmin('bad_debt')">Mora</div>
             <button id="btnLogout" class="tab" style="background:var(--danger); border:none;">Salir</button>
@@ -104,14 +107,14 @@
     </div>
 </div>
 
-<div id="modalFirma" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(8, 33, 94, 0.95); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;">
+<div id="modalFirma" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(8, 33, 94, 0.95); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;">
     <div class="glass-card" style="width:100%; max-width:450px;">
         <h3 style="text-align:center">FIRMA DIGITAL</h3>
-        <div id="resumenContrato" style="font-size:12px; background:#f8fafc; padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid #e2e8f0; line-height: 1.5;"></div>
+        <div id="resumenContrato" style="font-size:12px; background:#f8fafc; padding:15px; border-radius:15px; margin-bottom:15px; border:1px solid #e2e8f0; line-height:1.5;"></div>
         <canvas id="sig-canvas" height="180"></canvas>
         <div style="display:flex; gap:12px; margin-top:20px;">
             <button onclick="closeFirma()" class="btn-main" style="background:#64748b; flex:1">Cancelar</button>
-            <button onclick="confirmarFirma()" class="btn-main" style="flex:1">CONFIRMAR</button>
+            <button onclick="confirmarFirma()" class="btn-main" style="flex:1">ACEPTAR Y FIRMAR</button>
         </div>
     </div>
 </div>
@@ -137,219 +140,213 @@
     const $ = s => document.querySelector(s);
     const fmt = n => "$ " + (Number(n) || 0).toLocaleString("es-AR", {minimumFractionDigits:0});
     
-    let CONFIG = { name: "EstimaF", location: "Argentina", alias: "Cargando...", tasa: 65, dia: 10 };
+    let CONFIG = { name: "EstimaPres", location: "Río Gallegos, SC", alias: "-", tasa: 65, dia: 10 };
+    let curTab = 'pending';
     let currentLoanId = null;
 
+    // --- INICIALIZACIÓN ---
     async function init() {
         const d = await getDoc(doc(db, "settings", "main"));
         if(d.exists()) {
             CONFIG = d.data();
-            updateUIBrand();
-        } else {
-            // Setup inicial si no existe
-            await setDoc(doc(db, "settings", "main"), CONFIG);
-            updateUIBrand();
+            updateUI();
         }
     }
-    
-    function updateUIBrand() {
+
+    function updateUI() {
         $("#brandHeader").innerText = CONFIG.name;
         $("#cfgName").value = CONFIG.name;
+        $("#cfgLoc").value = CONFIG.location;
         $("#cfgAlias").value = CONFIG.alias;
         $("#cfgTasa").value = CONFIG.tasa;
         $("#cfgDia").value = CONFIG.dia;
-        document.title = CONFIG.name + " · Gestión Profesional";
+        document.title = CONFIG.name + " · Gestión";
     }
 
     window.saveConfig = async () => {
         const newData = { 
-            name: $("#cfgName").value || "EstimaF", 
-            location: CONFIG.location, 
-            alias: $("#cfgAlias").value, 
-            tasa: Number($("#cfgTasa").value), 
+            name: $("#cfgName").value, location: $("#cfgLoc").value, 
+            alias: $("#cfgAlias").value, tasa: Number($("#cfgTasa").value), 
             dia: Number($("#cfgDia").value) 
         };
         await setDoc(doc(db, "settings", "main"), newData);
-        alert("Configuración actualizada correctamente.");
         location.reload();
     };
 
-    // --- MODO CLIENTE DESDE ADMIN ---
-    window.switchToClient = () => {
-        $("#viewAdmin").classList.add("hidden");
-        $("#viewClient").classList.remove("hidden");
-    };
+    // --- LÓGICA DE FECHAS ---
+    function getVencimiento(createdAt, cuotaNro, diaVence) {
+        let fecha = createdAt ? new Date(createdAt.seconds * 1000) : new Date();
+        fecha.setMonth(fecha.getMonth() + cuotaNro);
+        fecha.setDate(diaVence);
+        return fecha;
+    }
 
     // --- FORMATEO MONEDA REALTIME ---
     $("#sMonto").addEventListener("input", (e) => {
-        let value = e.target.value.replace(/\D/g, "");
-        if (value) {
-            e.target.value = new Intl.NumberFormat('es-AR', {
-                style: 'currency', currency: 'ARS', minimumFractionDigits: 0
-            }).format(value);
-        }
+        let val = e.target.value.replace(/\D/g, "");
+        if (val) e.target.value = new Intl.NumberFormat('es-AR', {style: 'currency', currency: 'ARS', minimumFractionDigits: 0}).format(val);
     });
 
     $("#btnSim").onclick = () => {
         let raw = $("#sMonto").value.replace(/[^\d]/g, "");
         const m = Number(raw);
-        if(!m) return alert("Ingresa un monto válido");
+        if(!m) return alert("Ingresa un monto");
         const q = Math.round((m * (1 + (CONFIG.tasa/100))) / $("#sCuotas").value);
         $("#resSim").classList.remove("hidden");
         $("#txtCuota").innerText = fmt(q);
     };
 
+    // --- PDF LEGAL DINÁMICO ---
+    window.generarPDF = (datos, tipo = 'contrato') => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const hoy = new Date().toLocaleDateString('es-AR');
+        
+        if (tipo === 'contrato') {
+            doc.setFontSize(16); doc.text("CONTRATO DE MUTUO", 20, 20);
+            doc.setFontSize(10); doc.text(`${CONFIG.location}, ${hoy}`, 20, 30);
+            doc.text(`Deudor: ${datos.name} | DNI: ${datos.dni}`, 20, 45);
+            doc.text(`Monto: ${fmt(datos.amount)} en ${datos.months} cuotas de ${fmt(datos.quota)}`, 20, 55);
+            doc.text(`Vencimiento mensual: Día ${CONFIG.dia}`, 20, 65);
+            doc.text(`Jurisdicción: Tribunales de ${CONFIG.location}`, 20, 75);
+            doc.text(`Alias para pago de cuotas: ${CONFIG.alias}`, 20, 90);
+        } else {
+            doc.setTextColor(200, 0, 0);
+            doc.setFontSize(16); doc.text("INTIMACIÓN EXTRAJUDICIAL", 20, 20);
+            doc.setTextColor(0); doc.setFontSize(10);
+            doc.text(`AL SR/A: ${datos.name} | DNI: ${datos.dni}`, 20, 40);
+            doc.text(`Se le comunica que registra deuda vencida con ${CONFIG.name}.`, 20, 50);
+            doc.text(`Monto adeudado: ${fmt(datos.quota)}`, 20, 58);
+            doc.text(`Evite acciones legales en la jurisdicción de ${CONFIG.location}.`, 20, 68);
+        }
+        doc.save(`${tipo}_${datos.dni}.pdf`);
+    };
+
+    // --- FUNCIONES CLIENTE ---
     $("#btnSend").onclick = async () => {
         let raw = $("#sMonto").value.replace(/[^\d]/g, "");
-        const m = Number(raw);
-        if(!m || !$("#fName").value || !$("#fDni").value) return alert("Por favor complete Nombre, DNI y Monto.");
+        if(!raw || !$("#fName").value) return alert("Completa los datos");
         await addDoc(collection(db, "loans"), {
-            name: $("#fName").value, 
-            dni: $("#fDni").value.toString(), 
-            phone: $("#fTel").value, 
-            alias: $("#fAlias").value,
-            amount: m, 
-            months: Number($("#sCuotas").value), 
-            rate: CONFIG.tasa, 
-            diaVence: CONFIG.dia,
-            quota: Math.round((m * (1 + (CONFIG.tasa/100))) / $("#sCuotas").value),
-            status: "pending", 
-            paidCount: 0, 
-            createdAt: serverTimestamp()
+            name: $("#fName").value, dni: $("#fDni").value.toString(),
+            phone: $("#fTel").value, alias: $("#fAliasClient").value,
+            amount: Number(raw), months: Number($("#sCuotas").value),
+            rate: CONFIG.tasa, quota: Math.round((Number(raw)*(1+(CONFIG.tasa/100)))/$("#sCuotas").value),
+            status: "pending", paidCount: 0, createdAt: serverTimestamp()
         });
-        alert("Solicitud Enviada Exitosamente."); location.reload();
+        alert("Solicitud Enviada"); location.reload();
     };
 
     $("#btnSearch").onclick = async () => {
         const q = query(collection(db, "loans"), where("dni", "==", $("#searchDni").value.toString()));
         const snap = await getDocs(q);
         const res = $("#searchRes"); res.classList.remove("hidden");
-        if(snap.empty) return res.innerHTML = "<small>No se encontraron préstamos para este DNI.</small>";
-        
-        const docSnap = snap.docs[0];
-        const d = docSnap.data(); 
-        const id = docSnap.id;
-        
-        let h = `<div class="loan-card"><b>ESTADO: ${d.status.toUpperCase()}</b><br>${d.name}<br>Monto: ${fmt(d.amount)}<br>Cuota: ${fmt(d.quota)}`;
-        if(d.status === 'waiting_signature') h += `<button class="btn-main" style="background:var(--warning); margin-top:10px;" onclick="window.firmar('${id}')">LEER Y FIRMAR CONTRATO</button>`;
+        if(snap.empty) return res.innerHTML = "No encontrado.";
+        const d = snap.docs[0].data(); const id = snap.docs[0].id;
+        let h = `<div class="loan-card"><b>${d.status.toUpperCase()}</b><br>${d.name}<br>Cuota: ${fmt(d.quota)}<br>
+        <div style="background:#fff; padding:10px; margin:10px 0; border-radius:10px; border:1px dashed var(--brand)">
+        Pagar en Alias: <b>${CONFIG.alias}</b></div>`;
+        if(d.status === 'waiting_signature') h += `<button class="btn-main" onclick="window.firmar('${id}')">FIRMÁ ACÁ</button>`;
+        if(d.status === 'active') h += renderCuotasVista(d, false);
         res.innerHTML = h + `</div>`;
     };
 
-    // --- FIRMA BIOMÉTRICA ---
-    const canvas = $("#sig-canvas");
-    const ctx = canvas.getContext("2d");
-    let drawing = false;
-    
-    function getPos(e) {
-        const rect = canvas.getBoundingClientRect();
-        return {
-            x: (e.clientX || e.touches[0].clientX) - rect.left,
-            y: (e.clientY || e.touches[0].clientY) - rect.top
-        };
+    function renderCuotasVista(d, isAdmin) {
+        let h = `<div style="font-size:11px; margin-top:10px;">`;
+        const hoy = new Date();
+        for(let i=1; i<=d.months; i++) {
+            const fVence = getVencimiento(d.createdAt, i, CONFIG.dia);
+            const p = (d.paidCount || 0) >= i;
+            const vencida = !p && hoy > fVence;
+            h += `<div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee; ${vencida?'color:red':''}">
+            <span>C. ${i} (${fVence.toLocaleDateString()})</span>
+            ${p?'<b>PAGADO</b>':(isAdmin?`<button onclick="window.cobrar('${d.id}',${i})">Cobrar</button>`:'<b>PENDIENTE</b>')}</div>`;
+        }
+        return h + `</div>`;
     }
 
-    canvas.addEventListener("mousedown", (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); });
-    canvas.addEventListener("touchstart", (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); e.preventDefault(); });
-    window.addEventListener("mouseup", () => drawing = false);
-    window.addEventListener("touchend", () => drawing = false);
-    
-    canvas.addEventListener("mousemove", (e) => {
-        if(!drawing) return;
-        const p = getPos(e);
-        ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#08215e";
-        ctx.lineTo(p.x, p.y); ctx.stroke();
-    });
-    
-    canvas.addEventListener("touchmove", (e) => {
-        if(!drawing) return;
-        const p = getPos(e);
-        ctx.lineWidth = 2; ctx.lineTo(p.x, p.y); ctx.stroke();
-        e.preventDefault();
-    });
-
-    window.firmar = async (id) => { 
-        currentLoanId = id; 
-        const s = await getDoc(doc(db, "loans", id));
-        const d = s.data();
-        $("#resumenContrato").innerHTML = `<b>CONTRATO DE ADHESIÓN:</b> Yo ${d.name}, DNI ${d.dni}, acepto el préstamo de ${fmt(d.amount)} a devolver en ${d.months} cuotas de ${fmt(d.quota)}. El vencimiento opera el día ${CONFIG.dia} de cada mes.`;
-        $("#modalFirma").classList.remove("hidden"); 
-    };
-    
-    window.closeFirma = () => { ctx.clearRect(0,0,canvas.width,canvas.height); $("#modalFirma").classList.add("hidden"); };
-    
-    window.confirmarFirma = async () => {
-        await updateDoc(doc(db, "loans", currentLoanId), { status: "active", fechaFirma: new Date().toLocaleDateString() });
-        alert("¡Crédito Confirmado!");
-        location.reload();
+    // --- FUNCIONES ADMIN ---
+    window.tabAdmin = (t) => {
+        document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+        curTab = t;
+        if(t === 'alerts') loadAlerts(); else loadAdmin();
     };
 
-    // --- PANEL ADMIN ---
-    let curTab = 'pending';
-    window.tabAdmin = (t) => { 
-        document.querySelectorAll('.tab').forEach(e => e.classList.remove('active')); 
-        event.target.classList.add('active'); 
-        curTab = t; 
-        loadAdmin(); 
-    };
+    async function loadAlerts() {
+        const snap = await getDocs(collection(db, "loans"));
+        const cont = $("#adminContent"); cont.innerHTML = "<h3>⚠️ Pagos Vencidos</h3>";
+        const hoy = new Date();
+        snap.forEach(docu => {
+            const d = {id: docu.id, ...docu.data()};
+            if(d.status === 'finished') return;
+            for(let i=1; i<=d.months; i++){
+                const fV = getVencimiento(d.createdAt, i, CONFIG.dia);
+                if(hoy > fV && (d.paidCount||0) < i){
+                    const c = document.createElement("div"); c.className = "loan-card"; c.style.borderLeft = "5px solid red";
+                    c.innerHTML = `<b>${d.name}</b> debe Cuota ${i}<br><small>Venció el ${fV.toLocaleDateString()}</small><br>
+                    <button style="font-size:10px;" onclick='window.generarPDF(${JSON.stringify(d)}, "mora")'>DESCARGAR INTIMACIÓN</button>`;
+                    cont.appendChild(c); break;
+                }
+            }
+        });
+    }
 
     async function loadAdmin() {
         const snap = await getDocs(query(collection(db, "loans"), orderBy("createdAt", "desc")));
         const cont = $("#adminContent"); cont.innerHTML = "";
-        let tCalle = 0; let tMora = 0;
-        
+        let tC = 0; let tM = 0;
         snap.forEach(docu => {
             const d = { id: docu.id, ...docu.data() };
-            const saldoPendiente = (d.quota * (d.months - (d.paidCount || 0)));
-            
-            if(d.status === 'active') tCalle += saldoPendiente;
-            if(d.status === 'bad_debt') tMora += saldoPendiente;
-            
+            if(d.status === 'active') tC += (d.quota * (d.months - (d.paidCount||0)));
+            if(d.status === 'bad_debt') tM += (d.quota * (d.months - (d.paidCount||0)));
             if(d.status !== curTab) return;
-            
             const card = document.createElement("div"); card.className = "loan-card";
             card.innerHTML = `<button class="btn-del" onclick="window.borrar('${d.id}')">BORRAR</button>
-                <b>${d.name || 'Sin Nombre'}</b><br>
-                <small>DNI: ${d.dni || 'N/A'} | Tel: ${d.phone || 'S/D'}</small><br>
-                <small>Monto: ${fmt(d.amount)} | Cuota: ${fmt(d.quota)}</small>
-                <div style="margin-top:10px;">
-                    ${d.status==='pending' ? `<button class="btn-main" style="padding:8px; font-size:12px;" onclick="window.toFirma('${d.id}')">APROBAR PARA FIRMA</button>` : renderCuotasAdmin(d)}
-                </div>`;
+            <b>${d.name}</b><br><small>DNI: ${d.dni} | Tel: ${d.phone}</small><br>
+            <div style="background:#e2e8f0; padding:5px; border-radius:8px; font-size:10px;">DEPOSITAR EN: ${d.alias || 'S/D'}</div>
+            <div style="display:flex; gap:5px; margin-top:8px;">
+                <button onclick='window.generarPDF(${JSON.stringify(d)}, "contrato")'>📜 PDF</button>
+                ${d.status==='pending'?`<button onclick="window.toFirma('${d.id}')">APROBAR</button>`:''}
+                ${d.status==='active'?`<button style="color:red" onclick="window.toMora('${d.id}')">A MORA</button>`:''}
+            </div>
+            ${d.status!=='pending'?renderCuotasVista(d, true):''}`;
             cont.appendChild(card);
         });
-        $("#statTotal").innerText = fmt(tCalle); $("#statMora").innerText = fmt(tMora);
+        $("#statTotal").innerText = fmt(tC); $("#statMora").innerText = fmt(tM);
     }
 
-    function renderCuotasAdmin(d) {
-        if(d.status === 'waiting_signature') return `<center><small style="color:var(--warning)">Esperando firma del cliente...</small></center>`;
-        let h = `<div style="font-size:11px; margin-top:10px; border-top:1px solid #ccc; padding-top:5px;">`;
-        for(let i=1; i<=d.months; i++) {
-            const p = (d.paidCount || 0) >= i;
-            h += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
-                    <span>Cuota ${i} (${fmt(d.quota)})</span>
-                    ${p ? '<b style="color:var(--success)">PAGADO</b>' : `<button onclick="window.cobrar('${d.id}',${i})" style="font-size:9px; padding:2px 5px;">Cobrar</button>`}
-                  </div>`;
-        }
-        if(d.status === 'active') h += `<button onclick="window.toMora('${d.id}')" style="width:100%; margin-top:8px; font-size:10px; background:var(--danger); color:white; border:none; padding:5px; border-radius:5px;">PASAR A MORA</button>`;
-        return h + `</div>`;
-    }
-
-    window.borrar = async id => { if(confirm("¿Eliminar registro definitivamente?")) { await deleteDoc(doc(db,"loans",id)); loadAdmin(); } };
+    // --- ACCIONES ADMIN ---
+    window.borrar = async id => { if(confirm("¿Eliminar?")) { await deleteDoc(doc(db,"loans",id)); loadAdmin(); }};
     window.toFirma = async id => { await updateDoc(doc(db,"loans",id), {status:"waiting_signature"}); loadAdmin(); };
     window.toMora = async id => { await updateDoc(doc(db,"loans",id), {status:"bad_debt"}); loadAdmin(); };
     window.cobrar = async (id, n) => { 
-        const s = await getDoc(doc(db, "loans", id));
-        const finalStatus = (n >= s.data().months) ? "finished" : s.data().status;
-        await updateDoc(doc(db, "loans", id), {paidCount: n, status: finalStatus}); 
-        loadAdmin(); 
+        const s = await getDoc(doc(db,"loans",id));
+        const fin = (n >= s.data().months) ? 'finished' : s.data().status;
+        await updateDoc(doc(db,"loans",id), {paidCount: n, status: fin}); loadAdmin(); 
     };
 
-    // --- AUTH ---
-    $("#btnStaff").onclick = () => {
-        const p = prompt("Clave de Administrador:");
-        if(p) signInWithEmailAndPassword(auth, "fernandogastondelgado81@gmail.com", p).catch(() => alert("Clave Incorrecta"));
+    // --- FIRMA DIGITAL ---
+    const canvas = $("#sig-canvas"); const ctx = canvas.getContext("2d"); let draw = false;
+    const getP = e => { const r = canvas.getBoundingClientRect(); return {x: (e.clientX||e.touches[0].clientX)-r.left, y: (e.clientY||e.touches[0].clientY)-r.top}};
+    canvas.onmousedown = canvas.ontouchstart = (e) => { draw = true; ctx.beginPath(); const p = getP(e); ctx.moveTo(p.x, p.y); if(e.touches) e.preventDefault(); };
+    window.onmouseup = window.ontouchend = () => draw = false;
+    canvas.onmousemove = canvas.ontouchmove = (e) => { if(!draw) return; const p = getP(e); ctx.lineTo(p.x, p.y); ctx.stroke(); if(e.touches) e.preventDefault(); };
+    
+    window.firmar = async id => { 
+        currentLoanId = id; const s = await getDoc(doc(db,"loans",id));
+        $("#resumenContrato").innerHTML = `<b>ACEPTACIÓN:</b> Yo ${s.data().name}, DNI ${s.data().dni}, acepto ${s.data().months} cuotas de ${fmt(s.data().quota)}. Localidad: ${CONFIG.location}.`;
+        $("#modalFirma").classList.remove("hidden");
     };
+    window.closeFirma = () => { ctx.clearRect(0,0,canvas.width,canvas.height); $("#modalFirma").classList.add("hidden"); };
+    window.confirmarFirma = async () => { 
+        await updateDoc(doc(db,"loans",currentLoanId), {status:"active", firma: canvas.toDataURL()}); 
+        location.reload(); 
+    };
+
+    // --- LOGIN ---
+    $("#btnStaff").onclick = () => { const p = prompt("Clave Admin:"); if(p) signInWithEmailAndPassword(auth, "fernandogastondelgado81@gmail.com", p).catch(()=>alert("Error")); };
     onAuthStateChanged(auth, u => { if(u){ $("#viewClient").classList.add("hidden"); $("#viewAdmin").classList.remove("hidden"); loadAdmin(); } });
     $("#btnLogout").onclick = () => signOut(auth).then(()=>location.reload());
+    window.switchToClient = () => { $("#viewAdmin").classList.add("hidden"); $("#viewClient").classList.remove("hidden"); };
 
     init();
 </script>
