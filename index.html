@@ -7,9 +7,7 @@
 <link rel="icon" href="assets/ping.png" />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ============================================================
-   TOKENS
-============================================================ */
+/* ============================================================ TOKENS */
 :root {
   --navy:       #050d1f;
   --navy-mid:   #0b1a35;
@@ -29,19 +27,13 @@
   --warn-dim:   rgba(245,158,11,0.12);
   --danger:     #ef4444;
   --danger-dim: rgba(239,68,68,0.12);
-  --gold:       #f4c542;
   --radius-card: 20px;
   --radius-input: 12px;
   --shadow-card: 0 8px 32px rgba(5,13,31,0.6), 0 1px 0 rgba(96,165,250,0.08) inset;
   --shadow-btn:  0 4px 20px rgba(26,86,219,0.45);
 }
-
-/* ============================================================
-   RESET & BASE
-============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-
 body {
   font-family: 'Sora', sans-serif;
   background: var(--navy);
@@ -49,685 +41,215 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
-
-/* Malla de fondo */
 body::before {
   content: '';
-  position: fixed;
-  inset: 0;
+  position: fixed; inset: 0;
   background:
     radial-gradient(ellipse 80% 60% at 70% -10%, rgba(26,86,219,0.18) 0%, transparent 65%),
     radial-gradient(ellipse 50% 40% at 0% 100%, rgba(26,86,219,0.12) 0%, transparent 60%),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 39px,
-      rgba(96,165,250,0.03) 40px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 39px,
-      rgba(96,165,250,0.03) 40px
-    );
-  pointer-events: none;
-  z-index: 0;
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(96,165,250,0.03) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(96,165,250,0.03) 40px);
+  pointer-events: none; z-index: 0;
 }
 
-/* ============================================================
-   TOPBAR
-============================================================ */
+/* TOPBAR */
 .topbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgba(5,13,31,0.82);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(5,13,31,0.85);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--border);
 }
-
 .topbar-inner {
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 0 28px;
-  height: 68px;
-  display: flex;
-  align-items: center;
-  gap: 32px;
+  max-width: 1160px; margin: 0 auto; padding: 0 28px;
+  height: 68px; display: flex; align-items: center; gap: 32px;
 }
-
-/* Logo */
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
 .logo-mark {
-  width: 38px;
-  height: 38px;
+  width: 38px; height: 38px;
   background: linear-gradient(135deg, var(--blue-light), var(--sky));
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: #fff;
   box-shadow: 0 0 18px rgba(47,110,245,0.5);
-  letter-spacing: -1px;
 }
-
-.logo-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--white);
-  letter-spacing: -0.4px;
-}
+.logo-name { font-size: 18px; font-weight: 700; color: var(--white); letter-spacing: -0.4px; }
 .logo-name span { color: var(--sky); }
-
-/* Nav pills */
-.topbar-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-}
-
+.topbar-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
 .nav-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--muted);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 10px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .nav-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
 .nav-btn:hover { background: rgba(96,165,250,0.08); border-color: var(--border); color: var(--white); }
-.nav-btn.active { background: rgba(26,86,219,0.2); border-color: var(--border-hi); color: var(--sky); }
 .nav-btn.danger { color: #f87171; }
 .nav-btn.danger:hover { background: var(--danger-dim); border-color: rgba(239,68,68,0.3); }
 
-/* ============================================================
-   HERO SECTION
-============================================================ */
+/* HERO */
 .hero-section {
-  position: relative;
-  z-index: 1;
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 64px 28px 48px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 40px;
-  align-items: center;
+  position: relative; z-index: 1;
+  max-width: 1160px; margin: 0 auto; padding: 64px 28px 48px;
+  display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center;
 }
-
 .hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  background: rgba(26,86,219,0.18);
-  border: 1px solid var(--border-hi);
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--sky);
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  margin-bottom: 20px;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 12px; background: rgba(26,86,219,0.18);
+  border: 1px solid var(--border-hi); border-radius: 999px;
+  font-size: 11px; font-weight: 600; color: var(--sky);
+  letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 20px;
 }
-.hero-eyebrow::before {
-  content: '';
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--sky);
-  box-shadow: 0 0 8px var(--sky);
-}
+.hero-eyebrow::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--sky); box-shadow:0 0 8px var(--sky); }
+.hero-title { font-size: clamp(32px,4vw,52px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; color:var(--white); margin-bottom:16px; }
+.hero-title em { font-style:normal; background:linear-gradient(90deg,var(--sky),var(--blue-glow)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.hero-sub { font-size:16px; color:var(--muted); line-height:1.6; max-width:480px; }
+.hero-badges { display:flex; gap:12px; margin-top:32px; flex-wrap:wrap; }
+.badge { display:flex; align-items:center; gap:7px; padding:9px 14px; background:var(--navy-card); border:1px solid var(--border); border-radius:12px; font-size:12px; font-weight:600; color:var(--ice); }
+.badge svg { width:14px; height:14px; stroke:var(--sky); fill:none; stroke-width:2; }
+.hero-kpis { display:grid; gap:12px; }
+.kpi-box { background:var(--navy-card); border:1px solid var(--border); border-radius:16px; padding:20px 24px; text-align:right; min-width:180px; }
+.kpi-box .kpi-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:600; }
+.kpi-box .kpi-value { font-size:28px; font-weight:800; color:var(--white); letter-spacing:-1px; margin-top:4px; font-family:'DM Mono',monospace; }
+.kpi-box .kpi-value span { font-size:14px; color:var(--sky); margin-left:4px; font-family:'Sora',sans-serif; font-weight:600; }
 
-.hero-title {
-  font-size: clamp(36px, 4vw, 54px);
-  font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -1.5px;
-  color: var(--white);
-  margin-bottom: 16px;
-}
-.hero-title em {
-  font-style: normal;
-  background: linear-gradient(90deg, var(--sky), var(--blue-glow));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.hero-sub {
-  font-size: 16px;
-  color: var(--muted);
-  line-height: 1.6;
-  max-width: 480px;
-  font-weight: 400;
-}
-
-.hero-badges {
-  display: flex;
-  gap: 12px;
-  margin-top: 32px;
-}
-
-.badge {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 14px;
-  background: var(--navy-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--ice);
-}
-.badge svg { width: 14px; height: 14px; stroke: var(--sky); fill: none; stroke-width: 2; }
-
-.hero-kpis {
-  display: grid;
-  gap: 12px;
-}
-
-.kpi-box {
-  background: var(--navy-card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px 24px;
-  text-align: right;
-  min-width: 180px;
-}
-.kpi-box .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-.kpi-box .kpi-value { font-size: 28px; font-weight: 800; color: var(--white); letter-spacing: -1px; margin-top: 4px; font-family: 'DM Mono', monospace; }
-.kpi-box .kpi-value span { font-size: 14px; color: var(--sky); margin-left: 4px; font-family: 'Sora', sans-serif; font-weight: 600; }
-
-/* ============================================================
-   LAYOUT PRINCIPAL
-============================================================ */
-.main-layout {
-  position: relative;
-  z-index: 1;
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 0 28px 80px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
+/* LAYOUT */
+.main-layout { position:relative; z-index:1; max-width:1160px; margin:0 auto; padding:0 28px 80px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
 .full-width { grid-column: 1 / -1; }
 
-/* ============================================================
-   CARD BASE
-============================================================ */
-.card {
-  background: var(--navy-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  padding: 28px;
-  box-shadow: var(--shadow-card);
-  position: relative;
-  overflow: hidden;
-}
+/* CARD */
+.card { background:var(--navy-card); border:1px solid var(--border); border-radius:var(--radius-card); padding:28px; box-shadow:var(--shadow-card); position:relative; overflow:hidden; animation:fadeUp 0.4s ease both; }
+.card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(96,165,250,0.4),transparent); }
+.card:nth-child(1){animation-delay:.05s}.card:nth-child(2){animation-delay:.1s}.card:nth-child(3){animation-delay:.15s}.card:nth-child(4){animation-delay:.2s}
+.card-title { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1.4px; color:var(--sky); margin-bottom:22px; display:flex; align-items:center; gap:8px; }
+.card-title svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; }
+.section-divider { height:1px; background:var(--border); margin:20px 0; }
 
-/* Destellos decorativos por card */
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(96,165,250,0.4), transparent);
-}
+/* INPUTS */
+.field { margin-bottom:18px; }
+.field label { display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:7px; }
+.field input { width:100%; background:rgba(5,13,31,0.7); border:1px solid var(--border); border-radius:var(--radius-input); padding:13px 16px; color:var(--white); font-family:'Sora',sans-serif; font-size:15px; font-weight:500; transition:border-color 0.2s,box-shadow 0.2s; outline:none; }
+.field input::placeholder { color:rgba(122,156,198,0.5); font-weight:400; }
+.field input:focus { border-color:var(--blue-glow); box-shadow:0 0 0 3px rgba(59,124,246,0.15); }
+.field input.mono { font-family:'DM Mono',monospace; font-size:17px; }
+.input-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.sim-meta { display:flex; gap:20px; padding:10px 14px; background:rgba(5,13,31,0.5); border:1px solid var(--border); border-radius:10px; margin-bottom:20px; }
+.sim-meta-item { font-size:12px; font-weight:600; color:var(--muted); }
+.sim-meta-item strong { color:var(--sky); font-family:'DM Mono',monospace; }
 
-.card-title {
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.4px;
-  color: var(--sky);
-  margin-bottom: 22px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.card-title svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+/* BUTTONS */
+.btn-primary { width:100%; padding:14px 20px; background:linear-gradient(135deg,var(--blue-light),var(--blue)); border:none; border-radius:var(--radius-input); color:#fff; font-family:'Sora',sans-serif; font-size:14px; font-weight:700; cursor:pointer; box-shadow:var(--shadow-btn); transition:transform 0.15s,box-shadow 0.15s; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 28px rgba(26,86,219,0.55); }
+.btn-primary svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2.5; }
+.btn-secondary { padding:10px 16px; background:transparent; border:1px solid var(--border-hi); border-radius:10px; color:var(--sky); font-family:'Sora',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; gap:6px; }
+.btn-secondary:hover { background:rgba(96,165,250,0.08); }
+.btn-success { padding:10px 16px; background:var(--ok-dim); border:1px solid rgba(16,185,129,0.3); border-radius:10px; color:var(--ok); font-family:'Sora',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.btn-success:hover { background:rgba(16,185,129,0.2); }
+.btn-success:disabled { opacity:0.35; cursor:not-allowed; }
+.btn-danger { padding:10px 16px; background:var(--danger-dim); border:1px solid rgba(239,68,68,0.25); border-radius:10px; color:#f87171; font-family:'Sora',sans-serif; font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.btn-danger:hover { background:rgba(239,68,68,0.2); }
+.btn-outline { padding:10px 16px; background:transparent; border:1px solid var(--border); border-radius:10px; color:var(--ice); font-family:'Sora',sans-serif; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.btn-outline:hover { border-color:var(--border-hi); color:var(--white); }
+.toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
 
-.section-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 20px 0;
-}
+/* PILLS */
+.pill { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+.pill::before { content:''; width:5px; height:5px; border-radius:50%; }
+.pill.ok   { background:var(--ok-dim);     color:#34d399; border:1px solid rgba(16,185,129,0.25); }
+.pill.ok::before   { background:var(--ok); }
+.pill.warn { background:var(--warn-dim);   color:#fbbf24; border:1px solid rgba(245,158,11,0.25); }
+.pill.warn::before { background:var(--warn); }
+.pill.bad  { background:var(--danger-dim); color:#f87171; border:1px solid rgba(239,68,68,0.25); }
+.pill.bad::before  { background:var(--danger); }
 
-/* ============================================================
-   INPUTS
-============================================================ */
-.field { margin-bottom: 18px; }
-.field:last-of-type { margin-bottom: 0; }
+/* SCHEDULE */
+.schedule-wrap { border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-top:16px; }
+.schedule-header { display:grid; grid-template-columns:40px 1fr 110px 130px; gap:8px; padding:10px 16px; background:rgba(5,13,31,0.6); border-bottom:1px solid var(--border); }
+.schedule-header span { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); }
+.schedule-row { display:grid; grid-template-columns:40px 1fr 110px 130px; gap:8px; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(96,165,250,0.06); transition:background 0.15s; }
+.schedule-row:last-child { border-bottom:none; }
+.schedule-row:hover { background:rgba(96,165,250,0.04); }
+.schedule-row .num    { font-family:'DM Mono',monospace; font-size:13px; color:var(--muted); }
+.schedule-row .date   { font-size:13px; color:var(--ice); font-weight:500; }
+.schedule-row .amount { font-family:'DM Mono',monospace; font-size:14px; color:var(--white); font-weight:600; }
 
-.field label {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 7px;
-}
+/* SIM RESULT */
+.sim-result-box { margin-top:20px; padding:20px; background:rgba(5,13,31,0.5); border:1px solid var(--border-hi); border-radius:16px; }
+.sim-cuota-display { display:flex; align-items:baseline; gap:10px; margin-bottom:16px; }
+.sim-cuota-display .label { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:1px; }
+.sim-cuota-display .value { font-family:'DM Mono',monospace; font-size:32px; font-weight:500; color:var(--sky); letter-spacing:-1px; }
 
-.field input {
-  width: 100%;
-  background: rgba(5,13,31,0.7);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-input);
-  padding: 13px 16px;
-  color: var(--white);
-  font-family: 'Sora', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  outline: none;
-}
-.field input::placeholder { color: rgba(122,156,198,0.5); font-weight: 400; }
-.field input:focus {
-  border-color: var(--blue-glow);
-  box-shadow: 0 0 0 3px rgba(59,124,246,0.15), 0 0 18px rgba(59,124,246,0.08);
-}
-.field input.mono { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 500; }
+/* LOAN ITEM */
+.loan-item { padding:16px; background:rgba(5,13,31,0.5); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; transition:border-color 0.2s; }
+.loan-item:hover { border-color:var(--border-hi); }
+.loan-item:last-child { margin-bottom:0; }
+.loan-name { font-size:15px; font-weight:700; color:var(--white); margin-bottom:4px; }
+.loan-meta { font-size:12px; color:var(--muted); font-weight:500; display:flex; flex-wrap:wrap; gap:10px; }
+.loan-meta strong { color:var(--ice); }
 
-.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* DETAILS */
+details { margin-bottom:16px; }
+details summary { cursor:pointer; padding:16px 20px; background:rgba(5,13,31,0.4); border:1px solid var(--border); border-radius:14px; font-size:13px; font-weight:700; color:var(--ice); list-style:none; display:flex; align-items:center; justify-content:space-between; transition:all 0.2s; user-select:none; }
+details summary::-webkit-details-marker { display:none; }
+details summary::after { content:''; width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(45deg); transition:transform 0.2s; flex-shrink:0; }
+details[open] summary { background:rgba(26,86,219,0.1); border-color:var(--border-hi); border-radius:14px 14px 0 0; color:var(--sky); }
+details[open] summary::after { transform:rotate(-135deg); }
+.details-body { padding:20px; background:rgba(5,13,31,0.3); border:1px solid var(--border); border-top:none; border-radius:0 0 14px 14px; }
 
-/* Inline info row */
-.sim-meta {
-  display: flex;
-  gap: 20px;
-  padding: 10px 14px;
-  background: rgba(5,13,31,0.5);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-.sim-meta-item { font-size: 12px; font-weight: 600; color: var(--muted); }
-.sim-meta-item strong { color: var(--sky); font-family: 'DM Mono', monospace; }
+/* MY LOAN */
+.myloan-status { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; background:rgba(26,86,219,0.08); border:1px solid var(--border-hi); border-radius:14px; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+.myloan-status-left .name { font-size:16px; font-weight:800; color:var(--white); margin-bottom:4px; }
+.myloan-status-left .meta { font-size:13px; color:var(--muted); }
+.progress-bar-wrap { height:6px; background:rgba(96,165,250,0.12); border-radius:999px; overflow:hidden; margin-top:12px; }
+.progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--blue),var(--sky)); border-radius:999px; transition:width 0.6s ease; }
 
-/* ============================================================
-   BOTONES
-============================================================ */
-.btn-primary {
-  width: 100%;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, var(--blue-light), var(--blue));
-  border: none;
-  border-radius: var(--radius-input);
-  color: #fff;
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  box-shadow: var(--shadow-btn);
-  transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(26,86,219,0.55); }
-.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-.btn-primary svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+/* MODAL FIRMA */
+.modal-overlay { display:none; position:fixed; inset:0; z-index:200; background:rgba(5,13,31,0.92); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px; }
+.modal-overlay.open { display:flex; }
+.modal-box { background:var(--navy-card); border:1px solid var(--border-hi); border-radius:24px; padding:28px; width:100%; max-width:480px; box-shadow:0 24px 60px rgba(5,13,31,0.8); }
+.modal-title { font-size:18px; font-weight:800; color:var(--white); margin-bottom:6px; }
+.modal-sub { font-size:13px; color:var(--muted); margin-bottom:20px; line-height:1.5; }
+.sig-canvas-wrap { border:2px dashed var(--border-hi); border-radius:16px; overflow:hidden; background:rgba(5,13,31,0.6); touch-action:none; }
+#sigCanvas { display:block; width:100%; height:180px; cursor:crosshair; }
+.sig-actions { display:flex; gap:10px; margin-top:14px; }
+.modal-note { font-size:11px; color:var(--muted); margin-top:14px; line-height:1.5; padding:10px 12px; background:rgba(26,86,219,0.08); border-radius:10px; border-left:3px solid var(--border-hi); }
 
-.btn-secondary {
-  padding: 10px 16px;
-  background: transparent;
-  border: 1px solid var(--border-hi);
-  border-radius: 10px;
-  color: var(--sky);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.btn-secondary:hover { background: rgba(96,165,250,0.08); }
-.btn-secondary svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
+/* EMPTY */
+.empty { padding:32px 20px; text-align:center; color:var(--muted); font-size:13px; font-weight:500; }
 
-.btn-success {
-  padding: 10px 16px;
-  background: var(--ok-dim);
-  border: 1px solid rgba(16,185,129,0.3);
-  border-radius: 10px;
-  color: var(--ok);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-success:hover { background: rgba(16,185,129,0.2); }
-.btn-success:disabled { opacity: 0.35; cursor: not-allowed; }
+/* ANIMATIONS */
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 
-.btn-danger {
-  padding: 10px 16px;
-  background: var(--danger-dim);
-  border: 1px solid rgba(239,68,68,0.25);
-  border-radius: 10px;
-  color: #f87171;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-danger:hover { background: rgba(239,68,68,0.2); }
+/* SCROLLBAR */
+::-webkit-scrollbar { width:6px; background:var(--navy); }
+::-webkit-scrollbar-thumb { background:rgba(96,165,250,0.2); border-radius:999px; }
 
-.btn-outline {
-  padding: 10px 16px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--ice);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+/* RESPONSIVE */
+@media (max-width:900px) {
+  .main-layout { grid-template-columns:1fr; }
+  .hero-section { grid-template-columns:1fr; }
+  .hero-kpis { grid-template-columns:1fr 1fr; }
+  .topbar-inner,.hero-section,.main-layout { padding-left:16px; padding-right:16px; }
 }
-.btn-outline:hover { border-color: var(--border-hi); color: var(--white); }
-
-.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-
-/* ============================================================
-   PILLS / BADGES
-============================================================ */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-.pill::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
-.pill.ok { background: var(--ok-dim); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
-.pill.ok::before { background: var(--ok); }
-.pill.warn { background: var(--warn-dim); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
-.pill.warn::before { background: var(--warn); }
-.pill.bad { background: var(--danger-dim); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-.pill.bad::before { background: var(--danger); }
-
-/* ============================================================
-   TABLA DE CUOTAS
-============================================================ */
-.schedule-wrap {
-  margin-top: 20px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.schedule-header {
-  display: grid;
-  grid-template-columns: 48px 1fr 1fr 130px;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(5,13,31,0.6);
-  border-bottom: 1px solid var(--border);
-}
-.schedule-header span {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  color: var(--muted);
-}
-
-.schedule-row {
-  display: grid;
-  grid-template-columns: 48px 1fr 1fr 130px;
-  gap: 8px;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(96,165,250,0.06);
-  transition: background 0.15s;
-}
-.schedule-row:last-child { border-bottom: none; }
-.schedule-row:hover { background: rgba(96,165,250,0.04); }
-
-.schedule-row .num {
-  font-family: 'DM Mono', monospace;
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 500;
-}
-.schedule-row .date { font-size: 13px; color: var(--ice); font-weight: 500; }
-.schedule-row .amount {
-  font-family: 'DM Mono', monospace;
-  font-size: 14px;
-  color: var(--white);
-  font-weight: 600;
-}
-
-/* ============================================================
-   SIM RESULT BOX
-============================================================ */
-.sim-result-box {
-  margin-top: 20px;
-  padding: 20px;
-  background: rgba(5,13,31,0.5);
-  border: 1px solid var(--border-hi);
-  border-radius: 16px;
-}
-
-.sim-cuota-display {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.sim-cuota-display .label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-.sim-cuota-display .value {
-  font-family: 'DM Mono', monospace;
-  font-size: 32px;
-  font-weight: 500;
-  color: var(--sky);
-  letter-spacing: -1px;
-}
-
-/* ============================================================
-   LOAN CARD (admin)
-============================================================ */
-.loan-item {
-  padding: 16px;
-  background: rgba(5,13,31,0.5);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 10px;
-  transition: border-color 0.2s;
-}
-.loan-item:hover { border-color: var(--border-hi); }
-.loan-item:last-child { margin-bottom: 0; }
-
-.loan-name { font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 4px; }
-.loan-meta { font-size: 12px; color: var(--muted); font-weight: 500; display: flex; flex-wrap: wrap; gap: 10px; }
-.loan-meta strong { color: var(--ice); }
-
-/* ============================================================
-   DETAILS / ACCORDION
-============================================================ */
-details { margin-bottom: 16px; }
-details summary {
-  cursor: pointer;
-  padding: 16px 20px;
-  background: rgba(5,13,31,0.4);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ice);
-  letter-spacing: 0.3px;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: background 0.2s, border-color 0.2s;
-  user-select: none;
-}
-details summary::-webkit-details-marker { display: none; }
-details summary::after {
-  content: '';
-  width: 8px; height: 8px;
-  border-right: 2px solid var(--muted);
-  border-bottom: 2px solid var(--muted);
-  transform: rotate(45deg);
-  transition: transform 0.2s;
-  flex-shrink: 0;
-}
-details[open] summary {
-  background: rgba(26,86,219,0.1);
-  border-color: var(--border-hi);
-  border-radius: 14px 14px 0 0;
-  color: var(--sky);
-}
-details[open] summary::after { transform: rotate(-135deg); }
-
-.details-body {
-  padding: 20px;
-  background: rgba(5,13,31,0.3);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 14px 14px;
-}
-
-/* ============================================================
-   MI PRÉSTAMO — resultado
-============================================================ */
-.myloan-result {
-  margin-top: 20px;
-}
-
-.myloan-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: rgba(26,86,219,0.08);
-  border: 1px solid var(--border-hi);
-  border-radius: 14px;
-  margin-bottom: 16px;
-}
-.myloan-status-left { font-size: 14px; color: var(--ice); }
-.myloan-status-left strong { color: var(--white); font-size: 16px; display: block; margin-bottom: 2px; }
-
-.progress-bar-wrap {
-  height: 6px;
-  background: rgba(96,165,250,0.12);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-top: 12px;
-}
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--blue), var(--sky));
-  border-radius: 999px;
-  transition: width 0.6s ease;
-}
-
-/* ============================================================
-   EMPTY STATE
-============================================================ */
-.empty {
-  padding: 32px 20px;
-  text-align: center;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-.empty svg { width: 32px; height: 32px; stroke: var(--border-hi); fill: none; stroke-width: 1.5; display: block; margin: 0 auto 10px; }
-
-/* ============================================================
-   ADMIN CONFIG
-============================================================ */
-.cfg-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-/* ============================================================
-   ANIMACIONES
-============================================================ */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.card { animation: fadeUp 0.4s ease both; }
-.card:nth-child(1) { animation-delay: 0.05s; }
-.card:nth-child(2) { animation-delay: 0.1s; }
-.card:nth-child(3) { animation-delay: 0.15s; }
-.card:nth-child(4) { animation-delay: 0.2s; }
-
-/* ============================================================
-   SCROLLBAR
-============================================================ */
-::-webkit-scrollbar { width: 6px; background: var(--navy); }
-::-webkit-scrollbar-thumb { background: rgba(96,165,250,0.2); border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(96,165,250,0.35); }
-
-/* ============================================================
-   RESPONSIVE
-============================================================ */
-@media (max-width: 900px) {
-  .main-layout { grid-template-columns: 1fr; }
-  .hero-section { grid-template-columns: 1fr; }
-  .hero-kpis { grid-template-columns: 1fr 1fr; }
-  .topbar-inner { padding: 0 16px; }
-  .hero-section, .main-layout { padding-left: 16px; padding-right: 16px; }
-}
-@media (max-width: 600px) {
-  .hero-badges { flex-wrap: wrap; }
-  .hero-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .kpi-box { padding: 14px 16px; }
-  .kpi-box .kpi-value { font-size: 22px; }
-  .topbar-nav .nav-label { display: none; }
-  .input-row { grid-template-columns: 1fr; }
-  .cfg-row { grid-template-columns: 1fr; }
-  .schedule-header, .schedule-row { grid-template-columns: 32px 1fr 90px 110px; gap: 6px; }
+@media (max-width:600px) {
+  .input-row { grid-template-columns:1fr; }
+  .nav-btn .nav-label { display:none; }
+  .schedule-header,.schedule-row { grid-template-columns:32px 1fr 90px 100px; gap:4px; padding:10px; }
+  .schedule-row .amount { font-size:12px; }
+  .hero-kpis { grid-template-columns:1fr 1fr; gap:8px; }
+  .kpi-box { padding:14px 16px; }
+  .kpi-box .kpi-value { font-size:22px; }
 }
 </style>
 </head>
 <body>
 
-<!-- ============================================================
-     TOPBAR
-============================================================ -->
+<!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-inner">
     <a href="#" class="logo">
-      <div class="logo-mark">EP</div>
-      <span class="logo-name">Estima<span>Pres</span></span>
+      <div class="logo-mark" id="logoMark">EP</div>
+      <span class="logo-name" id="logoName">Estima<span>Pres</span></span>
     </a>
-
     <nav class="topbar-nav">
       <button id="btnOpenMyLoan" class="nav-btn">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -738,7 +260,7 @@ details[open] summary::after { transform: rotate(-135deg); }
         <span class="nav-label">Admin</span>
       </button>
       <button id="btnResetPass" class="nav-btn">
-        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span class="nav-label">Llave</span>
       </button>
       <button id="btnLogout" class="nav-btn danger">
@@ -749,27 +271,16 @@ details[open] summary::after { transform: rotate(-135deg); }
   </div>
 </header>
 
-<!-- ============================================================
-     HERO
-============================================================ -->
+<!-- HERO -->
 <section class="hero-section">
   <div>
     <div class="hero-eyebrow">Plataforma Fintech · Argentina</div>
     <h1 class="hero-title">Gestión de préstamos<br><em>simple y transparente</em></h1>
     <p class="hero-sub">Simulá, solicitá y gestioná préstamos personales desde un solo lugar. Sin papeles, sin filas.</p>
     <div class="hero-badges">
-      <div class="badge">
-        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        SSL Seguro
-      </div>
-      <div class="badge">
-        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Datos encriptados
-      </div>
-      <div class="badge">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        Sin burocracia
-      </div>
+      <div class="badge"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL Seguro</div>
+      <div class="badge"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Datos encriptados</div>
+      <div class="badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Sin burocracia</div>
     </div>
   </div>
   <div class="hero-kpis">
@@ -784,9 +295,7 @@ details[open] summary::after { transform: rotate(-135deg); }
   </div>
 </section>
 
-<!-- ============================================================
-     LAYOUT PRINCIPAL
-============================================================ -->
+<!-- MAIN -->
 <main class="main-layout">
 
   <!-- SIMULADOR -->
@@ -795,67 +304,39 @@ details[open] summary::after { transform: rotate(-135deg); }
       <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
       Simulador de cuotas
     </div>
-
     <div class="sim-meta">
       <div class="sim-meta-item">TNA <strong id="lblTna">—%</strong></div>
       <div class="sim-meta-item">Vence día <strong id="lblDue">—</strong></div>
     </div>
-
     <div class="input-row">
-      <div class="field">
-        <label>Monto del crédito</label>
-        <input id="simAmount" class="mono" inputmode="numeric" placeholder="$ 500.000" />
-      </div>
-      <div class="field">
-        <label>Plazo (meses, máx. 24)</label>
-        <input id="simMonths" inputmode="numeric" placeholder="12" />
-      </div>
+      <div class="field"><label>Monto del crédito</label><input id="simAmount" class="mono" inputmode="numeric" placeholder="$ 500.000" /></div>
+      <div class="field"><label>Plazo en meses (máx. 24)</label><input id="simMonths" inputmode="numeric" placeholder="12" /></div>
     </div>
-
     <button id="btnSim" class="btn-primary">
       <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Calcular cuotas
     </button>
-
     <div id="simResult"></div>
   </div>
 
   <!-- SOLICITUD -->
   <div class="card">
     <div class="card-title">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Nueva solicitud
     </div>
-
     <div class="input-row">
-      <div class="field">
-        <label>Nombre y apellido</label>
-        <input id="bName" placeholder="Juan Pérez" />
-      </div>
-      <div class="field">
-        <label>DNI</label>
-        <input id="bDni" inputmode="numeric" placeholder="30123456" />
-      </div>
+      <div class="field"><label>Nombre y apellido</label><input id="bName" placeholder="Juan Pérez" /></div>
+      <div class="field"><label>DNI</label><input id="bDni" inputmode="numeric" placeholder="30123456" /></div>
     </div>
     <div class="input-row">
-      <div class="field">
-        <label>Email</label>
-        <input id="bEmail" type="email" placeholder="correo@mail.com" />
-      </div>
-      <div class="field">
-        <label>Teléfono</label>
-        <input id="bPhone" inputmode="tel" placeholder="11 2345 6789" />
-      </div>
+      <div class="field"><label>Email</label><input id="bEmail" type="email" placeholder="correo@mail.com" /></div>
+      <div class="field"><label>Teléfono</label><input id="bPhone" inputmode="tel" placeholder="11 2345 6789" /></div>
     </div>
-    <div class="field">
-      <label>Alias o CBU / CVU</label>
-      <input id="bAlias" placeholder="alias.banco o 22 dígitos" />
-    </div>
-
+    <div class="field"><label>Alias o CBU / CVU</label><input id="bAlias" placeholder="alias.banco o 22 dígitos" /></div>
     <div class="section-divider"></div>
     <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5">El monto y plazo se toman del Simulador. Completalo primero.</p>
-
-    <button id="btnSendReq" class="btn-primary" style="background:linear-gradient(135deg,#0f766e,#0d9488);">
+    <button id="btnSendReq" class="btn-primary" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
       <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       Enviar solicitud
     </button>
@@ -867,18 +348,11 @@ details[open] summary::after { transform: rotate(-135deg); }
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Consultar mi préstamo
     </div>
-
     <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;max-width:440px">
-      <div class="field" style="margin-bottom:0">
-        <label>Ingresá tu DNI</label>
-        <input id="myDni" inputmode="numeric" placeholder="Ej: 30123456" />
-      </div>
-      <button id="btnFindMyLoan" class="btn-primary" style="width:auto;padding:13px 24px">
-        Buscar
-      </button>
+      <div class="field" style="margin-bottom:0"><label>Ingresá tu DNI</label><input id="myDni" inputmode="numeric" placeholder="Ej: 30123456" /></div>
+      <button id="btnFindMyLoan" class="btn-primary" style="width:auto;padding:13px 24px">Buscar</button>
     </div>
-
-    <div id="myLoanResult" class="myloan-result"></div>
+    <div id="myLoanResult"></div>
   </div>
 
   <!-- ADMIN -->
@@ -888,36 +362,29 @@ details[open] summary::after { transform: rotate(-135deg); }
       Panel de administración
     </div>
 
-    <!-- Config -->
     <details open>
       <summary>⚙️ Configuración del sistema</summary>
       <div class="details-body">
-        <div class="cfg-row">
-          <div class="field" style="margin-bottom:0">
-            <label>TNA %</label>
-            <input id="cfgTna" inputmode="numeric" class="mono" />
-          </div>
-          <div class="field" style="margin-bottom:0">
-            <label>Día de vencimiento</label>
-            <input id="cfgDue" inputmode="numeric" />
-          </div>
+        <div class="input-row">
+          <div class="field"><label>TNA %</label><input id="cfgTna" inputmode="numeric" class="mono" /></div>
+          <div class="field"><label>Día de vencimiento</label><input id="cfgDue" inputmode="numeric" /></div>
         </div>
-        <div style="margin-top:16px">
-          <button id="btnSaveCfg" class="btn-success" style="padding:12px 24px">Guardar configuración</button>
+        <div class="input-row">
+          <div class="field"><label>Nombre de la App</label><input id="cfgAppName" placeholder="EstimaPres" /></div>
+          <div class="field"><label>Ciudad de operación</label><input id="cfgCity" placeholder="Río Gallegos" /></div>
         </div>
+        <button id="btnSaveCfg" class="btn-success" style="padding:12px 28px">Guardar configuración</button>
       </div>
     </details>
 
-    <!-- Pendientes -->
     <details>
       <summary>🕐 Solicitudes pendientes</summary>
       <div class="details-body">
         <div class="toolbar"><button id="btnReloadPend" class="btn-outline">↻ Recargar</button></div>
-        <div id="listPend"><div class="empty"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Cargando...</div></div>
+        <div id="listPend"><div class="empty">Cargando...</div></div>
       </div>
     </details>
 
-    <!-- Preaprobados -->
     <details>
       <summary>📋 Preaprobados</summary>
       <div class="details-body">
@@ -926,7 +393,6 @@ details[open] summary::after { transform: rotate(-135deg); }
       </div>
     </details>
 
-    <!-- Activos -->
     <details open>
       <summary>🚀 Cartera activa</summary>
       <div class="details-body">
@@ -935,7 +401,6 @@ details[open] summary::after { transform: rotate(-135deg); }
       </div>
     </details>
 
-    <!-- Inactivos -->
     <details>
       <summary>📂 Histórico</summary>
       <div class="details-body">
@@ -951,18 +416,27 @@ details[open] summary::after { transform: rotate(-135deg); }
 
 </main>
 
-<!-- ============================================================
-     SCRIPT (lógica idéntica a la original, solo render actualizado)
-============================================================ -->
+<!-- MODAL FIRMA TÁCTIL -->
+<div class="modal-overlay" id="sigModal">
+  <div class="modal-box">
+    <div class="modal-title">✍️ Firma digital del contrato</div>
+    <div class="modal-sub">Firmá con el dedo en el recuadro. Esta firma tiene validez legal según la <strong style="color:var(--sky)">Ley 25.506</strong> de Firma Digital de la República Argentina.</div>
+    <div class="sig-canvas-wrap">
+      <canvas id="sigCanvas"></canvas>
+    </div>
+    <div class="sig-actions">
+      <button id="btnClearSig" class="btn-outline">🗑 Borrar</button>
+      <button id="btnConfirmSig" class="btn-success" style="flex:2">✅ Confirmar firma</button>
+    </div>
+    <button id="btnCancelSig" class="btn-outline" style="width:100%;margin-top:8px">Cancelar</button>
+    <p class="modal-note">Al confirmar, declarás que la firma electrónica realizada en este dispositivo tiene la misma validez jurídica que la firma ológrafa (Ley 25.506) y que aceptás todas las cláusulas del contrato.</p>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import {
-  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-import {
-  getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  serverTimestamp, query, where, orderBy, limit
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
@@ -973,62 +447,64 @@ const firebaseConfig = {
   appId: "1:578516597437:web:f59994b87729aa1cd655d4"
 };
 const ADMIN_EMAIL = "fernandogastondelgado81@gmail.com";
-
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-const $  = s => document.querySelector(s);
-const fmtMoney  = n => isNaN(n) ? "$ 0" : "$ " + Number(n).toLocaleString("es-AR");
+const $ = s => document.querySelector(s);
+const fmtMoney   = n => isNaN(n) ? "$ 0" : "$ " + Number(n).toLocaleString("es-AR");
 const onlyDigits = v => (v || "").replace(/\D+/g, "");
 const nowTS = () => serverTimestamp();
 
-function annuityPayment(P, annualRate, m) {
-  const i = (annualRate / 100) / 12;
+function annuityPayment(P, rate, m) {
+  const i = (rate / 100) / 12;
   if (i === 0) return P / m;
-  return P * i * Math.pow(1 + i, m) / (Math.pow(1 + i, m) - 1);
+  return P * i * Math.pow(1+i, m) / (Math.pow(1+i, m) - 1);
 }
 
 function scheduleRows(L) {
-  const due = L.dueDay || 10;
+  const due  = L.dueDay || 10;
   const base = L.activeAt?.toDate ? L.activeAt.toDate() : new Date();
-  // Si el préstamo aún no está activo (preaprobado), installment puede ser null/0 → calcularlo
-  const installment = (L.installment && L.installment > 0)
+  const inst = (L.installment && L.installment > 0)
     ? L.installment
-    : (L.amount && L.tna && L.months ? Math.round(annuityPayment(L.amount, L.tna, L.months)) : 0);
+    : Math.round(annuityPayment(L.amount, L.tna, L.months));
   const rows = [];
   for (let k = 1; k <= L.months; k++) {
     const d = new Date(base.getFullYear(), base.getMonth() + k, 1);
     d.setDate(Math.min(due, 28));
-    rows.push({ n: k, due: d.toISOString().slice(0, 10), amount: installment, paid: (L.paidCount || 0) >= k });
+    rows.push({ n: k, due: d.toISOString().slice(0,10), amount: inst, paid: (L.paidCount||0) >= k });
   }
   return rows;
 }
 
 const daysLate = iso => Math.max(0, Math.floor((new Date() - new Date(iso)) / 86400000));
 
-/* ======= Settings ======= */
-let gSettings = { tna: null, dueDay: null };
+/* ===== Settings / Brand ===== */
+let gSettings = { tna: null, dueDay: null, appName: "EstimaPres", city: "Río Gallegos" };
 
 async function loadSettings() {
   const snap = await getDoc(doc(db, "settings", "app"));
   if (snap.exists()) gSettings = { ...gSettings, ...snap.data() };
-  const tnaStr  = (gSettings.tna  ?? "—") + "%";
-  const dueStr  = gSettings.dueDay ?? "—";
-  $("#lblTna").textContent  = tnaStr;
-  $("#lblDue").textContent  = dueStr;
-  $("#heroTna").innerHTML   = gSettings.tna  ? `${gSettings.tna}<span>%</span>`   : `—<span>%</span>`;
+  const name = gSettings.appName || "EstimaPres";
+  const mid  = Math.ceil(name.length / 2);
+  $("#logoMark").textContent = name.replace(/\s/g,"").slice(0,2).toUpperCase();
+  $("#logoName").innerHTML   = `${name.slice(0,mid)}<span>${name.slice(mid)}</span>`;
+  document.title = name + " · Préstamos Personales";
+  $("#lblTna").textContent  = (gSettings.tna ?? "—") + "%";
+  $("#lblDue").textContent  = gSettings.dueDay ?? "—";
+  $("#heroTna").innerHTML   = gSettings.tna    ? `${gSettings.tna}<span>%</span>`        : `—<span>%</span>`;
   $("#heroDue").innerHTML   = gSettings.dueDay ? `${gSettings.dueDay}<span>del mes</span>` : `—<span>del mes</span>`;
-  $("#cfgTna").value = gSettings.tna  ?? "";
-  $("#cfgDue").value = gSettings.dueDay ?? "";
+  $("#cfgTna").value     = gSettings.tna     ?? "";
+  $("#cfgDue").value     = gSettings.dueDay  ?? "";
+  $("#cfgAppName").value = gSettings.appName ?? "";
+  $("#cfgCity").value    = gSettings.city    ?? "";
 }
 
-/* ======= Auth ======= */
+/* ===== Auth ===== */
 onAuthStateChanged(auth, u => {
   $("#admin").style.display = (u && u.email === ADMIN_EMAIL) ? "" : "none";
   if (u && u.email === ADMIN_EMAIL) loadAllAdmin();
 });
-
 $("#btnAdmin").onclick = async () => {
   if (!auth.currentUser) {
     const email = prompt("Email de administrador:", ADMIN_EMAIL) || "";
@@ -1036,68 +512,39 @@ $("#btnAdmin").onclick = async () => {
     try {
       const { user } = await signInWithEmailAndPassword(auth, email, pass);
       if (user.email !== ADMIN_EMAIL) { alert("Sin permisos."); await signOut(auth); return; }
-      $("#admin").scrollIntoView({ behavior: "smooth" });
+      $("#admin").scrollIntoView({ behavior:"smooth" });
     } catch { alert("No se pudo iniciar sesión."); }
-  } else {
-    $("#admin").scrollIntoView({ behavior: "smooth" });
-  }
+  } else { $("#admin").scrollIntoView({ behavior:"smooth" }); }
 };
-
-$("#btnLogout").onclick = () => signOut(auth).catch(() => {});
-
-$("#btnResetPass").onclick = async () => {
+$("#btnLogout").onclick    = () => signOut(auth).catch(()=>{});
+$("#btnOpenMyLoan").onclick = () => $("#myloan").scrollIntoView({ behavior:"smooth" });
+$("#btnResetPass").onclick  = async () => {
   const email = prompt("Ingresá tu email:");
   if (!email) return;
-  try {
-    await sendPasswordResetEmail(auth, email);
-    alert("Email de recuperación enviado.");
-  } catch { alert("No se pudo enviar. Verificá el correo."); }
+  try { await sendPasswordResetEmail(auth, email); alert("Email enviado."); }
+  catch { alert("No se pudo enviar. Verificá el correo."); }
 };
 
-$("#btnOpenMyLoan").onclick = () => $("#myloan").scrollIntoView({ behavior: "smooth" });
-
-/* ======= Simulador ======= */
+/* ===== Simulador ===== */
 $("#btnSim").onclick = () => {
   const P = Number(onlyDigits($("#simAmount").value));
   const m = Math.min(24, Number(onlyDigits($("#simMonths").value)));
   if (!gSettings.tna || !gSettings.dueDay) { alert("El administrador aún no configuró la TNA."); return; }
   if (!P || !m) { $("#simResult").innerHTML = ""; return; }
   const c = Math.round(annuityPayment(P, gSettings.tna, m));
-
-  let rowsHtml = "";
+  let rows = "";
   for (let i = 1; i <= m; i++) {
-    const d = new Date();
-    d.setMonth(d.getMonth() + i);
-    d.setDate(Math.min(gSettings.dueDay, 28));
-    rowsHtml += `
-      <div class="schedule-row">
-        <span class="num">${String(i).padStart(2, "0")}</span>
-        <span class="date">${d.toLocaleDateString("es-AR")}</span>
-        <span class="amount">${fmtMoney(c)}</span>
-        <span><span class="pill warn">Pendiente</span></span>
-      </div>`;
+    const d = new Date(); d.setMonth(d.getMonth()+i); d.setDate(Math.min(gSettings.dueDay, 28));
+    rows += `<div class="schedule-row"><span class="num">${String(i).padStart(2,"0")}</span><span class="date">${d.toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(c)}</span><span><span class="pill warn">Pendiente</span></span></div>`;
   }
-
-  $("#simResult").innerHTML = `
-    <div class="sim-result-box">
-      <div class="sim-cuota-display">
-        <span class="label">Cuota estimada</span>
-        <span class="value">${fmtMoney(c)}</span>
-      </div>
-      <div class="schedule-wrap">
-        <div class="schedule-header">
-          <span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span>
-        </div>
-        ${rowsHtml}
-      </div>
-    </div>`;
+  $("#simResult").innerHTML = `<div class="sim-result-box"><div class="sim-cuota-display"><span class="label">Cuota estimada</span><span class="value">${fmtMoney(c)}</span></div><div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div></div>`;
 };
 
-/* ======= Solicitud ======= */
+/* ===== Solicitud ===== */
 $("#btnSendReq").onclick = async () => {
   const amount = Number(onlyDigits($("#simAmount").value));
   const months = Math.min(24, Number(onlyDigits($("#simMonths").value)));
-  if (!amount || !months) { alert("Completá el Simulador con monto y meses primero."); return; }
+  if (!amount || !months) { alert("Completá el Simulador primero."); return; }
   const borrower = {
     name:  ($("#bName").value  || "").trim(),
     dni:   onlyDigits($("#bDni").value),
@@ -1106,396 +553,411 @@ $("#btnSendReq").onclick = async () => {
     alias: ($("#bAlias").value || "").trim()
   };
   if (!borrower.name || !borrower.dni) { alert("Completá nombre y DNI."); return; }
-  await addDoc(collection(db, "loans"), {
-    status: "pending", amount, months,
-    tna: gSettings.tna || 0, dueDay: gSettings.dueDay || 10,
-    borrower, createdAt: nowTS(), updatedAt: nowTS()
-  });
+  await addDoc(collection(db, "loans"), { status:"pending", amount, months, tna:gSettings.tna||0, dueDay:gSettings.dueDay||10, borrower, createdAt:nowTS(), updatedAt:nowTS() });
   alert("¡Solicitud enviada! Te contactaremos pronto.");
 };
 
-/* ======= Render helpers ======= */
-function loanItem(d, actions = "") {
+/* ===== Render helpers ===== */
+const STATUS_LABELS = { pending:"Pendiente", preapproved:"Preaprobado", active:"Activo", paid:"Saldado", charged_off:"Incobrable", deleted:"Eliminado" };
+const STATUS_CLASS  = { active:"ok", paid:"ok", charged_off:"bad" };
+
+function loanItem(d, actions="") {
   const b = d.borrower || {};
-  return `
-    <div class="loan-item">
-      <div class="loan-name">${b.name || "—"}</div>
-      <div class="loan-meta">
-        <span>DNI <strong>${b.dni || "—"}</strong></span>
-        <span>Capital <strong>${fmtMoney(d.amount)}</strong></span>
-        <span><strong>${d.months}</strong> cuotas</span>
-        <span>TNA <strong>${d.tna}%</strong></span>
-        ${d.contractId ? `<span>Contrato <strong>${d.contractId}</strong></span>` : ""}
-      </div>
-      <div class="toolbar">${actions}</div>
-    </div>`;
+  return `<div class="loan-item">
+    <div class="loan-name">${b.name||"—"}</div>
+    <div class="loan-meta">
+      <span>DNI <strong>${b.dni||"—"}</strong></span>
+      <span>Capital <strong>${fmtMoney(d.amount)}</strong></span>
+      <span><strong>${d.months}</strong> cuotas</span>
+      <span>TNA <strong>${d.tna}%</strong></span>
+      ${d.contractId ? `<span>Contrato <strong>${d.contractId}</strong></span>` : ""}
+    </div>
+    <div class="toolbar">${actions}</div>
+  </div>`;
 }
 
-/* ======= Admin loaders ======= */
+/* ===== Admin loaders ===== */
 async function loadPend() {
   const box = $("#listPend"); box.innerHTML = "";
   try {
-    const qs = await getDocs(query(collection(db, "loans"), where("status", "==", "pending"), orderBy("createdAt", "desc"), limit(80)));
-    if (qs.empty) { box.innerHTML = `<div class="empty">Sin solicitudes pendientes</div>`; return; }
+    const qs = await getDocs(query(collection(db,"loans"), where("status","==","pending"), orderBy("createdAt","desc"), limit(80)));
+    if (qs.empty) { box.innerHTML=`<div class="empty">Sin solicitudes pendientes</div>`; return; }
     qs.forEach(docu => {
-      const d = { ...docu.data(), id: docu.id };
-      box.insertAdjacentHTML("beforeend", loanItem(d, `
-        <button class="btn-success" data-pre="${d.id}">Preaprobar</button>
-        <button class="btn-danger"  data-del="${d.id}">Eliminar</button>`));
+      const d = {...docu.data(), id:docu.id};
+      box.insertAdjacentHTML("beforeend", loanItem(d,`<button class="btn-success" data-pre="${d.id}">Preaprobar</button><button class="btn-danger" data-del="${d.id}">Eliminar</button>`));
     });
     box.querySelectorAll("[data-pre]").forEach(btn => btn.onclick = async () => {
-      const id = btn.getAttribute("data-pre");
-      if (!confirm("¿Preaprobar y generar contrato?")) return;
-      const contractId = Math.random().toString(36).slice(2, 10).toUpperCase();
-      await updateDoc(doc(db, "loans", id), { status: "preapproved", contractId, updatedAt: nowTS() });
+      if (!confirm("¿Preaprobar?")) return;
+      const contractId = Math.random().toString(36).slice(2,10).toUpperCase();
+      await updateDoc(doc(db,"loans",btn.getAttribute("data-pre")), { status:"preapproved", contractId, updatedAt:nowTS() });
       await loadAllAdmin();
     });
     box.querySelectorAll("[data-del]").forEach(btn => btn.onclick = async () => {
-      const id = btn.getAttribute("data-del");
-      if (!confirm("¿Eliminar solicitud?")) return;
-      await updateDoc(doc(db, "loans", id), { status: "deleted", updatedAt: nowTS() });
+      if (!confirm("¿Eliminar?")) return;
+      await updateDoc(doc(db,"loans",btn.getAttribute("data-del")), { status:"deleted", updatedAt:nowTS() });
       await loadAllAdmin();
     });
-  } catch { box.innerHTML = `<div class="empty">Error al cargar solicitudes.</div>`; }
+  } catch { box.innerHTML=`<div class="empty">Error al cargar.</div>`; }
 }
 
 async function loadPre() {
   const box = $("#listPre"); box.innerHTML = "";
   try {
-    const qs = await getDocs(query(collection(db, "loans"), where("status", "==", "preapproved"), orderBy("createdAt", "desc"), limit(100)));
-    if (qs.empty) { box.innerHTML = `<div class="empty">Sin preaprobados</div>`; return; }
+    const qs = await getDocs(query(collection(db,"loans"), where("status","==","preapproved"), orderBy("createdAt","desc"), limit(100)));
+    if (qs.empty) { box.innerHTML=`<div class="empty">Sin preaprobados</div>`; return; }
     qs.forEach(docu => {
-      const d = { ...docu.data(), id: docu.id };
-      const signedBadge = d.signed ? `<span class="pill ok">Firmado</span>` : `<span class="pill warn">Esperando firma</span>`;
-      const actions = [
-        `<button class="btn-outline" data-share="${d.id}">Compartir contrato</button>`,
-        d.signed ? `<button class="btn-success" data-approve="${d.id}">Activar préstamo</button>` : "",
-        `<button class="btn-outline" data-open="${d.id}">Ver PDF</button>`,
-        `<button class="btn-danger"  data-del="${d.id}">Eliminar</button>`
-      ].join("");
-      box.insertAdjacentHTML("beforeend", loanItem(d, signedBadge + " " + actions));
+      const d = {...docu.data(), id:docu.id};
+      const badge = d.signed ? `<span class="pill ok">Firmado</span>` : `<span class="pill warn">Esperando firma</span>`;
+      const acts  = [
+        `<button class="btn-outline" data-share="${d.id}">📤 Compartir</button>`,
+        d.signed ? `<button class="btn-success" data-approve="${d.id}">✅ Activar</button>` : "",
+        `<button class="btn-outline" data-open="${d.id}">📄 Ver contrato</button>`,
+        `<button class="btn-danger" data-del="${d.id}">Eliminar</button>`
+      ].join(" ");
+      box.insertAdjacentHTML("beforeend", loanItem(d, badge+" "+acts));
     });
     box.querySelectorAll("[data-open]").forEach(b => b.onclick = async () => {
-      const s = await getDoc(doc(db, "loans", b.getAttribute("data-open"))); if (!s.exists()) return;
-      openContract({ ...s.data(), id: b.getAttribute("data-open") }, false);
+      const s = await getDoc(doc(db,"loans",b.getAttribute("data-open"))); if(!s.exists()) return;
+      openContract({...s.data(), id:b.getAttribute("data-open")}, false);
     });
     box.querySelectorAll("[data-share]").forEach(b => b.onclick = async () => {
-      const id = b.getAttribute("data-share"); const s = await getDoc(doc(db, "loans", id)); if (!s.exists()) return;
-      const L = { ...s.data(), id };
-      const link = location.origin + location.pathname + "#sign-" + id;
-      const msg = `Hola ${L.borrower?.name}, tu contrato EstimaPres (${L.contractId}) está listo. Firmalo acá: ${link}`;
-      if (navigator.share) { try { await navigator.share({ title: "Contrato EstimaPres", text: msg }); } catch {} }
-      else prompt("Copiá este enlace:", link);
+      const id=b.getAttribute("data-share"); const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+      const L={...s.data(),id};
+      const link = location.origin+location.pathname+"#sign-"+id;
+      const msg  = `Hola ${L.borrower?.name}, tu contrato ${gSettings.appName||"EstimaPres"} (${L.contractId}) está listo. Firmalo acá: ${link}`;
+      if(navigator.share){try{await navigator.share({title:"Contrato",text:msg});}catch{}}
+      else prompt("Copiá el enlace:", link);
     });
     box.querySelectorAll("[data-approve]").forEach(b => b.onclick = async () => {
-      const id = b.getAttribute("data-approve"); const s = await getDoc(doc(db, "loans", id)); if (!s.exists()) return;
-      const L = s.data(); if (!L.signed) { alert("Todavía no está firmado."); return; }
-      const installment = Math.round(annuityPayment(L.amount, L.tna, L.months));
-      await updateDoc(doc(db, "loans", id), { status: "active", activeAt: nowTS(), updatedAt: nowTS(), installment, paidCount: 0 });
+      const id=b.getAttribute("data-approve"); const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+      const L=s.data(); if(!L.signed){alert("Todavía no está firmado.");return;}
+      const installment=Math.round(annuityPayment(L.amount,L.tna,L.months));
+      await updateDoc(doc(db,"loans",id),{status:"active",activeAt:nowTS(),updatedAt:nowTS(),installment,paidCount:0});
       await loadAllAdmin(); alert("Préstamo activado.");
     });
     box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
-      const id = b.getAttribute("data-del"); if (!confirm("¿Eliminar preaprobado?")) return;
-      await updateDoc(doc(db, "loans", id), { status: "deleted", updatedAt: nowTS() });
+      if(!confirm("¿Eliminar?")) return;
+      await updateDoc(doc(db,"loans",b.getAttribute("data-del")),{status:"deleted",updatedAt:nowTS()});
       await loadAllAdmin();
     });
-  } catch { box.innerHTML = `<div class="empty">Error al cargar preaprobados.</div>`; }
+  } catch { box.innerHTML=`<div class="empty">Error al cargar.</div>`; }
 }
 
 async function loadAct() {
   const box = $("#listAct"); box.innerHTML = "";
   try {
-    const qs = await getDocs(query(collection(db, "loans"), where("status", "==", "active"), orderBy("activeAt", "desc"), limit(100)));
-    if (qs.empty) { box.innerHTML = `<div class="empty">Sin préstamos activos</div>`; return; }
+    const qs = await getDocs(query(collection(db,"loans"), where("status","==","active"), orderBy("activeAt","desc"), limit(100)));
+    if (qs.empty) { box.innerHTML=`<div class="empty">Sin activos</div>`; return; }
     qs.forEach(docu => {
-      const d = { ...docu.data(), id: docu.id };
-      const allPaid = (d.paidCount || 0) >= d.months;
-      const actions = `
-        <button class="btn-outline"  data-cuotas="${d.id}">Ver cuotas</button>
-        <button class="btn-success"  data-paid="${d.id}" ${allPaid ? "" : "disabled"}>Cerrar pago total</button>
-        <button class="btn-danger"   data-charge="${d.id}">A incobrables</button>`;
-      box.insertAdjacentHTML("beforeend", loanItem(d, actions) + `<div id="sch-${d.id}"></div>`);
+      const d = {...docu.data(), id:docu.id};
+      const allPaid = (d.paidCount||0) >= d.months;
+      box.insertAdjacentHTML("beforeend",
+        loanItem(d,`<button class="btn-outline" data-cuotas="${d.id}">Ver cuotas</button><button class="btn-success" data-paid="${d.id}" ${allPaid?"":"disabled"}>Cerrar saldado</button><button class="btn-danger" data-charge="${d.id}">A incobrables</button>`) +
+        `<div id="sch-${d.id}"></div>`);
     });
     box.querySelectorAll("[data-cuotas]").forEach(b => b.onclick = async () => {
-      const id = b.getAttribute("data-cuotas"); const s = await getDoc(doc(db, "loans", id)); if (!s.exists()) return;
-      const L = { ...s.data(), id };
-      const schEl = $(`#sch-${id}`);
-      if (schEl.innerHTML) { schEl.innerHTML = ""; return; }
-      const rowsHtml = scheduleRows(L).map(r => {
-        const late = daysLate(r.due);
-        const badge = r.paid
-          ? `<span class="pill ok">Pagada</span>`
-          : late > 10 ? `<span class="pill bad">Mora +10d</span>`
-          : late > 5  ? `<span class="pill warn">Mora</span>`
-          : `<span class="pill warn">Pendiente</span>`;
-        const btn = r.paid ? "" : `<button class="btn-outline" style="padding:6px 10px;font-size:12px" data-mark="${L.id}:${r.n}">✓ Marcar pagada</button>`;
+      const id=b.getAttribute("data-cuotas"); const schEl=$(`#sch-${id}`);
+      if(schEl.innerHTML){schEl.innerHTML="";return;}
+      const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+      const L={...s.data(),id};
+      const rows=scheduleRows(L).map(r=>{
+        const late=daysLate(r.due);
+        const badge=r.paid?`<span class="pill ok">Pagada</span>`:late>10?`<span class="pill bad">Mora +10d</span>`:late>5?`<span class="pill warn">Mora</span>`:`<span class="pill warn">Pendiente</span>`;
+        const btn=r.paid?"":`<button class="btn-outline" style="padding:5px 10px;font-size:11px" data-mark="${L.id}:${r.n}">✓ Pagar</button>`;
         return `<div class="schedule-row"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span>${badge} ${btn}</span></div>`;
       }).join("");
-      schEl.innerHTML = `
-        <div class="schedule-wrap" style="margin-top:12px">
-          <div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>
-          ${rowsHtml}
-        </div>`;
-      schEl.querySelectorAll("[data-mark]").forEach(btn => btn.onclick = async () => {
-        const [loanId] = btn.getAttribute("data-mark").split(":");
-        const s2 = await getDoc(doc(db, "loans", loanId)); if (!s2.exists()) return;
-        const L2 = s2.data();
-        const paid = Math.min(Number(L2.paidCount || 0) + 1, L2.months);
-        await updateDoc(doc(db, "loans", loanId), { paidCount: paid, updatedAt: nowTS() });
+      schEl.innerHTML=`<div class="schedule-wrap" style="margin-top:12px"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div>`;
+      schEl.querySelectorAll("[data-mark]").forEach(btn=>btn.onclick=async()=>{
+        const [loanId]=btn.getAttribute("data-mark").split(":");
+        const s2=await getDoc(doc(db,"loans",loanId)); if(!s2.exists()) return;
+        const L2=s2.data();
+        await updateDoc(doc(db,"loans",loanId),{paidCount:Math.min((L2.paidCount||0)+1,L2.months),updatedAt:nowTS()});
         await loadAct();
       });
     });
-    box.querySelectorAll("[data-paid]").forEach(b => b.onclick = async () => {
-      const id = b.getAttribute("data-paid"); const s = await getDoc(doc(db, "loans", id)); if (!s.exists()) return;
-      const L = s.data(); if ((L.paidCount || 0) < L.months) { alert("Faltan cuotas por registrar."); return; }
-      await updateDoc(doc(db, "loans", id), { status: "paid", updatedAt: nowTS() });
+    box.querySelectorAll("[data-paid]").forEach(b=>b.onclick=async()=>{
+      const id=b.getAttribute("data-paid"); const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+      if((s.data().paidCount||0)<s.data().months){alert("Faltan cuotas.");return;}
+      await updateDoc(doc(db,"loans",id),{status:"paid",updatedAt:nowTS()});
       await loadAllAdmin();
     });
-    box.querySelectorAll("[data-charge]").forEach(b => b.onclick = async () => {
-      const id = b.getAttribute("data-charge"); if (!confirm("¿Mover a incobrables?")) return;
-      await updateDoc(doc(db, "loans", id), { status: "charged_off", updatedAt: nowTS() });
+    box.querySelectorAll("[data-charge]").forEach(b=>b.onclick=async()=>{
+      if(!confirm("¿Mover a incobrables?")) return;
+      await updateDoc(doc(db,"loans",b.getAttribute("data-charge")),{status:"charged_off",updatedAt:nowTS()});
       await loadAllAdmin();
     });
-  } catch { box.innerHTML = `<div class="empty">Error al cargar activos.</div>`; }
+  } catch(e) { box.innerHTML=`<div class="empty">Error al cargar.</div>`; console.error(e); }
 }
 
 let inactTab = "paid";
 async function loadInact() {
-  const box = $("#listInact"); box.innerHTML = "";
+  const box = $("#listInact"); box.innerHTML="";
   try {
-    const status = inactTab === "paid" ? "paid" : "charged_off";
-    const qs = await getDocs(query(collection(db, "loans"), where("status", "==", status), orderBy("updatedAt", "desc"), limit(100)));
-    if (qs.empty) { box.innerHTML = `<div class="empty">Sin registros</div>`; return; }
-    qs.forEach(docu => {
-      const d = { ...docu.data(), id: docu.id };
-      let actions = `<button class="btn-outline" data-open="${d.id}">Ver contrato</button>`;
-      if (inactTab === "charged_off") {
-        actions += ` <button class="btn-outline" data-debt="${d.id}">PDF deuda</button>
-                     <button class="btn-outline" data-share="${d.id}">Compartir</button>`;
-      }
-      actions += ` <button class="btn-danger" data-del="${d.id}">Eliminar</button>`;
-      box.insertAdjacentHTML("beforeend", loanItem(d, actions));
+    const status = inactTab==="paid" ? "paid" : "charged_off";
+    const qs = await getDocs(query(collection(db,"loans"), where("status","==",status), orderBy("updatedAt","desc"), limit(100)));
+    if(qs.empty){box.innerHTML=`<div class="empty">Sin registros</div>`;return;}
+    qs.forEach(docu=>{
+      const d={...docu.data(),id:docu.id};
+      let acts=`<button class="btn-outline" data-open="${d.id}">📄 Contrato</button>`;
+      if(inactTab==="charged_off") acts+=` <button class="btn-danger" data-debt="${d.id}">📋 Certificado de deuda</button> <button class="btn-outline" data-share="${d.id}">📤 Compartir</button>`;
+      acts+=` <button class="btn-danger" data-del="${d.id}">🗑 Eliminar</button>`;
+      box.insertAdjacentHTML("beforeend",loanItem(d,acts));
     });
-    box.querySelectorAll("[data-open]").forEach(b => b.onclick = async () => {
-      const s = await getDoc(doc(db, "loans", b.getAttribute("data-open"))); if (!s.exists()) return;
-      openContract({ ...s.data(), id: b.getAttribute("data-open") }, false);
+    box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{
+      const s=await getDoc(doc(db,"loans",b.getAttribute("data-open"))); if(!s.exists()) return;
+      openContract({...s.data(),id:b.getAttribute("data-open")},false);
     });
-    box.querySelectorAll("[data-debt]").forEach(b => b.onclick = async () => {
-      const s = await getDoc(doc(db, "loans", b.getAttribute("data-debt"))); if (!s.exists()) return;
-      openDebtPdf({ ...s.data(), id: b.getAttribute("data-debt") });
+    box.querySelectorAll("[data-debt]").forEach(b=>b.onclick=async()=>{
+      const s=await getDoc(doc(db,"loans",b.getAttribute("data-debt"))); if(!s.exists()) return;
+      openDebtCertificate({...s.data(),id:b.getAttribute("data-debt")});
     });
-    box.querySelectorAll("[data-share]").forEach(b => b.onclick = async () => {
-      const s = await getDoc(doc(db, "loans", b.getAttribute("data-share"))); if (!s.exists()) return;
-      const L = { ...s.data(), id: b.getAttribute("data-share") };
-      const msg = `Deuda en gestión - EstimaPres\n${L.borrower?.name} DNI ${L.borrower?.dni}\nMonto: ${fmtMoney(L.amount)}\nContrato: ${L.contractId}`;
-      if (navigator.share) { try { await navigator.share({ title: "Deuda EstimaPres", text: msg }); } catch {} }
-      else prompt("Copiá:", msg);
+    box.querySelectorAll("[data-share]").forEach(b=>b.onclick=async()=>{
+      const s=await getDoc(doc(db,"loans",b.getAttribute("data-share"))); if(!s.exists()) return;
+      const L={...s.data(),id:b.getAttribute("data-share")};
+      const msg=`Deuda en gestión - ${gSettings.appName||"EstimaPres"}\n${L.borrower?.name} DNI ${L.borrower?.dni}\nMonto: ${fmtMoney(L.amount)}\nContrato: ${L.contractId}`;
+      if(navigator.share){try{await navigator.share({title:"Deuda",text:msg});}catch{}}
+      else prompt("Copiá:",msg);
     });
-    box.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
-      if (!confirm("¿Eliminar definitivamente?")) return;
-      await deleteDoc(doc(db, "loans", b.getAttribute("data-del")));
+    box.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+      if(!confirm("¿Eliminar definitivamente?")) return;
+      await deleteDoc(doc(db,"loans",b.getAttribute("data-del")));
       await loadInact();
     });
-  } catch { box.innerHTML = `<div class="empty">Error al cargar histórico.</div>`; }
+  } catch { box.innerHTML=`<div class="empty">Error al cargar.</div>`; }
 }
 
-$("#btnTabPaid").onclick    = () => { inactTab = "paid";        loadInact(); };
-$("#btnTabCharged").onclick = () => { inactTab = "charged_off"; loadInact(); };
+$("#btnTabPaid").onclick    = ()=>{ inactTab="paid";        loadInact(); };
+$("#btnTabCharged").onclick = ()=>{ inactTab="charged_off"; loadInact(); };
 
 async function loadAllAdmin() {
-  await Promise.all([loadSettings(), loadPend(), loadPre(), loadAct(), loadInact()]);
+  await Promise.all([loadSettings(),loadPend(),loadPre(),loadAct(),loadInact()]);
 }
-
 $("#btnReloadPend").onclick  = loadPend;
 $("#btnReloadPre").onclick   = loadPre;
 $("#btnReloadAct").onclick   = loadAct;
 $("#btnReloadInact").onclick = loadInact;
 
 $("#btnSaveCfg").onclick = async () => {
-  const tna = Number(onlyDigits($("#cfgTna").value));
-  const due = Math.min(28, Math.max(1, Number(onlyDigits($("#cfgDue").value))));
-  await setDoc(doc(db, "settings", "app"), { tna, dueDay: due, updatedAt: nowTS() }, { merge: true });
+  const tna  = Number(onlyDigits($("#cfgTna").value));
+  const due  = Math.min(28, Math.max(1, Number(onlyDigits($("#cfgDue").value))));
+  const name = ($("#cfgAppName").value||"EstimaPres").trim();
+  const city = ($("#cfgCity").value||"Río Gallegos").trim();
+  await setDoc(doc(db,"settings","app"),{tna,dueDay:due,appName:name,city,updatedAt:nowTS()},{merge:true});
   await loadSettings(); alert("Configuración guardada.");
 };
 
-/* ======= Mi Préstamo ======= */
+/* ===== Mi Préstamo — búsqueda UNIVERSAL ===== */
 $("#btnFindMyLoan").onclick = async () => {
   const dni = onlyDigits($("#myDni").value);
-  if (!dni) { $("#myLoanResult").innerHTML = `<div class="empty">Ingresá un DNI.</div>`; return; }
-  $("#myLoanResult").innerHTML = `<div class="empty">Buscando...</div>`;
-  const qs = await getDocs(query(collection(db, "loans"), orderBy("createdAt", "desc"), limit(120)));
-  const list = [];
-  qs.forEach(d => { if ((d.data().borrower?.dni || "") === dni) list.push({ id: d.id, ...d.data() }); });
-  if (!list.length) { $("#myLoanResult").innerHTML = `<div class="empty">No encontramos préstamos para ese DNI.</div>`; return; }
-  const L = list[0];
-  const paid = Number(L.paidCount || 0);
-  const pct  = L.months ? Math.round((paid / L.months) * 100) : 0;
+  if(!dni){$("#myLoanResult").innerHTML=`<div class="empty">Ingresá un DNI.</div>`;return;}
+  $("#myLoanResult").innerHTML=`<div class="empty">Buscando...</div>`;
+  // Sin filtro de status: muestra cualquier estado
+  const qs = await getDocs(query(collection(db,"loans"), orderBy("createdAt","desc"), limit(200)));
+  const list=[];
+  qs.forEach(d=>{ if((d.data().borrower?.dni||"")===dni) list.push({id:d.id,...d.data()}); });
+  if(!list.length){$("#myLoanResult").innerHTML=`<div class="empty">No encontramos préstamos para ese DNI.</div>`;return;}
 
-  const statusLabels = {
-    pending:     'Pendiente',
-    preapproved: 'Preaprobado',
-    active:      'Activo',
-    paid:        'Saldado',
-    charged_off: 'Incobrable',
-    deleted:     'Eliminado'
-  };
-  const statusLabel = statusLabels[L.status] || L.status;
-  const statusClass = L.status === 'active' ? 'ok' : L.status === 'paid' ? 'ok' : L.status === 'charged_off' ? 'bad' : 'warn';
+  const L     = list[0];
+  const paid  = Number(L.paidCount||0);
+  const pct   = L.months ? Math.round((paid/L.months)*100) : 0;
+  const sLabel= STATUS_LABELS[L.status]||L.status;
+  const sClass= STATUS_CLASS[L.status]||"warn";
 
-  const rows = scheduleRows(L).map(r =>
-    `<div class="schedule-row">
-      <span class="num">${String(r.n).padStart(2,"0")}</span>
-      <span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span>
-      <span class="amount">${fmtMoney(r.amount)}</span>
-      <span>${r.paid ? `<span class="pill ok">Pagada</span>` : `<span class="pill warn">Pendiente</span>`}</span>
-    </div>`
+  const rows = scheduleRows(L).map(r=>
+    `<div class="schedule-row"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span>${r.paid?`<span class="pill ok">Pagada</span>`:`<span class="pill warn">Pendiente</span>`}</span></div>`
   ).join("");
 
-  // Botón según estado: preaprobado → firmar, activo → ver PDF
-  let actionBtn = "";
-  if (L.contractId && L.status === "preapproved" && !L.signed) {
-    actionBtn = `<button id="btnPDF" class="btn-primary" style="width:auto;padding:12px 24px">
-      <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="20 6 9 17 4 12"/></svg>
-      Firmar contrato
-    </button>`;
-  } else if (L.contractId && L.status === "preapproved" && L.signed) {
-    actionBtn = `<span class="pill ok" style="padding:8px 14px;font-size:13px">✓ Contrato firmado · En espera de aprobación</span>`;
-  } else if (L.contractId) {
-    actionBtn = `<button id="btnPDF" class="btn-secondary">Ver contrato PDF</button>`;
+  let actionBtn="";
+  if(L.contractId && L.status==="preapproved" && !L.signed){
+    actionBtn=`<button id="btnPDF" class="btn-primary" style="width:auto;padding:12px 24px">✍️ Firmar contrato</button>`;
+  } else if(L.contractId && L.status==="preapproved" && L.signed){
+    actionBtn=`<span class="pill ok" style="padding:10px 16px;font-size:13px">✓ Contrato firmado · Aguardando aprobación</span>`;
+  } else if(L.contractId){
+    actionBtn=`<button id="btnPDF" class="btn-secondary">📄 Ver contrato PDF</button>`;
   }
 
-  $("#myLoanResult").innerHTML = `
+  $("#myLoanResult").innerHTML=`
     <div class="myloan-status">
       <div class="myloan-status-left">
-        <strong>${L.borrower?.name || "—"}</strong>
-        ${fmtMoney(L.amount)} · ${L.months} cuotas · TNA ${L.tna}%
+        <div class="name">${L.borrower?.name||"—"}</div>
+        <div class="meta">${fmtMoney(L.amount)} · ${L.months} cuotas · TNA ${L.tna}%</div>
       </div>
-      <span class="pill ${statusClass}">${statusLabel}</span>
+      <span class="pill ${sClass}">${sLabel}</span>
     </div>
-    <div style="margin-bottom:16px">
+    <div style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px">
-        <span>Progreso de pago</span><span style="color:var(--sky);font-weight:700">${paid}/${L.months} cuotas</span>
+        <span>Progreso de pago</span>
+        <span style="color:var(--sky);font-weight:700">${paid}/${L.months} cuotas</span>
       </div>
       <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
     </div>
-    ${actionBtn ? `<div style="margin-bottom:16px">${actionBtn}</div>` : ""}
+    ${actionBtn?`<div style="margin-bottom:16px">${actionBtn}</div>`:""}
     <div class="schedule-wrap">
       <div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>
       ${rows}
     </div>`;
-  const pdfBtn = document.getElementById("btnPDF");
-  if (pdfBtn) {
-    pdfBtn.addEventListener("click", () => {
-      const forSigner = L.status === "preapproved" && !L.signed;
-      openContract(L, forSigner);
+
+  const pdfBtn=document.getElementById("btnPDF");
+  if(pdfBtn){
+    pdfBtn.addEventListener("click",()=>{
+      if(L.status==="preapproved"&&!L.signed) openSignModal(L);
+      else openContract(L,false);
     });
   }
 };
 
-/* ======= Contrato ======= */
-function contractHtml(L, forSigner) {
-  const today = new Date().toLocaleDateString("es-AR");
-  const rows = scheduleRows(L).map(r =>
-    `<tr><td>${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td>${fmtMoney(r.amount)}</td></tr>`
-  ).join("");
-  const signerBlock = forSigner ? `
-    <div style="margin-top:20px;padding:14px;border:1px dashed #1a56db;border-radius:10px">
-      <b>Firma digital:</b>
-      <p>Escribí tu nombre y apellido exactamente como figura en la solicitud.</p>
-      <input id="signName" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-top:8px" placeholder="${L.borrower?.name || ''}">
-      <button id="btnAccept" style="margin-top:10px;padding:10px 18px;background:#1a56db;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Aceptar y firmar contrato</button>
-    </div>` : "";
-  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Contrato ${L.contractId || ''}</title>
-    <style>@page{size:A4;margin:22mm}body{font-family:Arial,sans-serif;color:#111;font-size:12pt}h1{font-size:18pt}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ddd;padding:8px}th{background:#f1f5f9;text-align:left}</style>
-    </head><body>
-    <h1>Contrato de Préstamo · EstimaPres ${L.contractId ? '· ' + L.contractId : ''}</h1>
-    <p>Fecha: ${today}</p>
-    <p>En la ciudad de <b>Río Gallegos, Santa Cruz, Argentina</b>, entre <b>EstimaPres</b> y <b>${L.borrower?.name}</b>, DNI <b>${L.borrower?.dni}</b>.</p>
-    <ol>
-      <li><b>Monto:</b> ${fmtMoney(L.amount)} de libre uso.</li>
-      <li><b>Plazo:</b> ${L.months} cuotas mensuales, vencimiento día ${L.dueDay}.</li>
-      <li><b>Tasa:</b> TNA ${L.tna}%, sistema francés.</li>
-      <li><b>Pago:</b> Transferencia al alias/CBU informado por EstimaPres.</li>
-      <li><b>Mora:</b> Intereses moratorios a tasa máxima legal.</li>
-      <li><b>Contacto:</b> ${L.borrower?.email || '-'} · ${L.borrower?.phone || '-'}.</li>
-      <li><b>Jurisdicción:</b> Tribunales de Río Gallegos, Santa Cruz.</li>
-    </ol>
-    <h3>Calendario de pagos</h3>
-    <table><thead><tr><th>#</th><th>Vencimiento</th><th>Cuota</th></tr></thead><tbody>${rows}</tbody></table>
-    <div style="display:flex;gap:60px;margin-top:30px">
-      <div>_______________________<br>Prestamista: EstimaPres</div>
-      <div>_______________________<br>Prestatario: ${L.borrower?.name}</div>
-    </div>
-    ${signerBlock}
-    <script>(function(){
-      if(!${forSigner ? "true" : "false"}) return;
-      document.getElementById('btnAccept').onclick=function(){
-        var v=(document.getElementById('signName').value||'').trim();
-        if(v.toLowerCase()!=='${(L.borrower?.name || '').trim().toLowerCase()}'){alert('El nombre no coincide.');return;}
-        window.opener&&window.opener.postMessage({type:'signed',id:'${L.id}',value:v},'*');
-        alert('¡Contrato firmado!');window.close();
-      };
-    })();<\/script>
-    </body></html>`;
+/* ===== Modal firma táctil ===== */
+let gSignLoan=null;
+
+function openSignModal(L){
+  gSignLoan=L;
+  const modal=$("#sigModal"); modal.classList.add("open");
+  const canvas=$("#sigCanvas");
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.clientWidth||380; canvas.height=180;
+  const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.lineJoin="round";
+  let drawing=false;
+  function getPos(e){ const rect=canvas.getBoundingClientRect(); const src=e.touches?e.touches[0]:e; return{x:src.clientX-rect.left,y:src.clientY-rect.top}; }
+  function onStart(e){ e.preventDefault(); drawing=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
+  function onMove(e){ e.preventDefault(); if(!drawing) return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }
+  function onEnd(e){ e.preventDefault(); drawing=false; }
+  canvas.onmousedown=onStart; canvas.onmousemove=onMove; canvas.onmouseup=onEnd; canvas.onmouseleave=onEnd;
+  canvas.ontouchstart=onStart; canvas.ontouchmove=onMove; canvas.ontouchend=onEnd;
+  $("#btnClearSig").onclick=()=>ctx.clearRect(0,0,canvas.width,canvas.height);
 }
 
-function openContract(L, forSigner) {
-  const w = window.open("about:blank", "_blank");
-  w.document.open(); w.document.write(contractHtml(L, forSigner)); w.document.close();
+function closeSignModal(){ $("#sigModal").classList.remove("open"); gSignLoan=null; }
+$("#btnCancelSig").onclick=closeSignModal;
+
+$("#btnConfirmSig").onclick=async()=>{
+  const canvas=$("#sigCanvas");
+  const ctx=canvas.getContext("2d");
+  const px=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  const hasDrawing=Array.from(px).some((v,i)=>i%4===3&&v>0);
+  if(!hasDrawing){alert("Por favor firmá en el recuadro antes de confirmar.");return;}
+  const sigImg=canvas.toDataURL("image/png");
+  const L=gSignLoan; if(!L) return;
+  try{
+    await updateDoc(doc(db,"loans",L.id),{signed:true,signedAt:nowTS(),updatedAt:nowTS(),signatureImg:sigImg});
+    closeSignModal();
+    alert("¡Firma registrada! El administrador aprobará tu préstamo en breve.");
+    $("#btnFindMyLoan").click();
+  } catch(e){alert("No se pudo guardar. Intentá de nuevo.");console.error(e);}
+};
+
+/* ===== Contrato legal sólido ===== */
+function contractHtml(L){
+  const today  =new Date().toLocaleDateString("es-AR");
+  const appName=gSettings.appName||"EstimaPres";
+  const city   =gSettings.city||"Río Gallegos";
+  const inst   =(L.installment&&L.installment>0)?L.installment:Math.round(annuityPayment(L.amount,L.tna,L.months));
+  const rows=scheduleRows(L).map(r=>`<tr><td style="text-align:center">${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td style="text-align:right">${fmtMoney(r.amount)}</td><td style="text-align:center">${r.paid?"✓ Pagada":"Pendiente"}</td></tr>`).join("");
+  const sigImg=L.signatureImg?`<div style="border:1px solid #ccc;border-radius:8px;padding:8px;max-width:280px;margin-top:8px"><img src="${L.signatureImg}" style="width:100%;max-height:70px;object-fit:contain"/><div style="font-size:9pt;color:#555;margin-top:4px">Firma electrónica — Ley 25.506</div></div>`:`<div style="border-bottom:1px solid #333;width:200px;margin-top:30px;margin-bottom:4px"></div><div style="font-size:9pt;color:#888">Pendiente de firma</div>`;
+  return`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Contrato ${L.contractId||""} · ${appName}</title>
+<style>@page{size:A4;margin:25mm 20mm}body{font-family:'Times New Roman',serif;color:#111;font-size:11pt;line-height:1.6}h1{font-size:15pt;text-align:center;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}h2{font-size:11pt;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:3px;margin:18px 0 8px}p{margin-bottom:8px}.parties{background:#f8f8f8;border:1px solid #ddd;padding:12px;margin:12px 0;border-radius:4px}ol{padding-left:20px}ol li{margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:10pt;margin-top:8px}th{background:#1a56db;color:#fff;padding:8px;text-align:left}td{border:1px solid #ddd;padding:7px 8px}tr:nth-child(even){background:#f5f8ff}.sign-block{display:flex;gap:60px;margin-top:30px}</style>
+</head><body>
+<h1>Contrato de Préstamo Personal</h1>
+<p style="text-align:center;color:#555;margin-bottom:20px">${appName} · Contrato N° <strong>${L.contractId||"—"}</strong> · Fecha: <strong>${today}</strong></p>
+<div class="parties"><strong>PRESTAMISTA:</strong> ${appName}, domicilio en ${city}, Provincia de Santa Cruz, República Argentina.<br><strong>PRESTATARIO:</strong> ${L.borrower?.name||"—"}, DNI ${L.borrower?.dni||"—"}, Email: ${L.borrower?.email||"—"}, Tel: ${L.borrower?.phone||"—"}.</div>
+<h2>CLÁUSULAS</h2><ol>
+<li><strong>Objeto:</strong> El PRESTAMISTA otorga al PRESTATARIO un préstamo personal de <strong>${fmtMoney(L.amount)}</strong> de libre disponibilidad, transferido al alias/CBU informado por el PRESTATARIO.</li>
+<li><strong>Plazo y amortización:</strong> El préstamo será devuelto en <strong>${L.months}</strong> cuotas mensuales calculadas bajo el sistema francés, con vencimiento el día <strong>${L.dueDay}</strong> de cada mes. Cuota: <strong>${fmtMoney(inst)}</strong>.</li>
+<li><strong>Tasa de interés:</strong> TNA de <strong>${L.tna}%</strong> (tasa mensual: ${((L.tna/12).toFixed(4))}%).</li>
+<li><strong>Mora automática:</strong> La mora operará de pleno derecho, automáticamente y sin necesidad de interpelación judicial ni extrajudicial alguna, por el solo vencimiento de los plazos (art. 509 CCyCN). Desde la fecha de vencimiento, el saldo adeudado devengará intereses punitorios equivalentes al doble de la tasa pactada.</li>
+<li><strong>Título ejecutivo:</strong> El presente contrato, junto con el saldo certificado por el PRESTAMISTA, constituye título ejecutivo hábil para el cobro judicial por vía del proceso ejecutivo (arts. 520 y cc. CPCCN), sin necesidad de reconocimiento previo de firma.</li>
+<li><strong>Autorización de ejecución:</strong> El PRESTATARIO autoriza expresamente al PRESTAMISTA a iniciar las acciones judiciales y/o extrajudiciales que correspondan ante el incumplimiento, incluyendo el reporte a centrales de riesgo crediticio.</li>
+<li><strong>Firma digital — Ley 25.506:</strong> El PRESTATARIO declara expresamente que la firma electrónica realizada mediante dispositivo táctil en la plataforma ${appName} tiene plena validez jurídica conforme a la Ley 25.506 de Firma Digital y sus normas reglamentarias, equivaliendo a la firma ológrafa a todos los efectos legales. El PRESTATARIO declara haber leído y comprendido la totalidad del presente contrato, prestando su consentimiento libre e informado.</li>
+<li><strong>Datos personales:</strong> El PRESTATARIO consiente el tratamiento de sus datos conforme Ley 25.326 de Protección de Datos Personales.</li>
+<li><strong>Jurisdicción:</strong> Las partes se someten a los Tribunales Ordinarios de ${city}, Provincia de Santa Cruz, con renuncia a cualquier otro fuero.</li>
+</ol>
+<h2>CALENDARIO DE PAGOS</h2>
+<table><thead><tr><th>#</th><th>Vencimiento</th><th>Importe</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table>
+<h2>FIRMAS</h2>
+<div class="sign-block">
+  <div><div style="border-bottom:1px solid #333;width:200px;margin-top:30px;margin-bottom:4px"></div><div style="font-size:9pt"><strong>PRESTAMISTA</strong><br>${appName}<br>${city}</div></div>
+  <div>${sigImg}<div style="font-size:9pt;margin-top:4px"><strong>PRESTATARIO</strong><br>${L.borrower?.name}<br>DNI: ${L.borrower?.dni}</div></div>
+</div>
+<p style="margin-top:24px;font-size:9pt;color:#888;text-align:center">Documento generado por ${appName} · ${today} · Válido conforme Ley 25.506</p>
+</body></html>`;
 }
 
-window.addEventListener("message", async ev => {
-  try {
-    if (ev?.data?.type !== "signed") return;
-    await updateDoc(doc(db, "loans", ev.data.id), { signed: true, signedName: ev.data.value, signedAt: nowTS(), updatedAt: nowTS() });
-    alert("Firma registrada."); await loadAllAdmin();
-  } catch { alert("No se pudo guardar la firma."); }
-});
+function openContract(L){ const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(contractHtml(L)); w.document.close(); }
 
-(async function trySignFromHash() {
-  if (!location.hash.startsWith("#sign-")) return;
-  const id = location.hash.replace("#sign-", "").trim();
-  const snap = await getDoc(doc(db, "loans", id)); if (!snap.exists()) return;
-  openContract({ ...snap.data(), id }, true);
+/* ===== Certificado de Deuda Exigible ===== */
+function openDebtCertificate(L){
+  const today  =new Date().toLocaleDateString("es-AR");
+  const appName=gSettings.appName||"EstimaPres";
+  const city   =gSettings.city||"Río Gallegos";
+  const late   =scheduleRows(L).filter(r=>!r.paid);
+  const capital=late.reduce((a,r)=>a+Number(r.amount||0),0);
+  const diasMora=late.length>0?daysLate(late[0].due):0;
+  const tasaMensual=(L.tna/100)/12;
+  const tasaPunit  =tasaMensual*2;
+  const intereses  =Math.round(capital*tasaPunit*(diasMora/30));
+  const total      =capital+intereses;
+  let rowsHtml="";
+  late.forEach(r=>{rowsHtml+=`<tr><td style="text-align:center">${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td style="text-align:right">${fmtMoney(r.amount)}</td><td style="text-align:center">${daysLate(r.due)} días</td></tr>`;});
+  const html=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Certificado de Deuda · ${L.contractId||""}</title>
+<style>@page{size:A4;margin:25mm 20mm}body{font-family:'Times New Roman',serif;color:#111;font-size:11pt;line-height:1.6}h1{font-size:15pt;text-align:center;text-transform:uppercase}h2{font-size:11pt;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:3px;margin:16px 0 8px}.alert{background:#fff0f0;border:2px solid #c00;border-radius:4px;padding:12px;margin:14px 0;color:#900;font-weight:bold;text-align:center;font-size:12pt}table{width:100%;border-collapse:collapse;font-size:10pt;margin-top:8px}th{background:#8b0000;color:#fff;padding:8px;text-align:left}td{border:1px solid #ddd;padding:7px 8px}tr:nth-child(even){background:#fff5f5}.total-row td{font-weight:bold;font-size:13pt;color:#8b0000;border-top:2px solid #8b0000}</style>
+</head><body>
+<h1>Certificado de Deuda Exigible</h1>
+<p style="text-align:center;color:#555;margin-bottom:16px">${appName} · Emitido el <strong>${today}</strong></p>
+<div class="alert">⚠ DOCUMENTO LEGAL — APTO PARA GESTIÓN JUDICIAL O EXTRAJUDICIAL DE COBRO</div>
+<h2>Datos del deudor</h2>
+<table><tbody>
+<tr><td><strong>Apellido y Nombre</strong></td><td>${L.borrower?.name||"—"}</td></tr>
+<tr><td><strong>DNI</strong></td><td>${L.borrower?.dni||"—"}</td></tr>
+<tr><td><strong>Email</strong></td><td>${L.borrower?.email||"—"}</td></tr>
+<tr><td><strong>Teléfono</strong></td><td>${L.borrower?.phone||"—"}</td></tr>
+<tr><td><strong>N° de Contrato</strong></td><td>${L.contractId||"—"}</td></tr>
+</tbody></table>
+<h2>Condiciones del préstamo</h2>
+<table><tbody>
+<tr><td><strong>Capital otorgado</strong></td><td>${fmtMoney(L.amount)}</td></tr>
+<tr><td><strong>Plazo</strong></td><td>${L.months} cuotas</td></tr>
+<tr><td><strong>TNA pactada</strong></td><td>${L.tna}%</td></tr>
+<tr><td><strong>Cuotas abonadas</strong></td><td>${L.paidCount||0} de ${L.months}</td></tr>
+<tr><td><strong>Cuotas impagas</strong></td><td><strong style="color:#c00">${late.length}</strong></td></tr>
+</tbody></table>
+<h2>Cuotas impagas en mora</h2>
+<table><thead><tr><th>#</th><th>Vencimiento</th><th>Capital de cuota</th><th>Días en mora</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+<h2>Liquidación de deuda exigible</h2>
+<table><tbody>
+<tr><td>Capital adeudado</td><td style="text-align:right">${fmtMoney(capital)}</td></tr>
+<tr><td>Tasa punitoria (doble TNA = ${(tasaPunit*12*100).toFixed(1)}% anual) · ${diasMora} días</td><td style="text-align:right">${fmtMoney(intereses)}</td></tr>
+<tr class="total-row"><td>TOTAL EXIGIBLE AL ${today}</td><td style="text-align:right">${fmtMoney(total)}</td></tr>
+</tbody></table>
+<p style="font-size:10pt;color:#555;margin-top:8px">* Intereses calculados a tasa punitoria conforme cláusula de mora del contrato y art. 509 CCyCN. El total se incrementa diariamente hasta cancelación.</p>
+<h2>Fundamento legal</h2>
+<p style="font-size:10pt">El Contrato N° <strong>${L.contractId||"—"}</strong> constituye título ejecutivo (arts. 520 y cc. CPCCN). La mora operó de pleno derecho (art. 509 CCyCN). Firma digital válida conforme Ley 25.506.</p>
+<div style="border-bottom:1px solid #333;width:200px;margin-top:40px;margin-bottom:6px"></div>
+<p style="font-size:10pt"><strong>${appName}</strong> — Acreedor · ${city}, Santa Cruz, Argentina</p>
+<p style="margin-top:30px;font-size:9pt;color:#888;text-align:center">Emitido por ${appName} · ${today} · Uso legal y gestión de cobro</p>
+</body></html>`;
+  const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(html); w.document.close();
+}
+
+/* ===== Hash firma desde enlace ===== */
+(async function trySignFromHash(){
+  if(!location.hash.startsWith("#sign-")) return;
+  const id=location.hash.replace("#sign-","").trim();
+  const snap=await getDoc(doc(db,"loans",id)); if(!snap.exists()) return;
+  const L={...snap.data(),id};
+  $("#myDni").value=L.borrower?.dni||"";
+  $("#myloan").scrollIntoView({behavior:"smooth"});
+  await new Promise(r=>setTimeout(r,600));
+  $("#btnFindMyLoan").click();
 })();
 
-/* ======= PDF Deuda ======= */
-function openDebtPdf(L) {
-  const today = new Date().toLocaleDateString("es-AR");
-  const late  = scheduleRows(L).filter(r => !r.paid);
-  const total = late.reduce((a, b) => a + Number(b.amount || 0), 0);
-  let rowsHtml = "";
-  late.forEach(r => { rowsHtml += `<tr><td>${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td>${fmtMoney(r.amount)}</td></tr>`; });
-  const html = [
-    "<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>Deuda " + (L.contractId || "") + "</title>",
-    "<style>@page{size:A4;margin:22mm}body{font-family:Arial;font-size:12pt}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ddd;padding:8px}th{background:#f1f5f9;text-align:left}</style>",
-    "</head><body>",
-    "<h1>Informe de Deuda · EstimaPres</h1>",
-    `<p>Fecha: ${today}</p>`,
-    `<p>Deudor: <b>${L.borrower?.name || "-"}</b> · DNI <b>${L.borrower?.dni || "-"}</b></p>`,
-    `<p>Contrato: <b>${L.contractId || "-"}</b> · Capital: <b>${fmtMoney(L.amount)}</b> · TNA: <b>${L.tna}%</b></p>`,
-    "<h3>Cuotas impagas</h3>",
-    "<table><thead><tr><th>#</th><th>Vencimiento</th><th>Importe</th></tr></thead><tbody>" + rowsHtml + "</tbody></table>",
-    `<h3>Total adeudado: ${fmtMoney(total)}</h3>`,
-    "</body></html>"
-  ].join("");
-  const w = window.open("about:blank", "_blank");
-  w.document.open(); w.document.write(html); w.document.close();
-}
+/* ===== Input formatters ===== */
+$("#simAmount").addEventListener("input",e=>{ const n=onlyDigits(e.target.value); e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):""; });
+$("#simMonths").addEventListener("input",e=>{ const n=Math.min(24,Number(onlyDigits(e.target.value)||"")); e.target.value=n?n:""; });
+$("#cfgTna").addEventListener("input",e=>e.target.value=onlyDigits(e.target.value));
+$("#cfgDue").addEventListener("input",e=>e.target.value=onlyDigits(e.target.value));
 
-/* ======= Input formatters ======= */
-$("#simAmount").addEventListener("input", e => {
-  const n = onlyDigits(e.target.value);
-  e.target.value = n ? "$ " + Number(n).toLocaleString("es-AR") : "";
-});
-$("#simMonths").addEventListener("input", e => {
-  const n = Math.min(24, Number(onlyDigits(e.target.value) || ""));
-  e.target.value = n ? n : "";
-});
-$("#cfgTna").addEventListener("input", e => e.target.value = onlyDigits(e.target.value));
-$("#cfgDue").addEventListener("input", e => e.target.value = onlyDigits(e.target.value));
-
-/* ======= Init ======= */
+/* ===== Init ===== */
 await loadSettings();
 await loadInact();
 </script>
