@@ -795,7 +795,7 @@ body.client-mode #simAmount {
 
 /* ═══ SUPERADMIN PANEL ═══ */
 .superadmin-view{display:none;position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 28px 80px}
-.superadmin-view.show{display:block}
+.superadmin-view.show{display:block !important}
 .sa-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;gap:16px;flex-wrap:wrap}
 .sa-title{font-size:26px;font-weight:800;color:var(--white);letter-spacing:-1px;display:flex;align-items:center;gap:12px}
 .sa-title .sa-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:999px;font-size:11px;font-weight:700;color:#f87171;letter-spacing:1px;text-transform:uppercase}
@@ -1381,9 +1381,23 @@ body.client-mode #simAmount {
     <div id="adminGate">
       <div class="auth-gate-box">
         <div class="auth-gate-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <div class="auth-gate-title">Acceso restringido</div>
-        <div class="auth-gate-sub">Iniciá sesión con tus credenciales de administrador para acceder al panel.</div>
-        <button id="btnAdminLogin2" class="btn-primary">Iniciar sesión</button>
+        <div class="auth-gate-title">Iniciar sesión</div>
+        <div class="auth-gate-sub">Ingresá tus credenciales para acceder a tu panel de administración.</div>
+        <div class="field" style="margin-bottom:14px;text-align:left">
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--ice);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px">Email</label>
+          <input id="loginEmail" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="email"
+            style="width:100%;padding:12px 14px;background:var(--navy-input);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:'Sora',sans-serif;font-size:14px"/>
+        </div>
+        <div class="field" style="margin-bottom:20px;text-align:left">
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--ice);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px">Contraseña</label>
+          <input id="loginPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password"
+            style="width:100%;padding:12px 14px;background:var(--navy-input);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:'Sora',sans-serif;font-size:14px"/>
+        </div>
+        <div id="loginError" style="display:none;padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:12px;font-weight:600;margin-bottom:14px"></div>
+        <button id="btnAdminLogin2" class="btn-primary" style="width:100%">Ingresar →</button>
+        <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:center">
+          ¿No tenés cuenta? <a href="#" id="btnGoToRegisterFromGate" style="color:var(--sky);font-weight:600;text-decoration:none">Registrate acá</a>
+        </div>
       </div>
     </div>
 
@@ -1792,12 +1806,15 @@ document.getElementById("btnLandingRegister")?.addEventListener("click",openRegi
 document.getElementById("btnLandingRegister2")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingLogin")?.addEventListener("click",(e)=>{
   e.preventDefault();
-  // Para "iniciá sesión" llevar al panel admin directo
+  // Para "iniciá sesión" mostrar el formulario de login
   hideLandingPage();
   el("heroSection").style.display="none";
   el("clientView").style.display="none";
   el("adminView").className="admin-wrap visible";
-  el("adminGate")?.scrollIntoView({behavior:"smooth"});
+  setTimeout(()=>{
+    el("adminGate")?.scrollIntoView({behavior:"smooth"});
+    el("loginEmail")?.focus();
+  },150);
 });
 
 // Cerrar modal registro
@@ -2222,9 +2239,12 @@ onAuthStateChanged(auth,async u=>{
 
     // Si es SuperAdmin → ir directo al panel SA, pero también cargar su financiera
     if(u.uid===SUPER_ADMIN_UID){
+      hideLandingPage();
+      el("landingView")?.classList.remove("show");
       el("heroSection").style.display="none";
       el("clientView").style.display="none";
       el("adminView").className="admin-wrap";
+      el("superadminView").style.display="block";
       el("superadminView")?.classList.add("show");
       loadSuperAdmin();
       // Cargar settings propios en segundo plano para poder cambiar a PrestarRG
@@ -2309,14 +2329,51 @@ function startStatusListener(){
 }
 
 async function doLogin(){
-  const email=prompt("Email de administrador:")||"";
-  const pass=prompt("Contraseña:")||"";
-  if(!email||!pass) return;
-  try{ await signInWithEmailAndPassword(auth,email,pass); toast("Sesión iniciada","ok"); }
-  catch{ toast("Credenciales incorrectas","err"); }
+  const email=(el("loginEmail")?.value||"").trim();
+  const pass=(el("loginPassword")?.value||"").trim();
+  const errEl=el("loginError");
+  if(errEl) errEl.style.display="none";
+  if(!email||!pass){
+    if(errEl){ errEl.textContent="Ingresá email y contraseña."; errEl.style.display="block"; }
+    else toast("Ingresá email y contraseña.","err");
+    return;
+  }
+  const btn=el("btnAdminLogin2");
+  if(btn){ btn.disabled=true; btn.textContent="Ingresando..."; }
+  try{
+    await signInWithEmailAndPassword(auth,email,pass);
+    toast("Sesión iniciada","ok");
+  }catch(e){
+    let msg="Credenciales incorrectas.";
+    if(e.code==="auth/user-not-found"||e.code==="auth/wrong-password"||e.code==="auth/invalid-credential") msg="Email o contraseña incorrectos.";
+    else if(e.code==="auth/too-many-requests") msg="Demasiados intentos. Esperá unos minutos.";
+    if(errEl){ errEl.textContent=msg; errEl.style.display="block"; }
+    else toast(msg,"err");
+    if(btn){ btn.disabled=false; btn.textContent="Ingresar →"; }
+  }
 }
-el("btnAdminLogin").onclick =doLogin;
+el("btnAdminLogin").onclick=()=>{
+  // Mostrar el adminView con el gate de login
+  hideLandingPage();
+  el("heroSection").style.display="none";
+  el("adminView").className="admin-wrap visible";
+  setTimeout(()=>el("loginEmail")?.focus(),150);
+};
 el("btnAdminLogin2").onclick=doLogin;
+
+// Enter key en campos de login
+document.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter" && (document.activeElement?.id==="loginEmail"||document.activeElement?.id==="loginPassword")){
+    doLogin();
+  }
+});
+
+// Ir a registro desde el gate de login
+document.getElementById("btnGoToRegisterFromGate")?.addEventListener("click",(e)=>{
+  e.preventDefault();
+  el("adminView").className="admin-wrap";
+  openRegisterFlow();
+});
 el("btnLogout").onclick=()=>{
   if(gStatusUnsub){ gStatusUnsub(); gStatusUnsub=null; }
   signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
