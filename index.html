@@ -376,6 +376,303 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @media(max-width:900px){.client-grid{grid-template-columns:1fr}.hero-section{grid-template-columns:1fr}.hero-kpis{grid-template-columns:1fr 1fr}.topbar-inner,.hero-section,.main-wrap{padding-left:16px;padding-right:16px}.dashboard-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.mora-row{grid-template-columns:1fr auto}.mora-summary{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.input-row,.input-row3{grid-template-columns:1fr}.nav-btn .nav-label{display:none}.schedule-header,.schedule-row{grid-template-columns:30px 1fr 90px auto;gap:4px;padding:10px}.dashboard-grid{grid-template-columns:1fr 1fr;gap:10px}.mora-row{grid-template-columns:1fr auto}}
+
+/* ═══ CLIENT PORTAL — Moni-style UX ═══ */
+body.client-mode {
+  background: #F5F7FA;
+}
+body.client-mode::before { display:none; }
+
+/* Client topbar override */
+body.client-mode .topbar {
+  background: rgba(255,255,255,0.95);
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+body.client-mode .logo-name { color: #111; }
+body.client-mode .nav-btn { color: #666; }
+body.client-mode .nav-btn:hover { background: rgba(0,0,0,0.05); color: #111; border-color: rgba(0,0,0,0.1); }
+body.client-mode .nav-btn.active { background: rgba(0,0,0,0.07); color: #111; border-color: rgba(0,0,0,0.15); }
+
+/* Client hero override */
+body.client-mode .hero-section { display: none; }
+
+/* Client cards */
+body.client-mode .card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.07);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+  border-radius: 20px;
+}
+body.client-mode .card::before { display:none; }
+body.client-mode .card-title { color: #555; letter-spacing: 1px; }
+
+/* Client label */
+body.client-mode .lender-brand-header {
+  text-align: center;
+  padding: 28px 20px 8px;
+}
+body.client-mode .lender-brand-name {
+  font-size: clamp(26px, 5vw, 38px);
+  font-weight: 800;
+  color: #111;
+  letter-spacing: -1px;
+  margin-bottom: 6px;
+}
+body.client-mode .lender-brand-tagline {
+  font-size: 14px;
+  color: #888;
+  font-weight: 400;
+}
+
+/* Form fields override */
+body.client-mode .field label {
+  color: #444;
+  text-transform: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+body.client-mode .field input,
+body.client-mode .field select,
+body.client-mode .field textarea {
+  background: #F5F7FA;
+  border: 1.5px solid #E2E8F0;
+  color: #111;
+  border-radius: 14px;
+}
+body.client-mode .field input::placeholder { color: #aaa; }
+body.client-mode .field input:focus,
+body.client-mode .field select:focus {
+  background: #fff;
+  border-color: var(--brand-color, #1a56db);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-color, #1a56db) 15%, transparent);
+  color: #111;
+}
+
+/* Slider wrapper */
+body.client-mode .client-amount-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #E2E8F0;
+  outline: none;
+  cursor: pointer;
+  margin: 12px 0 4px;
+}
+body.client-mode .client-amount-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--brand-color, #1a56db);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--brand-color, #1a56db) 40%, transparent);
+  cursor: pointer;
+  border: 3px solid #fff;
+  transition: transform 0.15s;
+}
+body.client-mode .client-amount-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+body.client-mode .client-amount-display {
+  font-size: clamp(28px, 6vw, 42px);
+  font-weight: 800;
+  color: var(--brand-color, #1a56db);
+  text-align: center;
+  letter-spacing: -1.5px;
+  margin: 8px 0 4px;
+}
+body.client-mode .client-amount-label {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+/* Pill buttons for plazo */
+body.client-mode .client-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+body.client-mode .client-pill {
+  flex: 1;
+  min-width: 52px;
+  padding: 10px 6px;
+  border: 2px solid #E2E8F0;
+  border-radius: 999px;
+  background: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-align: center;
+}
+body.client-mode .client-pill:hover {
+  border-color: var(--brand-color, #1a56db);
+  color: var(--brand-color, #1a56db);
+}
+body.client-mode .client-pill.active {
+  background: var(--brand-color, #1a56db);
+  border-color: var(--brand-color, #1a56db);
+  color: #fff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-color, #1a56db) 35%, transparent);
+}
+
+/* Cuota highlight */
+body.client-mode .client-cuota-hero {
+  text-align: center;
+  padding: 24px 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-color,#1a56db) 8%, white), color-mix(in srgb, var(--brand-color,#1a56db) 3%, white));
+  border-radius: 16px;
+  margin: 12px 0 18px;
+  border: 1.5px solid color-mix(in srgb, var(--brand-color,#1a56db) 15%, transparent);
+}
+body.client-mode .client-cuota-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #888;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+body.client-mode .client-cuota-value {
+  font-size: clamp(36px, 8vw, 54px);
+  font-weight: 800;
+  color: var(--brand-color, #1a56db);
+  letter-spacing: -2px;
+  line-height: 1;
+}
+body.client-mode .client-cuota-months {
+  font-size: 14px;
+  color: #666;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+/* CTA button */
+body.client-mode .btn-primary {
+  background: var(--brand-color, #1a56db) !important;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--brand-color,#1a56db) 40%, transparent);
+  border-radius: 16px;
+  font-size: 15px;
+  padding: 15px 20px;
+}
+body.client-mode .btn-primary:hover {
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--brand-color,#1a56db) 50%, transparent);
+  transform: translateY(-2px);
+}
+
+/* Client send button */
+body.client-mode #btnSendReq {
+  background: var(--brand-color, #1a56db) !important;
+}
+
+/* Success card */
+.req-success-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: #f0fff8;
+  border: 1.5px solid rgba(16,185,129,0.35);
+  border-radius: 14px;
+  margin-top: 14px;
+  animation: fadeUp 0.35s ease;
+}
+.req-success-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.req-success-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #065f46;
+  margin-bottom: 2px;
+}
+.req-success-sub {
+  font-size: 12px;
+  color: #047857;
+  line-height: 1.5;
+}
+
+/* Footer branding */
+.prestify-footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 11px;
+  color: #aaa;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  margin-top: 8px;
+}
+
+/* Client mode breakdown */
+body.client-mode .breakdown-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+}
+body.client-mode .breakdown-row .bl { color: #666; }
+body.client-mode .breakdown-row .bv { color: #222; }
+body.client-mode .sim-meta {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+}
+body.client-mode .sim-meta-item { color: #666; }
+body.client-mode .sim-meta-item strong { color: var(--brand-color, #1a56db); }
+body.client-mode .sim-cuota-value { color: var(--brand-color, #1a56db); font-size: 38px; }
+body.client-mode .sim-result-box { background: #F8FAFC; border-color: #E2E8F0; }
+
+/* Client schedule */
+body.client-mode .schedule-wrap {
+  border-color: #E2E8F0;
+  border-radius: 16px;
+}
+body.client-mode .schedule-header {
+  background: #F8FAFC;
+  border-bottom-color: #E2E8F0;
+}
+body.client-mode .schedule-header span { color: #888; }
+body.client-mode .schedule-row .num { color: #aaa; }
+body.client-mode .schedule-row .date { color: #333; }
+body.client-mode .schedule-row .amount { color: #111; }
+
+/* myloan override */
+body.client-mode .myloan-status {
+  background: color-mix(in srgb, var(--brand-color,#1a56db) 6%, white);
+  border-color: color-mix(in srgb, var(--brand-color,#1a56db) 25%, transparent);
+}
+body.client-mode .myloan-name { color: #111; }
+body.client-mode .myloan-meta { color: #666; }
+body.client-mode .progress-bar-fill {
+  background: linear-gradient(90deg, var(--brand-color,#1a56db), color-mix(in srgb, var(--brand-color,#1a56db) 70%, cyan));
+}
+
+/* Client input for amount - override dark style */
+body.client-mode #simAmount {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  border-radius: 14px;
+  color: #111;
+}
+
 </style>
 </head>
 <body>
@@ -590,6 +887,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
   <!-- ──── VISTA CLIENTE ──── -->
   <div id="clientView">
+    <!-- Lender brand header (only shows in client mode) -->
+    <div class="lender-brand-header" id="lenderBrandHeader" style="display:none">
+      <div class="lender-brand-name" id="lenderBrandName">Mi Financiera</div>
+      <div class="lender-brand-tagline">Préstamos rápidos y seguros</div>
+    </div>
+
     <div class="client-grid">
       <!-- Simulador -->
       <div class="card">
@@ -600,10 +903,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
           <div class="sim-meta-item">Gasto otorg. <strong id="lblGastoOtorg">3%</strong></div>
           <div class="sim-meta-item" id="lblExpMeta" style="display:none">Gastos admin <strong id="lblExp">--%</strong></div>
         </div>
-        <div class="input-row">
-          <div class="field"><label>Monto solicitado por el cliente</label><input id="simAmount" class="mono" inputmode="numeric" placeholder="$ 500.000"/></div>
+        <!-- Client mode: amount slider -->
+        <div id="clientAmountWrap" style="display:none">
+          <div class="client-amount-label">¿Cuánto necesitás?</div>
+          <div class="client-amount-display" id="clientAmountDisplay">$ 50.000</div>
+          <input type="range" id="clientAmountSlider" class="client-amount-slider"
+            min="5000" max="500000" step="5000" value="50000"/>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-bottom:16px">
+            <span>$ 5.000</span><span>$ 500.000</span>
+          </div>
+          <input type="hidden" id="simAmount" value="50000"/>
+        </div>
+        <!-- Admin mode: text input -->
+        <div id="adminAmountWrap">
+          <div class="input-row">
+            <div class="field"><label>Monto solicitado por el cliente</label><input id="simAmountInput" class="mono" inputmode="numeric" placeholder="$ 500.000"/></div>
+          </div>
+        </div>
+        <!-- Plazo selector: admin uses <select>, client uses pills -->
+        <div id="adminPlazoWrap">
           <div class="field"><label>Plazo en meses</label><select id="simMonths"><option value="">— Seleccioná un plazo —</option></select></div>
         </div>
+        <div id="clientPillsWrap" style="display:none">
+          <div style="font-size:13px;font-weight:600;color:#444;margin-bottom:10px">Elegí el plazo</div>
+          <div class="client-pills-wrap" id="clientPillsContainer"></div>
+          <input type="hidden" id="simMonthsHidden" value=""/>
+        </div>
+
         <div id="simDeductionBadge" style="display:none" class="sim-deduction-badge">
           <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           Se descontarán <strong id="simExpAmt">$0</strong> en gastos administrativos al acreditar.
@@ -625,7 +951,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         </div>
         <div class="field"><label>Alias o CBU / CVU</label><input id="bAlias" placeholder="alias.banco o 22 dígitos"/></div>
         <div class="sep"></div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.55">El monto y plazo se toman del Simulador. Completalo primero.</p>
+        <p id="simHintText" style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.55">El monto y plazo se toman del Simulador. Completalo primero.</p>
         <button id="btnSendReq" class="btn-primary" style="background:linear-gradient(135deg,#0f766e,#0d9488)"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar solicitud</button>
       </div>
 
@@ -638,6 +964,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         </div>
         <div id="myLoanResult"></div>
       </div>
+    </div>
+
+    <!-- Prestify footer (only in client mode) -->
+    <div class="prestify-footer" id="prestifyFooter" style="display:none">
+      Potenciado por <strong>Prestify</strong> | Tu financiera, digitalizada
     </div>
   </div>
 
@@ -725,6 +1056,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
               <div class="field"><label>Nombre del negocio</label><input id="cfgAppName" placeholder="DineroYa"/></div>
               <div class="field"><label>Ciudad de operación</label><input id="cfgCity" placeholder="Río Gallegos, Santa Cruz"/></div>
             </div>
+            <div class="field">
+              <label>Color de tu Marca</label>
+              <div style="display:flex;align-items:center;gap:12px">
+                <input type="color" id="cfgBrandColor" value="#1a56db" style="width:48px;height:40px;border:none;background:none;cursor:pointer;border-radius:8px;padding:2px"/>
+                <span style="font-size:12px;color:var(--muted)">Este color se aplica al portal de clientes (slider, botones, CTA).</span>
+              </div>
+            </div>
           </div>
           <div class="cfg-section">
             <div class="cfg-section-title"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Tasas y condiciones</div>
@@ -736,9 +1074,54 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
               <label>Plazos disponibles (meses)</label>
               <p class="field-hint" style="margin-bottom:10px">Seleccioná los plazos que ofrecés a tus clientes. Solo estos aparecerán en el simulador.</p>
               <div class="plazo-grid" id="plazoGrid">
-                ${Array.from({length:24},(_,i)=>i+1).map(n=>`
-                  <input type="checkbox" class="plazo-check" id="plazo${n}" value="${n}"/>
-                  <label class="plazo-label" for="plazo${n}">${n}</label>`).join("")}
+                  <input type="checkbox" class="plazo-check" id="plazo1" value="1"/>
+                  <label class="plazo-label" for="plazo1">1</label>
+                  <input type="checkbox" class="plazo-check" id="plazo2" value="2"/>
+                  <label class="plazo-label" for="plazo2">2</label>
+                  <input type="checkbox" class="plazo-check" id="plazo3" value="3"/>
+                  <label class="plazo-label" for="plazo3">3</label>
+                  <input type="checkbox" class="plazo-check" id="plazo4" value="4"/>
+                  <label class="plazo-label" for="plazo4">4</label>
+                  <input type="checkbox" class="plazo-check" id="plazo5" value="5"/>
+                  <label class="plazo-label" for="plazo5">5</label>
+                  <input type="checkbox" class="plazo-check" id="plazo6" value="6"/>
+                  <label class="plazo-label" for="plazo6">6</label>
+                  <input type="checkbox" class="plazo-check" id="plazo7" value="7"/>
+                  <label class="plazo-label" for="plazo7">7</label>
+                  <input type="checkbox" class="plazo-check" id="plazo8" value="8"/>
+                  <label class="plazo-label" for="plazo8">8</label>
+                  <input type="checkbox" class="plazo-check" id="plazo9" value="9"/>
+                  <label class="plazo-label" for="plazo9">9</label>
+                  <input type="checkbox" class="plazo-check" id="plazo10" value="10"/>
+                  <label class="plazo-label" for="plazo10">10</label>
+                  <input type="checkbox" class="plazo-check" id="plazo11" value="11"/>
+                  <label class="plazo-label" for="plazo11">11</label>
+                  <input type="checkbox" class="plazo-check" id="plazo12" value="12"/>
+                  <label class="plazo-label" for="plazo12">12</label>
+                  <input type="checkbox" class="plazo-check" id="plazo13" value="13"/>
+                  <label class="plazo-label" for="plazo13">13</label>
+                  <input type="checkbox" class="plazo-check" id="plazo14" value="14"/>
+                  <label class="plazo-label" for="plazo14">14</label>
+                  <input type="checkbox" class="plazo-check" id="plazo15" value="15"/>
+                  <label class="plazo-label" for="plazo15">15</label>
+                  <input type="checkbox" class="plazo-check" id="plazo16" value="16"/>
+                  <label class="plazo-label" for="plazo16">16</label>
+                  <input type="checkbox" class="plazo-check" id="plazo17" value="17"/>
+                  <label class="plazo-label" for="plazo17">17</label>
+                  <input type="checkbox" class="plazo-check" id="plazo18" value="18"/>
+                  <label class="plazo-label" for="plazo18">18</label>
+                  <input type="checkbox" class="plazo-check" id="plazo19" value="19"/>
+                  <label class="plazo-label" for="plazo19">19</label>
+                  <input type="checkbox" class="plazo-check" id="plazo20" value="20"/>
+                  <label class="plazo-label" for="plazo20">20</label>
+                  <input type="checkbox" class="plazo-check" id="plazo21" value="21"/>
+                  <label class="plazo-label" for="plazo21">21</label>
+                  <input type="checkbox" class="plazo-check" id="plazo22" value="22"/>
+                  <label class="plazo-label" for="plazo22">22</label>
+                  <input type="checkbox" class="plazo-check" id="plazo23" value="23"/>
+                  <label class="plazo-label" for="plazo23">23</label>
+                  <input type="checkbox" class="plazo-check" id="plazo24" value="24"/>
+                  <label class="plazo-label" for="plazo24">24</label>
               </div>
               <div style="display:flex;gap:8px;margin-top:8px">
                 <button type="button" id="btnSelAllPlazos" class="btn-outline btn-sm">Seleccionar todos</button>
@@ -942,7 +1325,7 @@ function scheduleRows(L){
 
 /* ══ ESTADO ══ */
 let gUser=null, gLenderId=null, gRefLenderId=null;
-let gSettings={tna:null,dueDay:null,appName:"Prestify",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo",plazos:[3,6,9,12,18,24]};
+let gSettings={tna:null,dueDay:null,appName:"Prestify",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo",plazos:[3,6,9,12,18,24],brandColor:"#1a56db"};
 const GASTO_OTORGAMIENTO=3; // 3% fijo sobre el monto solicitado
 let gActivateLoan=null, inactTab="paid";
 let gNotifications=[], gSnapshotUnsub=null, knownPendingIds=new Set();
@@ -993,7 +1376,8 @@ async function loadLenderBranding(lid){
       expenses:d.expenses||gSettings.expenses, logoBase64:d.logoBase64||gSettings.logoBase64,
       wa:d.wa||gSettings.wa, mpToken:d.mpToken||"", mpPublicKey:d.mpPublicKey||"",
       status:d.status||"activo",
-      plazos:d.plazos||gSettings.plazos
+      plazos:d.plazos||gSettings.plazos,
+      brandColor:d.brandColor||gSettings.brandColor||"#1a56db"
     });
     applyBranding(); refreshSimMeta();
   }catch(e){ console.warn("Branding:",e); }
@@ -1014,6 +1398,7 @@ async function loadSettings(){
   const prev=el("cfgLogoPreview");
   if(prev){ if(gSettings.logoBase64) prev.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`;
             else prev.textContent=(gSettings.appName||"P").replace(/\s+/g,"").slice(0,2).toUpperCase(); }
+  const bcEl=el("cfgBrandColor"); if(bcEl&&gSettings.brandColor) bcEl.value=gSettings.brandColor;
   const mpB=el("mpStatusBadge");
   if(mpB) mpB.innerHTML=gSettings.mpToken
     ?`<span class="mp-connected">Mercado Pago conectado y activo</span>`
@@ -1045,17 +1430,72 @@ function refreshSimMeta(){
 }
 
 function refreshPlazoSelector(){
-  const sel=el("simMonths"); if(!sel) return;
-  const plazos=Array.isArray(gSettings.plazos)&&gSettings.plazos.length>0
-    ?[...gSettings.plazos].sort((a,b)=>a-b):[3,6,9,12,18,24];
-  const cur=sel.value;
-  sel.innerHTML=`<option value="">— Seleccioná un plazo —</option>`;
-  plazos.forEach(n=>{
-    const opt=document.createElement("option");
-    opt.value=n; opt.textContent=n+(n===1?" mes":" meses");
-    if(String(n)===String(cur)) opt.selected=true;
-    sel.appendChild(opt);
-  });
+  const sel=el("simMonths"); if(sel){
+    const plazos=Array.isArray(gSettings.plazos)&&gSettings.plazos.length>0
+      ?[...gSettings.plazos].sort((a,b)=>a-b):[3,6,9,12,18,24];
+    const cur=sel.value;
+    sel.innerHTML=`<option value="">— Seleccioná un plazo —</option>`;
+    plazos.forEach(n=>{
+      const opt=document.createElement("option");
+      opt.value=n; opt.textContent=n+(n===1?" mes":" meses");
+      if(String(n)===String(cur)) opt.selected=true;
+      sel.appendChild(opt);
+    });
+  }
+  // Build pill buttons for client mode
+  const pillsContainer=el("clientPillsContainer");
+  if(pillsContainer){
+    const plazos=Array.isArray(gSettings.plazos)&&gSettings.plazos.length>0
+      ?[...gSettings.plazos].sort((a,b)=>a-b):[3,6,9,12,18,24];
+    const currentVal=el("simMonthsHidden")?.value||"";
+    pillsContainer.innerHTML=plazos.map(n=>
+      `<button type="button" class="client-pill${String(n)===String(currentVal)?" active":""}" data-months="${n}">${n} ${n===1?"mes":"m"}</button>`
+    ).join("");
+    pillsContainer.querySelectorAll(".client-pill").forEach(pill=>{
+      pill.addEventListener("click",()=>{
+        pillsContainer.querySelectorAll(".client-pill").forEach(p=>p.classList.remove("active"));
+        pill.classList.add("active");
+        const mh=el("simMonthsHidden"); if(mh) mh.value=pill.dataset.months;
+        // Auto-trigger sim if amount is set
+        autoSimClient();
+      });
+    });
+  }
+}
+
+function getSimMonths(){
+  // In client mode use hidden input, in admin mode use select
+  if(gRefLenderId && !gLenderId){
+    return Number(el("simMonthsHidden")?.value||0);
+  }
+  return Number(el("simMonths")?.value||0);
+}
+
+function getSimAmount(){
+  if(gRefLenderId && !gLenderId){
+    return Number(el("clientAmountSlider")?.value||el("simAmount")?.value||0);
+  }
+  return Number(digits(el("simAmountInput")?.value||el("simAmount")?.value||""));
+}
+
+function autoSimClient(){
+  const amt=getSimAmount(), m=getSimMonths();
+  if(!amt || !m || !gSettings.tna) return;
+  const gastoOtorgAmt=Math.round(amt*GASTO_OTORGAMIENTO/100);
+  const capitalFinanciar=amt+gastoOtorgAmt;
+  const cuota=Math.round(annuity(capitalFinanciar,gSettings.tna,m));
+  // Show cuota hero
+  let hero=el("clientCuotaHero");
+  if(!hero){
+    hero=document.createElement("div");
+    hero.id="clientCuotaHero";
+    hero.className="client-cuota-hero";
+    const simResult=el("simResult");
+    if(simResult) simResult.parentNode.insertBefore(hero,simResult);
+  }
+  hero.innerHTML=`<div class="client-cuota-label">Tu cuota mensual</div>
+    <div class="client-cuota-value">${fmtMoney(cuota)}</div>
+    <div class="client-cuota-months">${m} cuotas · TNA ${gSettings.tna}%</div>`;
 }
 
 function applyBranding(){
@@ -1066,6 +1506,36 @@ function applyBranding(){
             else mark.textContent=name.replace(/\s+/g,"").slice(0,1).toUpperCase(); }
   const mid=Math.ceil(name.length/2);
   const ln=el("logoName"); if(ln) ln.innerHTML=`${name.slice(0,mid)}<span>${name.slice(mid)}</span>`;
+
+  // Apply brand color CSS variable
+  const bc=gSettings.brandColor||"#1a56db";
+  document.documentElement.style.setProperty("--brand-color", bc);
+
+  // Client portal mode (when accessed via ?ref=UID)
+  if(gRefLenderId && !gLenderId){
+    document.body.classList.add("client-mode");
+    // Show lender brand header
+    const bh=el("lenderBrandHeader"); if(bh) bh.style.display="";
+    const bn=el("lenderBrandName"); if(bn) bn.textContent=name;
+    const ft=el("prestifyFooter"); if(ft) ft.style.display="";
+    // Switch to slider + pills UI
+    const caw=el("clientAmountWrap"); if(caw) caw.style.display="";
+    const aaw=el("adminAmountWrap"); if(aaw) aaw.style.display="none";
+    const apw=el("adminPlazoWrap"); if(apw) apw.style.display="none";
+    const cpw=el("clientPillsWrap"); if(cpw) cpw.style.display="";
+    // Hide hero section
+    const hs=el("heroSection"); if(hs) hs.style.display="none";
+    // Update hint text
+    const ht=el("simHintText");
+    if(ht) ht.textContent="Usá el simulador para ver tu cuota, luego completá el formulario.";
+    // Update button text
+    const btnSim=el("btnSim");
+    if(btnSim) btnSim.innerHTML=`<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Ver mi cuota`;
+    // Update card title
+    const cardTitles=document.querySelectorAll(".card-title");
+    if(cardTitles.length > 0) cardTitles[0].innerHTML=`<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Calculá tu cuota`;
+    if(cardTitles.length > 1) cardTitles[1].innerHTML=`<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Solicitá tu préstamo`;
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1401,8 +1871,8 @@ document.querySelectorAll(".tab-btn[data-tab]").forEach(btn=>{
 
 /* ══ SIMULADOR ══ */
 el("btnSim").onclick=()=>{
-  const montoSolicitado=Number(digits(el("simAmount").value));
-  const m=Number(el("simMonths").value);
+  const montoSolicitado=getSimAmount();
+  const m=getSimMonths();
   if(!gSettings.tna||!gSettings.dueDay){ toast("El admin aún no configuró la TNA.","err"); return; }
   if(!montoSolicitado||!m){ el("simResult").innerHTML=""; return; }
 
@@ -1430,6 +1900,19 @@ el("btnSim").onclick=()=>{
     rows+=`<div class="schedule-row"><span class="num">${String(i).padStart(2,"0")}</span><span class="date">${d.toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(cuota)}</span><span class="action-col"><span class="pill warn">Pendiente</span></span></div>`;
   }
 
+  // In client mode, also update the pill cuota hero
+  if(gRefLenderId && !gLenderId){
+    let hero=el("clientCuotaHero");
+    if(!hero){
+      hero=document.createElement("div");
+      hero.id="clientCuotaHero";
+      hero.className="client-cuota-hero";
+      el("simResult").parentNode.insertBefore(hero,el("simResult"));
+    }
+    hero.innerHTML=`<div class="client-cuota-label">Tu cuota mensual</div>
+      <div class="client-cuota-value">${fmtMoney(cuota)}</div>
+      <div class="client-cuota-months">${m} cuotas · TNA ${gSettings.tna}%</div>`;
+  }
   el("simResult").innerHTML=`<div class="sim-result-box">
     <div class="sim-cuota-display">
       <span class="sim-cuota-label">Cuota mensual</span>
@@ -1450,8 +1933,8 @@ el("btnSim").onclick=()=>{
 
 /* ══ SOLICITUD ══ */
 el("btnSendReq").onclick=async()=>{
-  const montoSolicitado=Number(digits(el("simAmount").value));
-  const months=Number(el("simMonths").value);
+  const montoSolicitado=getSimAmount();
+  const months=getSimMonths();
   if(!montoSolicitado||!months){ toast("Completá el Simulador primero.","err"); return; }
   const borrower={
     name:(el("bName").value||"").trim(), dni:digits(el("bDni").value),
@@ -1461,6 +1944,7 @@ el("btnSendReq").onclick=async()=>{
   if(!borrower.name||!borrower.dni){ toast("Completá nombre y DNI.","err"); return; }
   const lid=effectiveLid();
   if(!lid){ toast("Error: no se detectó el prestamista. Verificá la URL con ?ref=ID.","err"); return; }
+  if(!gSettings.tna){ toast("Error: no se pudo cargar la configuración del prestamista.","err"); return; }
 
   // Calcular desglose financiero
   const gastoOtorgAmt=Math.round(montoSolicitado*GASTO_OTORGAMIENTO/100);
@@ -1482,8 +1966,20 @@ el("btnSendReq").onclick=async()=>{
       borrower, lenderId:lid,
       createdAt:nowTS(), updatedAt:nowTS()
     });
-    toast("Solicitud enviada. Te contactaremos pronto.","ok");
+    // Show success message
+    const sendBtn=el("btnSendReq");
+    const originalHtml=sendBtn.innerHTML;
+    sendBtn.innerHTML=`<svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2.5"><polyline points="20 6 9 17 4 12"/></svg> ¡Solicitud enviada con éxito!`;
+    sendBtn.style.background="linear-gradient(135deg,#059669,#10b981)";
+    sendBtn.disabled=true;
     ["bName","bDni","bEmail","bPhone","bAlias"].forEach(id=>{const e=el(id);if(e)e.value="";});
+    toast("✅ Solicitud enviada. Te contactaremos pronto.","ok",5000);
+    // Show inline success card
+    const successCard=document.createElement("div");
+    successCard.className="req-success-card";
+    successCard.innerHTML=`<div class="req-success-icon">✓</div><div><div class="req-success-title">¡Solicitud recibida!</div><div class="req-success-sub">El prestamista revisará tu solicitud y se pondrá en contacto con vos.</div></div>`;
+    sendBtn.parentNode.insertBefore(successCard,sendBtn.nextSibling);
+    setTimeout(()=>{successCard.remove();sendBtn.innerHTML=originalHtml;sendBtn.style.background="";sendBtn.disabled=false;},6000);
   }catch{ toast("Error al enviar. Intentá de nuevo.","err"); }
 };
 
@@ -1869,6 +2365,7 @@ el("btnSaveCfg").onclick=async()=>{
   const city     =(el("cfgCity").value||"Río Gallegos").trim();
   const expenses =Number(el("cfgExpenses").value||"0");
   const wa       =(el("cfgWa").value||"").trim();
+  const brandColor=(el("cfgBrandColor")?.value||"#1a56db");
   const mpTokInput=(el("cfgMpToken").value||"").trim();
   const mpPubKey =(el("cfgMpPublicKey").value||"").trim();
   const mpToken  = mpTokInput&&mpTokInput!=="••••••••••••••••" ? mpTokInput : (mpTokInput===""?"":gSettings.mpToken||"");
@@ -1878,7 +2375,7 @@ el("btnSaveCfg").onclick=async()=>{
   for(let n=1;n<=24;n++){const cb=el(`plazo${n}`);if(cb&&cb.checked)plazos.push(n);}
   if(plazos.length===0){ toast("Seleccioná al menos un plazo.","err"); return; }
 
-  const data={tna,dueDay:due,appName,city,expenses,wa,plazos,lenderId:gLenderId,updatedAt:nowTS()};
+  const data={tna,dueDay:due,appName,city,expenses,wa,plazos,brandColor,lenderId:gLenderId,updatedAt:nowTS()};
   if(gSettings.logoBase64) data.logoBase64=gSettings.logoBase64;
   data.mpToken=mpToken; gSettings.mpToken=mpToken;
   if(mpPubKey){ data.mpPublicKey=mpPubKey; gSettings.mpPublicKey=mpPubKey; }
@@ -2218,7 +2715,31 @@ function openDebtCertificate(L){
 })();
 
 /* ══ INPUT FORMATTERS ══ */
-el("simAmount").addEventListener("input",e=>{const n=digits(e.target.value);e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):"";});
+const simAmountInput=el("simAmountInput");
+if(simAmountInput) simAmountInput.addEventListener("input",e=>{
+  const n=digits(e.target.value);
+  e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):"";
+  // sync hidden
+  const sa=el("simAmount"); if(sa) sa.value=n;
+});
+// Legacy: keep simAmount if it's still a visible input (not hidden) for backwards compat
+const legacySimAmount=el("simAmount");
+if(legacySimAmount && legacySimAmount.type!=="hidden"){
+  legacySimAmount.addEventListener("input",e=>{const n=digits(e.target.value);e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):"";});
+}
+// Client mode slider
+const slider=el("clientAmountSlider");
+if(slider){
+  function updateSlider(){
+    const v=Number(slider.value);
+    const disp=el("clientAmountDisplay");
+    if(disp) disp.textContent="$ "+v.toLocaleString("es-AR");
+    const sa=el("simAmount"); if(sa) sa.value=v;
+    autoSimClient();
+  }
+  slider.addEventListener("input",updateSlider);
+  updateSlider(); // init
+}
 ["cfgTna","cfgDue"].forEach(id=>{const e=el(id);if(e)e.addEventListener("input",ev=>ev.target.value=digits(ev.target.value));});
 
 /* ══ INIT ══ */
