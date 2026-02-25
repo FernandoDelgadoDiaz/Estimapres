@@ -1480,11 +1480,11 @@ body.landing-active::before{
       <span class="logo-name" id="logoName">Presti<span>fy</span></span>
     </a>
     <nav class="topbar-nav">
-      <button id="btnViewClient" class="nav-btn active">
+      <button id="btnViewClient" class="nav-btn active" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="nav-label">Portal cliente</span>
       </button>
-      <button id="btnViewAdmin" class="nav-btn">
+      <button id="btnViewAdmin" class="nav-btn" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span class="nav-label">Admin</span>
       </button>
@@ -1519,7 +1519,7 @@ body.landing-active::before{
 </header>
 
 <!-- HERO -->
-<section class="hero-section" id="heroSection">
+<section class="hero-section" id="heroSection" style="display:none">
   <div>
     <div class="hero-eyebrow" id="heroEyebrow">Prestify · Tu financiera, digitalizada</div>
     <h1 class="hero-title">Préstamos personales<br><em>rápidos y seguros</em></h1>
@@ -1540,7 +1540,7 @@ body.landing-active::before{
 <main class="main-wrap">
 
   <!-- ──── VISTA CLIENTE ──── -->
-  <div id="clientView">
+  <div id="clientView" style="display:none">
     <!-- Lender brand header (only shows in client mode) -->
     <div class="lender-brand-header" id="lenderBrandHeader" style="display:none">
       <div class="lender-brand-name" id="lenderBrandName">Mi Financiera</div>
@@ -1999,14 +1999,16 @@ let gObSigData=null, gObPayMethod="mp";
 /* ══ ?ref= MULTITENANT — captura inmediata al cargar ══ */
 (()=>{
   const params=new URLSearchParams(location.search);
-  gRefLenderId=params.get("ref")||null;
-  // Si hay ?ref= en la URL, guardar en sessionStorage para persistir navegación
-  if(gRefLenderId){
-    sessionStorage.setItem("prestify_ref",gRefLenderId);
+  const urlRef=params.get("ref");
+  if(urlRef){
+    // URL tiene ?ref= explícito → modo cliente, guardar en session
+    gRefLenderId=urlRef;
+    sessionStorage.setItem("prestify_ref",urlRef);
   } else {
-    // Recuperar de sessionStorage si el usuario navegó dentro de la misma sesión
-    const stored=sessionStorage.getItem("prestify_ref");
-    if(stored) gRefLenderId=stored;
+    // Sin ?ref= en la URL → limpiar sessionStorage para NO forzar modo cliente
+    // Esto permite que el admin acceda limpiamente desde la raíz
+    sessionStorage.removeItem("prestify_ref");
+    gRefLenderId=null;
   }
 })();
 
@@ -2017,6 +2019,7 @@ let gObSigData=null, gObPayMethod="mp";
 */
 function showLandingPage(){
   el("landingView")?.classList.add("show");
+  document.body.classList.add("landing-active");
   el("heroSection").style.display="none";
   el("clientView").style.display="none";
   el("adminView").className="admin-wrap";
@@ -2053,36 +2056,40 @@ function renderLandingPage(){
   rvEls.forEach(e=>io.observe(e));
 }
 
-// Al cargar: si no hay ?ref= y no hay sesión, mostramos landing
-if(!gRefLenderId){
-  // Mostrar landing temporalmente; se actualizará cuando onAuthStateChanged responda
-  el("landingView")?.classList.add("show");
-  el("heroSection").style.display="none";
-  el("clientView").style.display="none";
+// Al cargar: ocultar todo y esperar a que Firebase responda.
+// Si hay ?ref= → mostrar portal cliente una vez que auth resuelva.
+// Si no hay ?ref= y no hay sesión → mostrar landing (lo hace onAuthStateChanged).
+// Esto evita el "flash" de landing para usuarios ya logueados.
+(()=>{
+  const lv=el("landingView");
+  const hs=el("heroSection");
+  const cv=el("clientView");
+  if(lv) lv.classList.remove("show");
+  if(hs) hs.style.display="none";
+  if(cv) cv.style.display="none";
   el("btnViewClient").style.display="none";
   el("btnViewAdmin").style.display="none";
-  // Init animations after DOM is ready
-  requestAnimationFrame(()=>setTimeout(renderLandingPage,80));
-}
+})();
 
 // Landing CTA buttons → abrir onboarding de registro
 function openRegisterFlow(){
-  // Abrir el panel de admin que tiene el login/registro
   hideLandingPage();
   el("heroSection").style.display="none";
   el("clientView").style.display="none";
   el("adminView").className="admin-wrap visible";
   el("btnViewClient").style.display="";
   el("btnViewAdmin").style.display="";
-  // Scroll to login
-  el("adminGate")?.scrollIntoView({behavior:"smooth"});
+  // Scroll al formulario de login/registro
+  requestAnimationFrame(()=>{
+    const gate=el("adminGate");
+    if(gate) gate.scrollIntoView({behavior:"smooth",block:"center"});
+  });
 }
 document.getElementById("btnLandingRegister")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingRegister2")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingLogin")?.addEventListener("click",(e)=>{
   e.preventDefault();
   openRegisterFlow();
-  setTimeout(()=>doLogin(),300);
 });
 
 const effectiveLid = () => gLenderId||gRefLenderId;
@@ -2656,6 +2663,7 @@ document.addEventListener("click",e=>{
 /* ══ VISTAS Y TABS ══ */
 function showView(v){
   el("landingView")?.classList.remove("show");
+  document.body.classList.remove("landing-active");
   el("superadminView")?.classList.remove("show");
   const a=v==="admin";
   const sa=v==="superadmin";
