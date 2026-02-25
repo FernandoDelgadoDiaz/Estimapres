@@ -2056,19 +2056,32 @@ function renderLandingPage(){
   rvEls.forEach(e=>io.observe(e));
 }
 
-// Al cargar: ocultar todo y esperar a que Firebase responda.
-// Si hay ?ref= → mostrar portal cliente una vez que auth resuelva.
-// Si no hay ?ref= y no hay sesión → mostrar landing (lo hace onAuthStateChanged).
-// Esto evita el "flash" de landing para usuarios ya logueados.
+// Al cargar: mostrar landing INMEDIATAMENTE si no hay ?ref=
+// Si el usuario ya tiene sesión, onAuthStateChanged la ocultará en cuanto Firebase responda.
+// Esto elimina la pantalla negra en mobile mientras Firebase inicializa.
 (()=>{
-  const lv=el("landingView");
-  const hs=el("heroSection");
-  const cv=el("clientView");
-  if(lv) lv.classList.remove("show");
-  if(hs) hs.style.display="none";
-  if(cv) cv.style.display="none";
-  el("btnViewClient").style.display="none";
-  el("btnViewAdmin").style.display="none";
+  if(!gRefLenderId){
+    // Sin ?ref= → mostrar landing de inmediato (no esperar a Firebase)
+    const lv=el("landingView");
+    if(lv) lv.classList.add("show");
+    document.body.classList.add("landing-active");
+    el("heroSection").style.display="none";
+    el("clientView").style.display="none";
+    el("btnViewClient").style.display="none";
+    el("btnViewAdmin").style.display="none";
+    // Activar animaciones scroll-reveal
+    requestAnimationFrame(()=>setTimeout(renderLandingPage,60));
+  } else {
+    // Con ?ref= → ocultar todo, esperar a Firebase para mostrar portal cliente
+    const lv=el("landingView");
+    const hs=el("heroSection");
+    const cv=el("clientView");
+    if(lv) lv.classList.remove("show");
+    if(hs) hs.style.display="none";
+    if(cv) cv.style.display="none";
+    el("btnViewClient").style.display="none";
+    el("btnViewAdmin").style.display="none";
+  }
 })();
 
 // Landing CTA buttons → abrir onboarding de registro
@@ -2462,7 +2475,8 @@ onAuthStateChanged(auth,async u=>{
 
     el("adminUserLabel").textContent="Sesión: "+u.email+" · Lender ID: "+u.uid.slice(0,8)+"...";
 
-    // Ocultar landing si hay sesión activa
+    // Ocultar landing y mostrar panel INMEDIATAMENTE (antes del await)
+    // para evitar pantalla negra mientras Firebase carga la configuración
     hideLandingPage();
 
     // Si es SuperAdmin → ir directo al panel SA
@@ -2474,6 +2488,13 @@ onAuthStateChanged(auth,async u=>{
       loadSuperAdmin();
       return;
     }
+
+    // Mostrar adminView de inmediato con skeleton/loading mientras carga settings
+    el("heroSection").style.display="none";
+    el("clientView").style.display="none";
+    el("adminView").className="admin-wrap visible";
+    el("btnViewClient").style.display="";
+    el("btnViewAdmin").style.display="";
 
     await loadSettings();
 
