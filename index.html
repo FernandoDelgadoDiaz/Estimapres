@@ -1005,7 +1005,13 @@ body.client-mode #simAmount {
       🛡️ SuperAdmin
       <span class="sa-badge">Acceso restringido</span>
     </div>
-    <button class="btn-outline btn-sm" id="btnSaLogout">Cerrar sesión</button>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn-outline btn-sm" id="btnSaSwitchToMyStore" style="display:flex;align-items:center;gap:7px;background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.3);color:var(--sky)">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Ir a mi financiera (PrestarRG)
+      </button>
+      <button class="btn-outline btn-sm" id="btnSaLogout">Cerrar sesión</button>
+    </div>
   </div>
   <div class="sa-metrics" id="saMetrics">
     <div class="sa-metric-card"><div class="sa-metric-label">Prestamistas registrados</div><div class="sa-metric-val" id="saCountLenders">—</div></div>
@@ -1219,9 +1225,9 @@ body.client-mode #simAmount {
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span class="nav-label">Admin</span>
       </button>
-      <button id="btnViewSuperAdmin" class="nav-btn" style="display:none">
-        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
-        <span class="nav-label">SuperAdmin</span>
+      <button id="btnViewSuperAdmin" class="nav-btn" style="display:none;border-color:rgba(239,68,68,.35);color:#f87171">
+        <svg viewBox="0 0 24 24" style="stroke:#f87171"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3" fill="#f87171" stroke="none"/></svg>
+        <span class="nav-label" style="color:#f87171">🛡️ SuperAdmin</span>
       </button>
       <div class="nav-sep"></div>
       <div class="notif-wrap" id="notifWrap" style="display:none">
@@ -2214,13 +2220,17 @@ onAuthStateChanged(auth,async u=>{
     // Ocultar landing si hay sesión activa
     hideLandingPage();
 
-    // Si es SuperAdmin → ir directo al panel SA
+    // Si es SuperAdmin → ir directo al panel SA, pero también cargar su financiera
     if(u.uid===SUPER_ADMIN_UID){
       el("heroSection").style.display="none";
       el("clientView").style.display="none";
       el("adminView").className="admin-wrap";
       el("superadminView")?.classList.add("show");
       loadSuperAdmin();
+      // Cargar settings propios en segundo plano para poder cambiar a PrestarRG
+      await loadSettings();
+      startRealtimeListener();
+      startStatusListener();
       return;
     }
 
@@ -2427,6 +2437,19 @@ function showView(v){
 el("btnViewClient").onclick=()=>showView("client");
 el("btnViewAdmin").onclick =()=>showView("admin");
 el("btnViewSuperAdmin")?.addEventListener("click",()=>{ showView("superadmin"); loadSuperAdmin(); });
+
+// SuperAdmin → cambiar a la financiera propia (PrestarRG)
+el("btnSaSwitchToMyStore")?.addEventListener("click", async ()=>{
+  if(!gSettings.onboardingDone && !gSettings.appName){
+    // Settings no cargadas aún, intentar cargar
+    await loadSettings();
+  }
+  // Ocultar superadmin, mostrar panel admin normal
+  el("superadminView")?.classList.remove("show");
+  showView("admin");
+  await loadAllAdmin();
+  toast("Bienvenido a tu financiera PrestarRG 🏦", "ok", 3000);
+});
 
 function switchTab(tabName){
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
