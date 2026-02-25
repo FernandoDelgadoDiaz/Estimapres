@@ -673,6 +673,14 @@ body.client-mode #simAmount {
   color: #111;
 }
 
+/* Manual amount input focus */
+#clientAmountManual:focus {
+  border-color: var(--brand-color, #1a56db) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-color, #1a56db) 15%, transparent);
+  background: #fff !important;
+  outline: none;
+}
+
 </style>
 </head>
 <body>
@@ -908,9 +916,14 @@ body.client-mode #simAmount {
           <div class="client-amount-label">¿Cuánto necesitás?</div>
           <div class="client-amount-display" id="clientAmountDisplay">$ 50.000</div>
           <input type="range" id="clientAmountSlider" class="client-amount-slider"
-            min="5000" max="500000" step="5000" value="50000"/>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-bottom:16px">
-            <span>$ 5.000</span><span>$ 500.000</span>
+            min="5000" max="1000000" step="5000" value="50000"/>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-bottom:10px">
+            <span id="sliderMinLabel">$ 5.000</span><span id="sliderMaxLabel">$ 1.000.000</span>
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:5px;display:block">O ingresá el monto manualmente</label>
+            <input id="clientAmountManual" inputmode="numeric" placeholder="Ej: 2.500.000"
+              style="background:#F5F7FA;border:1.5px solid #E2E8F0;border-radius:14px;padding:11px 15px;width:100%;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#111;outline:none;transition:border-color .2s"/>
           </div>
           <input type="hidden" id="simAmount" value="50000"/>
         </div>
@@ -1136,6 +1149,11 @@ body.client-mode #simAmount {
               </div>
               <div class="field"><label>WhatsApp del prestamista</label><input id="cfgWa" inputmode="tel" placeholder="5492966123456"/></div>
             </div>
+            <div class="field">
+              <label>Monto Máximo a Prestar</label>
+              <input id="cfgMaxAmount" inputmode="numeric" class="mono" placeholder="1.000.000"/>
+              <p class="field-hint">Este valor define el máximo del slider en el portal de clientes. Por defecto: $ 1.000.000.</p>
+            </div>
           </div>
           <div class="cfg-section">
             <div class="cfg-section-title"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Mi Link Prestify</div>
@@ -1325,7 +1343,7 @@ function scheduleRows(L){
 
 /* ══ ESTADO ══ */
 let gUser=null, gLenderId=null, gRefLenderId=null;
-let gSettings={tna:null,dueDay:null,appName:"Prestify",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo",plazos:[3,6,9,12,18,24],brandColor:"#1a56db"};
+let gSettings={tna:null,dueDay:null,appName:"Prestify",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo",plazos:[3,6,9,12,18,24],brandColor:"#1a56db",maxAmount:1000000};
 const GASTO_OTORGAMIENTO=3; // 3% fijo sobre el monto solicitado
 let gActivateLoan=null, inactTab="paid";
 let gNotifications=[], gSnapshotUnsub=null, knownPendingIds=new Set();
@@ -1377,7 +1395,8 @@ async function loadLenderBranding(lid){
       wa:d.wa||gSettings.wa, mpToken:d.mpToken||"", mpPublicKey:d.mpPublicKey||"",
       status:d.status||"activo",
       plazos:d.plazos||gSettings.plazos,
-      brandColor:d.brandColor||gSettings.brandColor||"#1a56db"
+      brandColor:d.brandColor||gSettings.brandColor||"#1a56db",
+      maxAmount:d.maxAmount||gSettings.maxAmount||1000000
     });
     applyBranding(); refreshSimMeta();
   }catch(e){ console.warn("Branding:",e); }
@@ -1393,6 +1412,7 @@ async function loadSettings(){
   sv("cfgTna",gSettings.tna||""); sv("cfgDue",gSettings.dueDay||"");
   sv("cfgAppName",gSettings.appName||""); sv("cfgCity",gSettings.city||"");
   sv("cfgExpenses",gSettings.expenses||0); sv("cfgWa",gSettings.wa||"");
+  sv("cfgMaxAmount",gSettings.maxAmount||1000000);
   const mpTok=el("cfgMpToken"); if(mpTok) mpTok.placeholder=gSettings.mpToken?"••••••••••••••••":"APP_USR-xxxxxxxxxxxx";
   const mpPub=el("cfgMpPublicKey"); if(mpPub) mpPub.value=gSettings.mpPublicKey||"";
   const prev=el("cfgLogoPreview");
@@ -1473,6 +1493,10 @@ function getSimMonths(){
 
 function getSimAmount(){
   if(gRefLenderId && !gLenderId){
+    // Prefer manual input if user typed there, else slider
+    const manualEl=el("clientAmountManual");
+    const manualVal=manualEl?Number(digits(manualEl.value)):0;
+    if(manualVal>0) return manualVal;
     return Number(el("clientAmountSlider")?.value||el("simAmount")?.value||0);
   }
   return Number(digits(el("simAmountInput")?.value||el("simAmount")?.value||""));
@@ -1514,6 +1538,18 @@ function applyBranding(){
   // Client portal mode (when accessed via ?ref=UID)
   if(gRefLenderId && !gLenderId){
     document.body.classList.add("client-mode");
+    // Update slider max from settings
+    const maxAmt=gSettings.maxAmount||1000000;
+    const sliderEl=el("clientAmountSlider");
+    if(sliderEl){
+      sliderEl.max=maxAmt;
+      if(Number(sliderEl.value)>maxAmt) sliderEl.value=Math.round(maxAmt*0.05);
+      const disp=el("clientAmountDisplay");
+      if(disp) disp.textContent="$ "+Number(sliderEl.value).toLocaleString("es-AR");
+      const sa=el("simAmount"); if(sa) sa.value=sliderEl.value;
+    }
+    const maxLbl=el("sliderMaxLabel"); if(maxLbl) maxLbl.textContent="$ "+maxAmt.toLocaleString("es-AR");
+    const minLbl=el("sliderMinLabel"); if(minLbl) minLbl.textContent="$ 5.000";
     // Show lender brand header
     const bh=el("lenderBrandHeader"); if(bh) bh.style.display="";
     const bn=el("lenderBrandName"); if(bn) bn.textContent=name;
@@ -1942,7 +1978,11 @@ el("btnSendReq").onclick=async()=>{
     alias:(el("bAlias").value||"").trim()
   };
   if(!borrower.name||!borrower.dni){ toast("Completá nombre y DNI.","err"); return; }
-  const lid=effectiveLid();
+
+  // Obtener lenderId: primero del URL ?ref=, luego del usuario logueado
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlRef = urlParams.get("ref");
+  const lid = urlRef || gLenderId;
   if(!lid){ toast("Error: no se detectó el prestamista. Verificá la URL con ?ref=ID.","err"); return; }
   if(!gSettings.tna){ toast("Error: no se pudo cargar la configuración del prestamista.","err"); return; }
 
@@ -2366,6 +2406,7 @@ el("btnSaveCfg").onclick=async()=>{
   const expenses =Number(el("cfgExpenses").value||"0");
   const wa       =(el("cfgWa").value||"").trim();
   const brandColor=(el("cfgBrandColor")?.value||"#1a56db");
+  const maxAmount=Number(digits(el("cfgMaxAmount")?.value||"1000000"))||1000000;
   const mpTokInput=(el("cfgMpToken").value||"").trim();
   const mpPubKey =(el("cfgMpPublicKey").value||"").trim();
   const mpToken  = mpTokInput&&mpTokInput!=="••••••••••••••••" ? mpTokInput : (mpTokInput===""?"":gSettings.mpToken||"");
@@ -2375,7 +2416,7 @@ el("btnSaveCfg").onclick=async()=>{
   for(let n=1;n<=24;n++){const cb=el(`plazo${n}`);if(cb&&cb.checked)plazos.push(n);}
   if(plazos.length===0){ toast("Seleccioná al menos un plazo.","err"); return; }
 
-  const data={tna,dueDay:due,appName,city,expenses,wa,plazos,brandColor,lenderId:gLenderId,updatedAt:nowTS()};
+  const data={tna,dueDay:due,appName,city,expenses,wa,plazos,brandColor,maxAmount,lenderId:gLenderId,updatedAt:nowTS()};
   if(gSettings.logoBase64) data.logoBase64=gSettings.logoBase64;
   data.mpToken=mpToken; gSettings.mpToken=mpToken;
   if(mpPubKey){ data.mpPublicKey=mpPubKey; gSettings.mpPublicKey=mpPubKey; }
@@ -2383,7 +2424,7 @@ el("btnSaveCfg").onclick=async()=>{
     setDoc(settRef(),data,{merge:true}),
     setDoc(lenderRef(gLenderId),data,{merge:true})
   ]);
-  gSettings.plazos=plazos;
+  gSettings.plazos=plazos; gSettings.maxAmount=maxAmount;
   await loadSettings(); refreshPlazoSelector(); toast("Configuración guardada","ok");
 };
 
@@ -2735,10 +2776,43 @@ if(slider){
     const disp=el("clientAmountDisplay");
     if(disp) disp.textContent="$ "+v.toLocaleString("es-AR");
     const sa=el("simAmount"); if(sa) sa.value=v;
+    // Sync manual input display
+    const mi=el("clientAmountManual"); if(mi) mi.value="$ "+v.toLocaleString("es-AR");
     autoSimClient();
   }
   slider.addEventListener("input",updateSlider);
   updateSlider(); // init
+}
+
+// Client manual amount input
+const clientManualInput=el("clientAmountManual");
+if(clientManualInput){
+  clientManualInput.addEventListener("input",e=>{
+    const raw=digits(e.target.value);
+    if(raw) e.target.value="$ "+Number(raw).toLocaleString("es-AR");
+    const numVal=Number(raw)||0;
+    // Update hidden and slider
+    const sa=el("simAmount"); if(sa) sa.value=numVal;
+    const sl=el("clientAmountSlider");
+    if(sl){
+      // Extend slider max if user types more
+      const currentMax=Number(sl.max)||1000000;
+      if(numVal>currentMax) sl.max=numVal;
+      sl.value=numVal;
+    }
+    const disp=el("clientAmountDisplay");
+    if(disp&&numVal) disp.textContent="$ "+numVal.toLocaleString("es-AR");
+    autoSimClient();
+  });
+  clientManualInput.addEventListener("focus",e=>{
+    // Show raw number on focus for easy editing
+    const raw=digits(e.target.value);
+    if(raw) e.target.value=raw;
+  });
+  clientManualInput.addEventListener("blur",e=>{
+    const raw=digits(e.target.value);
+    if(raw) e.target.value="$ "+Number(raw).toLocaleString("es-AR");
+  });
 }
 ["cfgTna","cfgDue"].forEach(id=>{const e=el(id);if(e)e.addEventListener("input",ev=>ev.target.value=digits(ev.target.value));});
 
