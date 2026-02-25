@@ -29,6 +29,52 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
              radial-gradient(ellipse 50% 40% at 0% 100%,rgba(26,86,219,.11) 0%,transparent 60%),
              repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(96,165,250,.025) 40px),
              repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(96,165,250,.025) 40px)}
+
+/* ═══ SUSPENDED OVERLAY ═══ */
+.suspended-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(5,13,31,.97);backdrop-filter:blur(16px);align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;padding:30px}
+.suspended-overlay.show{display:flex}
+.suspended-icon{width:80px;height:80px;border-radius:20px;background:var(--danger-dim);border:2px solid rgba(239,68,68,.4);display:flex;align-items:center;justify-content:center;animation:pulse-danger 2s ease infinite}
+.suspended-icon svg{width:36px;height:36px;stroke:#f87171;fill:none;stroke-width:1.5}
+@keyframes pulse-danger{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}60%{box-shadow:0 0 0 16px rgba(239,68,68,0)}}
+.suspended-title{font-size:24px;font-weight:800;color:#f87171;letter-spacing:-.5px}
+.suspended-msg{font-size:15px;color:var(--muted);line-height:1.65;max-width:460px}
+.suspended-msg strong{color:var(--ice)}
+
+/* ═══ ONBOARDING ═══ */
+.onboarding-overlay{display:none;position:fixed;inset:0;z-index:600;background:rgba(5,13,31,.97);backdrop-filter:blur(20px);align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.onboarding-overlay.show{display:flex}
+.onboarding-box{background:var(--navy-card);border:1px solid var(--border-hi);border-radius:24px;padding:36px;width:100%;max-width:540px;box-shadow:0 32px 80px rgba(5,13,31,.9);animation:fadeUp .4s ease both}
+.ob-steps{display:flex;gap:0;margin-bottom:32px;position:relative}
+.ob-steps::before{content:'';position:absolute;top:16px;left:16px;right:16px;height:2px;background:var(--border);z-index:0}
+.ob-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;z-index:1}
+.ob-step-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--muted);transition:all .3s;flex-shrink:0}
+.ob-step.active .ob-step-dot{border-color:var(--sky);background:rgba(96,165,250,.15);color:var(--sky)}
+.ob-step.done .ob-step-dot{border-color:var(--ok);background:rgba(16,185,129,.15);color:var(--ok)}
+.ob-step-label{font-size:10px;font-weight:600;color:var(--muted);margin-top:6px;text-align:center;letter-spacing:.5px;text-transform:uppercase}
+.ob-step.active .ob-step-label{color:var(--sky)}
+.ob-step.done .ob-step-label{color:var(--ok)}
+.ob-content{display:none}
+.ob-content.active{display:block;animation:fadeUp .3s ease both}
+.ob-title{font-size:20px;font-weight:800;color:var(--white);margin-bottom:6px;letter-spacing:-.4px}
+.ob-subtitle{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+/* Consent text */
+.ob-consent-box{background:rgba(5,13,31,.6);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;max-height:140px;overflow-y:auto}
+.ob-consent-box p{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:6px}
+.ob-consent-box strong{color:var(--ice)}
+.ob-consent-check{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:rgba(26,86,219,.08);border:1px solid var(--border-hi);border-radius:10px;cursor:pointer;margin-bottom:20px}
+.ob-consent-check input[type=checkbox]{width:16px;height:16px;margin-top:1px;flex-shrink:0;accent-color:var(--sky);cursor:pointer}
+.ob-consent-check label{font-size:12px;color:var(--ice);line-height:1.5;cursor:pointer}
+.ob-sig-wrap{border:2px dashed var(--border-hi);border-radius:14px;overflow:hidden;background:rgba(5,13,31,.6);touch-action:none;margin-bottom:16px}
+#obSigCanvas{display:block;width:100%;height:150px;cursor:crosshair}
+.ob-nav{display:flex;gap:10px;margin-top:20px}
+.payment-method-selector{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.pm-option{padding:16px;border:2px solid var(--border);border-radius:14px;cursor:pointer;transition:all .2s;text-align:center}
+.pm-option:hover{border-color:var(--border-hi)}
+.pm-option.selected{border-color:var(--sky);background:rgba(96,165,250,.08)}
+.pm-option .pm-icon{font-size:24px;margin-bottom:8px}
+.pm-option .pm-name{font-size:13px;font-weight:700;color:var(--white)}
+.pm-option .pm-desc{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+
 /* TOPBAR */
 .topbar{position:sticky;top:0;z-index:200;background:rgba(5,13,31,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .topbar-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:66px;display:flex;align-items:center;gap:24px}
@@ -139,6 +185,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 /* BUTTONS */
 .btn-primary{width:100%;padding:13px 20px;border:none;border-radius:var(--ri);background:linear-gradient(135deg,var(--blue-light),var(--blue));color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:var(--sb);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(26,86,219,.55)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-primary svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5}
 .btn-success{padding:10px 16px;background:var(--ok-dim);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:var(--ok);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
 .btn-success:hover{background:rgba(16,185,129,.22)}
@@ -154,10 +201,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .btn-pay{padding:7px 14px;background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.1));border:1px solid rgba(16,185,129,.35);border-radius:8px;color:var(--ok);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
 .btn-pay:hover{background:rgba(16,185,129,.25);border-color:rgba(16,185,129,.5);transform:translateY(-1px)}
 .btn-pay svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
-/* MERCADO PAGO BUTTON */
 .btn-mp{padding:7px 14px;background:linear-gradient(135deg,rgba(0,168,90,.18),rgba(0,168,90,.08));border:1px solid rgba(0,168,90,.38);border-radius:8px;color:#00c87a;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn-mp:hover{background:rgba(0,168,90,.28);border-color:rgba(0,168,90,.55);transform:translateY(-1px)}
-/* COMPROBANTE UPLOAD BUTTON */
 .btn-comp{padding:7px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:#fbbf24;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
 .btn-comp:hover{background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.5)}
 .btn-comp svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
@@ -198,13 +243,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .loan-meta strong{color:var(--ice)}
 .loan-notes{margin-top:10px;font-size:12px;color:var(--muted);background:rgba(26,86,219,.06);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
 .loan-notes strong{color:var(--sky)}
-/* PAGO MANUAL BOX */
-.manual-pay-box{margin-top:12px;padding:14px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);border-radius:12px}
-.manual-pay-title{font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:7px;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px}
-.manual-pay-inst{font-size:12px;color:var(--muted);line-height:1.65}
-.manual-pay-inst strong{color:var(--ice)}
-/* COMP REVIEW (admin) */
-.comp-review-img{max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--border-hi);margin-top:8px;display:block}
 /* MP BADGES */
 .mp-connected{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(0,168,90,.1);border:1px solid rgba(0,168,90,.3);border-radius:10px;font-size:12px;font-weight:700;color:#00c87a;margin-bottom:12px}
 .mp-connected::before{content:'';width:7px;height:7px;border-radius:50%;background:#00c87a;box-shadow:0 0 6px #00c87a}
@@ -306,6 +344,126 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </head>
 <body>
 
+<!-- ═══ SUSPENDED OVERLAY ═══ -->
+<div class="suspended-overlay" id="suspendedOverlay">
+  <div class="suspended-icon">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+  </div>
+  <div class="suspended-title">Cuenta suspendida</div>
+  <div class="suspended-msg">Tu cuenta ha sido <strong>pausada por falta de pago</strong> o incumplimiento de los términos del servicio.<br><br>Para reactivarla, contactá al soporte de la plataforma.</div>
+  <a href="mailto:soporte@dineroya.com" style="padding:13px 28px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:12px;color:#f87171;font-weight:700;font-size:14px;text-decoration:none;margin-top:8px">Contactar soporte</a>
+</div>
+
+<!-- ═══ ONBOARDING OVERLAY (3 pasos) ═══ -->
+<div class="onboarding-overlay" id="onboardingOverlay">
+  <div class="onboarding-box">
+    <div class="ob-steps">
+      <div class="ob-step active" id="obStep1">
+        <div class="ob-step-dot">1</div>
+        <div class="ob-step-label">DNI y Firma</div>
+      </div>
+      <div class="ob-step" id="obStep2">
+        <div class="ob-step-dot">2</div>
+        <div class="ob-step-label">Tu Negocio</div>
+      </div>
+      <div class="ob-step" id="obStep3">
+        <div class="ob-step-dot">3</div>
+        <div class="ob-step-label">Método de Cobro</div>
+      </div>
+    </div>
+
+    <!-- PASO 1: DNI + Consentimiento + Firma -->
+    <div class="ob-content active" id="obContent1">
+      <div class="ob-title">Bienvenido a la plataforma</div>
+      <div class="ob-subtitle">Antes de comenzar, necesitamos verificar tu identidad y aceptar los términos de uso.</div>
+      <div class="input-row" style="margin-bottom:16px">
+        <div class="field" style="margin-bottom:0"><label>Nombre completo</label><input id="obName" placeholder="Juan Pérez"/></div>
+        <div class="field" style="margin-bottom:0"><label>DNI</label><input id="obDni" inputmode="numeric" placeholder="30123456"/></div>
+      </div>
+      <div class="field" style="margin-bottom:16px"><label>Email</label><input id="obEmail" type="email" placeholder="correo@mail.com"/></div>
+
+      <div class="ob-consent-box">
+        <p><strong>Términos de Uso de la Plataforma DineroYa</strong></p>
+        <p>Al registrarte y utilizar esta plataforma, aceptás los siguientes términos:</p>
+        <p>1. El uso de la plataforma está sujeto al pago de las suscripciones o tarifas vigentes según el plan contratado.</p>
+        <p>2. <strong>El administrador de la plataforma se reserva el derecho de pausar o eliminar la cuenta en caso de incumplimiento de pagos, uso indebido del servicio, o incumplimiento de cualquier término y condición aquí establecido.</strong></p>
+        <p>3. El prestador es el único responsable del cumplimiento de las normativas locales vigentes relacionadas con la actividad de préstamo de dinero.</p>
+        <p>4. Los datos almacenados se tratarán conforme a la Ley 25.326 de Protección de Datos Personales.</p>
+        <p>5. El uso de la firma electrónica tiene plena validez según la Ley 25.506.</p>
+        <p>6. La plataforma actúa únicamente como herramienta de gestión y no es parte de los contratos de préstamo entre el prestador y sus clientes.</p>
+      </div>
+
+      <label class="ob-consent-check">
+        <input type="checkbox" id="obConsentCheck"/>
+        <span>Leí y acepto los Términos de Uso, incluyendo que la plataforma puede pausar o eliminar mi cuenta por incumplimiento de pagos o términos del servicio.</span>
+      </label>
+
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--ice);text-transform:uppercase;letter-spacing:.9px;margin-bottom:8px">Firma digital (Ley 25.506)</div>
+        <div class="ob-sig-wrap"><canvas id="obSigCanvas"></canvas></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="btnObClearSig" class="btn-outline btn-sm">Borrar firma</button>
+          <span style="font-size:11px;color:var(--muted);align-self:center">Firmá con el dedo o el mouse</span>
+        </div>
+      </div>
+
+      <div class="ob-nav">
+        <button id="btnObStep1" class="btn-primary" style="flex:1">Continuar al paso 2 →</button>
+      </div>
+    </div>
+
+    <!-- PASO 2: Datos del negocio -->
+    <div class="ob-content" id="obContent2">
+      <div class="ob-title">Configurá tu negocio</div>
+      <div class="ob-subtitle">Estos datos aparecerán en tus contratos y en el portal de clientes.</div>
+      <div class="field"><label>Nombre del negocio</label><input id="obAppName" placeholder="DineroYa / Préstamos Pérez"/></div>
+      <div class="field"><label>Ciudad de operación</label><input id="obCity" placeholder="Río Gallegos, Santa Cruz"/></div>
+      <div class="input-row">
+        <div class="field"><label>TNA % (tasa nominal anual)</label><input id="obTna" inputmode="numeric" class="mono" placeholder="100"/></div>
+        <div class="field"><label>Día de vencimiento (1-28)</label><input id="obDueDay" inputmode="numeric" placeholder="10"/></div>
+      </div>
+      <div class="input-row">
+        <div class="field"><label>% Gastos administrativos</label><input id="obExpenses" inputmode="numeric" placeholder="0" class="mono"/><p class="field-hint">0 = sin descuento al entregar el capital.</p></div>
+        <div class="field"><label>WhatsApp (ej: 5492966123456)</label><input id="obWa" inputmode="tel" placeholder="5492966123456"/></div>
+      </div>
+      <div class="ob-nav">
+        <button id="btnObBack1" class="btn-outline" style="flex:0 0 auto">← Atrás</button>
+        <button id="btnObStep2" class="btn-primary" style="flex:1">Continuar al paso 3 →</button>
+      </div>
+    </div>
+
+    <!-- PASO 3: Método de cobro -->
+    <div class="ob-content" id="obContent3">
+      <div class="ob-title">Método de cobro de cuotas</div>
+      <div class="ob-subtitle">Elegí cómo van a pagar tus clientes. Podés cambiarlo después desde Configuración.</div>
+      <div class="payment-method-selector">
+        <div class="pm-option selected" id="pmOptMP" onclick="selectPayMethod('mp')">
+          <div class="pm-icon">💳</div>
+          <div class="pm-name">Mercado Pago</div>
+          <div class="pm-desc">Cobro automático online. Requiere Access Token.</div>
+        </div>
+        <div class="pm-option" id="pmOptManual" onclick="selectPayMethod('manual')">
+          <div class="pm-icon">🏦</div>
+          <div class="pm-name">Transferencia manual</div>
+          <div class="pm-desc">El cliente transfiere y sube comprobante. Vos lo verificás.</div>
+        </div>
+      </div>
+      <div id="obMpFields">
+        <div class="field"><label>Access Token de producción</label><input id="obMpToken" type="password" placeholder="APP_USR-xxxxxxxxxxxx"/><p class="field-hint">Obtenelo en Mercado Pago → Tu negocio → Credenciales.</p></div>
+        <div class="field"><label>Public Key</label><input id="obMpPublicKey" placeholder="APP_USR-xxxxxxxxxxxx"/></div>
+      </div>
+      <div id="obManualMsg" style="display:none;padding:14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px;margin-bottom:16px">
+        <p style="font-size:13px;color:#fbbf24;font-weight:700;margin-bottom:4px">📋 Modo transferencia manual activo</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.55">Tus clientes verán instrucciones para transferir y subir comprobante. Vos los aprobás desde el panel de Comprobantes.</p>
+      </div>
+      <div class="ob-nav">
+        <button id="btnObBack2" class="btn-outline" style="flex:0 0 auto">← Atrás</button>
+        <button id="btnObFinish" class="btn-primary" style="flex:1;background:linear-gradient(135deg,#059669,var(--ok))">✓ Crear mi cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- BANNER NUEVA SOLICITUD EN TIEMPO REAL -->
@@ -332,7 +490,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         <span class="nav-label">Admin</span>
       </button>
       <div class="nav-sep"></div>
-      <!-- Bell: solo visible cuando logueado -->
       <div class="notif-wrap" id="notifWrap" style="display:none">
         <button class="notif-bell" id="notifBell" title="Notificaciones">
           <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -382,7 +539,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   <!-- ──── VISTA CLIENTE ──── -->
   <div id="clientView">
     <div class="client-grid">
-
       <!-- Simulador -->
       <div class="card">
         <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Simulador de cuotas</div>
@@ -429,7 +585,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         </div>
         <div id="myLoanResult"></div>
       </div>
-
     </div>
   </div>
 
@@ -453,8 +608,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
     </div>
 
     <div id="adminContent" style="display:none">
-
-      <!-- KPIs (5 tarjetas) -->
+      <!-- KPIs -->
       <div class="dashboard-grid">
         <div class="dash-card blue">
           <div class="dash-icon blue"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
@@ -549,6 +703,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
                 <p class="field-hint">Requerida para el botón de pago en el portal del cliente.</p>
               </div>
             </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:4px">💡 Para cambiar a <strong style="color:var(--ice)">transferencia manual</strong>, dejá el Access Token en blanco y guardá.</p>
           </div>
           <button id="btnSaveCfg" class="btn-success" style="padding:13px 32px;font-size:14px">Guardar configuración</button>
         </div>
@@ -601,7 +756,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         </div>
       </div>
 
-      <!-- COMPROBANTES PENDIENTES -->
+      <!-- COMPROBANTES -->
       <div class="tab-content" id="tabComprobantes">
         <div class="card">
           <div class="card-title">🧾 Comprobantes pendientes de verificación</div>
@@ -623,7 +778,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
           <div id="listInact"><div class="empty">Sin registros</div></div>
         </div>
       </div>
-
     </div><!-- /adminContent -->
   </div><!-- /adminView -->
 
@@ -662,14 +816,12 @@ import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/fire
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-         serverTimestamp, query, where, orderBy, limit, onSnapshot }
+         serverTimestamp, query, where, orderBy, limit, onSnapshot, writeBatch }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { getStorage, ref as sRef, uploadString, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
-/* ══════════════════════════════════════
-   FIREBASE CONFIG
-   ══════════════════════════════════════ */
+/* ══ FIREBASE CONFIG ══ */
 const firebaseConfig = {
   apiKey:"AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
   authDomain:"estimapres.firebaseapp.com",
@@ -712,9 +864,10 @@ function scheduleRows(L){
 
 /* ══ ESTADO ══ */
 let gUser=null, gLenderId=null, gRefLenderId=null;
-let gSettings={tna:null,dueDay:null,appName:"DineroYa",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:""};
+let gSettings={tna:null,dueDay:null,appName:"DineroYa",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo"};
 let gActivateLoan=null, inactTab="paid";
 let gNotifications=[], gSnapshotUnsub=null, knownPendingIds=new Set();
+let gObSigData=null, gObPayMethod="mp";
 
 /* ══ ?ref= MULTITENANT ══ */
 (()=>{ gRefLenderId=new URLSearchParams(location.search).get("ref")||null; })();
@@ -725,7 +878,19 @@ const settRef      = ()     => doc(db,"settings",effectiveLid());
 const lenderRef    = id     => doc(db,"lenders",id);
 const hasMpToken   = ()     => !!(gSettings.mpToken && gSettings.mpToken.length > 10);
 
-/* ══ BRANDING DINÁMICO ══ */
+/* ══ SUSPENDED OVERLAY ══ */
+function checkSuspended(){
+  if(gSettings.status==="pausado"){
+    el("suspendedOverlay").classList.add("show");
+    // Bloquear todo el contenido de admin
+    const adminC=el("adminContent"); if(adminC) adminC.style.display="none";
+    return true;
+  }
+  el("suspendedOverlay").classList.remove("show");
+  return false;
+}
+
+/* ══ BRANDING ══ */
 async function loadLenderBranding(lid){
   try{
     const snap=await getDoc(lenderRef(lid)); if(!snap.exists()) return;
@@ -736,7 +901,8 @@ async function loadLenderBranding(lid){
       appName:d.appName||gSettings.appName, city:d.city||gSettings.city,
       tna:d.tna||gSettings.tna, dueDay:d.dueDay||gSettings.dueDay,
       expenses:d.expenses||gSettings.expenses, logoBase64:d.logoBase64||gSettings.logoBase64,
-      wa:d.wa||gSettings.wa, mpToken:d.mpToken||"", mpPublicKey:d.mpPublicKey||""
+      wa:d.wa||gSettings.wa, mpToken:d.mpToken||"", mpPublicKey:d.mpPublicKey||"",
+      status:d.status||"activo"
     });
     applyBranding(); refreshSimMeta();
   }catch(e){ console.warn("Branding:",e); }
@@ -761,6 +927,8 @@ async function loadSettings(){
   if(mpB) mpB.innerHTML=gSettings.mpToken
     ?`<span class="mp-connected">Mercado Pago conectado y activo</span>`
     :`<span class="mp-disconnected">Sin token MP — modo transferencia manual activo</span>`;
+  // Verificar suspensión después de cargar settings
+  if(gLenderId) checkSuspended();
 }
 
 function refreshSimMeta(){
@@ -782,6 +950,131 @@ function applyBranding(){
   const ln=el("logoName"); if(ln) ln.innerHTML=`${name.slice(0,mid)}<span>${name.slice(mid)}</span>`;
 }
 
+/* ══════════════════════════════════════════════════════
+   ONBOARDING — 3 pasos
+   Se muestra solo si el admin acabó de iniciar sesión
+   y NO tiene configuración guardada previa.
+   ══════════════════════════════════════════════════════ */
+let gObStep=1;
+
+function initObSigCanvas(){
+  const canvas=el("obSigCanvas");
+  if(!canvas) return;
+  canvas.width=canvas.parentElement.clientWidth||460; canvas.height=150;
+  const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2.5; ctx.lineCap="round"; ctx.lineJoin="round";
+  let drawing=false,lx=0,ly=0;
+  const pos=e=>{const r=canvas.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:s.clientX-r.left,y:s.clientY-r.top};};
+  canvas.onmousedown =e=>{drawing=true;const p=pos(e);lx=p.x;ly=p.y;};
+  canvas.onmousemove =e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;};
+  canvas.onmouseup=canvas.onmouseleave=()=>drawing=false;
+  canvas.ontouchstart=e=>{e.preventDefault();drawing=true;const p=pos(e);lx=p.x;ly=p.y;};
+  canvas.ontouchmove =e=>{e.preventDefault();if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;};
+  canvas.ontouchend  =e=>{e.preventDefault();drawing=false;};
+}
+
+function setObStep(step){
+  gObStep=step;
+  [1,2,3].forEach(i=>{
+    el(`obStep${i}`).className="ob-step"+(i<step?" done":i===step?" active":"");
+    el(`obContent${i}`).className="ob-content"+(i===step?" active":"");
+  });
+}
+
+window.selectPayMethod=function(method){
+  gObPayMethod=method;
+  el("pmOptMP").classList.toggle("selected",method==="mp");
+  el("pmOptManual").classList.toggle("selected",method==="manual");
+  el("obMpFields").style.display=method==="mp"?"":"none";
+  el("obManualMsg").style.display=method==="manual"?"":"none";
+};
+
+async function showOnboarding(){
+  el("onboardingOverlay").classList.add("show");
+  setTimeout(initObSigCanvas,200);
+}
+
+el("btnObClearSig")?.addEventListener("click",()=>{
+  const c=el("obSigCanvas"); if(!c) return;
+  c.getContext("2d").clearRect(0,0,c.width,c.height);
+  gObSigData=null;
+});
+
+el("btnObStep1")?.addEventListener("click",()=>{
+  const name=(el("obName").value||"").trim();
+  const dni=digits(el("obDni").value);
+  const email=(el("obEmail").value||"").trim();
+  if(!name||!dni||!email){ toast("Completá nombre, DNI y email.","err"); return; }
+  if(!el("obConsentCheck").checked){ toast("Debés aceptar los términos de uso.","err"); return; }
+  // Verificar firma
+  const canvas=el("obSigCanvas");
+  const data=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data;
+  if(!Array.from(data).some((v,i)=>i%4===3&&v>0)){ toast("Dibujá tu firma para continuar.","err"); return; }
+  gObSigData=canvas.toDataURL("image/png");
+  setObStep(2);
+});
+
+el("btnObBack1")?.addEventListener("click",()=>setObStep(1));
+el("btnObStep2")?.addEventListener("click",()=>{
+  const appName=(el("obAppName").value||"").trim();
+  const tna=Number(digits(el("obTna").value));
+  const due=Number(digits(el("obDueDay").value));
+  if(!appName){ toast("Ingresá el nombre del negocio.","err"); return; }
+  if(!tna||tna<1){ toast("Ingresá la TNA.","err"); return; }
+  if(!due||due<1||due>28){ toast("Día de vencimiento entre 1 y 28.","err"); return; }
+  setObStep(3);
+});
+
+el("btnObBack2")?.addEventListener("click",()=>setObStep(2));
+
+el("btnObFinish")?.addEventListener("click",async()=>{
+  if(!gLenderId){ toast("Error de sesión. Recargá la página.","err"); return; }
+  el("btnObFinish").disabled=true; el("btnObFinish").textContent="Guardando...";
+  try{
+    const cfg={
+      lenderId:gLenderId,
+      appName:(el("obAppName").value||"DineroYa").trim(),
+      city:(el("obCity").value||"Río Gallegos, Santa Cruz").trim(),
+      tna:Number(digits(el("obTna").value)),
+      dueDay:Math.min(28,Math.max(1,Number(digits(el("obDueDay").value)))),
+      expenses:Number(el("obExpenses").value||0),
+      wa:(el("obWa").value||"").trim(),
+      status:"activo",
+      onboardingDone:true,
+      onboardingAt:nowTS(),
+      // Datos del operador que firmó
+      operator:{
+        name:(el("obName").value||"").trim(),
+        dni:digits(el("obDni").value),
+        email:(el("obEmail").value||"").trim(),
+        consentSignedAt:new Date().toISOString(),
+        signatureImg:gObSigData||""
+      },
+      updatedAt:nowTS()
+    };
+    if(gObPayMethod==="mp"){
+      const tok=(el("obMpToken").value||"").trim();
+      const pub=(el("obMpPublicKey").value||"").trim();
+      if(tok) cfg.mpToken=tok;
+      if(pub) cfg.mpPublicKey=pub;
+    }
+    await Promise.all([
+      setDoc(settRef(),cfg,{merge:true}),
+      setDoc(lenderRef(gLenderId),cfg,{merge:true})
+    ]);
+    Object.assign(gSettings,cfg);
+    applyBranding(); refreshSimMeta();
+    el("onboardingOverlay").classList.remove("show");
+    toast("✅ Cuenta configurada exitosamente","ok",5000);
+    await loadAllAdmin();
+  }catch(e){
+    toast("Error al guardar. Intentá de nuevo.","err");
+    el("btnObFinish").disabled=false; el("btnObFinish").textContent="✓ Crear mi cuenta";
+    console.error(e);
+  }
+});
+
 /* ══ AUTH ══ */
 onAuthStateChanged(auth,async u=>{
   gUser=u; gLenderId=u?u.uid:null;
@@ -793,12 +1086,47 @@ onAuthStateChanged(auth,async u=>{
   el("notifWrap").style.display    =ok?""    :"none";
   if(ok){
     el("adminUserLabel").textContent="Sesión: "+u.email+" · Lender ID: "+u.uid.slice(0,8)+"...";
-    await loadSettings(); await loadAllAdmin(); startRealtimeListener();
+    await loadSettings();
+
+    // ─── Bloqueo remoto: si está pausado, no continuar
+    if(checkSuspended()) return;
+
+    // ─── Onboarding: mostrar si es la primera vez
+    const lenderSnap=await getDoc(lenderRef(gLenderId));
+    if(!lenderSnap.exists()||!lenderSnap.data().onboardingDone){
+      showOnboarding();
+    } else {
+      await loadAllAdmin();
+    }
+    startRealtimeListener();
+    // Escuchar cambios de status en tiempo real (bloqueo remoto reactivo)
+    startStatusListener();
   } else {
     if(gSnapshotUnsub){ gSnapshotUnsub(); gSnapshotUnsub=null; }
     await loadSettings();
   }
 });
+
+/* ══ STATUS LISTENER — bloqueo remoto reactivo ══
+   Escucha el documento /lenders/{uid} en tiempo real.
+   Si el super admin cambia status a "pausado" en Firestore,
+   el panel se bloquea instantáneamente sin recargar.           */
+let gStatusUnsub=null;
+function startStatusListener(){
+  if(!gLenderId||gStatusUnsub) return;
+  gStatusUnsub=onSnapshot(lenderRef(gLenderId),snap=>{
+    if(!snap.exists()) return;
+    const data=snap.data();
+    gSettings.status=data.status||"activo";
+    if(checkSuspended()){
+      // Detener listeners de datos si está pausado
+      if(gSnapshotUnsub){ gSnapshotUnsub(); gSnapshotUnsub=null; }
+    } else {
+      // Reactivar si volvió a activo
+      el("adminContent").style.display=gUser?"":"none";
+    }
+  },err=>console.error("StatusListener:",err));
+}
 
 async function doLogin(){
   const email=prompt("Email de administrador:")||"";
@@ -809,18 +1137,17 @@ async function doLogin(){
 }
 el("btnAdminLogin").onclick =doLogin;
 el("btnAdminLogin2").onclick=doLogin;
-el("btnLogout").onclick=()=>signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
+el("btnLogout").onclick=()=>{
+  if(gStatusUnsub){ gStatusUnsub(); gStatusUnsub=null; }
+  signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
+};
 el("btnResetPass").onclick=async()=>{
   const email=prompt("Ingresá tu email:"); if(!email) return;
   try{ await sendPasswordResetEmail(auth,email); toast("Email de recuperación enviado","ok"); }
   catch{ toast("No se pudo enviar","err"); }
 };
 
-/* ══════════════════════════════════════════════════════
-   NOTIFICACIONES EN TIEMPO REAL — onSnapshot
-   Escucha SOLO los préstamos pending del lenderId
-   autenticado. Nunca mezcla datos de otros prestamistas.
-   ══════════════════════════════════════════════════════ */
+/* ══ NOTIFICACIONES EN TIEMPO REAL ══ */
 function startRealtimeListener(){
   if(!gLenderId||gSnapshotUnsub) return;
   const q=query(
@@ -830,9 +1157,7 @@ function startRealtimeListener(){
     orderBy("createdAt","desc"),
     limit(50)
   );
-  // Pre-cargar IDs existentes para no alertar por solicitudes ya conocidas
   getDocs(q).then(snap=>snap.forEach(d=>knownPendingIds.add(d.id)));
-
   gSnapshotUnsub=onSnapshot(q, snapshot=>{
     snapshot.docChanges().forEach(change=>{
       if(change.type==="added"){
@@ -848,11 +1173,8 @@ function startRealtimeListener(){
 }
 
 function fireNewRequestAlert(name, amt, id){
-  // 1. Agregar a lista interna
   gNotifications.unshift({id,name,amt,time:new Date().toLocaleTimeString("es-AR"),unread:true});
   renderNotifDropdown(); updateNotifBadge();
-
-  // 2. Toast grande y clicable
   const t=document.createElement("div");
   t.className="toast new-req";
   t.innerHTML=`<span style="font-size:22px">🔔</span>
@@ -861,14 +1183,10 @@ function fireNewRequestAlert(name, amt, id){
   t.onclick=()=>{ showView("admin"); switchTab("Pending"); t.remove(); };
   el("toastContainer").appendChild(t);
   setTimeout(()=>t.remove(), 9000);
-
-  // 3. Banner flotante centrado
   el("alertBannerText").textContent=`Nueva solicitud de ${name} · ${amt}`;
   const banner=el("alertBanner");
   banner.classList.add("show");
   setTimeout(()=>banner.classList.remove("show"), 7000);
-
-  // 4. Sonido beep suave via Web Audio API
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
     [880,1100].forEach((freq,i)=>{
@@ -882,12 +1200,9 @@ function fireNewRequestAlert(name, amt, id){
       osc.start(t0); osc.stop(t0+0.35);
     });
   }catch{}
-
-  // 5. Recargar contadores
   loadPend(); computeDashboard();
 }
 
-/* ══ NOTIF DROPDOWN ══ */
 function renderNotifDropdown(){
   const list=el("notifList");
   if(!gNotifications.length){ list.innerHTML=`<div class="notif-empty">Sin notificaciones nuevas</div>`; return; }
@@ -964,7 +1279,7 @@ el("btnSim").onclick=()=>{
   el("simResult").innerHTML=`<div class="sim-result-box"><div class="sim-cuota-display"><span class="sim-cuota-label">Cuota estimada</span><span class="sim-cuota-value">${fmtMoney(c)}</span></div>${netoHtml}<div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div></div>`;
 };
 
-/* ══ SOLICITUD — incluye lenderId obligatorio ══ */
+/* ══ SOLICITUD ══ */
 el("btnSendReq").onclick=async()=>{
   const amount=Number(digits(el("simAmount").value));
   const months=Math.min(24,Number(digits(el("simMonths").value)));
@@ -981,7 +1296,7 @@ el("btnSendReq").onclick=async()=>{
     await addDoc(collection(db,"loans"),{
       status:"pending", amount, months,
       tna:gSettings.tna||0, dueDay:gSettings.dueDay||10,
-      borrower, lenderId:lid,   // ← SIEMPRE presente (regla de oro)
+      borrower, lenderId:lid,
       createdAt:nowTS(), updatedAt:nowTS()
     });
     toast("Solicitud enviada. Te contactaremos pronto.","ok");
@@ -1080,7 +1395,6 @@ async function loadPre(){
       const id=b.getAttribute("data-share");
       const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
       const L={...s.data(),id};
-      // Link con ?ref= para que el cliente cargue el branding correcto
       const link=location.origin+location.pathname+"?ref="+gLenderId+"#sign-"+id;
       const msg=`Hola ${L.borrower?.name}, tu contrato ${gSettings.appName||"DineroYa"} (${L.contractId}) está listo. Firmalo acá: ${link}`;
       if(navigator.share){try{await navigator.share({title:"Contrato",text:msg});}catch{}}
@@ -1139,7 +1453,6 @@ async function loadAct(){
       const rowsHtml=scheduleRows(L).map(r=>{
         const late=daysLate(r.due);
         const badge=r.paid?`<span class="pill ok">Pagada</span>`:late>10?`<span class="pill bad">Mora +${late}d</span>`:late>0?`<span class="pill warn">Mora ${late}d</span>`:`<span class="pill teal">Pendiente</span>`;
-        // Botón pagar manualmente (admin gestiona el cobro)
         const btnPagar=r.paid?"":`<button class="btn-pay btn-sm" data-mark="${L.id}:${r.n}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pagar</button>`;
         const rc=r.paid?"schedule-row is-paid":late>0?"schedule-row is-late":"schedule-row";
         return `<div class="${rc}"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span class="action-col">${badge}${btnPagar}</span></div>`;
@@ -1209,10 +1522,7 @@ async function loadMora(){
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar mora.</div>`;console.error(e);}
 }
 
-/* ══════════════════════════════════════════════════════
-   COMPROBANTES — Flujo de pago manual
-   El admin ve las imágenes y aprueba/rechaza cada cuota
-   ══════════════════════════════════════════════════════ */
+/* ══ COMPROBANTES ══ */
 async function loadComprobantes(){
   if(!gLenderId) return;
   const box=el("listComp"); box.innerHTML="";
@@ -1237,17 +1547,12 @@ async function loadComprobantes(){
           </div>
           ${imgHtml}
           <div class="toolbar" style="margin-top:12px">
-            <button class="btn-success btn-sm" data-approve-comp="${d.id}" data-idx="${idx}" data-cuota="${comp.cuota}">
-              ✓ Aprobar y marcar cuota como pagada
-            </button>
-            <button class="btn-danger btn-sm" data-reject-comp="${d.id}" data-idx="${idx}">
-              ✕ Rechazar comprobante
-            </button>
+            <button class="btn-success btn-sm" data-approve-comp="${d.id}" data-idx="${idx}" data-cuota="${comp.cuota}">✓ Aprobar y marcar cuota como pagada</button>
+            <button class="btn-danger btn-sm" data-reject-comp="${d.id}" data-idx="${idx}">✕ Rechazar comprobante</button>
           </div>
         </div>`);
       });
     });
-    // Aprobar comprobante → marca paidCount+1 y elimina el comprobante
     box.querySelectorAll("[data-approve-comp]").forEach(btn=>btn.onclick=async()=>{
       const loanId=btn.getAttribute("data-approve-comp");
       const idx=Number(btn.getAttribute("data-idx"));
@@ -1263,9 +1568,8 @@ async function loadComprobantes(){
       toast("✅ Cuota aprobada y marcada como pagada","ok");
       await loadComprobantes(); await computeDashboard(); await loadAct();
     });
-    // Rechazar → solo elimina el comprobante, no marca pago
     box.querySelectorAll("[data-reject-comp]").forEach(btn=>btn.onclick=async()=>{
-      if(!confirm("¿Rechazar este comprobante? El cliente deberá enviar uno nuevo.")) return;
+      if(!confirm("¿Rechazar este comprobante?")) return;
       const loanId=btn.getAttribute("data-reject-comp");
       const idx=Number(btn.getAttribute("data-idx"));
       const s=await getDoc(doc(db,"loans",loanId)); if(!s.exists()) return;
@@ -1276,13 +1580,12 @@ async function loadComprobantes(){
         hasComprobantePendiente:newComps.length>0,
         updatedAt:nowTS()
       });
-      toast("Comprobante rechazado. El cliente puede reenviar.","info");
-      await loadComprobantes();
+      toast("Comprobante rechazado.","info"); await loadComprobantes();
     });
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar comprobantes.</div>`;console.error(e);}
 }
 
-/* ══ ADMIN: HISTÓRICO ══ */
+/* ══ HISTÓRICO ══ */
 async function loadInact(){
   if(!gLenderId) return;
   const box=el("listInact"); box.innerHTML="";
@@ -1358,16 +1661,61 @@ el("btnSaveCfg").onclick=async()=>{
   const wa       =(el("cfgWa").value||"").trim();
   const mpTokInput=(el("cfgMpToken").value||"").trim();
   const mpPubKey =(el("cfgMpPublicKey").value||"").trim();
+  // Si el token se dejó en blanco → modo manual (token se borra)
+  const mpToken  = mpTokInput&&mpTokInput!=="••••••••••••••••" ? mpTokInput : (mpTokInput===""?"":gSettings.mpToken||"");
   const data={tna,dueDay:due,appName,city,expenses,wa,lenderId:gLenderId,updatedAt:nowTS()};
   if(gSettings.logoBase64) data.logoBase64=gSettings.logoBase64;
-  if(mpTokInput && mpTokInput!=="••••••••••••••••"){ data.mpToken=mpTokInput; gSettings.mpToken=mpTokInput; }
+  // Siempre persistir el estado del token (incluso si se borró = manual)
+  data.mpToken=mpToken; gSettings.mpToken=mpToken;
   if(mpPubKey){ data.mpPublicKey=mpPubKey; gSettings.mpPublicKey=mpPubKey; }
-  // Guardar en /settings/{lenderId} Y en /lenders/{lenderId} para el branding multitenant por ?ref=
   await Promise.all([
     setDoc(settRef(),data,{merge:true}),
     setDoc(lenderRef(gLenderId),data,{merge:true})
   ]);
   await loadSettings(); toast("Configuración guardada","ok");
+};
+
+/* ══════════════════════════════════════════════════════
+   LIMPIEZA EN CASCADA — Borrar lender y todos sus datos
+   Uso: deleteLenderCascade(lenderId)
+   ─────────────────────────────────────────────────────
+   Este helper está listo para ser llamado desde un panel
+   de super-admin externo (Firebase Functions o Admin SDK).
+   Borra en este orden:
+     1. Todos los préstamos del lender (colección /loans)
+     2. El documento de settings  (/settings/{lid})
+     3. El documento del lender   (/lenders/{lid})
+   Nota: los archivos en Storage (comprobantes, firmas)
+   deben borrarse por separado desde Firebase Admin SDK
+   ya que el cliente web no tiene acceso de listado masivo.
+   ══════════════════════════════════════════════════════ */
+window.deleteLenderCascade = async function(lenderId){
+  if(!lenderId){ console.error("deleteLenderCascade: falta lenderId"); return; }
+  if(!confirm(`¿Eliminar PERMANENTEMENTE el lender ${lenderId} y TODOS sus préstamos? Esta acción no se puede deshacer.`)) return;
+  try{
+    // 1. Obtener todos los préstamos del lender (sin filtro de status = borra todo)
+    const loansSnap=await getDocs(query(collection(db,"loans"),where("lenderId","==",lenderId)));
+    // Borrar en lotes de 500 (límite de Firestore batch)
+    const BATCH_SIZE=499;
+    let batch=writeBatch(db); let ops=0;
+    for(const d of loansSnap.docs){
+      batch.delete(d.ref); ops++;
+      if(ops>=BATCH_SIZE){ await batch.commit(); batch=writeBatch(db); ops=0; }
+    }
+    if(ops>0) await batch.commit();
+
+    // 2. Borrar settings
+    await deleteDoc(doc(db,"settings",lenderId));
+
+    // 3. Borrar el documento del lender
+    await deleteDoc(doc(db,"lenders",lenderId));
+
+    console.log(`✅ Lender ${lenderId} y sus ${loansSnap.size} préstamos eliminados.`);
+    toast(`Lender eliminado. ${loansSnap.size} préstamos borrados.`,"ok",6000);
+  }catch(e){
+    console.error("deleteLenderCascade error:",e);
+    toast("Error en eliminación cascada. Ver consola.","err");
+  }
 };
 
 /* ══ ACTIVATE MODAL ══ */
@@ -1396,14 +1744,12 @@ el("btnConfirmActivate").onclick=async()=>{
 
 async function loadAllAdmin(){
   await loadSettings();
+  if(checkSuspended()) return; // No cargar datos si está suspendido
   await Promise.all([loadPend(),loadPre(),loadAct(),loadMora(),loadComprobantes(),loadInact()]);
   await computeDashboard();
 }
 
-/* ══════════════════════════════════════════════════════
-   MI PRÉSTAMO — Portal cliente
-   Lógica híbrida: botón MP si hay token, sino pago manual
-   ══════════════════════════════════════════════════════ */
+/* ══ MI PRÉSTAMO — PORTAL CLIENTE ══ */
 el("btnFindMyLoan").onclick=async()=>{
   const dni=digits(el("myDni").value);
   if(!dni){el("myLoanResult").innerHTML=`<div class="empty">Ingresá un DNI válido.</div>`;return;}
@@ -1421,42 +1767,31 @@ el("btnFindMyLoan").onclick=async()=>{
     const sLabels={pending:"Pendiente",preapproved:"Preaprobado",active:"Activo",paid:"Saldado",charged_off:"Incobrable"};
     const sClass={active:"ok",paid:"ok",charged_off:"bad"};
     const mpEnabled=hasMpToken();
-
-    // Instrucciones de pago manual (solo si está activo y sin MP)
     const manualBox=!mpEnabled&&L.status==="active"
       ?`<div style="margin-bottom:16px;padding:14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px">
           <div style="font-size:12px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">📋 Instrucciones de pago</div>
           <p style="font-size:12px;color:var(--muted);line-height:1.65">Realizá tu transferencia al alias o CBU que te indicó el prestamista.<br>Luego usá el botón <strong style="color:var(--ice)">"Enviar comprobante"</strong> en la cuota correspondiente para adjuntar la captura. El prestamista lo verificará y marcará el pago.</p>
         </div>`
       :"";
-
     const rows=scheduleRows(L).map(r=>{
       const late=daysLate(r.due);
-      const badge=r.paid
-        ?`<span class="pill ok">Pagada</span>`
-        :late>0?`<span class="pill bad">Mora ${late}d</span>`
-        :`<span class="pill teal">Pendiente</span>`;
-
+      const badge=r.paid?`<span class="pill ok">Pagada</span>`:late>0?`<span class="pill bad">Mora ${late}d</span>`:`<span class="pill teal">Pendiente</span>`;
       let payAction="";
       if(!r.paid && L.status==="active"){
         if(mpEnabled){
-          // Con Mercado Pago: link directo de pago
           const mpUrl=`https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=DEMO_${L.id}_${r.n}`;
           payAction=`<a href="${mpUrl}" target="_blank" style="padding:6px 12px;background:rgba(0,168,90,.15);border:1px solid rgba(0,168,90,.35);border-radius:8px;color:#00c878;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">💳 Pagar con MP</a>`;
         } else {
-          // Sin token: botón para subir comprobante de transferencia
           payAction=`<button class="btn-comp btn-sm" data-upload="${L.id}:${r.n}">📎 Enviar comprobante</button>`;
         }
       }
       const rc=r.paid?"schedule-row is-paid":late>0?"schedule-row is-late":"schedule-row";
       return `<div class="${rc}"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span class="action-col">${badge}${payAction}</span></div>`;
     }).join("");
-
     let actionBtn="";
     if(L.contractId&&L.status==="preapproved"&&!L.signed) actionBtn=`<button id="btnPDF" class="btn-primary" style="width:auto;padding:12px 22px">✍️ Firmar contrato</button>`;
     else if(L.contractId&&L.status==="preapproved"&&L.signed) actionBtn=`<span class="pill ok" style="padding:9px 14px;font-size:13px">Contrato firmado — Aguardando activación</span>`;
     else if(L.contractId) actionBtn=`<button id="btnPDF" class="btn-outline">Ver contrato PDF</button>`;
-
     el("myLoanResult").innerHTML=`
       <div class="myloan-status">
         <div><div class="myloan-name">${L.borrower?.name||"--"}</div><div class="myloan-meta">${fmtMoney(L.amount)} · ${L.months} cuotas · TNA ${L.tna}%</div></div>
@@ -1469,13 +1804,10 @@ el("btnFindMyLoan").onclick=async()=>{
       ${actionBtn?`<div style="margin-bottom:16px">${actionBtn}</div>`:""}
       ${manualBox}
       <div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado / Acción</span></div>${rows}</div>`;
-
     const pdfBtn=el("btnPDF");
     if(pdfBtn) pdfBtn.addEventListener("click",()=>{
       if(L.status==="preapproved"&&!L.signed) openSignModal(L); else openContractWindow(L);
     });
-
-    // Botones de subida de comprobante
     el("myLoanResult").querySelectorAll("[data-upload]").forEach(btn=>{
       btn.onclick=()=>{
         const [loanId,cuota]=btn.getAttribute("data-upload").split(":");
@@ -1485,11 +1817,7 @@ el("btnFindMyLoan").onclick=async()=>{
   }catch(e){el("myLoanResult").innerHTML=`<div class="empty">Error al buscar.</div>`;console.error(e);}
 };
 
-/* ══════════════════════════════════════════════════════
-   COMPROBANTE UPLOAD (cliente sube captura de pago)
-   Sube la imagen a Firebase Storage y guarda referencia
-   en Firestore bajo comprobantesPendientes[]
-   ══════════════════════════════════════════════════════ */
+/* ══ COMPROBANTE UPLOAD ══ */
 function openComprobanteUpload(loanId,cuota,triggerBtn){
   const input=document.createElement("input");
   input.type="file"; input.accept="image/*,application/pdf";
@@ -1499,12 +1827,10 @@ function openComprobanteUpload(loanId,cuota,triggerBtn){
     const reader=new FileReader();
     reader.onload=async ev=>{
       try{
-        // Subir a Storage: comprobantes/{loanId}/cuota_{n}_{ts}
         const path=`comprobantes/${loanId}/cuota_${cuota}_${Date.now()}`;
         const storRef=sRef(storage,path);
         await uploadString(storRef,ev.target.result,"data_url");
         const url=await getDownloadURL(storRef);
-        // Guardar en Firestore con lenderId ya presente en el documento
         const snap=await getDoc(doc(db,"loans",loanId)); if(!snap.exists()) return;
         const cur=snap.data();
         const pendientes=[...(cur.comprobantesPendientes||[]),{
@@ -1530,7 +1856,7 @@ function openComprobanteUpload(loanId,cuota,triggerBtn){
   input.click();
 }
 
-/* ══ FIRMA TÁCTIL ══ */
+/* ══ FIRMA TÁCTIL (modal contrato) ══ */
 let gSignLoan=null;
 function openSignModal(L){
   gSignLoan=L;
@@ -1639,7 +1965,7 @@ function openDebtCertificate(L){
   const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(html); w.document.close();
 }
 
-/* ══ HASH #sign- (link de firma compartido) ══ */
+/* ══ HASH #sign- ══ */
 (async function trySignFromHash(){
   if(!location.hash.startsWith("#sign-")) return;
   const id=location.hash.replace("#sign-","").trim();
