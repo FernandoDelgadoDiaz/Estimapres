@@ -711,6 +711,31 @@ body.client-mode #simAmount {
 .landing-cta-section h2{font-size:clamp(24px,3vw,38px);font-weight:800;color:var(--white);letter-spacing:-1px;margin-bottom:12px}
 .landing-cta-section p{font-size:15px;color:var(--muted);margin-bottom:32px;line-height:1.6}
 
+/* ═══ MODAL REGISTRO NUEVO PRESTAMISTA ═══ */
+.register-modal-overlay{display:none;position:fixed;inset:0;z-index:700;background:rgba(5,13,31,.96);backdrop-filter:blur(20px);align-items:center;justify-content:center;padding:20px}
+.register-modal-overlay.show{display:flex}
+.register-modal-box{background:var(--navy-card);border:1px solid var(--border-hi);border-radius:24px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(5,13,31,.9);animation:fadeUp .35s ease both}
+.register-modal-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.register-modal-logo .logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue-light),var(--sky));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px}
+.register-modal-logo .logo-name{font-size:18px;font-weight:800;color:var(--white)}
+.register-modal-title{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-.5px;margin-bottom:6px}
+.register-modal-sub{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:24px}
+.register-modal-box .field{margin-bottom:16px}
+.register-modal-box .field label{display:block;font-size:11px;font-weight:700;color:var(--ice);text-transform:uppercase;letter-spacing:.9px;margin-bottom:6px}
+.register-modal-box .field input{width:100%;padding:12px 14px;background:var(--navy-input);border:1px solid var(--border);border-radius:10px;color:var(--white);font-family:'Sora',sans-serif;font-size:14px;transition:border-color .2s}
+.register-modal-box .field input:focus{outline:none;border-color:var(--blue-glow);box-shadow:0 0 0 3px rgba(59,124,246,.15)}
+.register-modal-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--blue-light),var(--sky));border:none;border-radius:12px;color:#fff;font-family:'Sora',sans-serif;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;transition:transform .2s,box-shadow .2s;box-shadow:0 6px 20px rgba(47,110,245,.4)}
+.register-modal-btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(47,110,245,.55)}
+.register-modal-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.register-modal-switch{text-align:center;margin-top:16px;font-size:13px;color:var(--muted)}
+.register-modal-switch a{color:var(--sky);font-weight:600;cursor:pointer;text-decoration:none}
+.register-modal-switch a:hover{text-decoration:underline}
+.register-modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:8px;background:rgba(96,165,250,.08);border:1px solid var(--border);color:var(--muted);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:background .2s}
+.register-modal-close:hover{background:rgba(96,165,250,.15);color:var(--white)}
+.register-modal-box{position:relative}
+.register-modal-error{padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:12px;font-weight:600;margin-bottom:14px;display:none}
+.register-modal-error.show{display:block}
+
 /* ═══ LANDING PREVIEW SECTION ═══ */
 .landing-preview-section{margin:56px 0;text-align:center}
 .landing-preview-title{font-size:clamp(24px,3vw,36px);font-weight:800;color:var(--white);letter-spacing:-1px;margin-bottom:8px}
@@ -1027,6 +1052,34 @@ body.client-mode #simAmount {
   <div class="suspended-title">Cuenta suspendida</div>
   <div class="suspended-msg">Tu cuenta ha sido <strong>pausada por falta de pago</strong> o incumplimiento de los términos del servicio.<br><br>Para reactivarla, contactá al soporte de la plataforma.</div>
   <a href="mailto:soporte@dineroya.com" style="padding:13px 28px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:12px;color:#f87171;font-weight:700;font-size:14px;text-decoration:none;margin-top:8px">Contactar soporte</a>
+</div>
+
+<!-- ═══ MODAL REGISTRO NUEVO PRESTAMISTA ═══ -->
+<div class="register-modal-overlay" id="registerModalOverlay">
+  <div class="register-modal-box">
+    <button class="register-modal-close" id="btnCloseRegisterModal">✕</button>
+    <div class="register-modal-logo">
+      <div class="logo-mark">P</div>
+      <div class="logo-name">Prestify</div>
+    </div>
+    <div class="register-modal-title">Creá tu financiera digital</div>
+    <div class="register-modal-sub">Ingresá tu email y elegí una contraseña segura. En 3 pasos simples tenés tu financiera lista.</div>
+    <div class="register-modal-error" id="registerModalError"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="regEmail" placeholder="tucorreo@ejemplo.com" autocomplete="email"/>
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+    </div>
+    <div class="field">
+      <label>Confirmá la contraseña</label>
+      <input type="password" id="regPasswordConfirm" placeholder="Repetí tu contraseña" autocomplete="new-password"/>
+    </div>
+    <button class="register-modal-btn" id="btnDoRegister">Crear cuenta y continuar →</button>
+    <div class="register-modal-switch">¿Ya tenés cuenta? <a id="btnSwitchToLogin">Iniciá sesión</a></div>
+  </div>
 </div>
 
 <!-- ═══ ONBOARDING OVERLAY (3 pasos) ═══ -->
@@ -1613,7 +1666,7 @@ body.client-mode #simAmount {
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
          serverTimestamp, query, where, orderBy, limit, onSnapshot, writeBatch }
@@ -1721,22 +1774,68 @@ if(!gRefLenderId){
 
 // Landing CTA buttons → abrir onboarding de registro
 function openRegisterFlow(){
-  // Abrir el panel de admin que tiene el login/registro
-  hideLandingPage();
-  el("heroSection").style.display="none";
-  el("clientView").style.display="none";
-  el("adminView").className="admin-wrap visible";
-  el("btnViewClient").style.display="";
-  el("btnViewAdmin").style.display="";
-  // Scroll to login
-  el("adminGate")?.scrollIntoView({behavior:"smooth"});
+  // Abrir el modal de registro de nuevo prestamista
+  el("registerModalOverlay").classList.add("show");
+  el("regEmail").value="";
+  el("regPassword").value="";
+  el("regPasswordConfirm").value="";
+  el("registerModalError").classList.remove("show");
+  setTimeout(()=>el("regEmail").focus(),100);
 }
 document.getElementById("btnLandingRegister")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingRegister2")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingLogin")?.addEventListener("click",(e)=>{
   e.preventDefault();
-  openRegisterFlow();
-  setTimeout(()=>doLogin(),300);
+  // Para "iniciá sesión" llevar al panel admin directo
+  hideLandingPage();
+  el("heroSection").style.display="none";
+  el("clientView").style.display="none";
+  el("adminView").className="admin-wrap visible";
+  el("adminGate")?.scrollIntoView({behavior:"smooth"});
+});
+
+// Cerrar modal registro
+document.getElementById("btnCloseRegisterModal")?.addEventListener("click",()=>{
+  el("registerModalOverlay").classList.remove("show");
+});
+
+// Desde modal registro → cambiar a login
+document.getElementById("btnSwitchToLogin")?.addEventListener("click",()=>{
+  el("registerModalOverlay").classList.remove("show");
+  hideLandingPage();
+  el("heroSection").style.display="none";
+  el("clientView").style.display="none";
+  el("adminView").className="admin-wrap visible";
+  setTimeout(()=>el("adminGate")?.scrollIntoView({behavior:"smooth"}),100);
+});
+
+// Botón crear cuenta
+document.getElementById("btnDoRegister")?.addEventListener("click", async ()=>{
+  const email=(el("regEmail").value||"").trim();
+  const pass=(el("regPassword").value||"").trim();
+  const passC=(el("regPasswordConfirm").value||"").trim();
+  const errEl=el("registerModalError");
+  errEl.classList.remove("show");
+
+  if(!email||!pass){ errEl.textContent="Completá email y contraseña."; errEl.classList.add("show"); return; }
+  if(pass.length<6){ errEl.textContent="La contraseña debe tener al menos 6 caracteres."; errEl.classList.add("show"); return; }
+  if(pass!==passC){ errEl.textContent="Las contraseñas no coinciden."; errEl.classList.add("show"); return; }
+
+  const btn=el("btnDoRegister");
+  btn.disabled=true; btn.textContent="Creando cuenta...";
+  try{
+    await createUserWithEmailAndPassword(auth, email, pass);
+    // onAuthStateChanged se encargará de mostrar el onboarding automáticamente
+    el("registerModalOverlay").classList.remove("show");
+    toast("✅ Cuenta creada. Completá los datos de tu financiera.","ok",4000);
+  }catch(e){
+    let msg="Error al crear la cuenta.";
+    if(e.code==="auth/email-already-in-use") msg="Ese email ya está registrado. Usá el enlace para iniciar sesión.";
+    else if(e.code==="auth/invalid-email") msg="El email no es válido.";
+    else if(e.code==="auth/weak-password") msg="La contraseña es muy débil. Usá al menos 6 caracteres.";
+    errEl.textContent=msg; errEl.classList.add("show");
+    btn.disabled=false; btn.textContent="Crear cuenta y continuar →";
+  }
 });
 
 const effectiveLid = () => gLenderId||gRefLenderId;
@@ -2008,6 +2107,11 @@ window.selectPayMethod=function(method){
 
 async function showOnboarding(){
   el("onboardingOverlay").classList.add("show");
+  // Pre-llenar el email del usuario recién registrado
+  if(gUser?.email){
+    const obEmailEl=el("obEmail");
+    if(obEmailEl && !obEmailEl.value) obEmailEl.value=gUser.email;
+  }
   setTimeout(initObSigCanvas,200);
 }
 
