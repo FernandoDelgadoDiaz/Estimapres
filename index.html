@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title id="pageTitle">DineroYa · Préstamos</title>
+<title id="pageTitle">Prestify · Tu financiera, digitalizada</title>
 <link rel="icon" href="assets/ping.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -335,6 +335,42 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 @keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:6px;background:var(--navy)}
 ::-webkit-scrollbar-thumb{background:rgba(96,165,250,.18);border-radius:999px}
+
+/* ═══ PENDING VALIDATION OVERLAY ═══ */
+.pending-overlay{display:none;position:fixed;inset:0;z-index:8000;background:rgba(5,13,31,.98);backdrop-filter:blur(20px);align-items:center;justify-content:center;flex-direction:column;gap:22px;text-align:center;padding:30px}
+.pending-overlay.show{display:flex}
+.pending-logo-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:8px}
+.pending-logo-mark{width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--blue-light),var(--sky));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;box-shadow:0 0 36px rgba(47,110,245,.5);animation:pulse-blue 2.5s ease infinite}
+@keyframes pulse-blue{0%,100%{box-shadow:0 0 0 0 rgba(47,110,245,.4)}60%{box-shadow:0 0 0 20px rgba(47,110,245,0)}}
+.pending-logo-name{font-size:22px;font-weight:800;color:var(--white);letter-spacing:-.5px}
+.pending-logo-name span{color:var(--sky)}
+.pending-title{font-size:20px;font-weight:800;color:var(--white);letter-spacing:-.3px}
+.pending-msg{font-size:14px;color:var(--muted);line-height:1.7;max-width:420px}
+.pending-msg strong{color:var(--ice)}
+.pending-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--warn-dim);border:1px solid rgba(245,158,11,.3);border-radius:999px;font-size:12px;font-weight:700;color:var(--warn);animation:blink-warn 2s ease infinite}
+@keyframes blink-warn{0%,100%{opacity:1}50%{opacity:.6}}
+.pending-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--warn)}
+
+/* ═══ PLAZO CHECKBOXES ═══ */
+.plazo-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:8px}
+.plazo-check{display:none}
+.plazo-label{display:flex;align-items:center;justify-content:center;height:34px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;font-family:'DM Mono',monospace}
+.plazo-check:checked+.plazo-label{background:rgba(26,86,219,.2);border-color:var(--sky);color:var(--sky)}
+.plazo-label:hover{border-color:var(--border-hi);color:var(--ice)}
+
+/* ═══ LOAN BREAKDOWN BOX ═══ */
+.breakdown-box{background:rgba(5,13,31,.5);border:1px solid var(--border-hi);border-radius:12px;padding:14px;margin-bottom:12px}
+.breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(96,165,250,.06);font-size:12px}
+.breakdown-row:last-child{border-bottom:none;font-weight:700;font-size:13px;color:var(--white);padding-top:10px;margin-top:4px}
+.breakdown-row .bl{color:var(--muted)}
+.breakdown-row .bv{font-family:'DM Mono',monospace;color:var(--ice)}
+.breakdown-row.accent .bv{color:var(--sky);font-size:14px}
+.breakdown-row.warn-row .bv{color:var(--warn)}
+
+/* ═══ COPY LINK BUTTON ═══ */
+.btn-copy-link{padding:10px 18px;background:linear-gradient(135deg,rgba(96,165,250,.15),rgba(47,110,245,.1));border:1px solid var(--border-hi);border-radius:10px;color:var(--sky);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px}
+.btn-copy-link:hover{background:rgba(96,165,250,.2);border-color:rgba(96,165,250,.5);transform:translateY(-1px)}
+.btn-copy-link svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
 @media(max-width:1100px){.dashboard-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:1000px){.mora-row{grid-template-columns:1fr auto auto}}
 @media(max-width:900px){.client-grid{grid-template-columns:1fr}.hero-section{grid-template-columns:1fr}.hero-kpis{grid-template-columns:1fr 1fr}.topbar-inner,.hero-section,.main-wrap{padding-left:16px;padding-right:16px}.dashboard-grid{grid-template-columns:repeat(2,1fr)}}
@@ -343,6 +379,22 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </style>
 </head>
 <body>
+
+<!-- ═══ PENDING VALIDATION OVERLAY ═══ -->
+<div class="pending-overlay" id="pendingOverlay">
+  <div class="pending-logo-wrap">
+    <div class="pending-logo-mark" id="pendingLogoMark">P</div>
+    <div class="pending-logo-name">Presti<span>fy</span></div>
+  </div>
+  <div class="pending-badge">⏳ Validación pendiente</div>
+  <div class="pending-title">Tu financiera está siendo validada</div>
+  <div class="pending-msg">Estamos revisando tu registro para activar tu cuenta.<br><strong>Te contactaremos a la brevedad</strong> para confirmar la activación de tu financiera digital.</div>
+  <a href="https://wa.me/542966678029?text=Hola%2C+quiero+activar+mi+cuenta+en+Prestify" target="_blank" style="padding:14px 28px;background:rgba(37,211,102,.15);border:1px solid rgba(37,211,102,.35);border-radius:12px;color:#25d366;font-weight:700;font-size:14px;text-decoration:none;display:flex;align-items:center;gap:10px;margin-top:4px">
+    <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:currentColor"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    Contactar para activar mi cuenta
+  </a>
+  <button id="btnPendingLogout" style="padding:9px 20px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:inherit;font-size:13px;cursor:pointer;margin-top:4px">Cerrar sesión</button>
+</div>
 
 <!-- ═══ SUSPENDED OVERLAY ═══ -->
 <div class="suspended-overlay" id="suspendedOverlay">
@@ -477,8 +529,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <header class="topbar">
   <div class="topbar-inner">
     <a href="#" class="logo" id="logoLink">
-      <div class="logo-mark" id="logoMark">DY</div>
-      <span class="logo-name" id="logoName">Dinero<span>Ya</span></span>
+      <div class="logo-mark" id="logoMark">P</div>
+      <span class="logo-name" id="logoName">Presti<span>fy</span></span>
     </a>
     <nav class="topbar-nav">
       <button id="btnViewClient" class="nav-btn active">
@@ -518,7 +570,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <!-- HERO -->
 <section class="hero-section" id="heroSection">
   <div>
-    <div class="hero-eyebrow" id="heroEyebrow">Plataforma Fintech · Argentina</div>
+    <div class="hero-eyebrow" id="heroEyebrow">Prestify · Tu financiera, digitalizada</div>
     <h1 class="hero-title">Préstamos personales<br><em>rápidos y seguros</em></h1>
     <p class="hero-sub">Simulá, solicitá y gestioná tu préstamo en minutos. Sin papeles ni filas.</p>
     <div class="hero-badges">
@@ -545,11 +597,12 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
         <div class="sim-meta">
           <div class="sim-meta-item">TNA <strong id="lblTna">--%</strong></div>
           <div class="sim-meta-item">Vence día <strong id="lblDue">--</strong></div>
+          <div class="sim-meta-item">Gasto otorg. <strong id="lblGastoOtorg">3%</strong></div>
           <div class="sim-meta-item" id="lblExpMeta" style="display:none">Gastos admin <strong id="lblExp">--%</strong></div>
         </div>
         <div class="input-row">
-          <div class="field"><label>Monto del crédito</label><input id="simAmount" class="mono" inputmode="numeric" placeholder="$ 500.000"/></div>
-          <div class="field"><label>Plazo en meses (máx. 24)</label><input id="simMonths" inputmode="numeric" placeholder="12"/></div>
+          <div class="field"><label>Monto solicitado por el cliente</label><input id="simAmount" class="mono" inputmode="numeric" placeholder="$ 500.000"/></div>
+          <div class="field"><label>Plazo en meses</label><select id="simMonths"><option value="">— Seleccioná un plazo —</option></select></div>
         </div>
         <div id="simDeductionBadge" style="display:none" class="sim-deduction-badge">
           <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -679,6 +732,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
               <div class="field"><label>TNA %</label><input id="cfgTna" inputmode="numeric" class="mono" placeholder="100"/></div>
               <div class="field"><label>Día de vencimiento (1-28)</label><input id="cfgDue" inputmode="numeric" placeholder="10"/></div>
             </div>
+            <div class="field">
+              <label>Plazos disponibles (meses)</label>
+              <p class="field-hint" style="margin-bottom:10px">Seleccioná los plazos que ofrecés a tus clientes. Solo estos aparecerán en el simulador.</p>
+              <div class="plazo-grid" id="plazoGrid">
+                ${Array.from({length:24},(_,i)=>i+1).map(n=>`
+                  <input type="checkbox" class="plazo-check" id="plazo${n}" value="${n}"/>
+                  <label class="plazo-label" for="plazo${n}">${n}</label>`).join("")}
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button type="button" id="btnSelAllPlazos" class="btn-outline btn-sm">Seleccionar todos</button>
+                <button type="button" id="btnClearPlazos" class="btn-outline btn-sm">Limpiar</button>
+              </div>
+            </div>
             <div class="input-row">
               <div class="field">
                 <label>% Gastos administrativos</label>
@@ -687,6 +753,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
               </div>
               <div class="field"><label>WhatsApp del prestamista</label><input id="cfgWa" inputmode="tel" placeholder="5492966123456"/></div>
             </div>
+          </div>
+          <div class="cfg-section">
+            <div class="cfg-section-title"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Mi Link Prestify</div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">Compartí este link con tus clientes. Sus solicitudes llegarán directamente a tu panel.</p>
+            <div id="myLinkPreview" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--sky);padding:10px 14px;background:rgba(26,86,219,.08);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;word-break:break-all"></div>
+            <button id="btnCopyMyLink" class="btn-copy-link">
+              <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copiar mi Link Prestify
+            </button>
           </div>
           <div class="cfg-section">
             <div class="cfg-section-title"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Mercado Pago (cobro automático)</div>
@@ -854,7 +929,10 @@ function annuity(P,rate,m){
 function scheduleRows(L){
   const due=L.dueDay||10;
   const base=L.activeAt?.toDate?L.activeAt.toDate():new Date();
-  const inst=(L.installment&&L.installment>0)?L.installment:Math.round(annuity(L.amount,L.tna,L.months));
+  // Use stored installment first, then recalculate from capitalFinanciar, then fallback to amount
+  const gastoOtorg=L.gastoOtorgAmt||Math.round((L.amount||0)*GASTO_OTORGAMIENTO/100);
+  const capFin=L.capitalFinanciar||(L.amount||0)+gastoOtorg;
+  const inst=(L.installment&&L.installment>0)?L.installment:Math.round(annuity(capFin,L.tna,L.months));
   return Array.from({length:L.months},(_,k)=>{
     const d=new Date(base.getFullYear(),base.getMonth()+k+1,1);
     d.setDate(Math.min(due,28));
@@ -864,7 +942,8 @@ function scheduleRows(L){
 
 /* ══ ESTADO ══ */
 let gUser=null, gLenderId=null, gRefLenderId=null;
-let gSettings={tna:null,dueDay:null,appName:"DineroYa",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo"};
+let gSettings={tna:null,dueDay:null,appName:"Prestify",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:"",status:"activo",plazos:[3,6,9,12,18,24]};
+const GASTO_OTORGAMIENTO=3; // 3% fijo sobre el monto solicitado
 let gActivateLoan=null, inactTab="paid";
 let gNotifications=[], gSnapshotUnsub=null, knownPendingIds=new Set();
 let gObSigData=null, gObPayMethod="mp";
@@ -882,11 +961,22 @@ const hasMpToken   = ()     => !!(gSettings.mpToken && gSettings.mpToken.length 
 function checkSuspended(){
   if(gSettings.status==="pausado"){
     el("suspendedOverlay").classList.add("show");
-    // Bloquear todo el contenido de admin
+    el("pendingOverlay").classList.remove("show");
     const adminC=el("adminContent"); if(adminC) adminC.style.display="none";
     return true;
   }
   el("suspendedOverlay").classList.remove("show");
+  return false;
+}
+
+/* ══ PENDING OVERLAY — nuevo registro aún sin activar ══ */
+function checkPending(){
+  if(gSettings.status==="pendiente"){
+    el("pendingOverlay").classList.add("show");
+    const adminC=el("adminContent"); if(adminC) adminC.style.display="none";
+    return true;
+  }
+  el("pendingOverlay").classList.remove("show");
   return false;
 }
 
@@ -902,7 +992,8 @@ async function loadLenderBranding(lid){
       tna:d.tna||gSettings.tna, dueDay:d.dueDay||gSettings.dueDay,
       expenses:d.expenses||gSettings.expenses, logoBase64:d.logoBase64||gSettings.logoBase64,
       wa:d.wa||gSettings.wa, mpToken:d.mpToken||"", mpPublicKey:d.mpPublicKey||"",
-      status:d.status||"activo"
+      status:d.status||"activo",
+      plazos:d.plazos||gSettings.plazos
     });
     applyBranding(); refreshSimMeta();
   }catch(e){ console.warn("Branding:",e); }
@@ -922,13 +1013,25 @@ async function loadSettings(){
   const mpPub=el("cfgMpPublicKey"); if(mpPub) mpPub.value=gSettings.mpPublicKey||"";
   const prev=el("cfgLogoPreview");
   if(prev){ if(gSettings.logoBase64) prev.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`;
-            else prev.textContent=(gSettings.appName||"DY").replace(/\s+/g,"").slice(0,2).toUpperCase(); }
+            else prev.textContent=(gSettings.appName||"P").replace(/\s+/g,"").slice(0,2).toUpperCase(); }
   const mpB=el("mpStatusBadge");
   if(mpB) mpB.innerHTML=gSettings.mpToken
     ?`<span class="mp-connected">Mercado Pago conectado y activo</span>`
     :`<span class="mp-disconnected">Sin token MP — modo transferencia manual activo</span>`;
-  // Verificar suspensión después de cargar settings
-  if(gLenderId) checkSuspended();
+
+  // ── Plazos checkboxes ──
+  const plazosActivos=Array.isArray(gSettings.plazos)&&gSettings.plazos.length>0?gSettings.plazos:[3,6,9,12,18,24];
+  for(let n=1;n<=24;n++){
+    const cb=el(`plazo${n}`); if(cb) cb.checked=plazosActivos.includes(n);
+  }
+  refreshPlazoSelector();
+
+  // ── My link preview ──
+  const linkEl=el("myLinkPreview");
+  if(linkEl&&gLenderId) linkEl.textContent=location.origin+location.pathname+"?ref="+gLenderId;
+
+  // Verificar suspensión y pendiente
+  if(gLenderId){ checkSuspended(); checkPending(); }
 }
 
 function refreshSimMeta(){
@@ -938,14 +1041,29 @@ function refreshSimMeta(){
   const h=el("heroTna"); if(h) h.innerHTML=gSettings.tna?`${gSettings.tna}<small>%</small>`:`&#8212;<small>%</small>`;
   const d=el("heroDue"); if(d) d.innerHTML=gSettings.dueDay?`${gSettings.dueDay}<small>del mes</small>`:`&#8212;<small>del mes</small>`;
   if(gSettings.expenses>0){ const m=el("lblExpMeta"); if(m) m.style.display=""; const le=el("lblExp"); if(le) le.textContent=gSettings.expenses+"%"; }
+  refreshPlazoSelector();
+}
+
+function refreshPlazoSelector(){
+  const sel=el("simMonths"); if(!sel) return;
+  const plazos=Array.isArray(gSettings.plazos)&&gSettings.plazos.length>0
+    ?[...gSettings.plazos].sort((a,b)=>a-b):[3,6,9,12,18,24];
+  const cur=sel.value;
+  sel.innerHTML=`<option value="">— Seleccioná un plazo —</option>`;
+  plazos.forEach(n=>{
+    const opt=document.createElement("option");
+    opt.value=n; opt.textContent=n+(n===1?" mes":" meses");
+    if(String(n)===String(cur)) opt.selected=true;
+    sel.appendChild(opt);
+  });
 }
 
 function applyBranding(){
-  const name=gSettings.appName||"DineroYa";
-  document.title=name+" · Préstamos";
+  const name=gSettings.appName||"Prestify";
+  document.title=name+" · Tu financiera, digitalizada";
   const mark=el("logoMark");
   if(mark){ if(gSettings.logoBase64) mark.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`;
-            else mark.textContent=name.replace(/\s+/g,"").slice(0,2).toUpperCase(); }
+            else mark.textContent=name.replace(/\s+/g,"").slice(0,1).toUpperCase(); }
   const mid=Math.ceil(name.length/2);
   const ln=el("logoName"); if(ln) ln.innerHTML=`${name.slice(0,mid)}<span>${name.slice(mid)}</span>`;
 }
@@ -1034,16 +1152,16 @@ el("btnObFinish")?.addEventListener("click",async()=>{
   try{
     const cfg={
       lenderId:gLenderId,
-      appName:(el("obAppName").value||"DineroYa").trim(),
+      appName:(el("obAppName").value||"Prestify").trim(),
       city:(el("obCity").value||"Río Gallegos, Santa Cruz").trim(),
       tna:Number(digits(el("obTna").value)),
       dueDay:Math.min(28,Math.max(1,Number(digits(el("obDueDay").value)))),
       expenses:Number(el("obExpenses").value||0),
       wa:(el("obWa").value||"").trim(),
-      status:"activo",
+      status:"pendiente",
+      plazos:[3,6,9,12,18,24],
       onboardingDone:true,
       onboardingAt:nowTS(),
-      // Datos del operador que firmó
       operator:{
         name:(el("obName").value||"").trim(),
         dni:digits(el("obDni").value),
@@ -1066,8 +1184,9 @@ el("btnObFinish")?.addEventListener("click",async()=>{
     Object.assign(gSettings,cfg);
     applyBranding(); refreshSimMeta();
     el("onboardingOverlay").classList.remove("show");
-    toast("✅ Cuenta configurada exitosamente","ok",5000);
-    await loadAllAdmin();
+    toast("✅ Cuenta registrada. Aguardá la activación de tu financiera.","ok",6000);
+    // Nuevo registro = status pendiente → mostrar overlay de espera
+    checkPending();
   }catch(e){
     toast("Error al guardar. Intentá de nuevo.","err");
     el("btnObFinish").disabled=false; el("btnObFinish").textContent="✓ Crear mi cuenta";
@@ -1091,6 +1210,12 @@ onAuthStateChanged(auth,async u=>{
     // ─── Bloqueo remoto: si está pausado, no continuar
     if(checkSuspended()) return;
 
+    // ─── Pendiente de activación
+    if(checkPending()) {
+      startStatusListener();
+      return;
+    }
+
     // ─── Onboarding: mostrar si es la primera vez
     const lenderSnap=await getDoc(lenderRef(gLenderId));
     if(!lenderSnap.exists()||!lenderSnap.data().onboardingDone){
@@ -1099,7 +1224,6 @@ onAuthStateChanged(auth,async u=>{
       await loadAllAdmin();
     }
     startRealtimeListener();
-    // Escuchar cambios de status en tiempo real (bloqueo remoto reactivo)
     startStatusListener();
   } else {
     if(gSnapshotUnsub){ gSnapshotUnsub(); gSnapshotUnsub=null; }
@@ -1111,20 +1235,33 @@ onAuthStateChanged(auth,async u=>{
    Escucha el documento /lenders/{uid} en tiempo real.
    Si el super admin cambia status a "pausado" en Firestore,
    el panel se bloquea instantáneamente sin recargar.           */
-let gStatusUnsub=null;
 function startStatusListener(){
   if(!gLenderId||gStatusUnsub) return;
   gStatusUnsub=onSnapshot(lenderRef(gLenderId),snap=>{
     if(!snap.exists()) return;
     const data=snap.data();
+    const prevStatus=gSettings.status;
     gSettings.status=data.status||"activo";
+    // Sync plazos if changed remotely
+    if(data.plazos) gSettings.plazos=data.plazos;
+
     if(checkSuspended()){
-      // Detener listeners de datos si está pausado
       if(gSnapshotUnsub){ gSnapshotUnsub(); gSnapshotUnsub=null; }
-    } else {
-      // Reactivar si volvió a activo
-      el("adminContent").style.display=gUser?"":"none";
+      return;
     }
+    if(checkPending()){
+      if(gSnapshotUnsub){ gSnapshotUnsub(); gSnapshotUnsub=null; }
+      return;
+    }
+    // Was pending/suspended and is now active → load admin
+    if(prevStatus!=="activo" && gSettings.status==="activo"){
+      el("pendingOverlay").classList.remove("show");
+      el("adminContent").style.display=gUser?"":"none";
+      toast("🎉 Tu cuenta fue activada. ¡Bienvenido a Prestify!","ok",6000);
+      loadAllAdmin(); startRealtimeListener();
+      return;
+    }
+    el("adminContent").style.display=gUser?"":"none";
   },err=>console.error("StatusListener:",err));
 }
 
@@ -1140,6 +1277,10 @@ el("btnAdminLogin2").onclick=doLogin;
 el("btnLogout").onclick=()=>{
   if(gStatusUnsub){ gStatusUnsub(); gStatusUnsub=null; }
   signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
+};
+el("btnPendingLogout").onclick=()=>{
+  if(gStatusUnsub){ gStatusUnsub(); gStatusUnsub=null; }
+  signOut(auth).then(()=>{ el("pendingOverlay").classList.remove("show"); toast("Sesión cerrada","info"); }).catch(()=>{});
 };
 el("btnResetPass").onclick=async()=>{
   const email=prompt("Ingresá tu email:"); if(!email) return;
@@ -1260,30 +1401,58 @@ document.querySelectorAll(".tab-btn[data-tab]").forEach(btn=>{
 
 /* ══ SIMULADOR ══ */
 el("btnSim").onclick=()=>{
-  const P=Number(digits(el("simAmount").value));
-  const m=Math.min(24,Number(digits(el("simMonths").value)));
+  const montoSolicitado=Number(digits(el("simAmount").value));
+  const m=Number(el("simMonths").value);
   if(!gSettings.tna||!gSettings.dueDay){ toast("El admin aún no configuró la TNA.","err"); return; }
-  if(!P||!m){ el("simResult").innerHTML=""; return; }
-  const c=Math.round(annuity(P,gSettings.tna,m));
-  const expP=gSettings.expenses||0, expA=Math.round(P*expP/100), neto=P-expA;
+  if(!montoSolicitado||!m){ el("simResult").innerHTML=""; return; }
+
+  // ─── Motor Financiero de Precisión ───
+  // 1. Gasto de Otorgamiento fijo 3% sobre el monto solicitado
+  const gastoOtorgAmt=Math.round(montoSolicitado*GASTO_OTORGAMIENTO/100);
+  // 2. Capital a Financiar = Monto Solicitado + Gasto de Otorgamiento
+  const capitalFinanciar=montoSolicitado+gastoOtorgAmt;
+  // 3. Sistema Francés sobre el Capital a Financiar
+  const cuota=Math.round(annuity(capitalFinanciar,gSettings.tna,m));
+  const totalAPagar=cuota*m;
+  const interesesProyectados=totalAPagar-capitalFinanciar;
+
+  // Gastos admin adicionales (si los hay)
+  const expP=gSettings.expenses||0;
+  const expA=Math.round(montoSolicitado*expP/100);
+  const netoAEntregar=montoSolicitado-expA;
+
   const badge=el("simDeductionBadge");
   if(expP>0){ badge.style.display="flex"; el("simExpAmt").textContent=fmtMoney(expA); } else badge.style.display="none";
+
   let rows="";
   for(let i=1;i<=m;i++){
     const d=new Date(); d.setMonth(d.getMonth()+i); d.setDate(Math.min(gSettings.dueDay,28));
-    rows+=`<div class="schedule-row"><span class="num">${String(i).padStart(2,"0")}</span><span class="date">${d.toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(c)}</span><span class="action-col"><span class="pill warn">Pendiente</span></span></div>`;
+    rows+=`<div class="schedule-row"><span class="num">${String(i).padStart(2,"0")}</span><span class="date">${d.toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(cuota)}</span><span class="action-col"><span class="pill warn">Pendiente</span></span></div>`;
   }
-  const netoHtml=expP>0
-    ?`<div class="sim-neto-badge">💰 Neto a recibir: ${fmtMoney(neto)} (${expP}% gastos descontados)</div>`
-    :`<div class="sim-neto-badge">💰 Neto a recibir: ${fmtMoney(P)}</div>`;
-  el("simResult").innerHTML=`<div class="sim-result-box"><div class="sim-cuota-display"><span class="sim-cuota-label">Cuota estimada</span><span class="sim-cuota-value">${fmtMoney(c)}</span></div>${netoHtml}<div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div></div>`;
+
+  el("simResult").innerHTML=`<div class="sim-result-box">
+    <div class="sim-cuota-display">
+      <span class="sim-cuota-label">Cuota mensual</span>
+      <span class="sim-cuota-value">${fmtMoney(cuota)}</span>
+    </div>
+    <div class="breakdown-box">
+      <div class="breakdown-row"><span class="bl">Monto solicitado</span><span class="bv">${fmtMoney(montoSolicitado)}</span></div>
+      <div class="breakdown-row warn-row"><span class="bl">Gasto de otorgamiento (${GASTO_OTORGAMIENTO}%)</span><span class="bv">+ ${fmtMoney(gastoOtorgAmt)}</span></div>
+      <div class="breakdown-row"><span class="bl">Capital a financiar</span><span class="bv">${fmtMoney(capitalFinanciar)}</span></div>
+      ${expP>0?`<div class="breakdown-row warn-row"><span class="bl">Gastos administrativos (${expP}%)</span><span class="bv">- ${fmtMoney(expA)}</span></div>`:""}
+      <div class="breakdown-row"><span class="bl">Neto a recibir</span><span class="bv" style="color:var(--ok)">${fmtMoney(netoAEntregar)}</span></div>
+      <div class="breakdown-row"><span class="bl">Intereses proyectados</span><span class="bv" style="color:var(--purple)">${fmtMoney(interesesProyectados)}</span></div>
+      <div class="breakdown-row accent"><span class="bl">Total a pagar</span><span class="bv">${fmtMoney(totalAPagar)}</span></div>
+    </div>
+    <div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div>
+  </div>`;
 };
 
 /* ══ SOLICITUD ══ */
 el("btnSendReq").onclick=async()=>{
-  const amount=Number(digits(el("simAmount").value));
-  const months=Math.min(24,Number(digits(el("simMonths").value)));
-  if(!amount||!months){ toast("Completá el Simulador primero.","err"); return; }
+  const montoSolicitado=Number(digits(el("simAmount").value));
+  const months=Number(el("simMonths").value);
+  if(!montoSolicitado||!months){ toast("Completá el Simulador primero.","err"); return; }
   const borrower={
     name:(el("bName").value||"").trim(), dni:digits(el("bDni").value),
     email:(el("bEmail").value||"").trim(), phone:(el("bPhone").value||"").trim(),
@@ -1292,10 +1461,24 @@ el("btnSendReq").onclick=async()=>{
   if(!borrower.name||!borrower.dni){ toast("Completá nombre y DNI.","err"); return; }
   const lid=effectiveLid();
   if(!lid){ toast("Error: no se detectó el prestamista. Verificá la URL con ?ref=ID.","err"); return; }
+
+  // Calcular desglose financiero
+  const gastoOtorgAmt=Math.round(montoSolicitado*GASTO_OTORGAMIENTO/100);
+  const capitalFinanciar=montoSolicitado+gastoOtorgAmt;
+  const cuota=Math.round(annuity(capitalFinanciar, gSettings.tna||100, months));
+
   try{
     await addDoc(collection(db,"loans"),{
-      status:"pending", amount, months,
+      status:"pending",
+      // Monto original solicitado por el cliente
+      amount:montoSolicitado,
+      // Desglose financiero
+      gastoOtorgPct:GASTO_OTORGAMIENTO,
+      gastoOtorgAmt,
+      capitalFinanciar,
+      months,
       tna:gSettings.tna||0, dueDay:gSettings.dueDay||10,
+      installment:cuota,
       borrower, lenderId:lid,
       createdAt:nowTS(), updatedAt:nowTS()
     });
@@ -1312,13 +1495,23 @@ function waButton(phone,name){
 function loanItem(d,actions=""){
   const b=d.borrower||{};
   const notesHtml=d.notes?`<div class="loan-notes"><strong>Nota:</strong> ${d.notes}</div>`:"";
+  // Financial breakdown
+  const gastoOtorg=d.gastoOtorgAmt||Math.round((d.amount||0)*GASTO_OTORGAMIENTO/100);
+  const capFin=d.capitalFinanciar||(d.amount||0)+gastoOtorg;
+  const cuota=d.installment||Math.round(annuity(capFin,d.tna||100,d.months||1));
+  const breakdownHtml=`<div class="breakdown-box" style="margin-top:10px;margin-bottom:0">
+    <div class="breakdown-row"><span class="bl">Monto solicitado</span><span class="bv">${fmtMoney(d.amount)}</span></div>
+    <div class="breakdown-row warn-row"><span class="bl">Gasto otorgamiento (${d.gastoOtorgPct||GASTO_OTORGAMIENTO}%)</span><span class="bv">+ ${fmtMoney(gastoOtorg)}</span></div>
+    <div class="breakdown-row"><span class="bl">Capital a financiar</span><span class="bv">${fmtMoney(capFin)}</span></div>
+    <div class="breakdown-row accent"><span class="bl">Cuota mensual · ${d.months}m · TNA ${d.tna}%</span><span class="bv">${fmtMoney(cuota)}</span></div>
+  </div>`;
   return `<div class="loan-item">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div><div class="loan-name">${b.name||"--"}</div>
-        <div class="loan-meta"><span>DNI <strong>${b.dni||"--"}</strong></span><span>Capital <strong>${fmtMoney(d.amount)}</strong></span><span><strong>${d.months}</strong> cuotas</span><span>TNA <strong>${d.tna}%</strong></span>${d.contractId?`<span>Contrato <strong>${d.contractId}</strong></span>`:""}</div>
+        <div class="loan-meta"><span>DNI <strong>${b.dni||"--"}</strong></span><span>Solicitado <strong>${fmtMoney(d.amount)}</strong></span><span><strong>${d.months}</strong> cuotas</span><span>TNA <strong>${d.tna}%</strong></span>${d.contractId?`<span>Contrato <strong>${d.contractId}</strong></span>`:""}</div>
       </div>
       ${waButton(b.phone,b.name)}
-    </div>${notesHtml}<div class="toolbar">${actions}</div></div>`;
+    </div>${breakdownHtml}${notesHtml}<div class="toolbar">${actions}</div></div>`;
 }
 function attachNotes(box){
   box.querySelectorAll("[data-note]").forEach(btn=>btn.onclick=async()=>{
@@ -1651,28 +1844,50 @@ el("cfgLogoFile").onchange=async(e)=>{
   };
   reader.readAsDataURL(file);
 };
+
+// Plazo checkbox helpers
+el("btnSelAllPlazos")?.addEventListener("click",()=>{
+  for(let n=1;n<=24;n++){const cb=el(`plazo${n}`);if(cb)cb.checked=true;}
+});
+el("btnClearPlazos")?.addEventListener("click",()=>{
+  for(let n=1;n<=24;n++){const cb=el(`plazo${n}`);if(cb)cb.checked=false;}
+});
+
+// Copy my Prestify link
+el("btnCopyMyLink")?.addEventListener("click",()=>{
+  if(!gLenderId){ toast("Iniciá sesión primero.","err"); return; }
+  const link=location.origin+location.pathname+"?ref="+gLenderId;
+  navigator.clipboard?.writeText(link).then(()=>toast("✅ Link copiado al portapapeles","ok"))
+    .catch(()=>{ prompt("Copiá tu link Prestify:",link); });
+});
+
 el("btnSaveCfg").onclick=async()=>{
   if(!gLenderId){toast("Necesitás iniciar sesión primero.","err");return;}
   const tna      =Number(digits(el("cfgTna").value));
   const due      =Math.min(28,Math.max(1,Number(digits(el("cfgDue").value))));
-  const appName  =(el("cfgAppName").value||"DineroYa").trim();
+  const appName  =(el("cfgAppName").value||"Prestify").trim();
   const city     =(el("cfgCity").value||"Río Gallegos").trim();
   const expenses =Number(el("cfgExpenses").value||"0");
   const wa       =(el("cfgWa").value||"").trim();
   const mpTokInput=(el("cfgMpToken").value||"").trim();
   const mpPubKey =(el("cfgMpPublicKey").value||"").trim();
-  // Si el token se dejó en blanco → modo manual (token se borra)
   const mpToken  = mpTokInput&&mpTokInput!=="••••••••••••••••" ? mpTokInput : (mpTokInput===""?"":gSettings.mpToken||"");
-  const data={tna,dueDay:due,appName,city,expenses,wa,lenderId:gLenderId,updatedAt:nowTS()};
+
+  // Collect selected plazos
+  const plazos=[];
+  for(let n=1;n<=24;n++){const cb=el(`plazo${n}`);if(cb&&cb.checked)plazos.push(n);}
+  if(plazos.length===0){ toast("Seleccioná al menos un plazo.","err"); return; }
+
+  const data={tna,dueDay:due,appName,city,expenses,wa,plazos,lenderId:gLenderId,updatedAt:nowTS()};
   if(gSettings.logoBase64) data.logoBase64=gSettings.logoBase64;
-  // Siempre persistir el estado del token (incluso si se borró = manual)
   data.mpToken=mpToken; gSettings.mpToken=mpToken;
   if(mpPubKey){ data.mpPublicKey=mpPubKey; gSettings.mpPublicKey=mpPubKey; }
   await Promise.all([
     setDoc(settRef(),data,{merge:true}),
     setDoc(lenderRef(gLenderId),data,{merge:true})
   ]);
-  await loadSettings(); toast("Configuración guardada","ok");
+  gSettings.plazos=plazos;
+  await loadSettings(); refreshPlazoSelector(); toast("Configuración guardada","ok");
 };
 
 /* ══════════════════════════════════════════════════════
@@ -1721,23 +1936,36 @@ window.deleteLenderCascade = async function(lenderId){
 /* ══ ACTIVATE MODAL ══ */
 function showActivateModal(L){
   gActivateLoan=L;
-  const inst=Math.round(annuity(L.amount,L.tna,L.months));
+  const gastoOtorg=L.gastoOtorgAmt||Math.round((L.amount||0)*GASTO_OTORGAMIENTO/100);
+  const capFin=L.capitalFinanciar||(L.amount||0)+gastoOtorg;
+  const inst=L.installment||Math.round(annuity(capFin,L.tna,L.months));
   const expPct=gSettings.expenses||0, expAmt=Math.round(L.amount*expPct/100), neto=L.amount-expAmt;
   el("activateSummary").innerHTML=`
-    <div class="activate-row"><span class="l">Capital solicitado</span><span class="v">${fmtMoney(L.amount)}</span></div>
-    <div class="activate-row"><span class="l">Gastos admin (${expPct}%)</span><span class="v" style="color:#f87171">– ${fmtMoney(expAmt)}</span></div>
-    <div class="activate-row"><span class="l">Neto a entregar</span><span class="v" style="color:var(--ok)">${fmtMoney(neto)}</span></div>
-    <div class="activate-row"><span class="l">Cuota mensual</span><span class="v">${fmtMoney(inst)}</span></div>
+    <div class="activate-row"><span class="l">Monto solicitado</span><span class="v">${fmtMoney(L.amount)}</span></div>
+    <div class="activate-row"><span class="l">Gasto de otorgamiento (${L.gastoOtorgPct||GASTO_OTORGAMIENTO}%)</span><span class="v" style="color:var(--warn)">+ ${fmtMoney(gastoOtorg)}</span></div>
+    <div class="activate-row"><span class="l">Capital a financiar</span><span class="v" style="color:var(--sky)">${fmtMoney(capFin)}</span></div>
+    ${expPct>0?`<div class="activate-row"><span class="l">Gastos admin (${expPct}%)</span><span class="v" style="color:#f87171">– ${fmtMoney(expAmt)}</span></div>`:""}
+    <div class="activate-row"><span class="l">Neto a entregar al cliente</span><span class="v" style="color:var(--ok)">${fmtMoney(neto)}</span></div>
+    <div class="activate-row"><span class="l">Cuota mensual (francés)</span><span class="v">${fmtMoney(inst)}</span></div>
     <div class="activate-row"><span class="l">Plazo</span><span class="v">${L.months} meses</span></div>
-    <div class="activate-row"><span class="l">Intereses proyectados</span><span class="v" style="color:var(--purple)">${fmtMoney((inst*L.months)-L.amount)}</span></div>
+    <div class="activate-row"><span class="l">Intereses proyectados</span><span class="v" style="color:var(--purple)">${fmtMoney((inst*L.months)-capFin)}</span></div>
     <div class="activate-row"><span class="l">TOTAL A RECUPERAR</span><span class="v">${fmtMoney(inst*L.months)}</span></div>`;
   el("activateModal").classList.add("open");
 }
 el("btnCancelActivate").onclick=()=>{el("activateModal").classList.remove("open");gActivateLoan=null;};
 el("btnConfirmActivate").onclick=async()=>{
   const L=gActivateLoan; if(!L) return;
-  const inst=Math.round(annuity(L.amount,L.tna,L.months));
-  await updateDoc(doc(db,"loans",L.id),{status:"active",activeAt:nowTS(),updatedAt:nowTS(),installment:inst,paidCount:0});
+  const gastoOtorg=L.gastoOtorgAmt||Math.round((L.amount||0)*GASTO_OTORGAMIENTO/100);
+  const capFin=L.capitalFinanciar||(L.amount||0)+gastoOtorg;
+  const inst=L.installment||Math.round(annuity(capFin,L.tna,L.months));
+  await updateDoc(doc(db,"loans",L.id),{
+    status:"active",activeAt:nowTS(),updatedAt:nowTS(),
+    installment:inst,
+    capitalFinanciar:capFin,
+    gastoOtorgAmt:gastoOtorg,
+    gastoOtorgPct:L.gastoOtorgPct||GASTO_OTORGAMIENTO,
+    paidCount:0
+  });
   el("activateModal").classList.remove("open"); gActivateLoan=null;
   toast("Préstamo activado","ok"); await loadAllAdmin();
 };
@@ -1893,8 +2121,10 @@ el("btnConfirmSig").onclick=async()=>{
 /* ══ CONTRATO HTML ══ */
 function contractHtml(L){
   const today=new Date().toLocaleDateString("es-AR");
-  const name=gSettings.appName||"DineroYa"; const city=gSettings.city||"Río Gallegos";
-  const inst=(L.installment&&L.installment>0)?L.installment:Math.round(annuity(L.amount,L.tna,L.months));
+  const name=gSettings.appName||"Prestify"; const city=gSettings.city||"Río Gallegos";
+  const gastoOtorg=L.gastoOtorgAmt||Math.round((L.amount||0)*GASTO_OTORGAMIENTO/100);
+  const capFin=L.capitalFinanciar||(L.amount||0)+gastoOtorg;
+  const inst=(L.installment&&L.installment>0)?L.installment:Math.round(annuity(capFin,L.tna,L.months));
   const expPct=gSettings.expenses||0, expAmt=Math.round(L.amount*expPct/100), neto=L.amount-expAmt;
   const rows=scheduleRows(L).map(r=>`<tr><td style="text-align:center">${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td style="text-align:right">${fmtMoney(r.amount)}</td><td style="text-align:center">${r.paid?"Pagada":"Pendiente"}</td></tr>`).join("");
   const sigImg=L.signatureImg?`<div style="border:1px solid #ccc;border-radius:6px;padding:6px;max-width:260px;margin-top:6px"><img src="${L.signatureImg}" style="width:100%;max-height:70px;object-fit:contain"/><div style="font-size:9pt;color:#666;margin-top:3px">Firma digital – Ley 25.506</div></div>`:`<div style="border-bottom:1px solid #666;width:200px;margin-top:28px;margin-bottom:4px"></div><div style="font-size:9pt;color:#888">Pendiente de firma</div>`;
@@ -1905,7 +2135,9 @@ function contractHtml(L){
 <div class="header">${logoHtml}<h1>Contrato de Préstamo Personal</h1><p style="color:#555">${name} – N.° <strong>${L.contractId||"--"}</strong> – Fecha: <strong>${today}</strong></p></div>
 <div class="parties"><strong>PRESTAMISTA:</strong> ${name}, ${city}.<br><strong>PRESTATARIO:</strong> ${L.borrower?.name||"--"}, DNI ${L.borrower?.dni||"--"}, Email: ${L.borrower?.email||"--"}, Tel: ${L.borrower?.phone||"--"}.</div>
 <h2>Condiciones financieras</h2><table><tbody>
-<tr><td>Capital solicitado</td><td style="text-align:right">${fmtMoney(L.amount)}</td></tr>
+<tr><td>Monto solicitado</td><td style="text-align:right">${fmtMoney(L.amount)}</td></tr>
+<tr style="color:#c60"><td>Gasto de otorgamiento (${L.gastoOtorgPct||GASTO_OTORGAMIENTO}%)</td><td style="text-align:right">+ ${fmtMoney(gastoOtorg)}</td></tr>
+<tr><td><strong>Capital a financiar</strong></td><td style="text-align:right"><strong>${fmtMoney(capFin)}</strong></td></tr>
 ${expPct>0?`<tr style="color:#c00"><td>Gastos administrativos (${expPct}%)</td><td style="text-align:right">– ${fmtMoney(expAmt)}</td></tr><tr><td><strong>Neto a entregar</strong></td><td style="text-align:right"><strong>${fmtMoney(neto)}</strong></td></tr>`:""}
 <tr><td>Cuota mensual (sistema francés)</td><td style="text-align:right">${fmtMoney(inst)}</td></tr>
 <tr><td>Plazo</td><td style="text-align:right">${L.months} meses</td></tr>
@@ -1936,7 +2168,9 @@ ${expPct>0?`<tr style="color:#c00"><td>Gastos administrativos (${expPct}%)</td><
 function openContractWindow(L){const w=window.open("about:blank","_blank");w.document.open();w.document.write(contractHtml(L));w.document.close();}
 
 function openDebtCertificate(L){
-  const today=new Date().toLocaleDateString("es-AR"); const name=gSettings.appName||"DineroYa"; const city=gSettings.city||"Río Gallegos";
+  const today=new Date().toLocaleDateString("es-AR"); const name=gSettings.appName||"Prestify"; const city=gSettings.city||"Río Gallegos";
+  const gastoOtorg=L.gastoOtorgAmt||Math.round((L.amount||0)*GASTO_OTORGAMIENTO/100);
+  const capFin=L.capitalFinanciar||(L.amount||0)+gastoOtorg;
   const late=scheduleRows(L).filter(r=>!r.paid); const capital=late.reduce((a,r)=>a+(r.amount||0),0);
   const dMax=late.length>0?daysLate(late[0].due):0; const tasaP=((L.tna||100)/100/12)*2;
   const interes=Math.round(capital*tasaP*(dMax/30)); const total=capital+interes;
@@ -1985,7 +2219,6 @@ function openDebtCertificate(L){
 
 /* ══ INPUT FORMATTERS ══ */
 el("simAmount").addEventListener("input",e=>{const n=digits(e.target.value);e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):"";});
-el("simMonths").addEventListener("input",e=>{const n=Math.min(24,Number(digits(e.target.value)||""));e.target.value=n?n:"";});
 ["cfgTna","cfgDue"].forEach(id=>{const e=el(id);if(e)e.addEventListener("input",ev=>ev.target.value=digits(ev.target.value));});
 
 /* ══ INIT ══ */
