@@ -7,17 +7,17 @@
 <link rel="icon" href="assets/ping.png"/>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --navy:#050d1f; --navy-card:#0c1e3d; --navy-input:#071428; --navy-row:#091630;
-  --blue:#1a56db; --blue-light:#2f6ef5; --blue-glow:#3b7cf6; --sky:#60a5fa; --ice:#bfdbfe;
-  --white:#ffffff; --text:#e8f0fe; --muted:#94b4d6;
-  --border:rgba(96,165,250,0.14); --border-hi:rgba(96,165,250,0.38);
-  --ok:#10b981; --ok-dim:rgba(16,185,129,0.14);
-  --warn:#f59e0b; --warn-dim:rgba(245,158,11,0.14);
-  --danger:#ef4444; --danger-dim:rgba(239,68,68,0.14);
-  --purple:#a78bfa; --purple-dim:rgba(167,139,250,0.14);
-  --teal:#06b6d4; --teal-dim:rgba(6,182,212,0.14);
-  --r:20px; --ri:12px;
+:root{
+  --navy:#050d1f;--navy-card:#0c1e3d;--navy-input:#071428;--navy-row:#091630;
+  --blue:#1a56db;--blue-light:#2f6ef5;--blue-glow:#3b7cf6;--sky:#60a5fa;--ice:#bfdbfe;
+  --white:#ffffff;--text:#e8f0fe;--muted:#94b4d6;
+  --border:rgba(96,165,250,.14);--border-hi:rgba(96,165,250,.38);
+  --ok:#10b981;--ok-dim:rgba(16,185,129,.14);
+  --warn:#f59e0b;--warn-dim:rgba(245,158,11,.14);
+  --danger:#ef4444;--danger-dim:rgba(239,68,68,.14);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,.14);
+  --teal:#06b6d4;--teal-dim:rgba(6,182,212,.14);
+  --r:20px;--ri:12px;
   --sc:0 8px 32px rgba(5,13,31,.65),0 1px 0 rgba(96,165,250,.07) inset;
   --sb:0 4px 20px rgba(26,86,219,.45);
 }
@@ -29,6 +29,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
              radial-gradient(ellipse 50% 40% at 0% 100%,rgba(26,86,219,.11) 0%,transparent 60%),
              repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(96,165,250,.025) 40px),
              repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(96,165,250,.025) 40px)}
+/* TOPBAR */
 .topbar{position:sticky;top:0;z-index:200;background:rgba(5,13,31,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
 .topbar-inner{max-width:1200px;margin:0 auto;padding:0 28px;height:66px;display:flex;align-items:center;gap:24px}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;cursor:pointer}
@@ -44,6 +45,29 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .nav-btn.danger{color:#f87171}
 .nav-btn.danger:hover{background:var(--danger-dim);border-color:rgba(239,68,68,.3)}
 .nav-sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+/* NOTIF BELL */
+.notif-wrap{position:relative}
+.notif-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.notif-bell:hover{background:rgba(96,165,250,.08);border-color:var(--border-hi);color:var(--white)}
+.notif-bell svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
+.notif-badge{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;background:var(--danger);border-radius:9px;border:2px solid var(--navy);font-size:10px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;animation:pulse-badge 1.5s ease infinite}
+@keyframes pulse-badge{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}60%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+.notif-dropdown{display:none;position:absolute;top:calc(100% + 10px);right:0;width:340px;background:var(--navy-card);border:1px solid var(--border-hi);border-radius:16px;box-shadow:0 16px 48px rgba(5,13,31,.8);z-index:500;overflow:hidden}
+.notif-dropdown.open{display:block;animation:fadeUp .2s ease}
+.notif-header{padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+.notif-list{max-height:300px;overflow-y:auto}
+.notif-item{padding:12px 16px;border-bottom:1px solid rgba(96,165,250,.06);transition:background .15s;cursor:pointer}
+.notif-item:hover{background:rgba(96,165,250,.05)}
+.notif-item.unread{border-left:3px solid var(--sky)}
+.notif-item-title{font-size:13px;font-weight:700;color:var(--white);margin-bottom:2px}
+.notif-item-sub{font-size:11px;color:var(--muted)}
+.notif-empty{padding:24px;text-align:center;color:var(--muted);font-size:13px}
+/* ALERT BANNER */
+.alert-banner{display:none;position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:400;padding:14px 20px 14px 18px;background:linear-gradient(135deg,rgba(26,86,219,.97),rgba(47,110,245,.97));border:1px solid rgba(96,165,250,.5);border-radius:14px;color:#fff;font-size:14px;font-weight:700;box-shadow:0 10px 40px rgba(26,86,219,.6);align-items:center;gap:12px;max-width:90vw}
+.alert-banner.show{display:flex;animation:slideDown .35s ease}
+@keyframes slideDown{from{opacity:0;transform:translateX(-50%) translateY(-16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.alert-banner-close{background:rgba(255,255,255,.18);border:none;color:#fff;width:22px;height:22px;border-radius:6px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px}
+/* HERO */
 .hero-section{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:56px 28px 44px;display:grid;grid-template-columns:1fr auto;gap:40px;align-items:center}
 .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;margin-bottom:18px;background:rgba(26,86,219,.18);border:1px solid var(--border-hi);font-size:11px;font-weight:600;color:var(--sky);letter-spacing:1.2px;text-transform:uppercase}
 .hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--sky);box-shadow:0 0 8px var(--sky)}
@@ -58,53 +82,65 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600}
 .kpi-value{font-size:26px;font-weight:800;color:var(--white);letter-spacing:-1px;margin-top:4px;font-family:'DM Mono',monospace}
 .kpi-value small{font-size:13px;color:var(--sky);margin-left:3px;font-family:'Sora',sans-serif;font-weight:600}
+/* LAYOUT */
 .main-wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:0 28px 80px}
 .client-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
 .full-width{grid-column:1/-1}
 .admin-wrap{display:none}
 .admin-wrap.visible{display:block}
+/* CARDS */
 .card{background:var(--navy-card);border:1px solid var(--border);border-radius:var(--r);padding:26px;box-shadow:var(--sc);position:relative;overflow:hidden;animation:fadeUp .4s ease both}
 .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(96,165,250,.35),transparent)}
 .card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--sky);margin-bottom:20px;display:flex;align-items:center;gap:8px}
 .card-title svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5}
 .sep{height:1px;background:var(--border);margin:18px 0}
-.dashboard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+/* DASHBOARD GRID — 5 KPIs */
+.dashboard-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px}
 .dash-card{background:var(--navy-card);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
 .dash-card:hover{transform:translateY(-2px);border-color:var(--border-hi)}
 .dash-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px}
 .dash-card.blue::after{background:linear-gradient(90deg,var(--blue),var(--sky))}
 .dash-card.green::after{background:linear-gradient(90deg,#059669,var(--ok))}
 .dash-card.red::after{background:linear-gradient(90deg,var(--danger),#f97316)}
+.dash-card.orange::after{background:linear-gradient(90deg,#ea580c,var(--warn))}
 .dash-card.purple::after{background:linear-gradient(90deg,var(--purple),#ec4899)}
 .dash-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
 .dash-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
 .dash-icon.blue{background:rgba(26,86,219,.2);color:var(--sky)}
 .dash-icon.green{background:rgba(16,185,129,.2);color:var(--ok)}
 .dash-icon.red{background:var(--danger-dim);color:#f87171}
+.dash-icon.orange{background:rgba(245,158,11,.15);color:var(--warn)}
 .dash-icon.purple{background:var(--purple-dim);color:var(--purple)}
 .dash-label{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
 .dash-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;color:var(--white);letter-spacing:-1px;line-height:1.2}
 .dash-sub{font-size:11px;color:var(--muted);margin-top:5px}
+/* MORA RATE BAR */
+.mora-rate-bar{height:5px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:10px}
+.mora-rate-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--ok),var(--warn),var(--danger));transition:width .7s ease}
+/* FORMS */
 .field{margin-bottom:16px}
 .field label{display:block;font-size:11px;font-weight:700;color:var(--ice);text-transform:uppercase;letter-spacing:.9px;margin-bottom:7px}
 .field input,.field select,.field textarea{width:100%;background:rgba(7,20,40,.85);border:1px solid rgba(96,165,250,.28);border-radius:var(--ri);padding:12px 15px;color:#f0f6ff;font-family:'Sora',sans-serif;font-size:14px;font-weight:500;transition:border-color .2s,box-shadow .2s,background .2s;outline:none}
 .field textarea{resize:vertical;min-height:80px}
 .field input::placeholder,.field textarea::placeholder{color:rgba(148,180,214,.5);font-weight:400}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue-glow);box-shadow:0 0 0 3px rgba(59,124,246,.18);background:rgba(7,20,40,.95);color:#ffffff}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue-glow);box-shadow:0 0 0 3px rgba(59,124,246,.18);background:rgba(7,20,40,.95);color:#fff}
 .field input.mono{font-family:'DM Mono',monospace;font-size:16px}
 .field select{cursor:pointer}
 .field select option{background:var(--navy-card);color:var(--white)}
+.field-hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
 .input-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .input-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+/* SIM META */
 .sim-meta{display:flex;gap:16px;padding:10px 14px;background:rgba(5,13,31,.5);border:1px solid var(--border);border-radius:10px;margin-bottom:18px;flex-wrap:wrap}
 .sim-meta-item{font-size:12px;font-weight:600;color:var(--muted)}
 .sim-meta-item strong{color:var(--sky);font-family:'DM Mono',monospace}
 .sim-deduction-badge{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;margin-bottom:14px;font-size:12px;color:#fbbf24}
 .sim-deduction-badge svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+/* BUTTONS */
 .btn-primary{width:100%;padding:13px 20px;border:none;border-radius:var(--ri);background:linear-gradient(135deg,var(--blue-light),var(--blue));color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:var(--sb);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(26,86,219,.55)}
 .btn-primary svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5}
-.btn-success{padding:10px 16px;background:var(--ok-dim);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:var(--ok);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-success{padding:10px 16px;background:var(--ok-dim);border:1px solid rgba(16,185,129,.3);border-radius:10px;color:var(--ok);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
 .btn-success:hover{background:rgba(16,185,129,.22)}
 .btn-success:disabled{opacity:.35;cursor:not-allowed}
 .btn-danger{padding:10px 16px;background:var(--danger-dim);border:1px solid rgba(239,68,68,.25);border-radius:10px;color:#f87171;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
@@ -114,10 +150,18 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .btn-wa{padding:9px 14px;background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.28);border-radius:10px;color:#25d366;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
 .btn-wa:hover{background:rgba(37,211,102,.22);border-color:rgba(37,211,102,.45)}
 .btn-wa svg{width:13px;height:13px;fill:currentColor}
-.btn-sm{padding:6px 11px;font-size:11px}
+.btn-sm{padding:6px 11px!important;font-size:11px!important}
 .btn-pay{padding:7px 14px;background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(16,185,129,.1));border:1px solid rgba(16,185,129,.35);border-radius:8px;color:var(--ok);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
 .btn-pay:hover{background:rgba(16,185,129,.25);border-color:rgba(16,185,129,.5);transform:translateY(-1px)}
 .btn-pay svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
+/* MERCADO PAGO BUTTON */
+.btn-mp{padding:7px 14px;background:linear-gradient(135deg,rgba(0,168,90,.18),rgba(0,168,90,.08));border:1px solid rgba(0,168,90,.38);border-radius:8px;color:#00c87a;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn-mp:hover{background:rgba(0,168,90,.28);border-color:rgba(0,168,90,.55);transform:translateY(-1px)}
+/* COMPROBANTE UPLOAD BUTTON */
+.btn-comp{padding:7px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;color:#fbbf24;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
+.btn-comp:hover{background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.5)}
+.btn-comp svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5}
+/* PILLS */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .pill::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0}
@@ -126,6 +170,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .pill.bad{background:var(--danger-dim);color:#f87171;border:1px solid rgba(239,68,68,.25)}.pill.bad::before{background:var(--danger)}
 .pill.purple{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(167,139,250,.25)}.pill.purple::before{background:var(--purple)}
 .pill.teal{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(6,182,212,.25)}.pill.teal::before{background:var(--teal)}
+/* SCHEDULE */
 .schedule-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-top:14px}
 .schedule-header{display:grid;grid-template-columns:38px 1fr 110px 1fr;gap:8px;padding:9px 14px;background:rgba(5,13,31,.65);border-bottom:1px solid var(--border)}
 .schedule-header span{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted)}
@@ -137,12 +182,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .schedule-row .num{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
 .schedule-row .date{font-size:13px;color:var(--ice);font-weight:500}
 .schedule-row .amount{font-family:'DM Mono',monospace;font-size:13px;color:var(--white);font-weight:600}
-.schedule-row .action-col{display:flex;align-items:center;gap:8px}
+.schedule-row .action-col{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* SIM RESULT */
 .sim-result-box{margin-top:18px;padding:18px;background:rgba(5,13,31,.5);border:1px solid var(--border-hi);border-radius:16px}
 .sim-cuota-display{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 .sim-cuota-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px}
 .sim-cuota-value{font-family:'DM Mono',monospace;font-size:30px;color:var(--sky);letter-spacing:-1px}
 .sim-neto-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:8px;font-size:12px;color:var(--ok);font-weight:700;margin-bottom:14px}
+/* LOAN ITEMS */
 .loan-item{padding:15px;background:var(--navy-row);border:1px solid var(--border);border-radius:13px;margin-bottom:9px;transition:border-color .2s}
 .loan-item:hover{border-color:var(--border-hi)}
 .loan-item:last-child{margin-bottom:0}
@@ -151,6 +198,19 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .loan-meta strong{color:var(--ice)}
 .loan-notes{margin-top:10px;font-size:12px;color:var(--muted);background:rgba(26,86,219,.06);border:1px solid var(--border);border-radius:8px;padding:8px 10px}
 .loan-notes strong{color:var(--sky)}
+/* PAGO MANUAL BOX */
+.manual-pay-box{margin-top:12px;padding:14px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.15);border-radius:12px}
+.manual-pay-title{font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:7px;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:6px}
+.manual-pay-inst{font-size:12px;color:var(--muted);line-height:1.65}
+.manual-pay-inst strong{color:var(--ice)}
+/* COMP REVIEW (admin) */
+.comp-review-img{max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--border-hi);margin-top:8px;display:block}
+/* MP BADGES */
+.mp-connected{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:rgba(0,168,90,.1);border:1px solid rgba(0,168,90,.3);border-radius:10px;font-size:12px;font-weight:700;color:#00c87a;margin-bottom:12px}
+.mp-connected::before{content:'';width:7px;height:7px;border-radius:50%;background:#00c87a;box-shadow:0 0 6px #00c87a}
+.mp-disconnected{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--danger-dim);border:1px solid rgba(239,68,68,.2);border-radius:10px;font-size:12px;font-weight:700;color:#f87171;margin-bottom:12px}
+.mp-disconnected::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--danger)}
+/* ADMIN TABS */
 .admin-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
 .tab-btn{padding:9px 16px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
 .tab-btn:hover{border-color:var(--border-hi);color:var(--white)}
@@ -160,6 +220,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .tab-badge.bad{background:var(--danger)}
 .tab-content{display:none}
 .tab-content.visible{display:block}
+/* MORA */
 .mora-table{display:flex;flex-direction:column;gap:8px}
 .mora-row{display:grid;grid-template-columns:1fr 80px 120px 130px 160px;gap:10px;align-items:center;padding:14px 16px;background:var(--navy-row);border:1px solid var(--border);border-radius:12px;transition:border-color .2s}
 .mora-row:hover{border-color:var(--border-hi)}
@@ -179,18 +240,25 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .mora-sum-box{padding:14px 16px;background:var(--navy-row);border:1px solid var(--border);border-radius:12px;text-align:center}
 .mora-sum-value{font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:var(--white)}
 .mora-sum-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
-details{margin-bottom:14px}
-details summary{cursor:pointer;padding:14px 18px;background:rgba(5,13,31,.45);border:1px solid var(--border);border-radius:13px;font-size:13px;font-weight:700;color:var(--ice);list-style:none;display:flex;align-items:center;justify-content:space-between;transition:all .2s;user-select:none}
-details summary::-webkit-details-marker{display:none}
-details summary::after{content:'';width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s;flex-shrink:0}
-details[open] summary{background:rgba(26,86,219,.1);border-color:var(--border-hi);border-radius:13px 13px 0 0;color:var(--sky)}
-details[open] summary::after{transform:rotate(-135deg)}
-.details-body{padding:18px;background:rgba(5,13,31,.3);border:1px solid var(--border);border-top:none;border-radius:0 0 13px 13px}
+/* CFG */
+.logo-upload-wrap{display:flex;align-items:center;gap:16px;padding:14px;background:rgba(5,13,31,.4);border:1px solid var(--border);border-radius:14px;margin-bottom:16px}
+.logo-preview-box{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--blue-light),var(--sky));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden}
+.logo-preview-box img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.logo-upload-info{flex:1}
+.logo-upload-info h4{font-size:13px;font-weight:700;color:var(--white);margin-bottom:3px}
+.logo-upload-info p{font-size:11px;color:var(--muted)}
+.cfg-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.cfg-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.cfg-section-title{font-size:12px;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.cfg-section-title svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+/* PROGRESS */
 .progress-bar-wrap{height:6px;background:rgba(96,165,250,.12);border-radius:999px;overflow:hidden;margin-top:10px}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--sky));border-radius:999px;transition:width .6s ease}
+/* MY LOAN */
 .myloan-status{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;background:rgba(26,86,219,.08);border:1px solid var(--border-hi);border-radius:13px;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .myloan-name{font-size:16px;font-weight:800;color:var(--white);margin-bottom:3px}
 .myloan-meta{font-size:13px;color:var(--muted)}
+/* MODALS */
 .modal-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(5,13,31,.92);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal-box{background:var(--navy-card);border:1px solid var(--border-hi);border-radius:22px;padding:26px;width:100%;max-width:460px;box-shadow:0 24px 60px rgba(5,13,31,.8)}
@@ -205,29 +273,23 @@ details[open] summary::after{transform:rotate(-135deg)}
 .activate-row:last-child{border-bottom:none;font-weight:700;color:var(--white);font-size:14px}
 .activate-row .l{color:var(--muted)}
 .activate-row .v{font-family:'DM Mono',monospace;color:var(--ice)}
-.logo-upload-wrap{display:flex;align-items:center;gap:16px;padding:14px;background:rgba(5,13,31,.4);border:1px solid var(--border);border-radius:14px;margin-bottom:16px}
-.logo-preview-box{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--blue-light),var(--sky));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden}
-.logo-preview-box img{width:100%;height:100%;object-fit:cover;border-radius:12px}
-.logo-upload-info{flex:1}
-.logo-upload-info h4{font-size:13px;font-weight:700;color:var(--white);margin-bottom:3px}
-.logo-upload-info p{font-size:11px;color:var(--muted)}
-.cfg-section{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border)}
-.cfg-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.cfg-section-title{font-size:12px;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
-.cfg-section-title svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+/* SEARCH */
 .search-input{flex:1;background:rgba(7,20,40,.8);border:1px solid rgba(96,165,250,.2);border-radius:10px;padding:9px 14px;color:var(--white);font-family:'Sora',sans-serif;font-size:13px;outline:none}
 .search-input:focus{border-color:var(--blue-glow)}
 .search-input::placeholder{color:rgba(148,180,214,.45)}
+/* AUTH GATE */
 .auth-gate-box{max-width:400px;margin:0 auto;text-align:center;padding:50px 20px}
 .auth-gate-icon{width:64px;height:64px;border-radius:16px;background:rgba(26,86,219,.15);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
 .auth-gate-icon svg{width:28px;height:28px;stroke:var(--sky);fill:none;stroke-width:1.5}
 .auth-gate-title{font-size:20px;font-weight:800;color:var(--white);margin-bottom:8px}
 .auth-gate-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+/* TOASTS */
 .toast-container{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{padding:12px 18px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;pointer-events:auto;animation:toastIn .3s ease;box-shadow:0 8px 24px rgba(5,13,31,.6)}
 .toast.ok{background:#0c2e1f;border:1px solid rgba(16,185,129,.3);color:#34d399}
 .toast.err{background:#2a0c0c;border:1px solid rgba(239,68,68,.3);color:#f87171}
 .toast.info{background:#0c1e3d;border:1px solid var(--border-hi);color:var(--sky)}
+.toast.new-req{background:linear-gradient(135deg,#08183a,#0c2264);border:1px solid rgba(96,165,250,.45);color:#fff;font-size:14px;padding:14px 20px;cursor:pointer;gap:14px;max-width:340px}
 .empty{padding:28px 20px;text-align:center;color:var(--muted);font-size:13px}
 .spinner{width:20px;height:20px;border:2px solid rgba(96,165,250,.2);border-top-color:var(--sky);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -235,14 +297,25 @@ details[open] summary::after{transform:rotate(-135deg)}
 @keyframes spin{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:6px;background:var(--navy)}
 ::-webkit-scrollbar-thumb{background:rgba(96,165,250,.18);border-radius:999px}
-@media(max-width:1000px){.dashboard-grid{grid-template-columns:1fr 1fr}.mora-row{grid-template-columns:1fr auto auto}}
-@media(max-width:900px){.client-grid{grid-template-columns:1fr}.hero-section{grid-template-columns:1fr}.hero-kpis{grid-template-columns:1fr 1fr}.topbar-inner,.hero-section,.main-wrap{padding-left:16px;padding-right:16px}}
+@media(max-width:1100px){.dashboard-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:1000px){.mora-row{grid-template-columns:1fr auto auto}}
+@media(max-width:900px){.client-grid{grid-template-columns:1fr}.hero-section{grid-template-columns:1fr}.hero-kpis{grid-template-columns:1fr 1fr}.topbar-inner,.hero-section,.main-wrap{padding-left:16px;padding-right:16px}.dashboard-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.mora-row{grid-template-columns:1fr auto}.mora-summary{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.input-row,.input-row3{grid-template-columns:1fr}.nav-btn .nav-label{display:none}.schedule-header,.schedule-row{grid-template-columns:30px 1fr 90px auto;gap:4px;padding:10px}.dashboard-grid{grid-template-columns:1fr 1fr;gap:10px}.mora-row{grid-template-columns:1fr auto}}
 </style>
 </head>
 <body>
+
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- BANNER NUEVA SOLICITUD EN TIEMPO REAL -->
+<div class="alert-banner" id="alertBanner">
+  <span style="font-size:20px;flex-shrink:0">🔔</span>
+  <span id="alertBannerText">Nueva solicitud recibida</span>
+  <button class="alert-banner-close" id="alertBannerClose" title="Cerrar">✕</button>
+</div>
+
+<!-- TOPBAR -->
 <header class="topbar">
   <div class="topbar-inner">
     <a href="#" class="logo" id="logoLink">
@@ -259,6 +332,20 @@ details[open] summary::after{transform:rotate(-135deg)}
         <span class="nav-label">Admin</span>
       </button>
       <div class="nav-sep"></div>
+      <!-- Bell: solo visible cuando logueado -->
+      <div class="notif-wrap" id="notifWrap" style="display:none">
+        <button class="notif-bell" id="notifBell" title="Notificaciones">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header">
+            <span>Alertas en tiempo real</span>
+            <button id="btnClearNotifs" class="btn-outline btn-sm">Limpiar</button>
+          </div>
+          <div class="notif-list" id="notifList"><div class="notif-empty">Sin notificaciones</div></div>
+        </div>
+      </div>
       <button id="btnResetPass" class="nav-btn">
         <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span class="nav-label">Llave</span>
@@ -270,9 +357,11 @@ details[open] summary::after{transform:rotate(-135deg)}
     </nav>
   </div>
 </header>
+
+<!-- HERO -->
 <section class="hero-section" id="heroSection">
   <div>
-    <div class="hero-eyebrow">Plataforma Fintech · Argentina</div>
+    <div class="hero-eyebrow" id="heroEyebrow">Plataforma Fintech · Argentina</div>
     <h1 class="hero-title">Préstamos personales<br><em>rápidos y seguros</em></h1>
     <p class="hero-sub">Simulá, solicitá y gestioná tu préstamo en minutos. Sin papeles ni filas.</p>
     <div class="hero-badges">
@@ -286,9 +375,15 @@ details[open] summary::after{transform:rotate(-135deg)}
     <div class="kpi-box"><div class="kpi-label">Día de pago</div><div class="kpi-value" id="heroDue">&#8212;<small>del mes</small></div></div>
   </div>
 </section>
+
+<!-- MAIN -->
 <main class="main-wrap">
+
+  <!-- ──── VISTA CLIENTE ──── -->
   <div id="clientView">
     <div class="client-grid">
+
+      <!-- Simulador -->
       <div class="card">
         <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Simulador de cuotas</div>
         <div class="sim-meta">
@@ -307,6 +402,8 @@ details[open] summary::after{transform:rotate(-135deg)}
         <button id="btnSim" class="btn-primary"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Calcular cuotas</button>
         <div id="simResult"></div>
       </div>
+
+      <!-- Solicitud -->
       <div class="card">
         <div class="card-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Nueva solicitud</div>
         <div class="input-row">
@@ -322,6 +419,8 @@ details[open] summary::after{transform:rotate(-135deg)}
         <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.55">El monto y plazo se toman del Simulador. Completalo primero.</p>
         <button id="btnSendReq" class="btn-primary" style="background:linear-gradient(135deg,#0f766e,#0d9488)"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar solicitud</button>
       </div>
+
+      <!-- Mi préstamo -->
       <div class="card full-width" id="myloan">
         <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Consultar mi préstamo</div>
         <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;max-width:420px">
@@ -330,8 +429,11 @@ details[open] summary::after{transform:rotate(-135deg)}
         </div>
         <div id="myLoanResult"></div>
       </div>
+
     </div>
   </div>
+
+  <!-- ──── VISTA ADMIN ──── -->
   <div id="adminView" class="admin-wrap">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
       <div>
@@ -340,33 +442,43 @@ details[open] summary::after{transform:rotate(-135deg)}
       </div>
       <button id="btnAdminLogin" class="btn-outline">Iniciar sesión de admin</button>
     </div>
+
     <div id="adminGate">
       <div class="auth-gate-box">
         <div class="auth-gate-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
         <div class="auth-gate-title">Acceso restringido</div>
-        <div class="auth-gate-sub">Iniciá sesión con tus credenciales de administrador para acceder al panel de gestión.</div>
+        <div class="auth-gate-sub">Iniciá sesión con tus credenciales de administrador para acceder al panel.</div>
         <button id="btnAdminLogin2" class="btn-primary">Iniciar sesión</button>
       </div>
     </div>
+
     <div id="adminContent" style="display:none">
+
+      <!-- KPIs (5 tarjetas) -->
       <div class="dashboard-grid">
         <div class="dash-card blue">
           <div class="dash-icon blue"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
-          <div class="dash-label">Capital invertido</div>
+          <div class="dash-label">Capital total prestado</div>
           <div class="dash-value" id="kpiInvested">$ 0</div>
           <div class="dash-sub" id="kpiActiveCount">0 préstamos activos</div>
         </div>
         <div class="dash-card green">
           <div class="dash-icon green"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div class="dash-label">Capital recuperado</div>
+          <div class="dash-label">Total recuperado</div>
           <div class="dash-value" id="kpiRecovered">$ 0</div>
           <div class="dash-sub" id="kpiPaidCount">0 cuotas cobradas</div>
         </div>
         <div class="dash-card red">
           <div class="dash-icon red"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-          <div class="dash-label">En mora / riesgo</div>
+          <div class="dash-label">Capital en mora</div>
           <div class="dash-value" id="kpiMora">$ 0</div>
           <div class="dash-sub" id="kpiMoraCount">0 cuotas vencidas</div>
+        </div>
+        <div class="dash-card orange">
+          <div class="dash-icon orange"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+          <div class="dash-label">Tasa de mora</div>
+          <div class="dash-value" id="kpiMoraRate">0%</div>
+          <div class="mora-rate-bar"><div class="mora-rate-fill" id="kpiMoraBar" style="width:0%"></div></div>
         </div>
         <div class="dash-card purple">
           <div class="dash-icon purple"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
@@ -375,14 +487,19 @@ details[open] summary::after{transform:rotate(-135deg)}
           <div class="dash-sub">Intereses sistema francés</div>
         </div>
       </div>
+
+      <!-- Tabs -->
       <div class="admin-tabs">
         <button class="tab-btn active" data-tab="Cfg">⚙️ Configuración</button>
         <button class="tab-btn" data-tab="Pending">Pendientes <span class="tab-badge" id="badgePend">0</span></button>
         <button class="tab-btn" data-tab="Pre">Preaprobados <span class="tab-badge" id="badgePre">0</span></button>
         <button class="tab-btn" data-tab="Active">Activos <span class="tab-badge" id="badgeAct">0</span></button>
         <button class="tab-btn" data-tab="Mora">⚠️ Mora <span class="tab-badge warn" id="badgeMora">0</span></button>
+        <button class="tab-btn" data-tab="Comprobantes">🧾 Comprobantes <span class="tab-badge warn" id="badgeComp">0</span></button>
         <button class="tab-btn" data-tab="History">Histórico</button>
       </div>
+
+      <!-- CFG -->
       <div class="tab-content visible" id="tabCfg">
         <div class="card">
           <div class="card-title">Configuración del sistema</div>
@@ -390,15 +507,10 @@ details[open] summary::after{transform:rotate(-135deg)}
             <div class="cfg-section-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>Identidad del negocio</div>
             <div class="logo-upload-wrap">
               <div class="logo-preview-box" id="cfgLogoPreview">DY</div>
-              <div class="logo-upload-info">
-                <h4>Logo del negocio</h4>
-                <p>PNG o JPG recomendado. Aparecerá en el topbar y contratos.</p>
-              </div>
+              <div class="logo-upload-info"><h4>Logo del negocio</h4><p>PNG o JPG. Aparece en topbar y contratos.</p></div>
               <div>
                 <label for="cfgLogoFile" class="btn-outline btn-sm" style="cursor:pointer;display:inline-flex">
-                  <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  Subir
-                </label>
+                  <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Subir</label>
                 <input type="file" id="cfgLogoFile" accept="image/*" style="display:none"/>
               </div>
             </div>
@@ -417,14 +529,32 @@ details[open] summary::after{transform:rotate(-135deg)}
               <div class="field">
                 <label>% Gastos administrativos</label>
                 <input id="cfgExpenses" inputmode="numeric" placeholder="0" class="mono"/>
-                <p style="font-size:11px;color:var(--muted);margin-top:5px">Se descuenta del capital a entregar. Ej: 5% de $100.000 = $5.000 menos.</p>
+                <p class="field-hint">Se descuenta del capital a entregar. Ej: 5% de $100.000 = $5.000 menos.</p>
               </div>
               <div class="field"><label>WhatsApp del prestamista</label><input id="cfgWa" inputmode="tel" placeholder="5492966123456"/></div>
+            </div>
+          </div>
+          <div class="cfg-section">
+            <div class="cfg-section-title"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Mercado Pago (cobro automático)</div>
+            <div id="mpStatusBadge"></div>
+            <div class="input-row">
+              <div class="field">
+                <label>Access Token de producción</label>
+                <input id="cfgMpToken" type="password" placeholder="APP_USR-xxxxxxxxxxxx"/>
+                <p class="field-hint">Obtenelo en tu cuenta MP → Credenciales. Sin token, los clientes pagarán por transferencia + comprobante.</p>
+              </div>
+              <div class="field">
+                <label>Public Key</label>
+                <input id="cfgMpPublicKey" placeholder="APP_USR-xxxxxxxxxxxx"/>
+                <p class="field-hint">Requerida para el botón de pago en el portal del cliente.</p>
+              </div>
             </div>
           </div>
           <button id="btnSaveCfg" class="btn-success" style="padding:13px 32px;font-size:14px">Guardar configuración</button>
         </div>
       </div>
+
+      <!-- PENDIENTES -->
       <div class="tab-content" id="tabPending">
         <div class="card">
           <div class="card-title">Solicitudes pendientes</div>
@@ -435,6 +565,8 @@ details[open] summary::after{transform:rotate(-135deg)}
           <div id="listPend"><div class="empty"><div class="spinner"></div></div></div>
         </div>
       </div>
+
+      <!-- PREAPROBADOS -->
       <div class="tab-content" id="tabPre">
         <div class="card">
           <div class="card-title">Preaprobados</div>
@@ -442,6 +574,8 @@ details[open] summary::after{transform:rotate(-135deg)}
           <div id="listPre"><div class="empty">Sin preaprobados</div></div>
         </div>
       </div>
+
+      <!-- ACTIVOS -->
       <div class="tab-content" id="tabActive">
         <div class="card">
           <div class="card-title">Cartera activa</div>
@@ -452,6 +586,8 @@ details[open] summary::after{transform:rotate(-135deg)}
           <div id="listAct"><div class="empty">Sin activos</div></div>
         </div>
       </div>
+
+      <!-- MORA -->
       <div class="tab-content" id="tabMora">
         <div class="card">
           <div class="card-title">⚠️ Reporte de mora</div>
@@ -464,6 +600,18 @@ details[open] summary::after{transform:rotate(-135deg)}
           <div class="mora-table" id="listMora"><div class="empty"><div class="spinner"></div></div></div>
         </div>
       </div>
+
+      <!-- COMPROBANTES PENDIENTES -->
+      <div class="tab-content" id="tabComprobantes">
+        <div class="card">
+          <div class="card-title">🧾 Comprobantes pendientes de verificación</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.55">Clientes en modo pago manual que subieron capturas de transferencia. Verificá y aprobá cada cuota.</p>
+          <div class="toolbar" style="margin-bottom:14px"><button id="btnReloadComp" class="btn-outline btn-sm">↺ Recargar</button></div>
+          <div id="listComp"><div class="empty"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- HISTORICO -->
       <div class="tab-content" id="tabHistory">
         <div class="card">
           <div class="card-title">Histórico</div>
@@ -475,9 +623,13 @@ details[open] summary::after{transform:rotate(-135deg)}
           <div id="listInact"><div class="empty">Sin registros</div></div>
         </div>
       </div>
-    </div>
-  </div>
+
+    </div><!-- /adminContent -->
+  </div><!-- /adminView -->
+
 </main>
+
+<!-- MODAL FIRMA -->
 <div class="modal-overlay" id="sigModal">
   <div class="modal-box">
     <div class="modal-title">Firma digital del contrato</div>
@@ -491,6 +643,8 @@ details[open] summary::after{transform:rotate(-135deg)}
     <p class="modal-note">Al confirmar declarás que esta firma electrónica tiene la misma validez que la firma ológrafa (Ley 25.506).</p>
   </div>
 </div>
+
+<!-- MODAL ACTIVAR -->
 <div class="modal-overlay" id="activateModal">
   <div class="modal-box">
     <div class="modal-title">Activar préstamo</div>
@@ -502,16 +656,19 @@ details[open] summary::after{transform:rotate(-135deg)}
     </div>
   </div>
 </div>
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-         serverTimestamp, query, where, orderBy, limit }
+         serverTimestamp, query, where, orderBy, limit, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { getStorage, ref as sRef, uploadString, getDownloadURL }
+  from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
 /* ══════════════════════════════════════
-   FIREBASE CONFIG  ← reemplazá con la tuya
+   FIREBASE CONFIG
    ══════════════════════════════════════ */
 const firebaseConfig = {
   apiKey:"AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
@@ -521,19 +678,22 @@ const firebaseConfig = {
   messagingSenderId:"578516597437",
   appId:"1:578516597437:web:f59994b87729aa1cd655d4"
 };
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const app     = initializeApp(firebaseConfig);
+const auth    = getAuth(app);
+const db      = getFirestore(app);
+const storage = getStorage(app);
 
-/* ── HELPERS ── */
+/* ══ UTILS ══ */
 const fmtMoney = n => isNaN(n)||n==null ? "$ 0" : "$ "+Number(Math.round(n)).toLocaleString("es-AR");
 const digits   = v => (v||"").replace(/\D+/g,"");
 const nowTS    = () => serverTimestamp();
 const daysLate = iso => Math.max(0,Math.floor((Date.now()-new Date(iso).getTime())/86400000));
-function toast(msg,type="info"){
-  const c=document.getElementById("toastContainer");
+const el       = id => document.getElementById(id);
+
+function toast(msg,type="info",dur=3800){
+  const c=el("toastContainer");
   const t=document.createElement("div"); t.className=`toast ${type}`; t.textContent=msg;
-  c.appendChild(t); setTimeout(()=>t.remove(),3800);
+  c.appendChild(t); setTimeout(()=>t.remove(),dur);
 }
 function annuity(P,rate,m){
   const i=(rate/100)/12; if(i===0) return P/m;
@@ -550,212 +710,403 @@ function scheduleRows(L){
   });
 }
 
-/* ── ESTADO ── */
-let gUser=null, gLenderId=null;
-let gSettings={tna:null,dueDay:null,appName:"DineroYa",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:""};
+/* ══ ESTADO ══ */
+let gUser=null, gLenderId=null, gRefLenderId=null;
+let gSettings={tna:null,dueDay:null,appName:"DineroYa",city:"Río Gallegos, Santa Cruz",expenses:0,wa:"",logoBase64:"",mpToken:"",mpPublicKey:""};
 let gActivateLoan=null, inactTab="paid";
+let gNotifications=[], gSnapshotUnsub=null, knownPendingIds=new Set();
 
-/* ── MULTITENANT QUERIES ── */
-const loanQ    = (...c) => query(collection(db,"loans"),where("lenderId","==",gLenderId),...c);
-const settRef  = ()     => doc(db,"settings",gLenderId);
+/* ══ ?ref= MULTITENANT ══ */
+(()=>{ gRefLenderId=new URLSearchParams(location.search).get("ref")||null; })();
 
-/* ── SETTINGS ── */
+const effectiveLid = () => gLenderId||gRefLenderId;
+const loanQ        = (...c) => query(collection(db,"loans"),where("lenderId","==",effectiveLid()),...c);
+const settRef      = ()     => doc(db,"settings",effectiveLid());
+const lenderRef    = id     => doc(db,"lenders",id);
+const hasMpToken   = ()     => !!(gSettings.mpToken && gSettings.mpToken.length > 10);
+
+/* ══ BRANDING DINÁMICO ══ */
+async function loadLenderBranding(lid){
+  try{
+    const snap=await getDoc(lenderRef(lid)); if(!snap.exists()) return;
+    const d=snap.data();
+    if(d.primaryColor) document.documentElement.style.setProperty("--blue",d.primaryColor);
+    if(d.accentColor)  document.documentElement.style.setProperty("--sky",d.accentColor);
+    Object.assign(gSettings,{
+      appName:d.appName||gSettings.appName, city:d.city||gSettings.city,
+      tna:d.tna||gSettings.tna, dueDay:d.dueDay||gSettings.dueDay,
+      expenses:d.expenses||gSettings.expenses, logoBase64:d.logoBase64||gSettings.logoBase64,
+      wa:d.wa||gSettings.wa, mpToken:d.mpToken||"", mpPublicKey:d.mpPublicKey||""
+    });
+    applyBranding(); refreshSimMeta();
+  }catch(e){ console.warn("Branding:",e); }
+}
+
+/* ══ SETTINGS ══ */
 async function loadSettings(){
-  if(!gLenderId) return;
-  try{ const s=await getDoc(settRef()); if(s.exists()) gSettings={...gSettings,...s.data()}; }catch(e){}
-  applyBranding();
-  const sv=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||"";};
+  if(!effectiveLid()) return;
+  try{ const s=await getDoc(settRef()); if(s.exists()) gSettings={...gSettings,...s.data()}; }catch{}
+  if(gRefLenderId&&!gLenderId) await loadLenderBranding(gRefLenderId);
+  applyBranding(); refreshSimMeta();
+  const sv=(id,v)=>{const e=el(id);if(e)e.value=v||"";};
   sv("cfgTna",gSettings.tna||""); sv("cfgDue",gSettings.dueDay||"");
   sv("cfgAppName",gSettings.appName||""); sv("cfgCity",gSettings.city||"");
   sv("cfgExpenses",gSettings.expenses||0); sv("cfgWa",gSettings.wa||"");
-  const prev=document.getElementById("cfgLogoPreview");
-  if(prev){ if(gSettings.logoBase64){ prev.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`; }
-            else{ prev.textContent=(gSettings.appName||"DY").replace(/\s+/g,"").slice(0,2).toUpperCase(); } }
-  const el=id=>document.getElementById(id);
-  el("lblTna").textContent=(gSettings.tna||"--")+"%";
-  el("lblDue").textContent=gSettings.dueDay||"--";
-  el("heroTna").innerHTML=gSettings.tna?`${gSettings.tna}<small>%</small>`:`&#8212;<small>%</small>`;
-  el("heroDue").innerHTML=gSettings.dueDay?`${gSettings.dueDay}<small>del mes</small>`:`&#8212;<small>del mes</small>`;
-  if(gSettings.expenses>0){ el("lblExpMeta").style.display=""; el("lblExp").textContent=gSettings.expenses+"%"; }
+  const mpTok=el("cfgMpToken"); if(mpTok) mpTok.placeholder=gSettings.mpToken?"••••••••••••••••":"APP_USR-xxxxxxxxxxxx";
+  const mpPub=el("cfgMpPublicKey"); if(mpPub) mpPub.value=gSettings.mpPublicKey||"";
+  const prev=el("cfgLogoPreview");
+  if(prev){ if(gSettings.logoBase64) prev.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`;
+            else prev.textContent=(gSettings.appName||"DY").replace(/\s+/g,"").slice(0,2).toUpperCase(); }
+  const mpB=el("mpStatusBadge");
+  if(mpB) mpB.innerHTML=gSettings.mpToken
+    ?`<span class="mp-connected">Mercado Pago conectado y activo</span>`
+    :`<span class="mp-disconnected">Sin token MP — modo transferencia manual activo</span>`;
 }
+
+function refreshSimMeta(){
+  const s=(id,v)=>{const e=el(id);if(e)e.textContent=v;};
+  s("lblTna",(gSettings.tna||"--")+"%");
+  s("lblDue",gSettings.dueDay||"--");
+  const h=el("heroTna"); if(h) h.innerHTML=gSettings.tna?`${gSettings.tna}<small>%</small>`:`&#8212;<small>%</small>`;
+  const d=el("heroDue"); if(d) d.innerHTML=gSettings.dueDay?`${gSettings.dueDay}<small>del mes</small>`:`&#8212;<small>del mes</small>`;
+  if(gSettings.expenses>0){ const m=el("lblExpMeta"); if(m) m.style.display=""; const le=el("lblExp"); if(le) le.textContent=gSettings.expenses+"%"; }
+}
+
 function applyBranding(){
   const name=gSettings.appName||"DineroYa";
   document.title=name+" · Préstamos";
-  const mark=document.getElementById("logoMark");
-  if(gSettings.logoBase64){ mark.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`; }
-  else{ mark.textContent=name.replace(/\s+/g,"").slice(0,2).toUpperCase(); }
+  const mark=el("logoMark");
+  if(mark){ if(gSettings.logoBase64) mark.innerHTML=`<img src="${gSettings.logoBase64}" alt="logo"/>`;
+            else mark.textContent=name.replace(/\s+/g,"").slice(0,2).toUpperCase(); }
   const mid=Math.ceil(name.length/2);
-  document.getElementById("logoName").innerHTML=`${name.slice(0,mid)}<span>${name.slice(mid)}</span>`;
+  const ln=el("logoName"); if(ln) ln.innerHTML=`${name.slice(0,mid)}<span>${name.slice(mid)}</span>`;
 }
 
-/* ── AUTH ── */
+/* ══ AUTH ══ */
 onAuthStateChanged(auth,async u=>{
   gUser=u; gLenderId=u?u.uid:null;
   const ok=!!u;
-  document.getElementById("adminGate").style.display    =ok?"none":"";
-  document.getElementById("adminContent").style.display =ok?""    :"none";
-  document.getElementById("btnAdminLogin").style.display=ok?"none":"";
-  document.getElementById("btnLogout").style.display    =ok?""    :"none";
-  if(ok){ document.getElementById("adminUserLabel").textContent="Sesión: "+u.email+" · ID: "+u.uid.slice(0,8)+"..."; await loadAllAdmin(); }
-  else  { await loadSettings(); }
+  el("adminGate").style.display    =ok?"none":"";
+  el("adminContent").style.display =ok?""    :"none";
+  el("btnAdminLogin").style.display=ok?"none":"";
+  el("btnLogout").style.display    =ok?""    :"none";
+  el("notifWrap").style.display    =ok?""    :"none";
+  if(ok){
+    el("adminUserLabel").textContent="Sesión: "+u.email+" · Lender ID: "+u.uid.slice(0,8)+"...";
+    await loadSettings(); await loadAllAdmin(); startRealtimeListener();
+  } else {
+    if(gSnapshotUnsub){ gSnapshotUnsub(); gSnapshotUnsub=null; }
+    await loadSettings();
+  }
 });
+
 async function doLogin(){
   const email=prompt("Email de administrador:")||"";
-  const pass =prompt("Contraseña:")||"";
+  const pass=prompt("Contraseña:")||"";
   if(!email||!pass) return;
   try{ await signInWithEmailAndPassword(auth,email,pass); toast("Sesión iniciada","ok"); }
   catch{ toast("Credenciales incorrectas","err"); }
 }
-document.getElementById("btnAdminLogin").onclick =doLogin;
-document.getElementById("btnAdminLogin2").onclick=doLogin;
-document.getElementById("btnLogout").onclick=()=>signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
-document.getElementById("btnResetPass").onclick=async()=>{
+el("btnAdminLogin").onclick =doLogin;
+el("btnAdminLogin2").onclick=doLogin;
+el("btnLogout").onclick=()=>signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
+el("btnResetPass").onclick=async()=>{
   const email=prompt("Ingresá tu email:"); if(!email) return;
   try{ await sendPasswordResetEmail(auth,email); toast("Email de recuperación enviado","ok"); }
   catch{ toast("No se pudo enviar","err"); }
 };
 
-/* ── VISTAS ── */
-function showView(v){
-  const a=v==="admin";
-  document.getElementById("clientView").style.display =a?"none":"";
-  document.getElementById("heroSection").style.display=a?"none":"";
-  document.getElementById("adminView").className      ="admin-wrap"+(a?" visible":"");
-  document.getElementById("btnViewClient").className  ="nav-btn"+(a?"":" active");
-  document.getElementById("btnViewAdmin").className   ="nav-btn"+(a?" active":"");
-}
-document.getElementById("btnViewClient").onclick=()=>showView("client");
-document.getElementById("btnViewAdmin").onclick =()=>showView("admin");
+/* ══════════════════════════════════════════════════════
+   NOTIFICACIONES EN TIEMPO REAL — onSnapshot
+   Escucha SOLO los préstamos pending del lenderId
+   autenticado. Nunca mezcla datos de otros prestamistas.
+   ══════════════════════════════════════════════════════ */
+function startRealtimeListener(){
+  if(!gLenderId||gSnapshotUnsub) return;
+  const q=query(
+    collection(db,"loans"),
+    where("lenderId","==",gLenderId),
+    where("status","==","pending"),
+    orderBy("createdAt","desc"),
+    limit(50)
+  );
+  // Pre-cargar IDs existentes para no alertar por solicitudes ya conocidas
+  getDocs(q).then(snap=>snap.forEach(d=>knownPendingIds.add(d.id)));
 
-/* ── TABS ── */
-document.querySelectorAll(".tab-btn[data-tab]").forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("visible"));
-    btn.classList.add("active");
-    document.getElementById("tab"+btn.dataset.tab).classList.add("visible");
-  };
+  gSnapshotUnsub=onSnapshot(q, snapshot=>{
+    snapshot.docChanges().forEach(change=>{
+      if(change.type==="added"){
+        const id=change.doc.id;
+        if(!knownPendingIds.has(id)){
+          knownPendingIds.add(id);
+          const data=change.doc.data();
+          fireNewRequestAlert(data.borrower?.name||"Cliente", fmtMoney(data.amount), id);
+        }
+      }
+    });
+  }, err=>console.error("onSnapshot error:",err));
+}
+
+function fireNewRequestAlert(name, amt, id){
+  // 1. Agregar a lista interna
+  gNotifications.unshift({id,name,amt,time:new Date().toLocaleTimeString("es-AR"),unread:true});
+  renderNotifDropdown(); updateNotifBadge();
+
+  // 2. Toast grande y clicable
+  const t=document.createElement("div");
+  t.className="toast new-req";
+  t.innerHTML=`<span style="font-size:22px">🔔</span>
+    <div><div style="font-weight:800;font-size:14px">${name} solicitó ${amt}</div>
+    <div style="font-size:11px;opacity:.7;margin-top:2px">Click para ir a Pendientes →</div></div>`;
+  t.onclick=()=>{ showView("admin"); switchTab("Pending"); t.remove(); };
+  el("toastContainer").appendChild(t);
+  setTimeout(()=>t.remove(), 9000);
+
+  // 3. Banner flotante centrado
+  el("alertBannerText").textContent=`Nueva solicitud de ${name} · ${amt}`;
+  const banner=el("alertBanner");
+  banner.classList.add("show");
+  setTimeout(()=>banner.classList.remove("show"), 7000);
+
+  // 4. Sonido beep suave via Web Audio API
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [880,1100].forEach((freq,i)=>{
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value=freq; osc.type="sine";
+      const t0=ctx.currentTime+(i*0.18);
+      gain.gain.setValueAtTime(0,t0);
+      gain.gain.linearRampToValueAtTime(0.22,t0+0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001,t0+0.35);
+      osc.start(t0); osc.stop(t0+0.35);
+    });
+  }catch{}
+
+  // 5. Recargar contadores
+  loadPend(); computeDashboard();
+}
+
+/* ══ NOTIF DROPDOWN ══ */
+function renderNotifDropdown(){
+  const list=el("notifList");
+  if(!gNotifications.length){ list.innerHTML=`<div class="notif-empty">Sin notificaciones nuevas</div>`; return; }
+  list.innerHTML=gNotifications.slice(0,20).map(n=>`
+    <div class="notif-item ${n.unread?'unread':''}" data-notif-id="${n.id}">
+      <div class="notif-item-title">🔔 Nueva solicitud · ${n.name}</div>
+      <div class="notif-item-sub">${n.amt} · ${n.time}</div>
+    </div>`).join("");
+  list.querySelectorAll(".notif-item").forEach(item=>{
+    item.onclick=()=>{ showView("admin"); switchTab("Pending"); el("notifDropdown").classList.remove("open"); };
+  });
+}
+function updateNotifBadge(){
+  const count=gNotifications.filter(n=>n.unread).length;
+  const badge=el("notifBadge");
+  badge.style.display=count>0?"flex":"none";
+  badge.textContent=count>9?"9+":count;
+}
+el("notifBell").onclick=()=>{
+  el("notifDropdown").classList.toggle("open");
+  gNotifications.forEach(n=>n.unread=false);
+  updateNotifBadge(); renderNotifDropdown();
+};
+el("btnClearNotifs").onclick=()=>{
+  gNotifications=[]; renderNotifDropdown(); updateNotifBadge();
+  el("notifDropdown").classList.remove("open");
+};
+el("alertBannerClose").onclick=()=>el("alertBanner").classList.remove("show");
+document.addEventListener("click",e=>{
+  if(!el("notifWrap").contains(e.target)) el("notifDropdown").classList.remove("open");
 });
 
-/* ── SIMULADOR ── */
-document.getElementById("btnSim").onclick=()=>{
-  const P=Number(digits(document.getElementById("simAmount").value));
-  const m=Math.min(24,Number(digits(document.getElementById("simMonths").value)));
+/* ══ VISTAS Y TABS ══ */
+function showView(v){
+  const a=v==="admin";
+  el("clientView").style.display =a?"none":"";
+  el("heroSection").style.display=a?"none":"";
+  el("adminView").className      ="admin-wrap"+(a?" visible":"");
+  el("btnViewClient").className  ="nav-btn"+(a?"":" active");
+  el("btnViewAdmin").className   ="nav-btn"+(a?" active":"");
+}
+el("btnViewClient").onclick=()=>showView("client");
+el("btnViewAdmin").onclick =()=>showView("admin");
+
+function switchTab(tabName){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("visible"));
+  const btn=document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  if(btn) btn.classList.add("active");
+  const cnt=el("tab"+tabName); if(cnt) cnt.classList.add("visible");
+}
+document.querySelectorAll(".tab-btn[data-tab]").forEach(btn=>{
+  btn.onclick=()=>switchTab(btn.dataset.tab);
+});
+
+/* ══ SIMULADOR ══ */
+el("btnSim").onclick=()=>{
+  const P=Number(digits(el("simAmount").value));
+  const m=Math.min(24,Number(digits(el("simMonths").value)));
   if(!gSettings.tna||!gSettings.dueDay){ toast("El admin aún no configuró la TNA.","err"); return; }
-  if(!P||!m){ document.getElementById("simResult").innerHTML=""; return; }
+  if(!P||!m){ el("simResult").innerHTML=""; return; }
   const c=Math.round(annuity(P,gSettings.tna,m));
   const expP=gSettings.expenses||0, expA=Math.round(P*expP/100), neto=P-expA;
-  const badge=document.getElementById("simDeductionBadge");
-  if(expP>0){ badge.style.display="flex"; document.getElementById("simExpAmt").textContent=fmtMoney(expA); }
-  else badge.style.display="none";
+  const badge=el("simDeductionBadge");
+  if(expP>0){ badge.style.display="flex"; el("simExpAmt").textContent=fmtMoney(expA); } else badge.style.display="none";
   let rows="";
   for(let i=1;i<=m;i++){
     const d=new Date(); d.setMonth(d.getMonth()+i); d.setDate(Math.min(gSettings.dueDay,28));
     rows+=`<div class="schedule-row"><span class="num">${String(i).padStart(2,"0")}</span><span class="date">${d.toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(c)}</span><span class="action-col"><span class="pill warn">Pendiente</span></span></div>`;
   }
-  const netoHtml=expP>0?`<div class="sim-neto-badge">💰 Neto a recibir: ${fmtMoney(neto)} (${expP}% gastos descontados)</div>`:`<div class="sim-neto-badge">💰 Neto a recibir: ${fmtMoney(P)}</div>`;
-  document.getElementById("simResult").innerHTML=`<div class="sim-result-box"><div class="sim-cuota-display"><span class="sim-cuota-label">Cuota estimada</span><span class="sim-cuota-value">${fmtMoney(c)}</span></div>${netoHtml}<div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div></div>`;
+  const netoHtml=expP>0
+    ?`<div class="sim-neto-badge">💰 Neto a recibir: ${fmtMoney(neto)} (${expP}% gastos descontados)</div>`
+    :`<div class="sim-neto-badge">💰 Neto a recibir: ${fmtMoney(P)}</div>`;
+  el("simResult").innerHTML=`<div class="sim-result-box"><div class="sim-cuota-display"><span class="sim-cuota-label">Cuota estimada</span><span class="sim-cuota-value">${fmtMoney(c)}</span></div>${netoHtml}<div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div></div>`;
 };
 
-/* ── SOLICITUD ── */
-document.getElementById("btnSendReq").onclick=async()=>{
-  const amount=Number(digits(document.getElementById("simAmount").value));
-  const months=Math.min(24,Number(digits(document.getElementById("simMonths").value)));
+/* ══ SOLICITUD — incluye lenderId obligatorio ══ */
+el("btnSendReq").onclick=async()=>{
+  const amount=Number(digits(el("simAmount").value));
+  const months=Math.min(24,Number(digits(el("simMonths").value)));
   if(!amount||!months){ toast("Completá el Simulador primero.","err"); return; }
-  const borrower={name:(document.getElementById("bName").value||"").trim(),dni:digits(document.getElementById("bDni").value),email:(document.getElementById("bEmail").value||"").trim(),phone:(document.getElementById("bPhone").value||"").trim(),alias:(document.getElementById("bAlias").value||"").trim()};
+  const borrower={
+    name:(el("bName").value||"").trim(), dni:digits(el("bDni").value),
+    email:(el("bEmail").value||"").trim(), phone:(el("bPhone").value||"").trim(),
+    alias:(el("bAlias").value||"").trim()
+  };
   if(!borrower.name||!borrower.dni){ toast("Completá nombre y DNI.","err"); return; }
-  const lenderId=gLenderId||gSettings.lenderId||"public";
+  const lid=effectiveLid();
+  if(!lid){ toast("Error: no se detectó el prestamista. Verificá la URL con ?ref=ID.","err"); return; }
   try{
-    await addDoc(collection(db,"loans"),{status:"pending",amount,months,tna:gSettings.tna||0,dueDay:gSettings.dueDay||10,borrower,lenderId,createdAt:nowTS(),updatedAt:nowTS()});
+    await addDoc(collection(db,"loans"),{
+      status:"pending", amount, months,
+      tna:gSettings.tna||0, dueDay:gSettings.dueDay||10,
+      borrower, lenderId:lid,   // ← SIEMPRE presente (regla de oro)
+      createdAt:nowTS(), updatedAt:nowTS()
+    });
     toast("Solicitud enviada. Te contactaremos pronto.","ok");
-    ["bName","bDni","bEmail","bPhone","bAlias"].forEach(id=>{document.getElementById(id).value="";});
+    ["bName","bDni","bEmail","bPhone","bAlias"].forEach(id=>{const e=el(id);if(e)e.value="";});
   }catch{ toast("Error al enviar. Intentá de nuevo.","err"); }
 };
 
-/* ── RENDER HELPERS ── */
+/* ══ HELPERS RENDER ══ */
+function waButton(phone,name){
+  if(!phone) return "";
+  return `<a href="https://wa.me/${digits(phone)}?text=Hola+${encodeURIComponent(name||"")}" target="_blank" class="btn-wa btn-sm"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WA</a>`;
+}
 function loanItem(d,actions=""){
   const b=d.borrower||{};
-  const phone=digits(b.phone||"");
-  const waHref=phone?`https://wa.me/${phone}?text=Hola+${encodeURIComponent(b.name||"")}`:null;
   const notesHtml=d.notes?`<div class="loan-notes"><strong>Nota:</strong> ${d.notes}</div>`:"";
   return `<div class="loan-item">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div><div class="loan-name">${b.name||"--"}</div>
         <div class="loan-meta"><span>DNI <strong>${b.dni||"--"}</strong></span><span>Capital <strong>${fmtMoney(d.amount)}</strong></span><span><strong>${d.months}</strong> cuotas</span><span>TNA <strong>${d.tna}%</strong></span>${d.contractId?`<span>Contrato <strong>${d.contractId}</strong></span>`:""}</div>
       </div>
-      ${waHref?`<a href="${waHref}" target="_blank" class="btn-wa btn-sm"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WA</a>`:""}
+      ${waButton(b.phone,b.name)}
     </div>${notesHtml}<div class="toolbar">${actions}</div></div>`;
 }
+function attachNotes(box){
+  box.querySelectorAll("[data-note]").forEach(btn=>btn.onclick=async()=>{
+    const id=btn.getAttribute("data-note");
+    const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+    const txt=prompt("Nota de seguimiento:",s.data().notes||""); if(txt===null) return;
+    await updateDoc(doc(db,"loans",id),{notes:txt,updatedAt:nowTS()});
+    toast("Nota guardada","ok"); await loadAllAdmin();
+  });
+}
 function applySearch(inputId,container){
-  const q=(document.getElementById(inputId)?.value||"").toLowerCase();
+  const q=(el(inputId)?.value||"").toLowerCase();
   container.querySelectorAll(".loan-item").forEach(item=>item.style.display=item.textContent.toLowerCase().includes(q)?"":"none");
 }
-document.getElementById("searchPend")?.addEventListener("input",()=>applySearch("searchPend",document.getElementById("listPend")));
-document.getElementById("searchAct")?.addEventListener("input",()=>applySearch("searchAct",document.getElementById("listAct")));
+el("searchPend")?.addEventListener("input",()=>applySearch("searchPend",el("listPend")));
+el("searchAct")?.addEventListener("input",()=>applySearch("searchAct",el("listAct")));
 
-/* ── ADMIN LOADERS (todos filtran por lenderId) ── */
+/* ══ ADMIN: PENDIENTES ══ */
 async function loadPend(){
   if(!gLenderId) return;
-  const box=document.getElementById("listPend"); box.innerHTML="";
+  const box=el("listPend"); box.innerHTML="";
   try{
     const qs=await getDocs(loanQ(where("status","==","pending"),orderBy("createdAt","desc"),limit(100)));
-    document.getElementById("badgePend").textContent=qs.size;
+    el("badgePend").textContent=qs.size;
     if(qs.empty){box.innerHTML=`<div class="empty">Sin solicitudes pendientes</div>`;return;}
     qs.forEach(docu=>{
       const d={...docu.data(),id:docu.id};
-      box.insertAdjacentHTML("beforeend",loanItem(d,`<button class="btn-success btn-sm" data-pre="${d.id}">Preaprobar</button><button class="btn-outline btn-sm" data-note="${d.id}">Nota</button><button class="btn-danger btn-sm" data-del="${d.id}">Eliminar</button>`));
+      box.insertAdjacentHTML("beforeend",loanItem(d,
+        `<button class="btn-success btn-sm" data-pre="${d.id}">Preaprobar</button>
+         <button class="btn-outline btn-sm" data-note="${d.id}">Nota</button>
+         <button class="btn-danger btn-sm" data-del="${d.id}">Eliminar</button>`));
     });
     attachNotes(box);
     box.querySelectorAll("[data-pre]").forEach(btn=>btn.onclick=async()=>{
-      if(!confirm("¿Preaprobar?"))return;
+      if(!confirm("¿Preaprobar?")) return;
       const contractId=Math.random().toString(36).slice(2,10).toUpperCase();
       await updateDoc(doc(db,"loans",btn.getAttribute("data-pre")),{status:"preapproved",contractId,updatedAt:nowTS()});
       toast("Preaprobado","ok"); await loadAllAdmin();
     });
     box.querySelectorAll("[data-del]").forEach(btn=>btn.onclick=async()=>{
-      if(!confirm("¿Eliminar?"))return;
+      if(!confirm("¿Eliminar?")) return;
       await updateDoc(doc(db,"loans",btn.getAttribute("data-del")),{status:"deleted",updatedAt:nowTS()});
       toast("Eliminado","info"); await loadAllAdmin();
     });
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar.</div>`;console.error(e);}
 }
 
+/* ══ ADMIN: PREAPROBADOS ══ */
 async function loadPre(){
   if(!gLenderId) return;
-  const box=document.getElementById("listPre"); box.innerHTML="";
+  const box=el("listPre"); box.innerHTML="";
   try{
     const qs=await getDocs(loanQ(where("status","==","preapproved"),orderBy("createdAt","desc"),limit(100)));
-    document.getElementById("badgePre").textContent=qs.size;
+    el("badgePre").textContent=qs.size;
     if(qs.empty){box.innerHTML=`<div class="empty">Sin preaprobados</div>`;return;}
     qs.forEach(docu=>{
       const d={...docu.data(),id:docu.id};
       const badge=d.signed?`<span class="pill ok">Firmado</span>`:`<span class="pill warn">Sin firma</span>`;
-      const acts=[`<button class="btn-outline btn-sm" data-share="${d.id}">Compartir link</button>`,d.signed?`<button class="btn-success btn-sm" data-approve="${d.id}">Activar</button>`:"",`<button class="btn-outline btn-sm" data-open="${d.id}">Ver contrato</button>`,`<button class="btn-outline btn-sm" data-note="${d.id}">Nota</button>`,`<button class="btn-danger btn-sm" data-del="${d.id}">✕</button>`].join(" ");
+      const acts=[
+        `<button class="btn-outline btn-sm" data-share="${d.id}">Compartir link</button>`,
+        d.signed?`<button class="btn-success btn-sm" data-approve="${d.id}">Activar</button>`:"",
+        `<button class="btn-outline btn-sm" data-open="${d.id}">Ver contrato</button>`,
+        `<button class="btn-outline btn-sm" data-note="${d.id}">Nota</button>`,
+        `<button class="btn-danger btn-sm" data-del="${d.id}">✕</button>`
+      ].join(" ");
       box.insertAdjacentHTML("beforeend",loanItem(d,badge+" "+acts));
     });
     attachNotes(box);
-    box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{const s=await getDoc(doc(db,"loans",b.getAttribute("data-open")));if(!s.exists())return;openContractWindow({...s.data(),id:b.getAttribute("data-open")});});
+    box.querySelectorAll("[data-open]").forEach(b=>b.onclick=async()=>{
+      const s=await getDoc(doc(db,"loans",b.getAttribute("data-open"))); if(!s.exists()) return;
+      openContractWindow({...s.data(),id:b.getAttribute("data-open")});
+    });
     box.querySelectorAll("[data-share]").forEach(b=>b.onclick=async()=>{
-      const id=b.getAttribute("data-share");const s=await getDoc(doc(db,"loans",id));if(!s.exists())return;
-      const L={...s.data(),id};const link=location.origin+location.pathname+"#sign-"+id;
+      const id=b.getAttribute("data-share");
+      const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+      const L={...s.data(),id};
+      // Link con ?ref= para que el cliente cargue el branding correcto
+      const link=location.origin+location.pathname+"?ref="+gLenderId+"#sign-"+id;
       const msg=`Hola ${L.borrower?.name}, tu contrato ${gSettings.appName||"DineroYa"} (${L.contractId}) está listo. Firmalo acá: ${link}`;
-      if(navigator.share){try{await navigator.share({title:"Contrato",text:msg});}catch{}}else prompt("Copiá el enlace:",link);
+      if(navigator.share){try{await navigator.share({title:"Contrato",text:msg});}catch{}}
+      else prompt("Copiá el enlace:",link);
     });
     box.querySelectorAll("[data-approve]").forEach(b=>b.onclick=async()=>{
-      const id=b.getAttribute("data-approve");const s=await getDoc(doc(db,"loans",id));if(!s.exists())return;
-      const L=s.data();if(!L.signed){toast("Todavía no firmó.","err");return;}
+      const id=b.getAttribute("data-approve");
+      const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
+      const L=s.data(); if(!L.signed){toast("Todavía no firmó.","err");return;}
       showActivateModal({...L,id});
     });
-    box.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("¿Eliminar?"))return;await updateDoc(doc(db,"loans",b.getAttribute("data-del")),{status:"deleted",updatedAt:nowTS()});toast("Eliminado","info");await loadAllAdmin();});
+    box.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+      if(!confirm("¿Eliminar?")) return;
+      await updateDoc(doc(db,"loans",b.getAttribute("data-del")),{status:"deleted",updatedAt:nowTS()});
+      toast("Eliminado","info"); await loadAllAdmin();
+    });
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar.</div>`;console.error(e);}
 }
 
+/* ══ ADMIN: ACTIVOS ══ */
 async function loadAct(){
   if(!gLenderId) return;
-  const box=document.getElementById("listAct"); box.innerHTML="";
+  const box=el("listAct"); box.innerHTML="";
   try{
     const qs=await getDocs(loanQ(where("status","==","active"),orderBy("activeAt","desc"),limit(100)));
-    document.getElementById("badgeAct").textContent=qs.size;
+    el("badgeAct").textContent=qs.size;
     if(qs.empty){box.innerHTML=`<div class="empty">Sin préstamos activos</div>`;return;}
     qs.forEach(docu=>{
       const d={...docu.data(),id:docu.id};
@@ -764,77 +1115,85 @@ async function loadAct(){
       box.insertAdjacentHTML("beforeend",`<div class="loan-item" id="li-${d.id}">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
           <div><div class="loan-name">${d.borrower?.name||"--"}</div>
-            <div class="loan-meta"><span>DNI <strong>${d.borrower?.dni||"--"}</strong></span><span>Capital <strong>${fmtMoney(d.amount)}</strong></span><span><strong>${d.months}</strong> cuotas</span><span>TNA <strong>${d.tna}%</strong></span>${d.contractId?`<span>Contrato <strong>${d.contractId}</strong></span>`:""}</div>
+            <div class="loan-meta"><span>DNI <strong>${d.borrower?.dni||"--"}</strong></span><span><strong>${fmtMoney(d.amount)}</strong></span><span><strong>${d.months}</strong> cuotas</span><span>TNA <strong>${d.tna}%</strong></span>${d.contractId?`<span><strong>${d.contractId}</strong></span>`:""}</div>
             <div style="margin:8px 0 4px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>Progreso</span><span style="color:var(--sky)">${d.paidCount||0}/${d.months} cuotas</span></div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div></div>
           </div>
-          ${d.borrower?.phone?`<a href="https://wa.me/${digits(d.borrower.phone)}" target="_blank" class="btn-wa btn-sm"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>WA</a>`:""}
+          ${waButton(d.borrower?.phone,d.borrower?.name)}
         </div>
         ${d.notes?`<div class="loan-notes"><strong>Nota:</strong> ${d.notes}</div>`:""}
-        <div class="toolbar"><button class="btn-outline btn-sm" data-cuotas="${d.id}">📅 Ver cuotas</button><button class="btn-success btn-sm" data-paid="${d.id}" ${allPaid?"":"disabled"}>✓ Cerrar saldado</button><button class="btn-outline btn-sm" data-note="${d.id}">Nota</button><button class="btn-danger btn-sm" data-charge="${d.id}">Incobrable</button></div>
+        <div class="toolbar">
+          <button class="btn-outline btn-sm" data-cuotas="${d.id}">📅 Ver cuotas</button>
+          <button class="btn-success btn-sm" data-paid="${d.id}" ${allPaid?"":"disabled"}>✓ Cerrar saldado</button>
+          <button class="btn-outline btn-sm" data-note="${d.id}">Nota</button>
+          <button class="btn-danger btn-sm" data-charge="${d.id}">Incobrable</button>
+        </div>
         <div id="sch-${d.id}"></div></div>`);
     });
     attachNotes(box);
     box.querySelectorAll("[data-cuotas]").forEach(b=>b.onclick=async()=>{
-      const id=b.getAttribute("data-cuotas");const schEl=document.getElementById(`sch-${id}`);
+      const id=b.getAttribute("data-cuotas");
+      const schEl=el(`sch-${id}`);
       if(schEl.innerHTML){schEl.innerHTML="";return;}
-      const s=await getDoc(doc(db,"loans",id));if(!s.exists())return;
+      const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
       const L={...s.data(),id};
       const rowsHtml=scheduleRows(L).map(r=>{
         const late=daysLate(r.due);
         const badge=r.paid?`<span class="pill ok">Pagada</span>`:late>10?`<span class="pill bad">Mora +${late}d</span>`:late>0?`<span class="pill warn">Mora ${late}d</span>`:`<span class="pill teal">Pendiente</span>`;
-        // Botón Pagar SOLO en pendientes
-        const btn=r.paid?"":`<button class="btn-pay" data-mark="${L.id}:${r.n}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pagar</button>`;
+        // Botón pagar manualmente (admin gestiona el cobro)
+        const btnPagar=r.paid?"":`<button class="btn-pay btn-sm" data-mark="${L.id}:${r.n}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pagar</button>`;
         const rc=r.paid?"schedule-row is-paid":late>0?"schedule-row is-late":"schedule-row";
-        return `<div class="${rc}"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span class="action-col">${badge} ${btn}</span></div>`;
+        return `<div class="${rc}"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span class="action-col">${badge}${btnPagar}</span></div>`;
       }).join("");
       schEl.innerHTML=`<div class="schedule-wrap" style="margin-top:12px"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Acción</span></div>${rowsHtml}</div>`;
       schEl.querySelectorAll("[data-mark]").forEach(btn=>btn.onclick=async()=>{
         const [loanId]=btn.getAttribute("data-mark").split(":");
-        const s2=await getDoc(doc(db,"loans",loanId));if(!s2.exists())return;
+        const s2=await getDoc(doc(db,"loans",loanId)); if(!s2.exists()) return;
         const cur=s2.data();
         await updateDoc(doc(db,"loans",loanId),{paidCount:Math.min((cur.paidCount||0)+1,cur.months),updatedAt:nowTS()});
         toast("Cuota registrada como pagada","ok");
-        await loadAct();await computeDashboard();await loadMora();
+        await loadAct(); await computeDashboard(); await loadMora();
       });
     });
     box.querySelectorAll("[data-paid]").forEach(b=>b.onclick=async()=>{
-      const id=b.getAttribute("data-paid");const s=await getDoc(doc(db,"loans",id));if(!s.exists())return;
+      const id=b.getAttribute("data-paid");
+      const s=await getDoc(doc(db,"loans",id)); if(!s.exists()) return;
       if((s.data().paidCount||0)<s.data().months){toast("Faltan cuotas.","err");return;}
-      await updateDoc(doc(db,"loans",id),{status:"paid",updatedAt:nowTS()});toast("Préstamo cerrado como saldado","ok");await loadAllAdmin();
+      await updateDoc(doc(db,"loans",id),{status:"paid",updatedAt:nowTS()});
+      toast("Préstamo cerrado como saldado","ok"); await loadAllAdmin();
     });
     box.querySelectorAll("[data-charge]").forEach(b=>b.onclick=async()=>{
-      if(!confirm("¿Mover a incobrables?"))return;
+      if(!confirm("¿Mover a incobrables?")) return;
       await updateDoc(doc(db,"loans",b.getAttribute("data-charge")),{status:"charged_off",chargedOffAt:nowTS(),updatedAt:nowTS()});
-      toast("Movido a incobrables","info");await loadAllAdmin();
+      toast("Movido a incobrables","info"); await loadAllAdmin();
     });
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar activos.</div>`;console.error(e);}
 }
 
+/* ══ ADMIN: MORA ══ */
 async function loadMora(){
   if(!gLenderId) return;
-  const box=document.getElementById("listMora"); box.innerHTML="";
+  const box=el("listMora"); box.innerHTML="";
   try{
     const qs=await getDocs(loanQ(where("status","==","active"),orderBy("activeAt","desc"),limit(200)));
-    const items=[]; const deudoresSet=new Set();
+    const items=[], deudoresSet=new Set();
     qs.forEach(docu=>{
       const d={...docu.data(),id:docu.id};
       scheduleRows(d).forEach(r=>{const dl=daysLate(r.due);if(!r.paid&&dl>0){items.push({loan:d,row:r,days:dl});deudoresSet.add(d.id);}});
     });
     items.sort((a,b)=>b.days-a.days);
-    document.getElementById("badgeMora").textContent=items.length;
+    el("badgeMora").textContent=items.length;
     if(!items.length){
-      document.getElementById("moraSummary").style.display="none";
-      box.innerHTML=`<div class="empty">✅ Sin cuotas en mora. ¡Todo al día!</div>`;return;
+      el("moraSummary").style.display="none";
+      box.innerHTML=`<div class="empty">✅ Sin cuotas en mora. ¡Todo al día!</div>`; return;
     }
     const totalAmt=items.reduce((s,i)=>s+(i.row.amount||0),0);
-    document.getElementById("moraSummary").style.display="grid";
-    document.getElementById("moraTotal").textContent=fmtMoney(totalAmt);
-    document.getElementById("moraDeudores").textContent=deudoresSet.size;
-    document.getElementById("moraMaxDias").textContent=(items[0]?.days||0)+"d";
+    el("moraSummary").style.display="grid";
+    el("moraTotal").textContent=fmtMoney(totalAmt);
+    el("moraDeudores").textContent=deudoresSet.size;
+    el("moraMaxDias").textContent=(items[0]?.days||0)+"d";
     items.forEach(({loan:L,row:r,days})=>{
-      const b=L.borrower||{};const phone=digits(b.phone||"");
-      const appName=gSettings.appName||"DineroYa";
-      const msg=encodeURIComponent(`Hola ${b.name}, te contactamos de ${appName}. Tu cuota N°${r.n} de ${fmtMoney(r.amount)} tiene ${days} días de atraso. Por favor informanos el estado del pago o escribinos al ${gSettings.wa||""}. ¡Gracias!`);
+      const b=L.borrower||{}; const phone=digits(b.phone||"");
+      const msg=encodeURIComponent(`Hola ${b.name}, te contactamos de ${gSettings.appName||"DineroYa"}. Tu cuota N°${r.n} de ${fmtMoney(r.amount)} tiene ${days} días de atraso. Por favor informanos el estado del pago. ¡Gracias!`);
       const waLink=phone?`https://wa.me/${phone}?text=${msg}`:"";
       const sev=days>30?"grave":days>10?"media":"leve";
       const pillClass=sev==="grave"?"bad":sev==="media"?"warn":"teal";
@@ -850,9 +1209,83 @@ async function loadMora(){
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar mora.</div>`;console.error(e);}
 }
 
+/* ══════════════════════════════════════════════════════
+   COMPROBANTES — Flujo de pago manual
+   El admin ve las imágenes y aprueba/rechaza cada cuota
+   ══════════════════════════════════════════════════════ */
+async function loadComprobantes(){
+  if(!gLenderId) return;
+  const box=el("listComp"); box.innerHTML="";
+  try{
+    const qs=await getDocs(loanQ(where("status","==","active"),where("hasComprobantePendiente","==",true),limit(100)));
+    el("badgeComp").textContent=qs.size;
+    if(qs.empty){box.innerHTML=`<div class="empty">✅ Sin comprobantes pendientes de verificación</div>`;return;}
+    qs.forEach(docu=>{
+      const d={...docu.data(),id:docu.id};
+      const b=d.borrower||{};
+      const comps=d.comprobantesPendientes||[];
+      comps.forEach((comp,idx)=>{
+        const imgHtml=comp.url
+          ?`<img src="${comp.url}" style="max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--border-hi);margin-top:10px;display:block" alt="comprobante"/>`
+          :`<p style="font-size:12px;color:var(--muted);margin-top:6px">Sin imagen adjunta</p>`;
+        box.insertAdjacentHTML("beforeend",`<div class="loan-item">
+          <div class="loan-name">${b.name||"--"} — <span style="color:var(--sky)">Cuota N°${comp.cuota}</span></div>
+          <div class="loan-meta">
+            <span>DNI <strong>${b.dni||"--"}</strong></span>
+            <span>Importe cuota <strong>${fmtMoney(d.installment||0)}</strong></span>
+            <span>Enviado <strong>${comp.sentAt||"--"}</strong></span>
+          </div>
+          ${imgHtml}
+          <div class="toolbar" style="margin-top:12px">
+            <button class="btn-success btn-sm" data-approve-comp="${d.id}" data-idx="${idx}" data-cuota="${comp.cuota}">
+              ✓ Aprobar y marcar cuota como pagada
+            </button>
+            <button class="btn-danger btn-sm" data-reject-comp="${d.id}" data-idx="${idx}">
+              ✕ Rechazar comprobante
+            </button>
+          </div>
+        </div>`);
+      });
+    });
+    // Aprobar comprobante → marca paidCount+1 y elimina el comprobante
+    box.querySelectorAll("[data-approve-comp]").forEach(btn=>btn.onclick=async()=>{
+      const loanId=btn.getAttribute("data-approve-comp");
+      const idx=Number(btn.getAttribute("data-idx"));
+      const s=await getDoc(doc(db,"loans",loanId)); if(!s.exists()) return;
+      const cur=s.data();
+      const newComps=(cur.comprobantesPendientes||[]).filter((_,i)=>i!==idx);
+      await updateDoc(doc(db,"loans",loanId),{
+        paidCount:Math.min((cur.paidCount||0)+1,cur.months),
+        comprobantesPendientes:newComps,
+        hasComprobantePendiente:newComps.length>0,
+        updatedAt:nowTS()
+      });
+      toast("✅ Cuota aprobada y marcada como pagada","ok");
+      await loadComprobantes(); await computeDashboard(); await loadAct();
+    });
+    // Rechazar → solo elimina el comprobante, no marca pago
+    box.querySelectorAll("[data-reject-comp]").forEach(btn=>btn.onclick=async()=>{
+      if(!confirm("¿Rechazar este comprobante? El cliente deberá enviar uno nuevo.")) return;
+      const loanId=btn.getAttribute("data-reject-comp");
+      const idx=Number(btn.getAttribute("data-idx"));
+      const s=await getDoc(doc(db,"loans",loanId)); if(!s.exists()) return;
+      const cur=s.data();
+      const newComps=(cur.comprobantesPendientes||[]).filter((_,i)=>i!==idx);
+      await updateDoc(doc(db,"loans",loanId),{
+        comprobantesPendientes:newComps,
+        hasComprobantePendiente:newComps.length>0,
+        updatedAt:nowTS()
+      });
+      toast("Comprobante rechazado. El cliente puede reenviar.","info");
+      await loadComprobantes();
+    });
+  }catch(e){box.innerHTML=`<div class="empty">Error al cargar comprobantes.</div>`;console.error(e);}
+}
+
+/* ══ ADMIN: HISTÓRICO ══ */
 async function loadInact(){
   if(!gLenderId) return;
-  const box=document.getElementById("listInact"); box.innerHTML="";
+  const box=el("listInact"); box.innerHTML="";
   try{
     const status=inactTab==="paid"?"paid":"charged_off";
     const qs=await getDocs(loanQ(where("status","==",status),orderBy("updatedAt","desc"),limit(100)));
@@ -869,126 +1302,162 @@ async function loadInact(){
     box.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("¿Eliminar definitivamente?"))return;await deleteDoc(doc(db,"loans",b.getAttribute("data-del")));toast("Eliminado","info");await loadInact();});
   }catch(e){box.innerHTML=`<div class="empty">Error al cargar.</div>`;}
 }
-document.getElementById("btnTabPaid").onclick   =()=>{inactTab="paid";        loadInact();};
-document.getElementById("btnTabCharged").onclick=()=>{inactTab="charged_off"; loadInact();};
-document.getElementById("btnReloadPend").onclick =loadPend;
-document.getElementById("btnReloadPre").onclick  =loadPre;
-document.getElementById("btnReloadAct").onclick  =loadAct;
-document.getElementById("btnReloadMora").onclick =loadMora;
-document.getElementById("btnReloadInact").onclick=loadInact;
+el("btnTabPaid").onclick    =()=>{inactTab="paid";        loadInact();};
+el("btnTabCharged").onclick =()=>{inactTab="charged_off"; loadInact();};
+el("btnReloadPend").onclick =loadPend;
+el("btnReloadPre").onclick  =loadPre;
+el("btnReloadAct").onclick  =loadAct;
+el("btnReloadMora").onclick =loadMora;
+el("btnReloadComp").onclick =loadComprobantes;
+el("btnReloadInact").onclick=loadInact;
 
-/* ── DASHBOARD ── */
+/* ══ DASHBOARD — 5 KPIs ══ */
 async function computeDashboard(){
   if(!gLenderId) return;
   try{
     const qs=await getDocs(loanQ(where("status","==","active"),limit(500)));
-    let invested=0,recovered=0,mora=0,profit=0,moraCount=0,paidCount=0;
+    let invested=0,recovered=0,mora=0,profit=0,moraCount=0,paidCount=0,totalInst=0;
     qs.forEach(docu=>{
       const L=docu.data(); invested+=(L.amount||0);
       const inst=(L.installment&&L.installment>0)?L.installment:Math.round(annuity(L.amount,L.tna,L.months));
       const paid=(L.paidCount||0); recovered+=inst*paid; paidCount+=paid;
-      profit+=(inst*L.months)-(L.amount||0);
+      totalInst+=L.months; profit+=(inst*L.months)-(L.amount||0);
       scheduleRows(L).forEach(r=>{if(!r.paid&&daysLate(r.due)>0){mora+=(r.amount||0);moraCount++;}});
     });
-    document.getElementById("kpiInvested").textContent  =fmtMoney(invested);
-    document.getElementById("kpiActiveCount").textContent=qs.size+" préstamos activos";
-    document.getElementById("kpiRecovered").textContent =fmtMoney(recovered);
-    document.getElementById("kpiPaidCount").textContent =paidCount+" cuotas cobradas";
-    document.getElementById("kpiMora").textContent      =fmtMoney(mora);
-    document.getElementById("kpiMoraCount").textContent =moraCount+" cuotas vencidas";
-    document.getElementById("kpiProfit").textContent    =fmtMoney(profit);
+    const moraRate=totalInst>0?Math.round((moraCount/totalInst)*100):0;
+    el("kpiInvested").textContent   =fmtMoney(invested);
+    el("kpiActiveCount").textContent=qs.size+" préstamos activos";
+    el("kpiRecovered").textContent  =fmtMoney(recovered);
+    el("kpiPaidCount").textContent  =paidCount+" cuotas cobradas";
+    el("kpiMora").textContent       =fmtMoney(mora);
+    el("kpiMoraCount").textContent  =moraCount+" cuotas vencidas";
+    el("kpiMoraRate").textContent   =moraRate+"%";
+    el("kpiMoraBar").style.width    =Math.min(moraRate,100)+"%";
+    el("kpiProfit").textContent     =fmtMoney(profit);
   }catch(e){console.error("Dashboard:",e);}
 }
 
-/* ── NOTES ── */
-function attachNotes(box){
-  box.querySelectorAll("[data-note]").forEach(btn=>btn.onclick=async()=>{
-    const id=btn.getAttribute("data-note");const s=await getDoc(doc(db,"loans",id));if(!s.exists())return;
-    const cur=s.data().notes||"";const txt=prompt("Nota de seguimiento:",cur);if(txt===null)return;
-    await updateDoc(doc(db,"loans",id),{notes:txt,updatedAt:nowTS()});toast("Nota guardada","ok");await loadAllAdmin();
-  });
-}
-
-/* ── CONFIG ── */
-document.getElementById("cfgLogoFile").onchange=async(e)=>{
-  const file=e.target.files[0];if(!file)return;
+/* ══ CONFIG ══ */
+el("cfgLogoFile").onchange=async(e)=>{
+  const file=e.target.files[0]; if(!file) return;
   const reader=new FileReader();
   reader.onload=(ev)=>{
     gSettings.logoBase64=ev.target.result;
-    document.getElementById("cfgLogoPreview").innerHTML=`<img src="${ev.target.result}" alt="logo"/>`;
+    el("cfgLogoPreview").innerHTML=`<img src="${ev.target.result}" alt="logo"/>`;
     applyBranding();
   };
   reader.readAsDataURL(file);
 };
-document.getElementById("btnSaveCfg").onclick=async()=>{
+el("btnSaveCfg").onclick=async()=>{
   if(!gLenderId){toast("Necesitás iniciar sesión primero.","err");return;}
-  const tna     =Number(digits(document.getElementById("cfgTna").value));
-  const due     =Math.min(28,Math.max(1,Number(digits(document.getElementById("cfgDue").value))));
-  const appName =(document.getElementById("cfgAppName").value||"DineroYa").trim();
-  const city    =(document.getElementById("cfgCity").value||"Río Gallegos").trim();
-  const expenses=Number(document.getElementById("cfgExpenses").value||"0");
-  const wa      =(document.getElementById("cfgWa").value||"").trim();
+  const tna      =Number(digits(el("cfgTna").value));
+  const due      =Math.min(28,Math.max(1,Number(digits(el("cfgDue").value))));
+  const appName  =(el("cfgAppName").value||"DineroYa").trim();
+  const city     =(el("cfgCity").value||"Río Gallegos").trim();
+  const expenses =Number(el("cfgExpenses").value||"0");
+  const wa       =(el("cfgWa").value||"").trim();
+  const mpTokInput=(el("cfgMpToken").value||"").trim();
+  const mpPubKey =(el("cfgMpPublicKey").value||"").trim();
   const data={tna,dueDay:due,appName,city,expenses,wa,lenderId:gLenderId,updatedAt:nowTS()};
   if(gSettings.logoBase64) data.logoBase64=gSettings.logoBase64;
-  await setDoc(settRef(),data,{merge:true});
+  if(mpTokInput && mpTokInput!=="••••••••••••••••"){ data.mpToken=mpTokInput; gSettings.mpToken=mpTokInput; }
+  if(mpPubKey){ data.mpPublicKey=mpPubKey; gSettings.mpPublicKey=mpPubKey; }
+  // Guardar en /settings/{lenderId} Y en /lenders/{lenderId} para el branding multitenant por ?ref=
+  await Promise.all([
+    setDoc(settRef(),data,{merge:true}),
+    setDoc(lenderRef(gLenderId),data,{merge:true})
+  ]);
   await loadSettings(); toast("Configuración guardada","ok");
 };
 
-/* ── ACTIVATE MODAL ── */
+/* ══ ACTIVATE MODAL ══ */
 function showActivateModal(L){
   gActivateLoan=L;
   const inst=Math.round(annuity(L.amount,L.tna,L.months));
-  const expPct=gSettings.expenses||0,expAmt=Math.round(L.amount*expPct/100),neto=L.amount-expAmt;
-  const totalI=(inst*L.months)-L.amount;
-  document.getElementById("activateSummary").innerHTML=`
+  const expPct=gSettings.expenses||0, expAmt=Math.round(L.amount*expPct/100), neto=L.amount-expAmt;
+  el("activateSummary").innerHTML=`
     <div class="activate-row"><span class="l">Capital solicitado</span><span class="v">${fmtMoney(L.amount)}</span></div>
     <div class="activate-row"><span class="l">Gastos admin (${expPct}%)</span><span class="v" style="color:#f87171">– ${fmtMoney(expAmt)}</span></div>
     <div class="activate-row"><span class="l">Neto a entregar</span><span class="v" style="color:var(--ok)">${fmtMoney(neto)}</span></div>
     <div class="activate-row"><span class="l">Cuota mensual</span><span class="v">${fmtMoney(inst)}</span></div>
     <div class="activate-row"><span class="l">Plazo</span><span class="v">${L.months} meses</span></div>
-    <div class="activate-row"><span class="l">Intereses proyectados</span><span class="v" style="color:var(--purple)">${fmtMoney(totalI)}</span></div>
+    <div class="activate-row"><span class="l">Intereses proyectados</span><span class="v" style="color:var(--purple)">${fmtMoney((inst*L.months)-L.amount)}</span></div>
     <div class="activate-row"><span class="l">TOTAL A RECUPERAR</span><span class="v">${fmtMoney(inst*L.months)}</span></div>`;
-  document.getElementById("activateModal").classList.add("open");
+  el("activateModal").classList.add("open");
 }
-document.getElementById("btnCancelActivate").onclick=()=>{document.getElementById("activateModal").classList.remove("open");gActivateLoan=null;};
-document.getElementById("btnConfirmActivate").onclick=async()=>{
-  const L=gActivateLoan;if(!L)return;
+el("btnCancelActivate").onclick=()=>{el("activateModal").classList.remove("open");gActivateLoan=null;};
+el("btnConfirmActivate").onclick=async()=>{
+  const L=gActivateLoan; if(!L) return;
   const inst=Math.round(annuity(L.amount,L.tna,L.months));
   await updateDoc(doc(db,"loans",L.id),{status:"active",activeAt:nowTS(),updatedAt:nowTS(),installment:inst,paidCount:0});
-  document.getElementById("activateModal").classList.remove("open");gActivateLoan=null;
-  toast("Préstamo activado","ok");await loadAllAdmin();
+  el("activateModal").classList.remove("open"); gActivateLoan=null;
+  toast("Préstamo activado","ok"); await loadAllAdmin();
 };
+
 async function loadAllAdmin(){
   await loadSettings();
-  await Promise.all([loadPend(),loadPre(),loadAct(),loadMora(),loadInact()]);
+  await Promise.all([loadPend(),loadPre(),loadAct(),loadMora(),loadComprobantes(),loadInact()]);
   await computeDashboard();
 }
 
-/* ── MI PRÉSTAMO ── */
-document.getElementById("btnFindMyLoan").onclick=async()=>{
-  const dni=digits(document.getElementById("myDni").value);
-  if(!dni){document.getElementById("myLoanResult").innerHTML=`<div class="empty">Ingresá un DNI válido.</div>`;return;}
-  document.getElementById("myLoanResult").innerHTML=`<div class="empty"><div class="spinner"></div></div>`;
+/* ══════════════════════════════════════════════════════
+   MI PRÉSTAMO — Portal cliente
+   Lógica híbrida: botón MP si hay token, sino pago manual
+   ══════════════════════════════════════════════════════ */
+el("btnFindMyLoan").onclick=async()=>{
+  const dni=digits(el("myDni").value);
+  if(!dni){el("myLoanResult").innerHTML=`<div class="empty">Ingresá un DNI válido.</div>`;return;}
+  el("myLoanResult").innerHTML=`<div class="empty"><div class="spinner"></div></div>`;
   try{
-    const qs=await getDocs(query(collection(db,"loans"),orderBy("createdAt","desc"),limit(500)));
-    const list=[];
-    qs.forEach(d=>{if((d.data().borrower?.dni||"")===dni)list.push({id:d.id,...d.data()});});
-    if(!list.length){document.getElementById("myLoanResult").innerHTML=`<div class="empty">No encontramos préstamos para ese DNI.</div>`;return;}
-    const L=list[0];const paid=Number(L.paidCount||0);const pct=L.months?Math.round((paid/L.months)*100):0;
+    const lid=effectiveLid();
+    const baseQ=lid
+      ?query(collection(db,"loans"),where("lenderId","==",lid),orderBy("createdAt","desc"),limit(500))
+      :query(collection(db,"loans"),orderBy("createdAt","desc"),limit(500));
+    const qs=await getDocs(baseQ);
+    const list=[]; qs.forEach(d=>{if((d.data().borrower?.dni||"")===dni)list.push({id:d.id,...d.data()});});
+    if(!list.length){el("myLoanResult").innerHTML=`<div class="empty">No encontramos préstamos para ese DNI.</div>`;return;}
+    const L=list[0];
+    const paid=Number(L.paidCount||0), pct=L.months?Math.round((paid/L.months)*100):0;
     const sLabels={pending:"Pendiente",preapproved:"Preaprobado",active:"Activo",paid:"Saldado",charged_off:"Incobrable"};
     const sClass={active:"ok",paid:"ok",charged_off:"bad"};
+    const mpEnabled=hasMpToken();
+
+    // Instrucciones de pago manual (solo si está activo y sin MP)
+    const manualBox=!mpEnabled&&L.status==="active"
+      ?`<div style="margin-bottom:16px;padding:14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px">
+          <div style="font-size:12px;font-weight:700;color:#fbbf24;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">📋 Instrucciones de pago</div>
+          <p style="font-size:12px;color:var(--muted);line-height:1.65">Realizá tu transferencia al alias o CBU que te indicó el prestamista.<br>Luego usá el botón <strong style="color:var(--ice)">"Enviar comprobante"</strong> en la cuota correspondiente para adjuntar la captura. El prestamista lo verificará y marcará el pago.</p>
+        </div>`
+      :"";
+
     const rows=scheduleRows(L).map(r=>{
       const late=daysLate(r.due);
-      const badge=r.paid?`<span class="pill ok">Pagada</span>`:late>0?`<span class="pill bad">Mora ${late}d</span>`:`<span class="pill teal">Pendiente</span>`;
-      // Botón pagar solo en pendientes (deshabilitado en portal cliente, solo referencia)
-      const payBtn=(!r.paid)?`<button class="btn-pay btn-sm" style="opacity:.55;pointer-events:none"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Pagar</button>`:"";
-      return `<div class="${r.paid?"schedule-row is-paid":"schedule-row"}"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span class="action-col">${badge} ${payBtn}</span></div>`;
+      const badge=r.paid
+        ?`<span class="pill ok">Pagada</span>`
+        :late>0?`<span class="pill bad">Mora ${late}d</span>`
+        :`<span class="pill teal">Pendiente</span>`;
+
+      let payAction="";
+      if(!r.paid && L.status==="active"){
+        if(mpEnabled){
+          // Con Mercado Pago: link directo de pago
+          const mpUrl=`https://www.mercadopago.com.ar/checkout/v1/redirect?pref_id=DEMO_${L.id}_${r.n}`;
+          payAction=`<a href="${mpUrl}" target="_blank" style="padding:6px 12px;background:rgba(0,168,90,.15);border:1px solid rgba(0,168,90,.35);border-radius:8px;color:#00c878;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px">💳 Pagar con MP</a>`;
+        } else {
+          // Sin token: botón para subir comprobante de transferencia
+          payAction=`<button class="btn-comp btn-sm" data-upload="${L.id}:${r.n}">📎 Enviar comprobante</button>`;
+        }
+      }
+      const rc=r.paid?"schedule-row is-paid":late>0?"schedule-row is-late":"schedule-row";
+      return `<div class="${rc}"><span class="num">${String(r.n).padStart(2,"0")}</span><span class="date">${new Date(r.due).toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(r.amount)}</span><span class="action-col">${badge}${payAction}</span></div>`;
     }).join("");
+
     let actionBtn="";
-    if(L.contractId&&L.status==="preapproved"&&!L.signed) actionBtn=`<button id="btnPDF" class="btn-primary" style="width:auto;padding:12px 22px">Firmar contrato</button>`;
+    if(L.contractId&&L.status==="preapproved"&&!L.signed) actionBtn=`<button id="btnPDF" class="btn-primary" style="width:auto;padding:12px 22px">✍️ Firmar contrato</button>`;
     else if(L.contractId&&L.status==="preapproved"&&L.signed) actionBtn=`<span class="pill ok" style="padding:9px 14px;font-size:13px">Contrato firmado — Aguardando activación</span>`;
     else if(L.contractId) actionBtn=`<button id="btnPDF" class="btn-outline">Ver contrato PDF</button>`;
-    document.getElementById("myLoanResult").innerHTML=`
+
+    el("myLoanResult").innerHTML=`
       <div class="myloan-status">
         <div><div class="myloan-name">${L.borrower?.name||"--"}</div><div class="myloan-meta">${fmtMoney(L.amount)} · ${L.months} cuotas · TNA ${L.tna}%</div></div>
         <span class="pill ${sClass[L.status]||"warn"}">${sLabels[L.status]||L.status}</span>
@@ -998,17 +1467,74 @@ document.getElementById("btnFindMyLoan").onclick=async()=>{
         <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
       </div>
       ${actionBtn?`<div style="margin-bottom:16px">${actionBtn}</div>`:""}
-      <div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div>`;
-    const pdfBtn=document.getElementById("btnPDF");
-    if(pdfBtn) pdfBtn.addEventListener("click",()=>{ if(L.status==="preapproved"&&!L.signed) openSignModal(L); else openContractWindow(L); });
-  }catch(e){document.getElementById("myLoanResult").innerHTML=`<div class="empty">Error al buscar.</div>`;console.error(e);}
+      ${manualBox}
+      <div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado / Acción</span></div>${rows}</div>`;
+
+    const pdfBtn=el("btnPDF");
+    if(pdfBtn) pdfBtn.addEventListener("click",()=>{
+      if(L.status==="preapproved"&&!L.signed) openSignModal(L); else openContractWindow(L);
+    });
+
+    // Botones de subida de comprobante
+    el("myLoanResult").querySelectorAll("[data-upload]").forEach(btn=>{
+      btn.onclick=()=>{
+        const [loanId,cuota]=btn.getAttribute("data-upload").split(":");
+        openComprobanteUpload(loanId,Number(cuota),btn);
+      };
+    });
+  }catch(e){el("myLoanResult").innerHTML=`<div class="empty">Error al buscar.</div>`;console.error(e);}
 };
 
-/* ── FIRMA TÁCTIL ── */
+/* ══════════════════════════════════════════════════════
+   COMPROBANTE UPLOAD (cliente sube captura de pago)
+   Sube la imagen a Firebase Storage y guarda referencia
+   en Firestore bajo comprobantesPendientes[]
+   ══════════════════════════════════════════════════════ */
+function openComprobanteUpload(loanId,cuota,triggerBtn){
+  const input=document.createElement("input");
+  input.type="file"; input.accept="image/*,application/pdf";
+  input.onchange=async()=>{
+    const file=input.files[0]; if(!file) return;
+    triggerBtn.textContent="⏳ Subiendo..."; triggerBtn.disabled=true;
+    const reader=new FileReader();
+    reader.onload=async ev=>{
+      try{
+        // Subir a Storage: comprobantes/{loanId}/cuota_{n}_{ts}
+        const path=`comprobantes/${loanId}/cuota_${cuota}_${Date.now()}`;
+        const storRef=sRef(storage,path);
+        await uploadString(storRef,ev.target.result,"data_url");
+        const url=await getDownloadURL(storRef);
+        // Guardar en Firestore con lenderId ya presente en el documento
+        const snap=await getDoc(doc(db,"loans",loanId)); if(!snap.exists()) return;
+        const cur=snap.data();
+        const pendientes=[...(cur.comprobantesPendientes||[]),{
+          cuota, url,
+          sentAt:new Date().toLocaleDateString("es-AR"),
+          fileName:file.name
+        }];
+        await updateDoc(doc(db,"loans",loanId),{
+          comprobantesPendientes:pendientes,
+          hasComprobantePendiente:true,
+          updatedAt:nowTS()
+        });
+        triggerBtn.outerHTML=`<span class="pill warn" style="padding:5px 10px">⏳ En revisión por el prestamista</span>`;
+        toast("✅ Comprobante enviado. El prestamista lo verificará pronto.","ok",5000);
+      }catch(err){
+        triggerBtn.textContent="📎 Enviar comprobante"; triggerBtn.disabled=false;
+        toast("Error al subir el archivo. Intentá de nuevo.","err");
+        console.error(err);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+/* ══ FIRMA TÁCTIL ══ */
 let gSignLoan=null;
 function openSignModal(L){
   gSignLoan=L;
-  const canvas=document.getElementById("sigCanvas");
+  const canvas=el("sigCanvas");
   canvas.width=canvas.parentElement.clientWidth||400; canvas.height=170;
   const ctx=canvas.getContext("2d");
   ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -1017,33 +1543,33 @@ function openSignModal(L){
   const pos=e=>{const r=canvas.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:s.clientX-r.left,y:s.clientY-r.top};};
   canvas.onmousedown =e=>{drawing=true;const p=pos(e);lx=p.x;ly=p.y;};
   canvas.onmousemove =e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;};
-  canvas.onmouseup   =()=>drawing=false;canvas.onmouseleave=()=>drawing=false;
+  canvas.onmouseup=canvas.onmouseleave=()=>drawing=false;
   canvas.ontouchstart=e=>{e.preventDefault();drawing=true;const p=pos(e);lx=p.x;ly=p.y;};
   canvas.ontouchmove =e=>{e.preventDefault();if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;};
   canvas.ontouchend  =e=>{e.preventDefault();drawing=false;};
-  document.getElementById("sigModal").classList.add("open");
+  el("sigModal").classList.add("open");
 }
-function closeSignModal(){document.getElementById("sigModal").classList.remove("open");gSignLoan=null;}
-document.getElementById("btnCancelSig").onclick=closeSignModal;
-document.getElementById("btnClearSig").onclick=()=>{const c=document.getElementById("sigCanvas");c.getContext("2d").clearRect(0,0,c.width,c.height);};
-document.getElementById("btnConfirmSig").onclick=async()=>{
-  const canvas=document.getElementById("sigCanvas");
+function closeSignModal(){el("sigModal").classList.remove("open");gSignLoan=null;}
+el("btnCancelSig").onclick=closeSignModal;
+el("btnClearSig").onclick=()=>{const c=el("sigCanvas");c.getContext("2d").clearRect(0,0,c.width,c.height);};
+el("btnConfirmSig").onclick=async()=>{
+  const canvas=el("sigCanvas");
   const data=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data;
   if(!Array.from(data).some((v,i)=>i%4===3&&v>0)){toast("Dibujá tu firma primero.","err");return;}
-  const sigImg=canvas.toDataURL("image/png");const L=gSignLoan;if(!L)return;
+  const sigImg=canvas.toDataURL("image/png"); const L=gSignLoan; if(!L) return;
   try{
     await updateDoc(doc(db,"loans",L.id),{signed:true,signedAt:nowTS(),updatedAt:nowTS(),signatureImg:sigImg});
-    closeSignModal();toast("Firma registrada. El admin activará tu préstamo en breve.","ok");
-    document.getElementById("btnFindMyLoan").click();
+    closeSignModal(); toast("Firma registrada. El admin activará tu préstamo en breve.","ok");
+    el("btnFindMyLoan").click();
   }catch(e){toast("Error al guardar firma.","err");console.error(e);}
 };
 
-/* ── CONTRATO ── */
+/* ══ CONTRATO HTML ══ */
 function contractHtml(L){
   const today=new Date().toLocaleDateString("es-AR");
-  const name=gSettings.appName||"DineroYa";const city=gSettings.city||"Río Gallegos";
+  const name=gSettings.appName||"DineroYa"; const city=gSettings.city||"Río Gallegos";
   const inst=(L.installment&&L.installment>0)?L.installment:Math.round(annuity(L.amount,L.tna,L.months));
-  const expPct=gSettings.expenses||0,expAmt=Math.round(L.amount*expPct/100),neto=L.amount-expAmt;
+  const expPct=gSettings.expenses||0, expAmt=Math.round(L.amount*expPct/100), neto=L.amount-expAmt;
   const rows=scheduleRows(L).map(r=>`<tr><td style="text-align:center">${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td style="text-align:right">${fmtMoney(r.amount)}</td><td style="text-align:center">${r.paid?"Pagada":"Pendiente"}</td></tr>`).join("");
   const sigImg=L.signatureImg?`<div style="border:1px solid #ccc;border-radius:6px;padding:6px;max-width:260px;margin-top:6px"><img src="${L.signatureImg}" style="width:100%;max-height:70px;object-fit:contain"/><div style="font-size:9pt;color:#666;margin-top:3px">Firma digital – Ley 25.506</div></div>`:`<div style="border-bottom:1px solid #666;width:200px;margin-top:28px;margin-bottom:4px"></div><div style="font-size:9pt;color:#888">Pendiente de firma</div>`;
   const logoHtml=gSettings.logoBase64?`<img src="${gSettings.logoBase64}" style="height:40px;margin-bottom:4px;"/>`:`<strong style="font-size:16pt">${name}</strong>`;
@@ -1052,8 +1578,7 @@ function contractHtml(L){
 </head><body>
 <div class="header">${logoHtml}<h1>Contrato de Préstamo Personal</h1><p style="color:#555">${name} – N.° <strong>${L.contractId||"--"}</strong> – Fecha: <strong>${today}</strong></p></div>
 <div class="parties"><strong>PRESTAMISTA:</strong> ${name}, ${city}.<br><strong>PRESTATARIO:</strong> ${L.borrower?.name||"--"}, DNI ${L.borrower?.dni||"--"}, Email: ${L.borrower?.email||"--"}, Tel: ${L.borrower?.phone||"--"}.</div>
-<h2>Condiciones financieras</h2>
-<table><tbody>
+<h2>Condiciones financieras</h2><table><tbody>
 <tr><td>Capital solicitado</td><td style="text-align:right">${fmtMoney(L.amount)}</td></tr>
 ${expPct>0?`<tr style="color:#c00"><td>Gastos administrativos (${expPct}%)</td><td style="text-align:right">– ${fmtMoney(expAmt)}</td></tr><tr><td><strong>Neto a entregar</strong></td><td style="text-align:right"><strong>${fmtMoney(neto)}</strong></td></tr>`:""}
 <tr><td>Cuota mensual (sistema francés)</td><td style="text-align:right">${fmtMoney(inst)}</td></tr>
@@ -1067,8 +1592,8 @@ ${expPct>0?`<tr style="color:#c00"><td>Gastos administrativos (${expPct}%)</td><
 <li><strong>Tasa.</strong> TNA <strong>${L.tna}%</strong>.</li>
 <li><strong>Mora automática.</strong> Opera de pleno derecho (art. 509 CCyCN). Intereses punitorios al doble de la tasa pactada.</li>
 <li><strong>Título ejecutivo.</strong> Constituye título ejecutivo hábil (arts. 520 y cc. CPCCN).</li>
-<li><strong>Incumplimiento.</strong> Dos o más cuotas impagas habilita acciones judiciales e informe a centrales de riesgo.</li>
-<li><strong>Firma digital – Ley 25.506.</strong> El PRESTATARIO declara plena validez jurídica de la firma electrónica (Ley 25.506).</li>
+<li><strong>Incumplimiento.</strong> Dos cuotas impagas habilita acciones judiciales e informe a centrales de riesgo.</li>
+<li><strong>Firma digital – Ley 25.506.</strong> El PRESTATARIO declara plena validez jurídica de la firma electrónica.</li>
 <li><strong>Datos personales.</strong> Tratamiento conforme Ley 25.326.</li>
 <li><strong>Jurisdicción.</strong> Tribunales Ordinarios de ${city}.</li>
 </ol>
@@ -1085,56 +1610,59 @@ ${expPct>0?`<tr style="color:#c00"><td>Gastos administrativos (${expPct}%)</td><
 function openContractWindow(L){const w=window.open("about:blank","_blank");w.document.open();w.document.write(contractHtml(L));w.document.close();}
 
 function openDebtCertificate(L){
-  const today=new Date().toLocaleDateString("es-AR");const name=gSettings.appName||"DineroYa";const city=gSettings.city||"Río Gallegos";
-  const late=scheduleRows(L).filter(r=>!r.paid);const capital=late.reduce((a,r)=>a+(r.amount||0),0);
-  const dMax=late.length>0?daysLate(late[0].due):0;const tasaP=((L.tna||100)/100/12)*2;
-  const interes=Math.round(capital*tasaP*(dMax/30));const total=capital+interes;
+  const today=new Date().toLocaleDateString("es-AR"); const name=gSettings.appName||"DineroYa"; const city=gSettings.city||"Río Gallegos";
+  const late=scheduleRows(L).filter(r=>!r.paid); const capital=late.reduce((a,r)=>a+(r.amount||0),0);
+  const dMax=late.length>0?daysLate(late[0].due):0; const tasaP=((L.tna||100)/100/12)*2;
+  const interes=Math.round(capital*tasaP*(dMax/30)); const total=capital+interes;
   const rowsH=late.map(r=>`<tr><td style="text-align:center">${r.n}</td><td>${new Date(r.due).toLocaleDateString("es-AR")}</td><td style="text-align:right">${fmtMoney(r.amount)}</td><td style="text-align:center">${daysLate(r.due)}d</td></tr>`).join("");
   const html=`<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Certificado de Deuda</title>
 <style>@page{size:A4;margin:25mm 20mm}body{font-family:'Times New Roman',serif;color:#111;font-size:11pt;line-height:1.6}h1{font-size:14pt;text-align:center;color:#8b0000;text-transform:uppercase}h2{font-size:11pt;text-transform:uppercase;border-bottom:1px solid #ddd;padding-bottom:3px;margin:14px 0 8px}.alert{background:#fff0f0;border:2px solid #c00;padding:12px;margin:14px 0;color:#8b0000;font-weight:700;text-align:center}table{width:100%;border-collapse:collapse;font-size:10pt}th{background:#8b0000;color:#fff;padding:7px 10px}td{border:1px solid #ddd;padding:6px 8px}.total-row td{font-weight:700;font-size:13pt;color:#8b0000;border-top:2px solid #8b0000}</style>
 </head><body>
-<h1>Certificado de Deuda Exigible</h1>
-<p style="text-align:center;color:#555">${name} – Emitido: <strong>${today}</strong></p>
+<h1>Certificado de Deuda Exigible</h1><p style="text-align:center;color:#555">${name} – Emitido: <strong>${today}</strong></p>
 <div class="alert">DOCUMENTO LEGAL – APTO PARA GESTIÓN JUDICIAL / EXTRAJUDICIAL</div>
-<h2>Deudor</h2>
-<table><tbody><tr><td><strong>Nombre</strong></td><td>${L.borrower?.name||"--"}</td></tr><tr><td><strong>DNI</strong></td><td>${L.borrower?.dni||"--"}</td></tr><tr><td><strong>Email</strong></td><td>${L.borrower?.email||"--"}</td></tr><tr><td><strong>Teléfono</strong></td><td>${L.borrower?.phone||"--"}</td></tr><tr><td><strong>N.° Contrato</strong></td><td>${L.contractId||"--"}</td></tr></tbody></table>
-<h2>Cuotas Impagas</h2>
-<table><thead><tr><th>#</th><th>Vencimiento</th><th>Capital</th><th>Días mora</th></tr></thead><tbody>${rowsH}</tbody></table>
-<h2>Liquidación</h2>
-<table><tbody><tr><td>Capital adeudado</td><td style="text-align:right">${fmtMoney(capital)}</td></tr><tr><td>Intereses punitorios (${(tasaP*12*100).toFixed(0)}% anual – ${dMax} días)</td><td style="text-align:right">${fmtMoney(interes)}</td></tr><tr class="total-row"><td>TOTAL EXIGIBLE al ${today}</td><td style="text-align:right">${fmtMoney(total)}</td></tr></tbody></table>
+<h2>Deudor</h2><table><tbody>
+<tr><td><strong>Nombre</strong></td><td>${L.borrower?.name||"--"}</td></tr>
+<tr><td><strong>DNI</strong></td><td>${L.borrower?.dni||"--"}</td></tr>
+<tr><td><strong>N.° Contrato</strong></td><td>${L.contractId||"--"}</td></tr>
+</tbody></table>
+<h2>Cuotas Impagas</h2><table><thead><tr><th>#</th><th>Vencimiento</th><th>Capital</th><th>Días mora</th></tr></thead><tbody>${rowsH}</tbody></table>
+<h2>Liquidación</h2><table><tbody>
+<tr><td>Capital adeudado</td><td style="text-align:right">${fmtMoney(capital)}</td></tr>
+<tr><td>Intereses punitorios (${(tasaP*12*100).toFixed(0)}% anual – ${dMax} días)</td><td style="text-align:right">${fmtMoney(interes)}</td></tr>
+<tr class="total-row"><td>TOTAL EXIGIBLE al ${today}</td><td style="text-align:right">${fmtMoney(total)}</td></tr>
+</tbody></table>
 <p style="font-size:10pt;color:#555">Intereses estimativos. Se recalcularán en liquidación judicial.</p>
-<h2>Fundamento Legal</h2>
-<p style="font-size:10pt">Contrato N.° <strong>${L.contractId||"--"}</strong> – Título ejecutivo (art. 523 CPCCN) – Mora de pleno derecho (art. 509 CCyCN) – Firma digital válida (Ley 25.506).</p>
+<h2>Fundamento Legal</h2><p style="font-size:10pt">Contrato N.° <strong>${L.contractId||"--"}</strong> – Título ejecutivo (art. 523 CPCCN) – Mora de pleno derecho (art. 509 CCyCN) – Firma digital válida (Ley 25.506).</p>
 <div style="border-bottom:1px solid #555;width:200px;margin-top:40px;margin-bottom:5px"></div>
 <p style="font-size:10pt"><strong>${name}</strong> – Acreedor – ${city}</p>
 </body></html>`;
-  const w=window.open("about:blank","_blank");w.document.open();w.document.write(html);w.document.close();
+  const w=window.open("about:blank","_blank"); w.document.open(); w.document.write(html); w.document.close();
 }
 
-/* ── HASH FIRMA ── */
+/* ══ HASH #sign- (link de firma compartido) ══ */
 (async function trySignFromHash(){
-  if(!location.hash.startsWith("#sign-"))return;
+  if(!location.hash.startsWith("#sign-")) return;
   const id=location.hash.replace("#sign-","").trim();
   try{
-    const snap=await getDoc(doc(db,"loans",id));if(!snap.exists())return;
+    const snap=await getDoc(doc(db,"loans",id)); if(!snap.exists()) return;
     const L={...snap.data(),id};
     if(L.signed){toast("Este contrato ya fue firmado.","info");return;}
     showView("client");
-    document.getElementById("myDni").value=L.borrower?.dni||"";
-    document.getElementById("myloan").scrollIntoView({behavior:"smooth"});
+    el("myDni").value=L.borrower?.dni||"";
+    el("myloan").scrollIntoView({behavior:"smooth"});
     await new Promise(r=>setTimeout(r,700));
-    document.getElementById("btnFindMyLoan").click();
+    el("btnFindMyLoan").click();
     await new Promise(r=>setTimeout(r,1200));
     openSignModal(L);
   }catch(e){console.error(e);}
 })();
 
-/* ── INPUT FORMATTERS ── */
-document.getElementById("simAmount").addEventListener("input",e=>{const n=digits(e.target.value);e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):"";});
-document.getElementById("simMonths").addEventListener("input",e=>{const n=Math.min(24,Number(digits(e.target.value)||""));e.target.value=n?n:"";});
-["cfgTna","cfgDue"].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener("input",e=>e.target.value=digits(e.target.value));});
+/* ══ INPUT FORMATTERS ══ */
+el("simAmount").addEventListener("input",e=>{const n=digits(e.target.value);e.target.value=n?"$ "+Number(n).toLocaleString("es-AR"):"";});
+el("simMonths").addEventListener("input",e=>{const n=Math.min(24,Number(digits(e.target.value)||""));e.target.value=n?n:"";});
+["cfgTna","cfgDue"].forEach(id=>{const e=el(id);if(e)e.addEventListener("input",ev=>ev.target.value=digits(ev.target.value));});
 
-/* ── INIT ── */
+/* ══ INIT ══ */
 await loadSettings();
 </script>
 </body>
