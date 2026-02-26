@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════════════════
    PRESTIFY · script.js
    SaaS de Gestión de Préstamos — Módulo principal (Firebase ES Module)
+   VERSIÓN CORREGIDA - CON CONEXIÓN TOTAL A WINDOW
    ════════════════════════════════════════════════════════════════ */
 
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -27,6 +28,12 @@ const db      = getFirestore(app);
 const storage = getStorage(app);
 
 /* ══════════════════════════════════════════════════════════════
+   CONSTANTES GLOBALES
+   ══════════════════════════════════════════════════════════════ */
+const GASTO_OTORGAMIENTO = 3; // 3% fijo sobre el monto solicitado
+const SUPER_ADMIN_UID    = "CuQqbuHWkTWdFPdknVTUAkx5Xri2";
+
+/* ══════════════════════════════════════════════════════════════
    UTILS
    ══════════════════════════════════════════════════════════════ */
 const fmtMoney = n => isNaN(n) || n == null ? "$ 0" : "$ " + Number(Math.round(n)).toLocaleString("es-AR");
@@ -44,10 +51,34 @@ function toast(msg, type = "info", dur = 3800) {
   setTimeout(() => t.remove(), dur);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   SISTEMA FRANCÉS CORREGIDO - CON GASTOS AL CAPITAL
+   ══════════════════════════════════════════════════════════════ */
 function annuity(P, rate, m) {
   const i = (rate / 100) / 12;
   if (i === 0) return P / m;
   return P * i * Math.pow(1 + i, m) / (Math.pow(1 + i, m) - 1);
+}
+
+function calculateFrenchLoan(amount, months, tna) {
+  // ✅ REGLA DE ORO: Sumar gasto de otorgamiento al capital
+  const gastoOtorgAmt = Math.round(amount * GASTO_OTORGAMIENTO / 100);
+  const capitalFinanciar = amount + gastoOtorgAmt;
+  
+  // Calcular cuota
+  const cuota = Math.round(annuity(capitalFinanciar, tna, months));
+  const totalAPagar = cuota * months;
+  
+  return {
+    amount,
+    months,
+    tna,
+    gastoOtorgAmt,
+    capitalFinanciar,
+    cuota,
+    totalAPagar,
+    intereses: totalAPagar - capitalFinanciar
+  };
 }
 
 function scheduleRows(L) {
@@ -74,11 +105,165 @@ let gSettings = {
   expenses: 0, wa: "", logoBase64: "", mpToken: "", mpPublicKey: "",
   status: "activo", plazos: [3, 6, 9, 12, 18, 24], brandColor: "#1a56db", maxAmount: 1000000
 };
-const GASTO_OTORGAMIENTO = 3; // 3% fijo sobre el monto solicitado
-const SUPER_ADMIN_UID    = "CuQqbuHWkTWdFPdknVTUAkx5Xri2";
 let gActivateLoan = null, inactTab = "paid";
 let gNotifications = [], gSnapshotUnsub = null, gStatusUnsub = null, knownPendingIds = new Set();
 let gObSigData = null, gObPayMethod = "mp";
+
+// Exponer gSettings globalmente para que otras funciones puedan acceder
+window.gSettings = gSettings;
+
+/* ══════════════════════════════════════════════════════════════
+   CONEXIÓN TOTAL - Exportar funciones al objeto window
+   ══════════════════════════════════════════════════════════════ */
+// Esta sección asegura que todas las funciones llamadas desde HTML estén disponibles
+
+// Función para avanzar en el onboarding
+window.nextStep = function(step) {
+  console.log('nextStep called from module', step);
+  if (typeof setObStep === 'function') {
+    setObStep(step);
+  } else {
+    // Fallback manual
+    const steps = [1, 2, 3];
+    steps.forEach(s => {
+      const stepEl = document.getElementById(`obStep${s}`);
+      const contentEl = document.getElementById(`obContent${s}`);
+      if (stepEl && contentEl) {
+        if (s === step) {
+          stepEl.className = 'ob-step active';
+          contentEl.className = 'ob-content active';
+        } else if (s < step) {
+          stepEl.className = 'ob-step done';
+          contentEl.className = 'ob-content';
+        } else {
+          stepEl.className = 'ob-step';
+          contentEl.className = 'ob-content';
+        }
+      }
+    });
+  }
+};
+
+// Función para retroceder en el onboarding
+window.prevStep = function(step) {
+  console.log('prevStep called from module', step);
+  const prev = step - 1;
+  if (prev >= 1) {
+    window.nextStep(prev);
+  }
+};
+
+// Función para manejar el registro (abre onboarding)
+window.handleSignup = function() {
+  console.log('handleSignup called from module');
+  if (typeof showOnboarding === 'function') {
+    showOnboarding();
+  } else {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) overlay.classList.add('show');
+  }
+};
+
+// Función para calcular préstamo con sistema francés + gastos
+window.calculateLoan = function() {
+  console.log('calculateLoan called from module');
+  
+  // Obtener valores del DOM
+  const amountInput = document.getElementById('simAmountInput') || 
+                      document.getElementById('clientAmountSlider') ||
+                      document.getElementById('simAmount');
+  const monthsSelect = document.getElementById('simMonths');
+  const monthsHidden = document.getElementById('simMonthsHidden');
+  
+  let amount = 0;
+  let months = 0;
+  
+  if (amountInput) {
+    if (amountInput.type === 'range' || amountInput.type === 'hidden') {
+      amount = parseInt(amountInput.value) || 0;
+    } else {
+      const rawValue = amountInput.value || '';
+      amount = parseInt(rawValue.replace(/\D/g, '')) || 0;
+    }
+  }
+  
+  if (monthsSelect && monthsSelect.value) {
+    months = parseInt(monthsSelect.value) || 0;
+  } else if (monthsHidden && monthsHidden.value) {
+    months = parseInt(monthsHidden.value) || 0;
+  }
+  
+  if (!amount || !months) {
+    toast('Completá el monto y plazo primero', 'err');
+    return null;
+  }
+  
+  // Usar configuración global
+  const tna = gSettings?.tna || 100;
+  
+  // ✅ REGLA DE ORO: Sumar gasto de otorgamiento al capital
+  const result = calculateFrenchLoan(amount, months, tna);
+  
+  // Mostrar resultado
+  const simResult = document.getElementById('simResult');
+  if (simResult) {
+    const expP = gSettings.expenses || 0;
+    const expA = Math.round(amount * expP / 100);
+    
+    simResult.innerHTML = `
+      <div class="sim-result-box">
+        <div class="sim-cuota-display">
+          <span class="sim-cuota-label">Cuota mensual</span>
+          <span class="sim-cuota-value">${fmtMoney(result.cuota)}</span>
+        </div>
+        <div class="breakdown-box">
+          <div class="breakdown-row"><span class="bl">Monto solicitado</span><span class="bv">${fmtMoney(amount)}</span></div>
+          <div class="breakdown-row warn-row"><span class="bl">Gasto de otorgamiento (${GASTO_OTORGAMIENTO}%)</span><span class="bv">+ ${fmtMoney(result.gastoOtorgAmt)}</span></div>
+          <div class="breakdown-row"><span class="bl">Capital a financiar</span><span class="bv">${fmtMoney(result.capitalFinanciar)}</span></div>
+          ${expP > 0 ? `<div class="breakdown-row warn-row"><span class="bl">Gastos administrativos (${expP}%)</span><span class="bv">- ${fmtMoney(expA)}</span></div>` : ""}
+          <div class="breakdown-row"><span class="bl">Neto a recibir</span><span class="bv" style="color:var(--ok)">${fmtMoney(amount - expA)}</span></div>
+          <div class="breakdown-row"><span class="bl">Intereses proyectados</span><span class="bv" style="color:var(--purple)">${fmtMoney(result.intereses)}</span></div>
+          <div class="breakdown-row accent"><span class="bl">Total a pagar</span><span class="bv">${fmtMoney(result.totalAPagar)}</span></div>
+        </div>
+      </div>
+    `;
+  }
+  
+  return result;
+};
+
+// También exponer funciones existentes que puedan ser llamadas desde HTML
+window.closeDemoModal = closeDemoModal;
+window.selectPayMethod = selectPayMethod;
+window.moniUpdateSlider = window.moniUpdateSlider || function(slider) {
+  const val = parseInt(slider.value) || 50000;
+  const display = document.getElementById('moniAmountDisplay');
+  if (display) display.textContent = '$ ' + val.toLocaleString('es-AR');
+  const pct = ((val - parseInt(slider.min)) / (parseInt(slider.max) - parseInt(slider.min))) * 100;
+  slider.style.background = 'linear-gradient(to right, #10b981 0%, #10b981 ' + pct + '%, #e2e8f0 ' + pct + '%)';
+};
+window.moniSimular = window.moniSimular || function() {
+  alert('Función de simulación no disponible');
+};
+window.moniShowForm = window.moniShowForm || function() {
+  const simResult = document.getElementById('moniSimResult');
+  const formSection = document.getElementById('moniFormSection');
+  if (simResult) simResult.style.display = 'none';
+  if (formSection) {
+    formSection.style.display = 'block';
+    formSection.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+};
+window.moniEnviarSolicitud = window.moniEnviarSolicitud || function() {
+  alert('Envío de solicitud no disponible');
+};
+
+console.log('✅ Funciones expuestas a window desde módulo:', 
+  Object.keys(window).filter(k => 
+    ['nextStep', 'prevStep', 'handleSignup', 'calculateLoan', 'closeDemoModal', 
+     'selectPayMethod', 'moniUpdateSlider', 'moniSimular', 'moniShowForm', 'moniEnviarSolicitud'].includes(k)
+  )
+);
 
 /* ══════════════════════════════════════════════════════════════
    MULTITENANT — ?ref= captura inmediata
@@ -220,7 +405,7 @@ function checkPending() {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   BRANDING
+   BRANDING CORREGIDO - Actualiza variables CSS
    ══════════════════════════════════════════════════════════════ */
 async function loadLenderBranding(lid) {
   try {
@@ -247,6 +432,92 @@ async function loadLenderBranding(lid) {
     applyBranding();
     refreshSimMeta();
   } catch(e) { console.warn("Branding:", e); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   APPLY BRANDING CORREGIDO - Actualiza variables CSS
+   ══════════════════════════════════════════════════════════════ */
+function applyBranding() {
+  const name = gSettings.appName || "Prestify";
+  document.title = name + " · Tu financiera, digitalizada";
+
+  // Actualizar logo
+  const mark = document.getElementById("logoMark");
+  if (mark) {
+    if (gSettings.logoBase64) {
+      mark.innerHTML = `<img src="${gSettings.logoBase64}" alt="logo"/>`;
+    } else {
+      mark.textContent = name.replace(/\s+/g, "").slice(0, 1).toUpperCase();
+    }
+  }
+  
+  const mid = Math.ceil(name.length / 2);
+  const ln = document.getElementById("logoName");
+  if (ln) {
+    ln.innerHTML = `${name.slice(0, mid)}<span>${name.slice(mid)}</span>`;
+  }
+
+  // ✅ REGLA DE ORO: Actualizar variables CSS del brand color
+  const brandColor = gSettings.brandColor || "#1a56db";
+  
+  // Actualizar variables CSS root
+  document.documentElement.style.setProperty("--brand-color", brandColor);
+  document.documentElement.style.setProperty("--blue", brandColor);
+  document.documentElement.style.setProperty("--blue-light", brandColor);
+  
+  // También actualizar variables específicas si existen
+  const root = document.querySelector(':root');
+  if (root) {
+    root.style.setProperty('--brand-color', brandColor);
+    root.style.setProperty('--blue', brandColor);
+  }
+  
+  console.log('🎨 Branding aplicado:', { name, brandColor });
+
+  // Resto del código existente...
+  const adminTitle = document.getElementById("adminDashTitle");
+  if (adminTitle) adminTitle.textContent = name;
+
+  // Modo portal cliente
+  if (gRefLenderId && !gLenderId) {
+    document.body.classList.add("client-mode");
+    
+    // Aplicar color a elementos específicos
+    const style = document.createElement('style');
+    style.textContent = `
+      body.client-mode .btn-primary {
+        background: ${brandColor} !important;
+      }
+      body.client-mode .client-pill.active {
+        background: ${brandColor};
+        border-color: ${brandColor};
+      }
+      body.client-mode .client-amount-display {
+        color: ${brandColor};
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Resto del código para modo cliente...
+    const maxAmt = gSettings.maxAmount || 1000000;
+    const sliderEl = document.getElementById("clientAmountSlider");
+    if (sliderEl) {
+      sliderEl.max = maxAmt;
+      if (Number(sliderEl.value) > maxAmt) sliderEl.value = Math.round(maxAmt * 0.05);
+      const disp = document.getElementById("clientAmountDisplay");
+      if (disp) disp.textContent = "$ " + Number(sliderEl.value).toLocaleString("es-AR");
+      const sa = document.getElementById("simAmount");
+      if (sa) sa.value = sliderEl.value;
+    }
+    
+    const maxLbl = document.getElementById("sliderMaxLabel"); 
+    if (maxLbl) maxLbl.textContent = "$ " + maxAmt.toLocaleString("es-AR");
+    
+    const bh = document.getElementById("lenderBrandHeader"); 
+    if (bh) bh.style.display = "";
+    const bn = document.getElementById("lenderBrandName");   
+    if (bn) bn.textContent = name;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -386,62 +657,6 @@ function autoSimClient() {
   hero.innerHTML = `<div class="client-cuota-label">Tu cuota mensual</div>
     <div class="client-cuota-value">${fmtMoney(cuota)}</div>
     <div class="client-cuota-months">${m} cuotas · TNA ${gSettings.tna}%</div>`;
-}
-
-/* ══════════════════════════════════════════════════════════════
-   APPLY BRANDING
-   ══════════════════════════════════════════════════════════════ */
-function applyBranding() {
-  const name = gSettings.appName || "Prestify";
-  document.title = name + " · Tu financiera, digitalizada";
-
-  const mark = el("logoMark");
-  if (mark) {
-    if (gSettings.logoBase64) mark.innerHTML = `<img src="${gSettings.logoBase64}" alt="logo"/>`;
-    else mark.textContent = name.replace(/\s+/g, "").slice(0, 1).toUpperCase();
-  }
-  const mid = Math.ceil(name.length / 2);
-  const ln = el("logoName");
-  if (ln) ln.innerHTML = `${name.slice(0, mid)}<span>${name.slice(mid)}</span>`;
-
-  const bc = gSettings.brandColor || "#1a56db";
-  document.documentElement.style.setProperty("--brand-color", bc);
-  document.documentElement.style.setProperty("--blue", bc);
-
-  const adminTitle = el("adminDashTitle");
-  if (adminTitle) adminTitle.textContent = name;
-
-  // Modo portal cliente
-  if (gRefLenderId && !gLenderId) {
-    document.body.classList.add("client-mode");
-    const maxAmt  = gSettings.maxAmount || 1000000;
-    const sliderEl = el("clientAmountSlider");
-    if (sliderEl) {
-      sliderEl.max = maxAmt;
-      if (Number(sliderEl.value) > maxAmt) sliderEl.value = Math.round(maxAmt * 0.05);
-      const disp = el("clientAmountDisplay");
-      if (disp) disp.textContent = "$ " + Number(sliderEl.value).toLocaleString("es-AR");
-      const sa = el("simAmount");
-      if (sa) sa.value = sliderEl.value;
-    }
-    const maxLbl = el("sliderMaxLabel"); if (maxLbl) maxLbl.textContent = "$ " + maxAmt.toLocaleString("es-AR");
-    const minLbl = el("sliderMinLabel"); if (minLbl) minLbl.textContent = "$ 5.000";
-    const bh = el("lenderBrandHeader"); if (bh) bh.style.display = "";
-    const bn = el("lenderBrandName");   if (bn) bn.textContent = name;
-    const ft = el("prestifyFooter");    if (ft) ft.style.display = "";
-    const caw = el("clientAmountWrap"); if (caw) caw.style.display = "";
-    const aaw = el("adminAmountWrap");  if (aaw) aaw.style.display = "none";
-    const apw = el("adminPlazoWrap");   if (apw) apw.style.display = "none";
-    const cpw = el("clientPillsWrap");  if (cpw) cpw.style.display = "";
-    const hs  = el("heroSection");      if (hs)  hs.style.display  = "none";
-    const ht  = el("simHintText");
-    if (ht) ht.textContent = "Usá el simulador para ver tu cuota, luego completá el formulario.";
-    const btnSim = el("btnSim");
-    if (btnSim) btnSim.innerHTML = `<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Ver mi cuota`;
-    const cardTitles = document.querySelectorAll(".card-title");
-    if (cardTitles.length > 0) cardTitles[0].innerHTML = `<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Calculá tu cuota`;
-    if (cardTitles.length > 1) cardTitles[1].innerHTML = `<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Solicitá tu préstamo`;
-  }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -637,27 +852,96 @@ onAuthStateChanged(auth, async u => {
 });
 
 /* ══════════════════════════════════════════════════════════════
-   STATUS LISTENER — bloqueo remoto reactivo
+   STATUS LISTENER CORREGIDO - onSnapshot en tiempo real
    ══════════════════════════════════════════════════════════════ */
 function startStatusListener() {
   if (!gLenderId || gStatusUnsub) return;
-  gStatusUnsub = onSnapshot(lenderRef(gLenderId), snap => {
-    if (!snap.exists()) return;
-    const data       = snap.data();
-    const prevStatus = gSettings.status;
-    gSettings.status = data.status || "activo";
-    if (data.plazos) gSettings.plazos = data.plazos;
-    if (checkSuspended()) { if (gSnapshotUnsub) { gSnapshotUnsub(); gSnapshotUnsub = null; } return; }
-    if (checkPending())   { if (gSnapshotUnsub) { gSnapshotUnsub(); gSnapshotUnsub = null; } return; }
-    if (prevStatus !== "activo" && gSettings.status === "activo") {
-      el("pendingOverlay").classList.remove("show");
-      el("adminContent").style.display = gUser ? "" : "none";
-      toast("🎉 Tu cuenta fue activada. ¡Bienvenido a Prestify!", "ok", 6000);
-      loadAllAdmin(); startRealtimeListener();
-      return;
+  
+  console.log('🎧 Iniciando status listener para lender:', gLenderId);
+  
+  gStatusUnsub = onSnapshot(
+    lenderRef(gLenderId), 
+    (snap) => {
+      if (!snap.exists()) {
+        console.warn('Documento lender no existe');
+        return;
+      }
+      
+      const data = snap.data();
+      const prevStatus = gSettings.status;
+      const newStatus = data.status || 'activo';
+      
+      console.log('📡 Status update:', { prev: prevStatus, new: newStatus });
+      
+      // Actualizar settings global
+      gSettings.status = newStatus;
+      if (data.plazos) gSettings.plazos = data.plazos;
+      if (data.brandColor) {
+        gSettings.brandColor = data.brandColor;
+        applyBranding();
+      }
+      
+      // ✅ REGLA DE ORO: Actualizar overlay en tiempo real
+      const pendingOverlay = document.getElementById('pendingOverlay');
+      const suspendedOverlay = document.getElementById('suspendedOverlay');
+      const adminContent = document.getElementById('adminContent');
+      
+      if (newStatus === 'pendiente') {
+        console.log('🔴 Mostrando overlay de pendiente');
+        if (pendingOverlay) pendingOverlay.classList.add('show');
+        if (suspendedOverlay) suspendedOverlay.classList.remove('show');
+        if (adminContent) adminContent.style.display = 'none';
+        
+        // Detener snapshot de solicitudes si estaba activo
+        if (gSnapshotUnsub) {
+          gSnapshotUnsub();
+          gSnapshotUnsub = null;
+        }
+      } 
+      else if (newStatus === 'pausado') {
+        console.log('⛔ Mostrando overlay de suspendido');
+        if (suspendedOverlay) suspendedOverlay.classList.add('show');
+        if (pendingOverlay) pendingOverlay.classList.remove('show');
+        if (adminContent) adminContent.style.display = 'none';
+        
+        if (gSnapshotUnsub) {
+          gSnapshotUnsub();
+          gSnapshotUnsub = null;
+        }
+      } 
+      else if (newStatus === 'activo') {
+        console.log('✅ Cuenta activada - ocultando overlays');
+        
+        // Ocultar overlays
+        if (pendingOverlay) pendingOverlay.classList.remove('show');
+        if (suspendedOverlay) suspendedOverlay.classList.remove('show');
+        
+        // Mostrar contenido admin si el usuario está logueado
+        if (gUser) {
+          if (adminContent) adminContent.style.display = '';
+          
+          // Mostrar notificación de activación SOLO si venía de pendiente
+          if (prevStatus === 'pendiente') {
+            toast('🎉 ¡Tu cuenta fue activada! Bienvenido a Prestify.', 'ok', 6000);
+            
+            // Recargar datos completos
+            loadAllAdmin();
+          }
+          
+          // Reiniciar listener de solicitudes si no está activo
+          if (!gSnapshotUnsub) {
+            startRealtimeListener();
+          }
+        }
+      }
+      
+      refreshSimMeta();
+    },
+    (error) => {
+      console.error('❌ Error en status listener:', error);
+      toast('Error al monitorear estado de la cuenta', 'err');
     }
-    el("adminContent").style.display = gUser ? "" : "none";
-  }, err => console.error("StatusListener:", err));
+  );
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -817,61 +1101,11 @@ document.querySelectorAll(".tab-btn[data-tab]").forEach(btn => {
 });
 
 /* ══════════════════════════════════════════════════════════════
-   SIMULADOR
+   SIMULADOR (usando la función calculateLoan que ya está en window)
    ══════════════════════════════════════════════════════════════ */
 el("btnSim").onclick = () => {
-  const montoSolicitado = getSimAmount();
-  const m = getSimMonths();
-  if (!gSettings.tna || !gSettings.dueDay) { toast("El admin aún no configuró la TNA.", "err"); return; }
-  if (!montoSolicitado || !m) { el("simResult").innerHTML = ""; return; }
-
-  const gastoOtorgAmt    = Math.round(montoSolicitado * GASTO_OTORGAMIENTO / 100);
-  const capitalFinanciar = montoSolicitado + gastoOtorgAmt;
-  const cuota            = Math.round(annuity(capitalFinanciar, gSettings.tna, m));
-  const totalAPagar      = cuota * m;
-  const interesesProyectados = totalAPagar - capitalFinanciar;
-  const expP = gSettings.expenses || 0;
-  const expA = Math.round(montoSolicitado * expP / 100);
-  const netoAEntregar = montoSolicitado - expA;
-
-  const badge = el("simDeductionBadge");
-  if (expP > 0) { badge.style.display = "flex"; el("simExpAmt").textContent = fmtMoney(expA); }
-  else badge.style.display = "none";
-
-  let rows = "";
-  for (let i = 1; i <= m; i++) {
-    const d = new Date(); d.setMonth(d.getMonth() + i); d.setDate(Math.min(gSettings.dueDay, 28));
-    rows += `<div class="schedule-row"><span class="num">${String(i).padStart(2, "0")}</span><span class="date">${d.toLocaleDateString("es-AR")}</span><span class="amount">${fmtMoney(cuota)}</span><span class="action-col"><span class="pill warn">Pendiente</span></span></div>`;
-  }
-
-  if (gRefLenderId && !gLenderId) {
-    let hero = el("clientCuotaHero");
-    if (!hero) {
-      hero = document.createElement("div");
-      hero.id = "clientCuotaHero"; hero.className = "client-cuota-hero";
-      el("simResult").parentNode.insertBefore(hero, el("simResult"));
-    }
-    hero.innerHTML = `<div class="client-cuota-label">Tu cuota mensual</div>
-      <div class="client-cuota-value">${fmtMoney(cuota)}</div>
-      <div class="client-cuota-months">${m} cuotas · TNA ${gSettings.tna}%</div>`;
-  }
-
-  el("simResult").innerHTML = `<div class="sim-result-box">
-    <div class="sim-cuota-display">
-      <span class="sim-cuota-label">Cuota mensual</span>
-      <span class="sim-cuota-value">${fmtMoney(cuota)}</span>
-    </div>
-    <div class="breakdown-box">
-      <div class="breakdown-row"><span class="bl">Monto solicitado</span><span class="bv">${fmtMoney(montoSolicitado)}</span></div>
-      <div class="breakdown-row warn-row"><span class="bl">Gasto de otorgamiento (${GASTO_OTORGAMIENTO}%)</span><span class="bv">+ ${fmtMoney(gastoOtorgAmt)}</span></div>
-      <div class="breakdown-row"><span class="bl">Capital a financiar</span><span class="bv">${fmtMoney(capitalFinanciar)}</span></div>
-      ${expP > 0 ? `<div class="breakdown-row warn-row"><span class="bl">Gastos administrativos (${expP}%)</span><span class="bv">- ${fmtMoney(expA)}</span></div>` : ""}
-      <div class="breakdown-row"><span class="bl">Neto a recibir</span><span class="bv" style="color:var(--ok)">${fmtMoney(netoAEntregar)}</span></div>
-      <div class="breakdown-row"><span class="bl">Intereses proyectados</span><span class="bv" style="color:var(--purple)">${fmtMoney(interesesProyectados)}</span></div>
-      <div class="breakdown-row accent"><span class="bl">Total a pagar</span><span class="bv">${fmtMoney(totalAPagar)}</span></div>
-    </div>
-    <div class="schedule-wrap"><div class="schedule-header"><span>#</span><span>Vencimiento</span><span>Importe</span><span>Estado</span></div>${rows}</div>
-  </div>`;
+  // Usar la función global calculateLoan que ya implementa la regla de oro
+  window.calculateLoan();
 };
 
 /* ══════════════════════════════════════════════════════════════
@@ -900,9 +1134,8 @@ el("btnSendReq").onclick = async () => {
   }
   if (!gSettings.tna) { toast("Error: no se pudo cargar la configuración del prestamista.", "err"); return; }
 
-  const gastoOtorgAmt    = Math.round(montoSolicitado * GASTO_OTORGAMIENTO / 100);
-  const capitalFinanciar = montoSolicitado + gastoOtorgAmt;
-  const cuota            = Math.round(annuity(capitalFinanciar, gSettings.tna || 100, months));
+  // ✅ REGLA DE ORO: Usar función centralizada para cálculo
+  const result = calculateFrenchLoan(montoSolicitado, months, gSettings.tna);
 
   try {
     const loanDoc = {
@@ -910,12 +1143,12 @@ el("btnSendReq").onclick = async () => {
       lenderId: lid,
       amount:   montoSolicitado,
       gastoOtorgPct: GASTO_OTORGAMIENTO,
-      gastoOtorgAmt,
-      capitalFinanciar,
+      gastoOtorgAmt: result.gastoOtorgAmt,
+      capitalFinanciar: result.capitalFinanciar,
       months,
       tna:    gSettings.tna || 0,
       dueDay: gSettings.dueDay || 10,
-      installment: cuota,
+      installment: result.cuota,
       borrower,
       createdAt: nowTS(), updatedAt: nowTS()
     };
@@ -1863,3 +2096,505 @@ el("btnSaLogout")?.addEventListener("click", () => {
   if (gStatusUnsub) { gStatusUnsub(); gStatusUnsub = null; }
   signOut(auth).then(() => { el("superadminView")?.classList.remove("show"); showLandingPage(); toast("Sesión cerrada", "info"); }).catch(() => {});
 });
+
+// ✅ EXPORTAR FUNCIONES ADICIONALES AL WINDOW
+window.loadSuperAdmin = loadSuperAdmin;
+window.saSetStatus = saSetStatus;
+window.fmtMoney = fmtMoney;
+window.toast = toast;
+
+console.log('✅ Módulo script.js cargado completamente');      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-pill.activo {
+      background: var(--ok-dim);
+      color: var(--ok);
+      border: 1px solid rgba(16,185,129,.3);
+    }
+
+    .status-pill.pendiente {
+      background: var(--warn-dim);
+      color: var(--warn);
+      border: 1px solid rgba(245,158,11,.3);
+    }
+
+    .status-pill.pausado {
+      background: var(--danger-dim);
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,.3);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .empty {
+      padding: 40px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .loading {
+      padding: 40px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid var(--border);
+      border-top-color: var(--sky);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 14px 22px;
+      background: var(--navy-card);
+      border: 1px solid var(--border-hi);
+      border-radius: 12px;
+      color: var(--white);
+      font-weight: 600;
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    }
+
+    .toast.success {
+      background: #0c2e1f;
+      border-color: rgba(16,185,129,.3);
+      color: #34d399;
+    }
+
+    .toast.error {
+      background: #2a0c0c;
+      border-color: rgba(239,68,68,.3);
+      color: #f87171;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .metrics {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .table-header, .lender-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .table-header {
+        display: none;
+      }
+      .lender-row {
+        padding: 20px;
+      }
+      .actions {
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛡️ Prestify · SuperAdmin Panel</h1>
+      <div>
+        <span class="badge" id="statusBadge">Conectando...</span>
+        <button class="btn btn-outline btn-sm" id="btnLogout" style="margin-left: 12px;">Cerrar sesión</button>
+      </div>
+    </div>
+
+    <!-- Métricas -->
+    <div class="metrics" id="metrics">
+      <div class="metric-card">
+        <div class="metric-label">Prestamistas registrados</div>
+        <div class="metric-value" id="totalLenders">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Activos</div>
+        <div class="metric-value" id="activeLenders">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Pendientes</div>
+        <div class="metric-value" id="pendingLenders">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total préstamos</div>
+        <div class="metric-value" id="totalLoans">—</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre, email o ID...">
+      <button class="btn btn-outline" id="btnRefresh">↻ Actualizar</button>
+    </div>
+
+    <!-- Tabla de prestamistas -->
+    <div class="lenders-table">
+      <div class="table-header">
+        <div>Prestamista</div>
+        <div>Email / Contacto</div>
+        <div>Estado</div>
+        <div>Acciones</div>
+      </div>
+      <div id="lendersList">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Cargando prestamistas...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
+      authDomain: "estimapres.firebaseapp.com",
+      projectId: "estimapres",
+      storageBucket: "estimapres.firebasestorage.app",
+      messagingSenderId: "578516597437",
+      appId: "1:578516597437:web:f59994b87729aa1cd655d4"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Constantes
+    const SUPER_ADMIN_UID = "CuQqbuHWkTWdFPdknVTUAkx5Xri2";
+
+    // Estado
+    let currentUser = null;
+
+    // Elementos DOM
+    const el = id => document.getElementById(id);
+
+    // Utilidades
+    function toast(msg, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function formatDate(timestamp) {
+      if (!timestamp) return '—';
+      if (timestamp.toDate) {
+        return timestamp.toDate().toLocaleDateString('es-AR');
+      }
+      return new Date(timestamp).toLocaleDateString('es-AR');
+    }
+
+    // Verificar autenticación
+    async function checkAuth() {
+      return new Promise((resolve) => {
+        onAuthStateChanged(auth, (user) => {
+          if (user && user.uid === SUPER_ADMIN_UID) {
+            currentUser = user;
+            el('statusBadge').textContent = '✅ SuperAdmin conectado';
+            el('statusBadge').style.background = 'rgba(16,185,129,.15)';
+            el('statusBadge').style.color = '#34d399';
+            loadData();
+            resolve(true);
+          } else if (user) {
+            // Usuario normal, redirigir al index
+            window.location.href = 'index.html';
+          } else {
+            // No autenticado, mostrar login
+            showLogin();
+            resolve(false);
+          }
+        });
+      });
+    }
+
+    // Mostrar formulario de login
+    function showLogin() {
+      el('metrics').style.display = 'none';
+      el('searchInput').style.display = 'none';
+      el('btnRefresh').style.display = 'none';
+      
+      el('lendersList').innerHTML = `
+        <div style="padding: 60px 20px; text-align: center;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+          <h2 style="margin-bottom: 20px; color: var(--white);">Acceso SuperAdmin</h2>
+          <div style="max-width: 300px; margin: 0 auto;">
+            <input type="email" id="loginEmail" placeholder="Email" style="width: 100%; padding: 12px; margin-bottom: 12px; background: #071428; border: 1px solid var(--border); border-radius: 8px; color: var(--white);">
+            <input type="password" id="loginPass" placeholder="Contraseña" style="width: 100%; padding: 12px; margin-bottom: 20px; background: #071428; border: 1px solid var(--border); border-radius: 8px; color: var(--white);">
+            <button id="btnLogin" class="btn btn-primary" style="width: 100%;">Iniciar sesión</button>
+          </div>
+        </div>
+      `;
+
+      el('btnLogin')?.addEventListener('click', async () => {
+        const email = el('loginEmail').value;
+        const pass = el('loginPass').value;
+        if (!email || !pass) {
+          toast('Completá email y contraseña', 'error');
+          return;
+        }
+        try {
+          await signInWithEmailAndPassword(auth, email, pass);
+        } catch (error) {
+          toast('Credenciales incorrectas', 'error');
+        }
+      });
+    }
+
+    // Cargar datos
+    async function loadData() {
+      try {
+        // Cargar prestamistas
+        const lendersSnap = await getDocs(collection(db, 'lenders'));
+        const lenders = [];
+        lendersSnap.forEach(doc => lenders.push({ id: doc.id, ...doc.data() }));
+
+        // Cargar préstamos
+        const loansSnap = await getDocs(collection(db, 'loans'));
+        const totalLoans = loansSnap.size;
+
+        // Calcular métricas
+        const total = lenders.length;
+        const activos = lenders.filter(l => l.status === 'activo').length;
+        const pendientes = lenders.filter(l => l.status === 'pendiente').length;
+
+        // Actualizar métricas
+        el('totalLenders').textContent = total;
+        el('activeLenders').textContent = activos;
+        el('pendingLenders').textContent = pendientes;
+        el('totalLoans').textContent = totalLoans;
+
+        // Mostrar métricas
+        el('metrics').style.display = 'grid';
+        el('searchInput').style.display = 'block';
+        el('btnRefresh').style.display = 'inline-block';
+
+        // Ordenar prestamistas (pendientes primero)
+        lenders.sort((a, b) => {
+          const order = { pendiente: 0, activo: 1, pausado: 2 };
+          return (order[a.status] ?? 1) - (order[b.status] ?? 1);
+        });
+
+        // Renderizar lista
+        renderLenders(lenders);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        el('lendersList').innerHTML = `<div class="empty">Error al cargar datos: ${error.message}</div>`;
+      }
+    }
+
+    // Renderizar lista de prestamistas
+    function renderLenders(lenders) {
+      if (!lenders.length) {
+        el('lendersList').innerHTML = '<div class="empty">No hay prestamistas registrados</div>';
+        return;
+      }
+
+      const searchTerm = el('searchInput').value.toLowerCase();
+      
+      const filtered = lenders.filter(l => 
+        l.appName?.toLowerCase().includes(searchTerm) ||
+        l.operator?.name?.toLowerCase().includes(searchTerm) ||
+        l.operator?.email?.toLowerCase().includes(searchTerm) ||
+        l.id?.toLowerCase().includes(searchTerm)
+      );
+
+      if (!filtered.length) {
+        el('lendersList').innerHTML = '<div class="empty">No se encontraron resultados</div>';
+        return;
+      }
+
+      el('lendersList').innerHTML = filtered.map(l => {
+        const status = l.status || 'activo';
+        const statusClass = status === 'activo' ? 'activo' : status === 'pendiente' ? 'pendiente' : 'pausado';
+        const statusLabel = status === 'activo' ? '✓ Activo' : status === 'pendiente' ? '⏳ Pendiente' : '⛔ Pausado';
+        
+        const canActivate = status !== 'activo';
+        const canSuspend = status === 'activo';
+
+        return `
+          <div class="lender-row" id="lender-${l.id}">
+            <div>
+              <div class="lender-name">${l.appName || 'Sin nombre'}</div>
+              <div class="lender-email">${l.operator?.name || ''} ${l.operator?.email ? '· ' + l.operator.email : ''}</div>
+              <div class="lender-id">ID: ${l.id}</div>
+              ${l.onboardingAt ? `<div class="lender-email">Registro: ${formatDate(l.onboardingAt)}</div>` : ''}
+            </div>
+            <div>
+              <div>${l.operator?.email || '—'}</div>
+              ${l.wa ? `<div style="font-size:11px; color: var(--muted);">WA: ${l.wa}</div>` : ''}
+            </div>
+            <div>
+              <span class="status-pill ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="actions">
+              ${canActivate ? `
+                <button class="btn btn-success btn-sm" onclick="window.saActivate('${l.id}')">
+                  ✓ Activar
+                </button>
+              ` : ''}
+              ${canSuspend ? `
+                <button class="btn btn-danger btn-sm" onclick="window.saSuspend('${l.id}')">
+                  ⛔ Suspender
+                </button>
+              ` : ''}
+              ${status === 'pausado' ? `
+                <button class="btn btn-success btn-sm" onclick="window.saActivate('${l.id}')">
+                  ↩ Reactivar
+                </button>
+              ` : ''}
+              <button class="btn btn-outline btn-sm" onclick="window.saViewDetails('${l.id}')">
+                👁 Ver
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="window.saDelete('${l.id}')" style="color: #f87171;">
+                🗑 Eliminar
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Acciones de SuperAdmin
+    window.saActivate = async function(lenderId) {
+      if (!confirm('¿Activar este prestamista?')) return;
+      try {
+        await updateDoc(doc(db, 'lenders', lenderId), {
+          status: 'activo',
+          updatedAt: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'settings', lenderId), {
+          status: 'activo',
+          updatedAt: serverTimestamp()
+        });
+        toast('Prestamista activado correctamente', 'success');
+        loadData();
+      } catch (error) {
+        toast('Error al activar: ' + error.message, 'error');
+      }
+    };
+
+    window.saSuspend = async function(lenderId) {
+      if (!confirm('¿Suspender este prestamista?')) return;
+      try {
+        await updateDoc(doc(db, 'lenders', lenderId), {
+          status: 'pausado',
+          updatedAt: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'settings', lenderId), {
+          status: 'pausado',
+          updatedAt: serverTimestamp()
+        });
+        toast('Prestamista suspendido', 'info');
+        loadData();
+      } catch (error) {
+        toast('Error al suspender: ' + error.message, 'error');
+      }
+    };
+
+    window.saViewDetails = async function(lenderId) {
+      try {
+        const lenderSnap = await getDoc(doc(db, 'lenders', lenderId));
+        const settingsSnap = await getDoc(doc(db, 'settings', lenderId));
+        
+        if (!lenderSnap.exists()) {
+          toast('Prestamista no encontrado', 'error');
+          return;
+        }
+
+        const lender = lenderSnap.data();
+        const settings = settingsSnap.exists() ? settingsSnap.data() : {};
+
+        // Mostrar detalles en un modal simple
+        const details = `
+          🏢 ${lender.appName || 'Sin nombre'}
+          📍 ${lender.city || '—'}
+          👤 Operador: ${lender.operator?.name || '—'} (${lender.operator?.email || '—'})
+          📱 WhatsApp: ${lender.wa || '—'}
+          📊 TNA: ${lender.tna || settings.tna || '—'}%
+          📅 Vencimiento: día ${lender.dueDay || settings.dueDay || '—'}
+          💰 Gastos admin: ${lender.expenses || settings.expenses || 0}%
+          📈 Plazos: ${lender.plazos?.join(', ') || settings.plazos?.join(', ') || '—'}
+          🎨 Color: ${lender.brandColor || settings.brandColor || '#1a56db'}
+          💳 MP Token: ${lender.mpToken ? '✓ Configurado' : '—'}
+        `;
+
+        alert(details);
+      } catch (error) {
+        toast('Error al cargar detalles', 'error');
+      }
+    };
+
+    window.saDelete = async function(lenderId) {
+      if (!confirm(`⚠️ ¿ELIMINAR PERMANENTEMENTE este prestamista?\n\nEsta acción eliminará TODOS sus préstamos y configuraciones. No se puede deshacer.`)) return;
+      
+      const confirm2 = prompt('Escribí "ELIMINAR" para confirmar:');
+      if (confirm2 !== 'ELIMINAR') {
+        toast('Operación cancelada', 'info');
+        return;
+      }
+
+      try {
+        // Primero, eliminar todos los préstamos del lender
+        const loansSnap = await getDocs(query(collection(db, 'loans'), where('lenderId', '==', lenderId)));
+        
+        // Usar batch para eliminación masiva
+        const batch = writeBatch(db);
+        loansSnap.docs.forEach(doc => batch.delete(doc.ref));
+        
+        // Eliminar documentos del lender
+        batch.delete(doc(db, 'lenders', lenderId));
+        batch.delete(doc(db, 'settings', lenderId));
+        
+        await batch.commit();
+        
+        toast(`✅ Prestamista eliminado. ${loansSnap.size} préstamos borrados.`, 'success');
+        loadData();
+      } catch (error) {
+        toast('Error al eliminar: ' + error.message, 'error');
+      }
+    };
+
+    // Event Listeners
+    el('btnRefresh')?.addEventListener('click', loadData);
+    el('btnLogout')?.addEventListener('click', () => {
+      signOut(auth).then(() => {
+        window.location.reload();
+      });
+    });
+
+    el('searchInput')?.addEventListener('input', () => {
+      // Recargar datos para aplicar filtro
+      loadData();
+    });
+
+    // Inicializar
+    checkAuth();
+  </script>
+</body>
+</html>
