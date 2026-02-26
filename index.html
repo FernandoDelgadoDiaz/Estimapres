@@ -63,7 +63,7 @@
           <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
           Creá tu propia financiera
         </button>
-        <button class="lp-secondary-cta" id="btnLandingHowItWorks">
+        <button class="lp-secondary-cta" id="btnLandingHowItWorks" onclick="document.getElementById('demoModal').classList.add('open')">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
           Ver demo
         </button>
@@ -72,9 +72,9 @@
       <!-- Social proof -->
       <div class="lp-social-proof rv rv-d4">
         <div class="lp-avatars">
-          <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face" alt="usuario 1" loading="lazy"/>
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face" alt="usuario 2" loading="lazy"/>
-          <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face" alt="usuario 3" loading="lazy"/>
+          <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face" alt="usuario 1" loading="lazy" onerror="this.outerHTML='<div class=lp-avatar-fallback>👩</div>'"/>
+          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face" alt="usuario 2" loading="lazy" onerror="this.outerHTML='<div class=lp-avatar-fallback>👨</div>'"/>
+          <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face" alt="usuario 3" loading="lazy" onerror="this.outerHTML='<div class=lp-avatar-fallback>👩</div>'"/>
         </div>
         <div>
           <div class="lp-stars">★★★★★</div>
@@ -1174,9 +1174,24 @@
 </div>
 
 
-<!-- ════════════════════════════════════════════════════
-     SCRIPT PRINCIPAL (modularizado)
-     ════════════════════════════════════════════════════ -->
+<!-- Modal Demo -->
+<div class="modal-overlay" id="demoModal" style="z-index:9999" onclick="if(event.target===this){this.classList.remove('open');document.getElementById('demoFrame').src=''}">
+  <div class="modal-box" style="max-width:680px;padding:0;overflow:hidden;background:#000;border-radius:16px">
+    <div style="display:flex;justify-content:flex-end;padding:10px 14px;background:#111">
+      <button onclick="document.getElementById('demoModal').classList.remove('open');document.getElementById('demoFrame').src=''" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <iframe id="demoFrame" width="100%" height="380" src="" allow="autoplay; encrypted-media" allowfullscreen style="display:block;border:none"></iframe>
+    <div style="padding:20px;text-align:center;background:#0d1117">
+      <p style="color:#94a3b8;font-size:14px;margin:0">Demo de Prestify — <strong style="color:#60a5fa">prestify.netlify.app</strong></p>
+    </div>
+  </div>
+</div>
+
+<style>
+.lp-avatar-fallback{width:40px;height:40px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--border-hi)}
+</style>
+
+<!-- SCRIPT PRINCIPAL (modularizado) -->
 <script type="module" src="script.js"></script>
 </body>
 </html>
