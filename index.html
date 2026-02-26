@@ -7,29 +7,278 @@
   <link rel="icon" href="assets/ping.png"/>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ── Avatar inicial (sin imagen rota) ── */
+    .lp-avatar-initial {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #fff;
+      border: 2px solid rgba(255,255,255,.25);
+      flex-shrink: 0;
+    }
+    .lp-avatar-initial.c1 { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+    .lp-avatar-initial.c2 { background: linear-gradient(135deg,#0ea5e9,#2563eb); }
+    .lp-avatar-initial.c3 { background: linear-gradient(135deg,#10b981,#0d9488); }
+    .lp-test-avatar-initial {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700; color: #fff;
+      border: 2px solid rgba(255,255,255,.15);
+      flex-shrink: 0;
+    }
+    .lp-test-avatar-initial.c1 { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
+    .lp-test-avatar-initial.c2 { background: linear-gradient(135deg,#0ea5e9,#2563eb); }
+    .lp-test-avatar-initial.c3 { background: linear-gradient(135deg,#10b981,#0d9488); }
+
+    /* ── Demo Modal mejorado ── */
+    #demoModal .demo-modal-content {
+      padding: 32px 28px;
+      background: #0d1117;
+    }
+    #demoModal .demo-modal-title {
+      font-size: 22px; font-weight: 800; color: #fff;
+      margin-bottom: 10px;
+    }
+    #demoModal .demo-modal-sub {
+      font-size: 14px; color: #94a3b8; line-height: 1.65;
+      margin-bottom: 24px;
+    }
+    #demoModal .demo-feature-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      margin-bottom: 28px;
+    }
+    #demoModal .demo-feat-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    #demoModal .demo-feat-icon { font-size: 20px; flex-shrink:0; }
+    #demoModal .demo-feat-text { font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+    #demoModal .demo-feat-text strong { color: #fff; display:block; font-size:13px; margin-bottom:2px; }
+    #demoModal .demo-cta-row {
+      display: flex; gap: 12px;
+    }
+    #demoModal .demo-cta-primary {
+      flex: 1;
+      padding: 13px 20px;
+      background: linear-gradient(135deg,#6366f1,#8b5cf6);
+      border: none; border-radius: 14px;
+      color: #fff; font-family: inherit; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s;
+    }
+    #demoModal .demo-cta-primary:hover { opacity: .87; }
+    #demoModal .demo-cta-secondary {
+      padding: 13px 20px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+      color: #94a3b8; font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    #demoModal .demo-cta-secondary:hover { background: rgba(255,255,255,.1); }
+
+    /* ── Vista Moni (cliente) – diseño amigable ── */
+    #moniView {
+      display: none;
+      min-height: 100vh;
+      background: linear-gradient(160deg, #f0f9ff 0%, #e0f2fe 40%, #f0fdf4 100%);
+      font-family: 'Sora', sans-serif;
+    }
+    .moni-topbar {
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.07);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .moni-logo {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .moni-logo-circle {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #10b981, #0d9488);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; color: #fff;
+    }
+    .moni-logo-name {
+      font-size: 18px; font-weight: 700; color: #111;
+    }
+    .moni-logo-name span { color: #10b981; }
+    .moni-hero {
+      padding: 48px 24px 32px;
+      text-align: center;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .moni-hero-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(16,185,129,.12); color: #059669;
+      border: 1px solid rgba(16,185,129,.25);
+      border-radius: 999px; padding: 5px 14px;
+      font-size: 12px; font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .moni-hero-title {
+      font-size: 30px; font-weight: 800; color: #0f172a;
+      line-height: 1.2; margin-bottom: 12px;
+    }
+    .moni-hero-title span { color: #10b981; }
+    .moni-hero-sub {
+      font-size: 15px; color: #64748b; line-height: 1.6; margin-bottom: 28px;
+    }
+    .moni-steps-row {
+      display: flex; justify-content: center; gap: 20px;
+      margin-bottom: 12px;
+    }
+    .moni-step-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 12px; font-weight: 600; color: #334155;
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .moni-step-icon { font-size: 15px; }
+    .moni-main {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 0 16px 60px;
+    }
+    .moni-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+      margin-bottom: 16px;
+    }
+    .moni-card-title {
+      font-size: 16px; font-weight: 700; color: #0f172a;
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .moni-card-title-icon {
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg,#10b981,#0d9488);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+    }
+    .moni-amount-display {
+      text-align: center;
+      font-size: 40px; font-weight: 800; color: #0f172a;
+      margin: 12px 0 6px;
+      font-family: 'DM Mono', monospace;
+    }
+    .moni-slider {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 6px; border-radius: 999px;
+      background: linear-gradient(to right, #10b981 0%, #10b981 50%, #e2e8f0 50%);
+      margin-bottom: 6px;
+    }
+    .moni-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #10b981; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(16,185,129,.4);
+      border: 3px solid #fff;
+    }
+    .moni-slider-labels {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: #94a3b8; margin-bottom: 20px;
+    }
+    .moni-pill-row {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px;
+    }
+    .moni-pill {
+      padding: 8px 18px;
+      border: 1.5px solid #e2e8f0; border-radius: 999px;
+      font-size: 13px; font-weight: 600; color: #475569;
+      cursor: pointer; transition: all .18s;
+      background: #f8fafc;
+    }
+    .moni-pill.active {
+      border-color: #10b981; background: rgba(16,185,129,.1); color: #059669;
+    }
+    .moni-result-table {
+      background: #f8fafc;
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .moni-result-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 13px;
+    }
+    .moni-result-row:last-child { border-bottom: none; }
+    .moni-result-row .lbl { color: #64748b; font-weight: 500; }
+    .moni-result-row .val { font-weight: 700; color: #0f172a; font-family:'DM Mono',monospace; }
+    .moni-result-row.highlight .val { color: #10b981; font-size:16px; }
+    .moni-btn-primary {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #10b981, #0d9488);
+      border: none; border-radius: 16px;
+      color: #fff; font-family: inherit; font-size: 16px; font-weight: 700;
+      cursor: pointer; transition: opacity .2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .moni-btn-primary:hover { opacity: .87; }
+    .moni-input {
+      width: 100%; box-sizing: border-box;
+      padding: 13px 16px;
+      border: 1.5px solid #e2e8f0; border-radius: 14px;
+      font-family: inherit; font-size: 14px; color: #0f172a;
+      outline: none; transition: border-color .2s;
+      margin-bottom: 12px;
+    }
+    .moni-input:focus { border-color: #10b981; }
+    .moni-input-label {
+      font-size: 12px; font-weight: 600; color: #475569;
+      text-transform: uppercase; letter-spacing: .7px;
+      margin-bottom: 5px; display: block;
+    }
+    .moni-trust-strip {
+      display: flex; justify-content: center; gap: 20px;
+      padding: 16px; flex-wrap: wrap;
+    }
+    .moni-trust-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: #64748b;
+    }
+    .moni-trust-icon { font-size: 15px; }
+    /* hidden states */
+    #moniSimResult { display:none; }
+    #moniFormSection { display:none; }
+    #moniSuccessSection { display:none; }
+    #moniMyLoan { display:none; }
+  </style>
 </head>
 <body>
 
 <!-- ════════════════════════════════════════════════════
-     SCRIPT SÍNCRONO: muestra landing ANTES de Firebase
+     SCRIPT SÍNCRONO: detecta ?ref= para Moni o Landing
      ════════════════════════════════════════════════════ -->
 <script>
 (function(){
-  var hasRef = new URLSearchParams(location.search).get('ref');
+  var params = new URLSearchParams(location.search);
+  var hasRef = params.get('ref');
   if(!hasRef){
-    var lv = document.getElementById('landingView');
-    if(lv){ lv.classList.add('show'); }
+    // Visitante sin ref → mostrar landing Prestify
     document.body.classList.add('landing-active');
-    var hs = document.getElementById('heroSection');
-    var cv = document.getElementById('clientView');
-    if(hs) hs.style.display = 'none';
-    if(cv) cv.style.display = 'none';
   }
+  // Si hay ref, se manejará desde JS principal (Moni)
 })();
 </script>
 
 <!-- ════════════════════════════════════════════════════
-     LANDING PAGE — solo para visitantes sin ?ref=
+     LANDING PAGE PRESTIFY — prestamistas
      ════════════════════════════════════════════════════ -->
 <div class="landing-view" id="landingView">
 
@@ -40,7 +289,6 @@
     <div class="lp-orb lp-orb3"></div>
     <div class="lp-grid-lines"></div>
 
-    <!-- Copy izquierda -->
     <div class="lp-hero-left">
       <div class="lp-eyebrow rv">
         <span class="lp-eyebrow-dot"></span>
@@ -63,18 +311,18 @@
           <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
           Creá tu propia financiera
         </button>
-        <button class="lp-secondary-cta" id="btnLandingHowItWorks" onclick="document.getElementById('demoModal').classList.add('open')">
+        <button class="lp-secondary-cta" id="btnLandingDemo" onclick="document.getElementById('demoModal').classList.add('open')">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
           Ver demo
         </button>
       </div>
 
-      <!-- Social proof -->
+      <!-- Social proof — avatares con iniciales (sin imágenes rotas) -->
       <div class="lp-social-proof rv rv-d4">
         <div class="lp-avatars">
-          <img src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64&h=64&fit=crop&crop=face" alt="usuario 1" loading="lazy" onerror="this.outerHTML='<div class=lp-avatar-fallback>👩</div>'"/>
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face" alt="usuario 2" loading="lazy" onerror="this.outerHTML='<div class=lp-avatar-fallback>👨</div>'"/>
-          <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face" alt="usuario 3" loading="lazy" onerror="this.outerHTML='<div class=lp-avatar-fallback>👩</div>'"/>
+          <div class="lp-avatar-initial c1">F</div>
+          <div class="lp-avatar-initial c2">M</div>
+          <div class="lp-avatar-initial c3">D</div>
         </div>
         <div>
           <div class="lp-stars">★★★★★</div>
@@ -85,11 +333,10 @@
       <div class="landing-demo rv rv-d5">¿Ya tenés cuenta? <a href="#" id="btnLandingLogin">Iniciá sesión acá</a></div>
     </div>
 
-    <!-- Visual derecha: imagen de App Móvil (cliente) + badges flotantes -->
+    <!-- Visual derecha: imagen del panel (admin) -->
     <div class="lp-hero-right rv rv-right rv-d2">
       <div class="lp-person-wrap">
         <div class="lp-person-circle"></div>
-        <!-- APP MÓVIL (CLIENTE) -->
         <img
           class="lp-person-img"
           src="assets/1772058267760.png"
@@ -97,8 +344,6 @@
           loading="eager"
           onerror="this.style.display='none'"
         />
-
-        <!-- Badge: solicitud aprobada -->
         <div class="lp-fbadge fb-approved">
           <div class="lp-fbadge-icon green">✅</div>
           <div>
@@ -107,8 +352,6 @@
           </div>
           <span class="lp-fbadge-dot green"></span>
         </div>
-
-        <!-- Badge: nueva solicitud -->
         <div class="lp-fbadge fb-new">
           <div class="lp-fbadge-icon blue">🔔</div>
           <div>
@@ -117,8 +360,6 @@
           </div>
           <span class="lp-fbadge-dot blue"></span>
         </div>
-
-        <!-- Badge: cobro recibido -->
         <div class="lp-fbadge fb-amount">
           <div class="lp-fbadge-icon purple">💰</div>
           <div>
@@ -224,7 +465,6 @@
         <span>Acceso desde cualquier dispositivo, 24/7</span>
       </div>
     </div>
-    <!-- DASHBOARD ADMINISTRATIVO (screenshot real) -->
     <div class="rv rv-right rv-d1">
       <div class="lp-bento-img-wrap">
         <img
@@ -238,7 +478,7 @@
     </div>
   </div>
 
-  <!-- ── CONFIANZA / PAREJA — Sección de Partners ── -->
+  <!-- ── CONFIANZA ── -->
   <section class="lp-trust-section">
     <div class="lp-trust-inner rv">
       <div class="lp-trust-text">
@@ -251,7 +491,6 @@
         </button>
       </div>
       <div class="lp-trust-img-wrap rv rv-right rv-d2">
-        <!-- IMAGEN DE CONFIANZA / PAREJA -->
         <img
           src="assets/1772058471896.png"
           alt="Prestamistas que confían en Prestify"
@@ -261,21 +500,17 @@
         />
         <div class="lp-trust-badge lp-trust-badge-a">
           <span>🌎</span>
-          <div>
-            <strong>+200</strong> prestamistas activos
-          </div>
+          <div><strong>+200</strong> prestamistas activos</div>
         </div>
         <div class="lp-trust-badge lp-trust-badge-b">
           <span>⭐</span>
-          <div>
-            <strong>4.9/5</strong> satisfacción
-          </div>
+          <div><strong>4.9/5</strong> satisfacción</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ── TESTIMONIALES ── -->
+  <!-- ── TESTIMONIALES — Avatares con iniciales ── -->
   <section class="lp-test-section">
     <div style="text-align:center;margin-bottom:44px">
       <span class="lp-s-label rv">✦ Testimoniales</span>
@@ -285,7 +520,7 @@
       <div class="lp-test-card rv rv-d1">
         <div class="lp-test-header">
           <div class="lp-test-avatar-wrap">
-            <img class="lp-test-avatar" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=face" alt="Roberto M." loading="lazy" onerror="this.outerHTML='<div class=lp-test-avatar-emoji>👨‍💼</div>'"/>
+            <div class="lp-test-avatar-initial c1">R</div>
           </div>
           <div class="lp-test-info">
             <div class="lp-test-name">Roberto M.</div>
@@ -298,7 +533,7 @@
       <div class="lp-test-card rv rv-d2">
         <div class="lp-test-header">
           <div class="lp-test-avatar-wrap">
-            <img class="lp-test-avatar" src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=96&h=96&fit=crop&crop=face" alt="Valeria S." loading="lazy" onerror="this.outerHTML='<div class=lp-test-avatar-emoji>👩‍💻</div>'"/>
+            <div class="lp-test-avatar-initial c2">V</div>
           </div>
           <div class="lp-test-info">
             <div class="lp-test-name">Valeria S.</div>
@@ -311,7 +546,7 @@
       <div class="lp-test-card rv rv-d3">
         <div class="lp-test-header">
           <div class="lp-test-avatar-wrap">
-            <img class="lp-test-avatar" src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=96&h=96&fit=crop&crop=face" alt="Juan P." loading="lazy" onerror="this.outerHTML='<div class=lp-test-avatar-emoji>👨‍🔧</div>'"/>
+            <div class="lp-test-avatar-initial c3">J</div>
           </div>
           <div class="lp-test-info">
             <div class="lp-test-name">Juan P.</div>
@@ -350,6 +585,159 @@
 
 
 <!-- ════════════════════════════════════════════════════
+     VISTA MONI — Portal del cliente (accede por ?ref=)
+     Diseño 100% diferente al panel administrativo
+     ════════════════════════════════════════════════════ -->
+<div id="moniView">
+
+  <!-- Topbar de la financiera (nombre dinámico) -->
+  <div class="moni-topbar">
+    <div class="moni-logo">
+      <div class="moni-logo-circle" id="moniLogoCircle">M</div>
+      <span class="moni-logo-name" id="moniLogoName">Mi <span>Financiera</span></span>
+    </div>
+    <div style="font-size:12px;color:#64748b;font-weight:600" id="moniTagline">Préstamos rápidos y seguros</div>
+  </div>
+
+  <!-- Hero del cliente -->
+  <div class="moni-hero">
+    <div class="moni-hero-pill">
+      <span>✅</span> 100% seguro y digital
+    </div>
+    <h1 class="moni-hero-title">Conseguí tu préstamo<br>en <span>minutos</span></h1>
+    <p class="moni-hero-sub">Simulá el monto que necesitás, completá tus datos y enviá tu solicitud. Rápido, fácil y sin papeles.</p>
+    <div class="moni-steps-row">
+      <div class="moni-step-pill"><span class="moni-step-icon">🧮</span> Simulá</div>
+      <div class="moni-step-pill"><span class="moni-step-icon">📝</span> Solicitá</div>
+      <div class="moni-step-pill"><span class="moni-step-icon">💸</span> Recibí</div>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="moni-main">
+
+    <!-- Simulador -->
+    <div class="moni-card" id="moniSimCard">
+      <div class="moni-card-title">
+        <div class="moni-card-title-icon">🧮</div>
+        Simulá tu préstamo
+      </div>
+      <div style="text-align:center;font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">¿Cuánto necesitás?</div>
+      <div class="moni-amount-display" id="moniAmountDisplay">$ 50.000</div>
+      <input type="range" class="moni-slider" id="moniSlider" min="5000" max="1000000" step="5000" value="50000" oninput="moniUpdateSlider(this)"/>
+      <div class="moni-slider-labels">
+        <span id="moniSliderMin">$ 5.000</span>
+        <span id="moniSliderMax">$ 1.000.000</span>
+      </div>
+
+      <div style="font-size:13px;font-weight:600;color:#334155;margin-bottom:10px">Elegí el plazo</div>
+      <div class="moni-pill-row" id="moniPillRow"></div>
+
+      <button class="moni-btn-primary" onclick="moniSimular()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Calcular cuotas
+      </button>
+
+      <!-- Resultado del simulador -->
+      <div id="moniSimResult" style="margin-top:18px">
+        <div class="moni-result-table">
+          <div class="moni-result-row">
+            <span class="lbl">Monto solicitado</span>
+            <span class="val" id="moniResCapital">$ —</span>
+          </div>
+          <div class="moni-result-row">
+            <span class="lbl">Plazo</span>
+            <span class="val" id="moniResPlazo">— meses</span>
+          </div>
+          <div class="moni-result-row">
+            <span class="lbl">TNA</span>
+            <span class="val" id="moniResTna">—%</span>
+          </div>
+          <div class="moni-result-row highlight">
+            <span class="lbl" style="font-weight:700;color:#0f172a">Cuota mensual</span>
+            <span class="val" id="moniResCuota">$ —</span>
+          </div>
+          <div class="moni-result-row">
+            <span class="lbl">Total a pagar</span>
+            <span class="val" id="moniResTotal">$ —</span>
+          </div>
+        </div>
+        <button class="moni-btn-primary" onclick="moniShowForm()" id="moniBtnSolicitar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Solicitar este préstamo
+        </button>
+      </div>
+    </div>
+
+    <!-- Formulario de solicitud -->
+    <div class="moni-card" id="moniFormSection">
+      <div class="moni-card-title">
+        <div class="moni-card-title-icon">📝</div>
+        Tus datos personales
+      </div>
+      <label class="moni-input-label">Nombre y apellido</label>
+      <input class="moni-input" id="moniName" placeholder="Juan Pérez"/>
+      <label class="moni-input-label">DNI</label>
+      <input class="moni-input" id="moniDni" inputmode="numeric" placeholder="30123456"/>
+      <label class="moni-input-label">Email</label>
+      <input class="moni-input" id="moniEmail" type="email" placeholder="correo@mail.com"/>
+      <label class="moni-input-label">Teléfono (WhatsApp)</label>
+      <input class="moni-input" id="moniPhone" inputmode="tel" placeholder="2966 123456"/>
+      <label class="moni-input-label">Alias o CBU / CVU</label>
+      <input class="moni-input" id="moniAlias" placeholder="alias.banco o 22 dígitos"/>
+      <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#374151;line-height:1.6">
+        🔒 Tus datos están protegidos bajo la Ley 25.326 de Protección de Datos Personales.
+      </div>
+      <button class="moni-btn-primary" onclick="moniEnviarSolicitud()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Enviar solicitud
+      </button>
+      <button onclick="document.getElementById('moniFormSection').style.display='none';document.getElementById('moniSimResult').style.display='block'" style="width:100%;margin-top:10px;background:none;border:1.5px solid #e2e8f0;border-radius:14px;padding:11px;font-family:inherit;font-size:13px;font-weight:600;color:#64748b;cursor:pointer">← Volver al simulador</button>
+    </div>
+
+    <!-- Éxito -->
+    <div class="moni-card" id="moniSuccessSection" style="text-align:center">
+      <div style="font-size:56px;margin-bottom:12px">🎉</div>
+      <div style="font-size:20px;font-weight:800;color:#0f172a;margin-bottom:8px">¡Solicitud enviada!</div>
+      <div style="font-size:14px;color:#64748b;line-height:1.65;margin-bottom:24px">Tu solicitud fue recibida con éxito. En breve <strong id="moniLenderContactName">tu financiera</strong> se pondrá en contacto para informarte el estado.</div>
+      <div class="moni-result-table">
+        <div class="moni-result-row">
+          <span class="lbl">Monto solicitado</span>
+          <span class="val" id="moniSucCapital">—</span>
+        </div>
+        <div class="moni-result-row highlight">
+          <span class="lbl">Cuota mensual</span>
+          <span class="val" id="moniSucCuota">—</span>
+        </div>
+      </div>
+      <div id="moniWaContact" style="display:none;margin-top:16px">
+        <a id="moniWaLink" href="#" target="_blank" class="moni-btn-primary" style="text-decoration:none;display:flex">
+          <span>💬</span> Consultar por WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Mi préstamo activo -->
+    <div class="moni-card" id="moniMyLoan">
+      <div class="moni-card-title">
+        <div class="moni-card-title-icon">💸</div>
+        Mi préstamo activo
+      </div>
+      <div id="moniMyLoanContent" style="font-size:14px;color:#64748b">Cargando...</div>
+    </div>
+
+    <!-- Trust strip -->
+    <div class="moni-trust-strip">
+      <div class="moni-trust-item"><span class="moni-trust-icon">🔒</span> Datos protegidos</div>
+      <div class="moni-trust-item"><span class="moni-trust-icon">✅</span> Firma Ley 25.506</div>
+      <div class="moni-trust-item"><span class="moni-trust-icon">⚡</span> Respuesta rápida</div>
+    </div>
+
+  </div><!-- /moni-main -->
+</div><!-- /moniView -->
+
+
+<!-- ════════════════════════════════════════════════════
      SUPERADMIN PANEL
      ════════════════════════════════════════════════════ -->
 <div class="superadmin-view" id="superadminView">
@@ -371,14 +759,12 @@
       <div class="sa-table-title">📋 Listado de prestamistas</div>
       <button class="btn-outline btn-sm" onclick="loadSuperAdmin()">↻ Actualizar</button>
     </div>
-    <!-- Cabecera de columnas -->
     <div class="sa-row sa-row-head">
       <div>Prestamista</div>
       <div>Email operador</div>
       <div>Status</div>
       <div>Acción</div>
     </div>
-    <!-- Aquí se renderizan las filas desde JS -->
     <div id="saLendersList"><div class="sa-loading"><div class="spinner"></div></div></div>
   </div>
 </div>
@@ -400,8 +786,7 @@
     <strong>Te contactaremos a la brevedad</strong> para confirmar la activación de tu financiera digital.
   </div>
   <a href="https://wa.me/542966678029?text=Hola%2C+quiero+activar+mi+cuenta+en+Prestify"
-     target="_blank"
-     class="pending-wa-btn">
+     target="_blank" class="pending-wa-btn">
     <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
     Contactar para activar mi cuenta
   </a>
@@ -421,17 +806,18 @@
     Tu cuenta ha sido <strong>pausada por falta de pago</strong> o incumplimiento de los términos del servicio.<br><br>
     Para reactivarla, contactá al soporte de la plataforma.
   </div>
-  <a href="/cdn-cgi/l/email-protection#7a09150a15080e1f3a0a081f090e131c03541b0a0a" class="suspended-contact-btn">Contactar soporte</a>
+  <a href="mailto:soporte@prestify.app" class="suspended-contact-btn">Contactar soporte</a>
 </div>
 
 
 <!-- ════════════════════════════════════════════════════
-     ONBOARDING OVERLAY — 3 PASOS (el 4to = aprobación SuperAdmin)
+     ONBOARDING OVERLAY — 3 PASOS VISIBLES
+     (El paso 4 de aprobación sólo existe en SuperAdmin)
      ════════════════════════════════════════════════════ -->
 <div class="onboarding-overlay" id="onboardingOverlay">
   <div class="onboarding-box">
 
-    <!-- Progress steps -->
+    <!-- Progress: 3 pasos visibles -->
     <div class="ob-steps">
       <div class="ob-step active" id="obStep1">
         <div class="ob-step-dot">1</div>
@@ -447,7 +833,7 @@
       </div>
     </div>
 
-    <!-- ── PASO 1: Identidad + Consentimiento + Firma ── -->
+    <!-- ── PASO 1 ── -->
     <div class="ob-content active" id="obContent1">
       <div class="ob-title">Bienvenido a la plataforma</div>
       <div class="ob-subtitle">Verificamos tu identidad y aceptás los términos de uso antes de comenzar.</div>
@@ -499,7 +885,7 @@
       </div>
     </div>
 
-    <!-- ── PASO 2: Datos del negocio ── -->
+    <!-- ── PASO 2 ── -->
     <div class="ob-content" id="obContent2">
       <div class="ob-title">Configurá tu negocio</div>
       <div class="ob-subtitle">Estos datos aparecerán en tus contratos y en el portal de clientes.</div>
@@ -540,7 +926,7 @@
       </div>
     </div>
 
-    <!-- ── PASO 3: Método de cobro ── -->
+    <!-- ── PASO 3 ── -->
     <div class="ob-content" id="obContent3">
       <div class="ob-title">Método de cobro de cuotas</div>
       <div class="ob-subtitle">Elegí cómo van a pagar tus clientes. Podés cambiarlo después desde Configuración.</div>
@@ -602,7 +988,7 @@
 
 
 <!-- ════════════════════════════════════════════════════
-     TOPBAR
+     TOPBAR (admin/prestamista)
      ════════════════════════════════════════════════════ -->
 <header class="topbar">
   <div class="topbar-inner">
@@ -620,7 +1006,8 @@
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span class="nav-label">Admin</span>
       </button>
-      <button id="btnViewSuperAdmin" class="nav-btn" style="display:none">
+      <!-- Botón SuperAdmin: solo visible con UID CuQqbuHWkTWdFPdknVTUAkx5Xri2 -->
+      <button id="btnViewSuperAdmin" class="nav-btn" style="display:none" title="SuperAdmin — Acceso restringido">
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
         <span class="nav-label">SuperAdmin</span>
       </button>
@@ -648,7 +1035,6 @@
         <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span class="nav-label">Llave</span>
       </button>
-
       <button id="btnLogout" class="nav-btn danger" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         <span class="nav-label">Salir</span>
@@ -659,7 +1045,7 @@
 
 
 <!-- ════════════════════════════════════════════════════
-     HERO (modo cliente logueado)
+     HERO (modo cliente logueado / admin)
      ════════════════════════════════════════════════════ -->
 <section class="hero-section" id="heroSection" style="display:none">
   <div>
@@ -686,16 +1072,13 @@
 
 
 <!-- ════════════════════════════════════════════════════
-     MAIN CONTENT
+     MAIN CONTENT (admin/cliente logueado)
      ════════════════════════════════════════════════════ -->
 <main class="main-wrap">
 
-  <!-- ──────────────────────────────────────────────────
-       VISTA CLIENTE
-       ────────────────────────────────────────────────── -->
+  <!-- ── VISTA CLIENTE (logueado) ── -->
   <div id="clientView" style="display:none">
 
-    <!-- Encabezado de marca del lender -->
     <div class="lender-brand-header" id="lenderBrandHeader" style="display:none">
       <div class="lender-brand-name" id="lenderBrandName">Mi Financiera</div>
       <div class="lender-brand-tagline">Préstamos rápidos y seguros</div>
@@ -716,7 +1099,6 @@
           <div class="sim-meta-item" id="lblExpMeta" style="display:none">Gastos admin <strong id="lblExp">--%</strong></div>
         </div>
 
-        <!-- Selector de monto (modo cliente) -->
         <div id="clientAmountWrap" style="display:none">
           <div class="client-amount-label">¿Cuánto necesitás?</div>
           <div class="client-amount-display" id="clientAmountDisplay">$ 50.000</div>
@@ -734,7 +1116,6 @@
           <input type="hidden" id="simAmount" value="50000"/>
         </div>
 
-        <!-- Monto en texto (modo admin) -->
         <div id="adminAmountWrap">
           <div class="input-row">
             <div class="field">
@@ -744,7 +1125,6 @@
           </div>
         </div>
 
-        <!-- Plazo selector (admin: select / cliente: pills) -->
         <div id="adminPlazoWrap">
           <div class="field">
             <label>Plazo en meses</label>
@@ -798,232 +1178,129 @@
       <!-- Mi préstamo -->
       <div class="card full-width" id="myloan">
         <div class="card-title">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Consultar mi préstamo
+          <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Mi préstamo activo
         </div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;max-width:420px">
-          <div class="field" style="margin-bottom:0">
-            <label>Ingresá tu DNI</label>
-            <input id="myDni" inputmode="numeric" placeholder="Ej: 30123456"/>
-          </div>
-          <button id="btnFindMyLoan" class="btn-primary" style="width:auto;padding:12px 22px">Buscar</button>
-        </div>
-        <div id="myLoanResult"></div>
+        <div id="loanStatus"><div class="empty">No tenés préstamos activos en este momento.</div></div>
       </div>
 
     </div><!-- /client-grid -->
-
-    <!-- Footer Prestify (solo modo cliente) -->
-    <div class="prestify-footer" id="prestifyFooter" style="display:none">
-      Potenciado por <strong>Prestify</strong> | Tu financiera, digitalizada
-    </div>
-
   </div><!-- /clientView -->
 
 
-  <!-- ──────────────────────────────────────────────────
-       VISTA ADMIN
-       ────────────────────────────────────────────────── -->
-  <div id="adminView" class="admin-wrap">
+  <!-- ── VISTA ADMIN ── -->
+  <div id="adminView" style="display:none">
 
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-      <div>
-        <h2 style="font-size:20px;font-weight:800;color:var(--white);margin-bottom:2px">
-          Panel de Administración — <span id="adminDashTitle" style="color:var(--sky)">Mi Financiera</span>
-        </h2>
-        <p style="font-size:13px;color:var(--muted)" id="adminUserLabel"></p>
-      </div>
-      <button id="btnAdminLogin" class="btn-outline">Iniciar sesión de admin</button>
+    <!-- KPIs -->
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card"><div class="kpi-card-label">Capital activo</div><div class="kpi-card-val" id="kpiCapital">$ 0</div></div>
+      <div class="kpi-card"><div class="kpi-card-label">Ingresos del mes</div><div class="kpi-card-val" id="kpiMonthly">$ 0</div></div>
+      <div class="kpi-card"><div class="kpi-card-label">Préstamos activos</div><div class="kpi-card-val" id="kpiActive">0</div></div>
+      <div class="kpi-card"><div class="kpi-card-label">Clientes en mora</div><div class="kpi-card-val" id="kpiMora">0</div></div>
+      <div class="kpi-card"><div class="kpi-card-label">Solicitudes pendientes</div><div class="kpi-card-val" id="kpiPending">0</div></div>
+      <div class="kpi-card"><div class="kpi-card-label">Capital cobrado hoy</div><div class="kpi-card-val" id="kpiToday">$ 0</div></div>
     </div>
 
-    <!-- Gate de acceso (antes de login) -->
-    <div id="adminGate">
-      <div class="auth-gate-box">
-        <div class="auth-gate-icon">
-          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </div>
-        <div class="auth-gate-title">Acceso restringido</div>
-        <div class="auth-gate-sub">Iniciá sesión con tus credenciales de administrador para acceder al panel.</div>
-        <button id="btnAdminLogin2" class="btn-primary">Iniciar sesión</button>
-      </div>
+    <!-- Tabs admin -->
+    <div class="tab-bar" id="adminTabBar">
+      <button class="tab-btn active" data-tab="tabDash">Dashboard</button>
+      <button class="tab-btn" data-tab="tabPending">Pendientes <span class="tab-badge" id="badgePending">0</span></button>
+      <button class="tab-btn" data-tab="tabPre">Preaprobados <span class="tab-badge" id="badgePre">0</span></button>
+      <button class="tab-btn" data-tab="tabActive">Activos</button>
+      <button class="tab-btn" data-tab="tabMora">Mora</button>
+      <button class="tab-btn" data-tab="tabComprobantes">Comprobantes <span class="tab-badge" id="badgeComp">0</span></button>
+      <button class="tab-btn" data-tab="tabHistory">Histórico</button>
+      <button class="tab-btn" data-tab="tabCfg">⚙ Config</button>
     </div>
 
-    <!-- Contenido Admin (tras login) -->
-    <div id="adminContent" style="display:none">
+    <div id="adminContent">
 
-      <!-- KPIs dashboard -->
-      <div class="dashboard-grid">
-        <div class="dash-card blue">
-          <div class="dash-icon blue">
-            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <!-- TAB: DASHBOARD -->
+      <div class="tab-content active" id="tabDash">
+        <div class="card">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Resumen de actividad
           </div>
-          <div class="dash-label">Capital total prestado</div>
-          <div class="dash-value" id="kpiInvested">$ 0</div>
-          <div class="dash-sub" id="kpiActiveCount">0 préstamos activos</div>
+          <div id="dashContent"><div class="empty"><div class="spinner"></div></div></div>
         </div>
-        <div class="dash-card green">
-          <div class="dash-icon green">
-            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="dash-label">Total recuperado</div>
-          <div class="dash-value" id="kpiRecovered">$ 0</div>
-          <div class="dash-sub" id="kpiPaidCount">0 cuotas cobradas</div>
-        </div>
-        <div class="dash-card red">
-          <div class="dash-icon red">
-            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          </div>
-          <div class="dash-label">Capital en mora</div>
-          <div class="dash-value" id="kpiMora">$ 0</div>
-          <div class="dash-sub" id="kpiMoraCount">0 cuotas vencidas</div>
-        </div>
-        <div class="dash-card orange">
-          <div class="dash-icon orange">
-            <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </div>
-          <div class="dash-label">Tasa de mora</div>
-          <div class="dash-value" id="kpiMoraRate">0%</div>
-          <div class="mora-rate-bar">
-            <div class="mora-rate-fill" id="kpiMoraBar" style="width:0%"></div>
-          </div>
-        </div>
-        <div class="dash-card purple">
-          <div class="dash-icon purple">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </div>
-          <div class="dash-label">Rentabilidad proyectada</div>
-          <div class="dash-value" id="kpiProfit">$ 0</div>
-          <div class="dash-sub">Intereses sistema francés</div>
-        </div>
-      </div><!-- /dashboard-grid -->
-
-      <!-- Tabs de navegación admin -->
-      <div class="admin-tabs">
-        <button class="tab-btn active" data-tab="Cfg">⚙️ Configuración</button>
-        <button class="tab-btn" data-tab="Pending">Pendientes <span class="tab-badge" id="badgePend">0</span></button>
-        <button class="tab-btn" data-tab="Pre">Preaprobados <span class="tab-badge" id="badgePre">0</span></button>
-        <button class="tab-btn" data-tab="Active">Activos <span class="tab-badge" id="badgeAct">0</span></button>
-        <button class="tab-btn" data-tab="Mora">⚠️ Mora <span class="tab-badge warn" id="badgeMora">0</span></button>
-        <button class="tab-btn" data-tab="Comprobantes">🧾 Comprobantes <span class="tab-badge warn" id="badgeComp">0</span></button>
-        <button class="tab-btn" data-tab="History">Histórico</button>
       </div>
 
       <!-- TAB: CONFIGURACIÓN -->
-      <div class="tab-content visible" id="tabCfg">
+      <div class="tab-content" id="tabCfg">
         <div class="card">
-          <div class="card-title">Configuración del sistema</div>
+          <div class="card-title">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Configuración de la financiera
+          </div>
 
-          <!-- Identidad del negocio -->
           <div class="cfg-section">
             <div class="cfg-section-title">
-              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               Identidad del negocio
             </div>
-            <div class="logo-upload-wrap">
-              <div class="logo-preview-box" id="cfgLogoPreview">DY</div>
-              <div class="logo-upload-info">
-                <h4>Logo del negocio</h4>
-                <p>PNG o JPG. Aparece en topbar y contratos.</p>
-              </div>
-              <div>
-                <label for="cfgLogoFile" class="btn-outline btn-sm" style="cursor:pointer;display:inline-flex">
-                  <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                  Subir
-                </label>
-                <input type="file" id="cfgLogoFile" accept="image/*" style="display:none"/>
-              </div>
-            </div>
             <div class="input-row">
-              <div class="field"><label>Nombre del negocio</label><input id="cfgAppName" placeholder="DineroYa"/></div>
-              <div class="field"><label>Ciudad de operación</label><input id="cfgCity" placeholder="Río Gallegos, Santa Cruz"/></div>
-            </div>
-            <div class="field">
-              <label>Color de tu Marca</label>
-              <div style="display:flex;align-items:center;gap:12px">
-                <input type="color" id="cfgBrandColor" value="#1a56db" style="width:48px;height:40px;border:none;background:none;cursor:pointer;border-radius:8px;padding:2px"/>
-                <span style="font-size:12px;color:var(--muted)">Este color se aplica al portal de clientes (slider, botones, CTA).</span>
+              <div class="field">
+                <label>Nombre del negocio (marca blanca)</label>
+                <input id="cfgAppName" placeholder="DineroYa / Préstamos Pérez"/>
+              </div>
+              <div class="field">
+                <label>Ciudad</label>
+                <input id="cfgCity" placeholder="Río Gallegos, Santa Cruz"/>
               </div>
             </div>
           </div>
 
-          <!-- Tasas y condiciones -->
           <div class="cfg-section">
             <div class="cfg-section-title">
-              <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              Tasas y condiciones
+              <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Parámetros financieros
             </div>
             <div class="input-row">
-              <div class="field"><label>TNA %</label><input id="cfgTna" inputmode="numeric" class="mono" placeholder="100"/></div>
-              <div class="field"><label>Día de vencimiento (1-28)</label><input id="cfgDue" inputmode="numeric" placeholder="10"/></div>
-            </div>
-            <div class="field">
-              <label>Plazos disponibles (meses)</label>
-              <p class="field-hint" style="margin-bottom:10px">Seleccioná los plazos que ofrecés a tus clientes. Solo estos aparecerán en el simulador.</p>
-              <div class="plazo-grid" id="plazoGrid">
-                <!-- 1 a 24 -->
-                <input type="checkbox" class="plazo-check" id="plazo1" value="1"/><label class="plazo-label" for="plazo1">1</label>
-                <input type="checkbox" class="plazo-check" id="plazo2" value="2"/><label class="plazo-label" for="plazo2">2</label>
-                <input type="checkbox" class="plazo-check" id="plazo3" value="3"/><label class="plazo-label" for="plazo3">3</label>
-                <input type="checkbox" class="plazo-check" id="plazo4" value="4"/><label class="plazo-label" for="plazo4">4</label>
-                <input type="checkbox" class="plazo-check" id="plazo5" value="5"/><label class="plazo-label" for="plazo5">5</label>
-                <input type="checkbox" class="plazo-check" id="plazo6" value="6"/><label class="plazo-label" for="plazo6">6</label>
-                <input type="checkbox" class="plazo-check" id="plazo7" value="7"/><label class="plazo-label" for="plazo7">7</label>
-                <input type="checkbox" class="plazo-check" id="plazo8" value="8"/><label class="plazo-label" for="plazo8">8</label>
-                <input type="checkbox" class="plazo-check" id="plazo9" value="9"/><label class="plazo-label" for="plazo9">9</label>
-                <input type="checkbox" class="plazo-check" id="plazo10" value="10"/><label class="plazo-label" for="plazo10">10</label>
-                <input type="checkbox" class="plazo-check" id="plazo11" value="11"/><label class="plazo-label" for="plazo11">11</label>
-                <input type="checkbox" class="plazo-check" id="plazo12" value="12"/><label class="plazo-label" for="plazo12">12</label>
-                <input type="checkbox" class="plazo-check" id="plazo13" value="13"/><label class="plazo-label" for="plazo13">13</label>
-                <input type="checkbox" class="plazo-check" id="plazo14" value="14"/><label class="plazo-label" for="plazo14">14</label>
-                <input type="checkbox" class="plazo-check" id="plazo15" value="15"/><label class="plazo-label" for="plazo15">15</label>
-                <input type="checkbox" class="plazo-check" id="plazo16" value="16"/><label class="plazo-label" for="plazo16">16</label>
-                <input type="checkbox" class="plazo-check" id="plazo17" value="17"/><label class="plazo-label" for="plazo17">17</label>
-                <input type="checkbox" class="plazo-check" id="plazo18" value="18"/><label class="plazo-label" for="plazo18">18</label>
-                <input type="checkbox" class="plazo-check" id="plazo19" value="19"/><label class="plazo-label" for="plazo19">19</label>
-                <input type="checkbox" class="plazo-check" id="plazo20" value="20"/><label class="plazo-label" for="plazo20">20</label>
-                <input type="checkbox" class="plazo-check" id="plazo21" value="21"/><label class="plazo-label" for="plazo21">21</label>
-                <input type="checkbox" class="plazo-check" id="plazo22" value="22"/><label class="plazo-label" for="plazo22">22</label>
-                <input type="checkbox" class="plazo-check" id="plazo23" value="23"/><label class="plazo-label" for="plazo23">23</label>
-                <input type="checkbox" class="plazo-check" id="plazo24" value="24"/><label class="plazo-label" for="plazo24">24</label>
+              <div class="field">
+                <label>TNA % (tasa nominal anual)</label>
+                <input id="cfgTna" inputmode="numeric" class="mono" placeholder="100"/>
               </div>
-              <div style="display:flex;gap:8px;margin-top:8px">
-                <button type="button" id="btnSelAllPlazos" class="btn-outline btn-sm">Seleccionar todos</button>
-                <button type="button" id="btnClearPlazos" class="btn-outline btn-sm">Limpiar</button>
+              <div class="field">
+                <label>Día de vencimiento (1-28)</label>
+                <input id="cfgDueDay" inputmode="numeric" placeholder="10"/>
               </div>
             </div>
             <div class="input-row">
               <div class="field">
                 <label>% Gastos administrativos</label>
                 <input id="cfgExpenses" inputmode="numeric" placeholder="0" class="mono"/>
-                <p class="field-hint">Se descuenta del capital a entregar. Ej: 5% de $100.000 = $5.000 menos.</p>
+                <p class="field-hint">0 = sin descuento al entregar el capital.</p>
               </div>
               <div class="field">
-                <label>WhatsApp del prestamista</label>
-                <input id="cfgWa" inputmode="tel" placeholder="5492966123456"/>
+                <label>Plazos disponibles (meses, separados por comas)</label>
+                <input id="cfgTerms" class="mono" placeholder="3,6,12,18,24"/>
               </div>
             </div>
-            <div class="field">
-              <label>Monto Máximo a Prestar</label>
-              <input id="cfgMaxAmount" inputmode="numeric" class="mono" placeholder="1.000.000"/>
-              <p class="field-hint">Este valor define el máximo del slider en el portal de clientes. Por defecto: $ 1.000.000.</p>
+            <div class="input-row">
+              <div class="field">
+                <label>Monto mínimo ($)</label>
+                <input id="cfgMinAmt" inputmode="numeric" class="mono" placeholder="5000"/>
+              </div>
+              <div class="field">
+                <label>Monto máximo ($)</label>
+                <input id="cfgMaxAmt" inputmode="numeric" class="mono" placeholder="1000000"/>
+              </div>
             </div>
           </div>
 
-          <!-- Mi Link Prestify -->
           <div class="cfg-section">
             <div class="cfg-section-title">
-              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              Mi Link Prestify
+              <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              WhatsApp de contacto
             </div>
-            <p style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">Compartí este link con tus clientes. Sus solicitudes llegarán directamente a tu panel.</p>
-            <div id="myLinkPreview" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--sky);padding:10px 14px;background:rgba(26,86,219,.08);border:1px solid var(--border);border-radius:10px;margin-bottom:12px;word-break:break-all"></div>
-            <button id="btnCopyMyLink" class="btn-copy-link">
-              <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              Copiar mi Link Prestify
-            </button>
+            <div class="field">
+              <label>Número WhatsApp (ej: 5492966123456)</label>
+              <input id="cfgWa" inputmode="tel" placeholder="5492966123456"/>
+              <p class="field-hint">Se usa para el botón de contacto en el portal del cliente.</p>
+            </div>
           </div>
 
-          <!-- Mercado Pago -->
           <div class="cfg-section">
             <div class="cfg-section-title">
               <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -1048,7 +1325,7 @@
             Guardar configuración
           </button>
         </div>
-      </div><!-- /tabCfg -->
+      </div>
 
       <!-- TAB: PENDIENTES -->
       <div class="tab-content" id="tabPending">
@@ -1174,22 +1451,285 @@
 </div>
 
 
-<!-- Modal Demo -->
-<div class="modal-overlay" id="demoModal" style="z-index:9999" onclick="if(event.target===this){this.classList.remove('open');document.getElementById('demoFrame').src=''}">
-  <div class="modal-box" style="max-width:680px;padding:0;overflow:hidden;background:#000;border-radius:16px">
-    <div style="display:flex;justify-content:flex-end;padding:10px 14px;background:#111">
-      <button onclick="document.getElementById('demoModal').classList.remove('open');document.getElementById('demoFrame').src=''" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
-    </div>
-    <iframe id="demoFrame" width="100%" height="380" src="" allow="autoplay; encrypted-media" allowfullscreen style="display:block;border:none"></iframe>
-    <div style="padding:20px;text-align:center;background:#0d1117">
-      <p style="color:#94a3b8;font-size:14px;margin:0">Demo de Prestify — <strong style="color:#60a5fa">prestify.netlify.app</strong></p>
-    </div>
-  </div>
-</div>
+<!-- ════════════════════════════════════════════════════
+     MODAL: VER DEMO — Ventana emergente con descripción
+     ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="demoModal" style="z-index:9999" onclick="if(event.target===this)closeDemoModal()">
+  <div class="modal-box" style="max-width:680px;padding:0;overflow:hidden;border-radius:20px;background:#0d1117">
 
-<style>
-.lp-avatar-fallback{width:40px;height:40px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--border-hi)}
-</style>
+    <!-- Header del modal -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff">P</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#fff">Demo de Prestify</div>
+          <div style="font-size:12px;color:#64748b">Tu financiera digital en 3 minutos</div>
+        </div>
+      </div>
+      <button onclick="closeDemoModal()" style="background:rgba(255,255,255,.07);border:none;color:#94a3b8;font-size:18px;cursor:pointer;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,.13)'" onmouseout="this.style.background='rgba(255,255,255,.07)'">✕</button>
+    </div>
+
+    <!-- Cuerpo del modal -->
+    <div class="demo-modal-content">
+      <div class="demo-modal-title">¿Cómo funciona Prestify?</div>
+      <div class="demo-modal-sub">Prestify es la plataforma todo-en-uno para que prestamistas independientes digitalicen su negocio de forma rápida, profesional y sin código. Configurá tu financiera en minutos y empezá a recibir solicitudes hoy mismo.</div>
+
+      <div class="demo-feature-list">
+        <div class="demo-feat-item">
+          <span class="demo-feat-icon">🏦</span>
+          <div class="demo-feat-text">
+            <strong>Marca Blanca Total</strong>
+            Tus clientes ven tu nombre y colores, nunca Prestify. Identidad 100% tuya.
+          </div>
+        </div>
+        <div class="demo-feat-item">
+          <span class="demo-feat-icon">📱</span>
+          <div class="demo-feat-text">
+            <strong>Link único de cliente</strong>
+            Compartís un link. El cliente simula, solicita y firma desde el celular.
+          </div>
+        </div>
+        <div class="demo-feat-item">
+          <span class="demo-feat-icon">⚡</span>
+          <div class="demo-feat-text">
+            <strong>Panel en tiempo real</strong>
+            Recibís solicitudes al instante. Aprobás desde tu celu en segundos.
+          </div>
+        </div>
+        <div class="demo-feat-item">
+          <span class="demo-feat-icon">📊</span>
+          <div class="demo-feat-text">
+            <strong>Motor financiero</strong>
+            Sistema francés, TNA configurable, mora automática y más.
+          </div>
+        </div>
+        <div class="demo-feat-item">
+          <span class="demo-feat-icon">💳</span>
+          <div class="demo-feat-text">
+            <strong>Cobro online</strong>
+            Mercado Pago o transferencia manual. El sistema registra todo solo.
+          </div>
+        </div>
+        <div class="demo-feat-item">
+          <span class="demo-feat-icon">✍️</span>
+          <div class="demo-feat-text">
+            <strong>Firma Ley 25.506</strong>
+            Contratos digitales con validez legal. Cero papeles, cero burocracia.
+          </div>
+        </div>
+      </div>
+
+      <!-- Pasos rápidos -->
+      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:16px 18px;margin-bottom:24px">
+        <div style="font-size:12px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">3 pasos para arrancar</div>
+        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px;text-align:center">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;margin:0 auto 8px">1</div>
+            <div style="font-size:12px;color:#cbd5e1;line-height:1.5">Registrate y completá tu perfil</div>
+          </div>
+          <div style="font-size:20px;color:#334155;align-self:flex-start;margin-top:8px">→</div>
+          <div style="flex:1;min-width:120px;text-align:center">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;margin:0 auto 8px">2</div>
+            <div style="font-size:12px;color:#cbd5e1;line-height:1.5">Compartí tu link con tus clientes</div>
+          </div>
+          <div style="font-size:20px;color:#334155;align-self:flex-start;margin-top:8px">→</div>
+          <div style="flex:1;min-width:120px;text-align:center">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;margin:0 auto 8px">3</div>
+            <div style="font-size:12px;color:#cbd5e1;line-height:1.5">Gestioná todo desde tu panel</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-cta-row">
+        <button class="demo-cta-primary" onclick="closeDemoModal();document.getElementById('btnLandingRegister').click()">
+          🚀 Empezar gratis ahora
+        </button>
+        <button class="demo-cta-secondary" onclick="closeDemoModal()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /demoModal -->
+
+
+<!-- ════════════════════════════════════════════════════
+     SCRIPT: Moni (portal cliente) + Demo Modal + SuperAdmin UID
+     ════════════════════════════════════════════════════ -->
+<script>
+/* ── Constante Superadmin UID ── */
+const SUPERADMIN_UID = 'CuQqbuHWkTWdFPdknVTUAkx5Xri2';
+
+/* ── Demo Modal ── */
+function closeDemoModal(){
+  document.getElementById('demoModal').classList.remove('open');
+}
+
+/* ── Helpers formato ── */
+function fmtPeso(n){
+  return '$ ' + Math.round(n).toLocaleString('es-AR');
+}
+
+/* ── Moni: variables de estado ── */
+var moniAmount = 50000;
+var moniMonths = 3;
+var moniTna = 100;
+var moniDueDay = 10;
+var moniTerms = [3,6,9,12,18,24];
+var moniLenderWa = '';
+var moniLenderName = 'tu financiera';
+var moniSimDone = false;
+
+/* ── Moni: init (llamada desde script.js cuando hay ?ref=) ── */
+function initMoniView(cfg){
+  if(!cfg) return;
+  moniTna = parseFloat(cfg.tna) || 100;
+  moniDueDay = parseInt(cfg.dueDay) || 10;
+  moniLenderWa = cfg.wa || '';
+  moniLenderName = cfg.appName || 'tu financiera';
+  var minAmt = parseInt(cfg.minAmt) || 5000;
+  var maxAmt = parseInt(cfg.maxAmt) || 1000000;
+  moniTerms = (cfg.terms||'3,6,12').split(',').map(Number).filter(Boolean);
+
+  // Actualizar topbar
+  if(cfg.appName){
+    var logoName = document.getElementById('moniLogoName');
+    if(logoName){
+      var parts = cfg.appName.split(' ');
+      if(parts.length > 1){
+        logoName.innerHTML = parts[0] + ' <span>' + parts.slice(1).join(' ') + '</span>';
+      } else {
+        logoName.innerHTML = '<span>' + cfg.appName + '</span>';
+      }
+      var circle = document.getElementById('moniLogoCircle');
+      if(circle) circle.textContent = cfg.appName.charAt(0).toUpperCase();
+    }
+  }
+
+  // Slider
+  var slider = document.getElementById('moniSlider');
+  if(slider){
+    slider.min = minAmt;
+    slider.max = maxAmt;
+    slider.value = Math.min(50000, maxAmt);
+    moniAmount = parseInt(slider.value);
+    document.getElementById('moniAmountDisplay').textContent = fmtPeso(moniAmount);
+    document.getElementById('moniSliderMin').textContent = fmtPeso(minAmt);
+    document.getElementById('moniSliderMax').textContent = fmtPeso(maxAmt);
+    // Actualizar gradiente
+    moniUpdateSlider(slider);
+  }
+
+  // Pills de plazo
+  var pillRow = document.getElementById('moniPillRow');
+  if(pillRow){
+    pillRow.innerHTML = '';
+    moniTerms.forEach(function(m){
+      var btn = document.createElement('button');
+      btn.className = 'moni-pill' + (m===moniTerms[0]?' active':'');
+      btn.textContent = m + ' mes' + (m===1?'':'es');
+      btn.onclick = function(){
+        document.querySelectorAll('.moni-pill').forEach(function(p){ p.classList.remove('active'); });
+        btn.classList.add('active');
+        moniMonths = m;
+      };
+      pillRow.appendChild(btn);
+    });
+    moniMonths = moniTerms[0];
+  }
+
+  // Mostrar moniView
+  document.getElementById('moniView').style.display = 'block';
+  // Ocultar topbar admin, heroSection, mainWrap, landingView
+  var els = ['landingView','heroSection','clientView','adminView'];
+  els.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  var topbar = document.querySelector('.topbar');
+  if(topbar) topbar.style.display = 'none';
+}
+
+function moniUpdateSlider(slider){
+  moniAmount = parseInt(slider.value);
+  document.getElementById('moniAmountDisplay').textContent = fmtPeso(moniAmount);
+  var pct = ((moniAmount - parseInt(slider.min)) / (parseInt(slider.max) - parseInt(slider.min))) * 100;
+  slider.style.background = 'linear-gradient(to right, #10b981 0%, #10b981 '+pct+'%, #e2e8f0 '+pct+'%)';
+}
+
+function moniSimular(){
+  var tnaDecimal = moniTna / 100;
+  var tmv = Math.pow(1 + tnaDecimal, 1/12) - 1;
+  var cuota;
+  if(tmv === 0){
+    cuota = moniAmount / moniMonths;
+  } else {
+    cuota = moniAmount * (tmv * Math.pow(1+tmv, moniMonths)) / (Math.pow(1+tmv, moniMonths) - 1);
+  }
+  var total = cuota * moniMonths;
+
+  document.getElementById('moniResCapital').textContent = fmtPeso(moniAmount);
+  document.getElementById('moniResPlazo').textContent = moniMonths + ' meses';
+  document.getElementById('moniResTna').textContent = moniTna + '%';
+  document.getElementById('moniResCuota').textContent = fmtPeso(cuota);
+  document.getElementById('moniResTotal').textContent = fmtPeso(total);
+
+  document.getElementById('moniSimResult').style.display = 'block';
+  moniSimDone = true;
+
+  // Guardar para éxito
+  document.getElementById('moniSucCapital').textContent = fmtPeso(moniAmount);
+  document.getElementById('moniSucCuota').textContent = fmtPeso(cuota);
+}
+
+function moniShowForm(){
+  document.getElementById('moniSimResult').style.display = 'none';
+  document.getElementById('moniFormSection').style.display = 'block';
+  document.getElementById('moniFormSection').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function moniEnviarSolicitud(){
+  var name = document.getElementById('moniName').value.trim();
+  var dni = document.getElementById('moniDni').value.trim();
+  var email = document.getElementById('moniEmail').value.trim();
+  var phone = document.getElementById('moniPhone').value.trim();
+
+  if(!name || !dni || !email){
+    alert('Completá nombre, DNI y email para continuar.');
+    return;
+  }
+
+  // La lógica de envío a Firebase se hace desde script.js
+  // Aquí solo disparamos el evento
+  var evt = new CustomEvent('moniSolicitud', {
+    detail: {
+      name: name,
+      dni: dni,
+      email: email,
+      phone: phone,
+      alias: document.getElementById('moniAlias').value.trim(),
+      amount: moniAmount,
+      months: moniMonths
+    }
+  });
+  document.dispatchEvent(evt);
+
+  // Mostrar éxito
+  document.getElementById('moniFormSection').style.display = 'none';
+  document.getElementById('moniSimCard').style.display = 'none';
+  document.getElementById('moniSuccessSection').style.display = 'block';
+  document.getElementById('moniLenderContactName').textContent = moniLenderName;
+
+  if(moniLenderWa){
+    var waDiv = document.getElementById('moniWaContact');
+    var waLink = document.getElementById('moniWaLink');
+    var msg = encodeURIComponent('Hola! Acabo de enviar una solicitud de préstamo. Soy ' + name + ', DNI ' + dni);
+    waLink.href = 'https://wa.me/' + moniLenderWa + '?text=' + msg;
+    waDiv.style.display = 'block';
+  }
+}
+</script>
 
 <!-- SCRIPT PRINCIPAL (modularizado) -->
 <script type="module" src="script.js"></script>
