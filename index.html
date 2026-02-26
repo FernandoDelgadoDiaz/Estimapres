@@ -17,27 +17,19 @@ body.preload {
 
 <body class="preload">
 
-<!-- ================= TOPBAR ================= -->
-
 <header class="topbar">
   <div class="topbar-inner">
-
     <div class="logo" onclick="goHome()">
       <div class="logo-mark" id="logoMark">P</div>
       <div class="logo-name" id="logoName">Prestify</div>
     </div>
-
     <nav class="topbar-nav">
       <button class="nav-btn active" onclick="showClientView()">Simular</button>
       <button class="nav-btn" onclick="showAdminView()">Panel</button>
       <button class="nav-btn danger" onclick="logout()">Salir</button>
     </nav>
-
   </div>
 </header>
-
-
-<!-- ================= HERO ================= -->
 
 <section class="hero-section">
   <div>
@@ -51,20 +43,15 @@ body.preload {
   </div>
 </section>
 
-
-<!-- ================= MAIN ================= -->
-
 <div class="main-wrap">
 
-  <!-- CLIENT VIEW -->
   <div id="clientView" class="client-grid">
-
     <div class="card">
       <div class="card-title">Simulador</div>
 
       <div class="field">
         <label>Monto</label>
-        <input type="number" id="amountInput" placeholder="Ej: 100000">
+        <input type="number" id="amountInput">
       </div>
 
       <div class="field">
@@ -77,9 +64,7 @@ body.preload {
         </select>
       </div>
 
-      <button class="btn-primary" onclick="simulateLoan()">
-        Simular
-      </button>
+      <button class="btn-primary" onclick="simulateLoan()">Simular</button>
 
       <div id="simResult" class="sim-result-box" style="display:none;">
         <div class="sim-cuota-display">
@@ -89,129 +74,29 @@ body.preload {
       </div>
 
     </div>
-
   </div>
 
-
-  <!-- ADMIN VIEW -->
   <div id="adminView" class="admin-wrap">
-
     <div class="card">
       <div class="card-title">Dashboard</div>
-      <div id="dashboardContent">
-        Cargando métricas...
-      </div>
+      <div id="dashboardContent">Cargando métricas...</div>
     </div>
-
   </div>
 
 </div>
-
-
-<!-- ================= ONBOARDING ================= -->
-
-<div id="onboardingOverlay" class="onboarding-overlay">
-
-  <div class="onboarding-box">
-
-    <div class="ob-steps">
-      <div class="ob-step active" id="stepDot1">
-        <div class="ob-step-dot">1</div>
-        <div class="ob-step-label">Datos</div>
-      </div>
-      <div class="ob-step" id="stepDot2">
-        <div class="ob-step-dot">2</div>
-        <div class="ob-step-label">Consentimiento</div>
-      </div>
-      <div class="ob-step" id="stepDot3">
-        <div class="ob-step-dot">3</div>
-        <div class="ob-step-label">Firma</div>
-      </div>
-    </div>
-
-    <div id="step1" class="ob-content active">
-      <div class="ob-title">Completa tus datos</div>
-      <div class="field">
-        <label>Nombre completo</label>
-        <input type="text" id="obName">
-      </div>
-      <div class="field">
-        <label>DNI</label>
-        <input type="text" id="obDni">
-      </div>
-      <div class="ob-nav">
-        <button class="btn-primary" onclick="nextStep()">Continuar</button>
-      </div>
-    </div>
-
-    <div id="step2" class="ob-content">
-      <div class="ob-title">Acepta términos</div>
-
-      <div class="ob-consent-check">
-        <input type="checkbox" id="obConsent">
-        <label for="obConsent">
-          Acepto los términos y condiciones.
-        </label>
-      </div>
-
-      <div class="ob-nav">
-        <button class="btn-outline" onclick="prevStep()">Atrás</button>
-        <button class="btn-primary" onclick="nextStep()">Continuar</button>
-      </div>
-    </div>
-
-    <div id="step3" class="ob-content">
-      <div class="ob-title">Firma digital</div>
-
-      <div class="ob-sig-wrap">
-        <canvas id="obSigCanvas"></canvas>
-      </div>
-
-      <div class="ob-nav">
-        <button class="btn-outline" onclick="prevStep()">Atrás</button>
-        <button class="btn-primary" onclick="finishOnboarding()">Finalizar</button>
-      </div>
-    </div>
-
-  </div>
-
-</div>
-
-
-<!-- ================= OVERLAY PENDING ================= -->
 
 <div id="pendingOverlay" class="pending-overlay">
-  <div class="pending-title">
-    Tu cuenta está en revisión
-  </div>
-  <div class="pending-msg">
-    Estamos validando tu información.
-    Te avisaremos cuando esté activa.
-  </div>
-  <button class="pending-logout-btn" onclick="logout()">
-    Cerrar sesión
-  </button>
+  <div class="pending-title">Tu cuenta está en revisión</div>
+  <div class="pending-msg">Estamos validando tu información.</div>
+  <button class="pending-logout-btn" onclick="logout()">Cerrar sesión</button>
 </div>
-
-
-<!-- ================= OVERLAY SUSPENDED ================= -->
 
 <div id="suspendedOverlay" class="suspended-overlay">
-  <div class="suspended-title">
-    Cuenta suspendida
-  </div>
-  <div class="suspended-msg">
-    Contacta soporte para más información.
-  </div>
+  <div class="suspended-title">Cuenta suspendida</div>
+  <div class="suspended-msg">Contacta soporte.</div>
 </div>
 
-
-<!-- ================= TOAST CONTAINER ================= -->
-
 <div id="toastContainer" class="toast-container"></div>
-
-
-<!-- ================= SCRIPT ================= -->
 
 <script type="module" src="./script.js"></script>
 
