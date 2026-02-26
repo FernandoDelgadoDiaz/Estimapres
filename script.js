@@ -1,14 +1,9 @@
 // ─────────────────────────────────────────────
-// PRESTIFY — SCRIPT PRINCIPAL BLINDADO
-// Versión robusta sincronizada con index.html
+// PRESTIFY — SCRIPT PRINCIPAL
 // ─────────────────────────────────────────────
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
   doc,
@@ -23,327 +18,218 @@ import {
   onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔒 CONFIG FIREBASE (tu config real debe estar aquí)
+// 🔥 TU CONFIG REAL
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_BUCKET",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyBuLQHhsOBTr2e8Kp5HKUz-a7xXgrgLlUI",
+  authDomain: "estimapres.firebaseapp.com",
+  projectId: "estimapres",
+  storageBucket: "estimapres.firebasestorage.app",
+  messagingSenderId: "578516597437",
+  appId: "1:578516597437:web:f59994b87729aa1cd655d4"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ─────────────────────────────────────────────
-// CONSTANTES DE NEGOCIO
-// ─────────────────────────────────────────────
-
-const GASTO_OTORGAMIENTO = 3; // 3% fijo global
-
-// ─────────────────────────────────────────────
-// ESTADO GLOBAL
-// ─────────────────────────────────────────────
+const GASTO_OTORGAMIENTO = 3;
 
 let currentUser = null;
+let lenderData = null;
 let lenderUnsubscribe = null;
 let loansUnsubscribe = null;
-let lenderData = null;
 
-// ─────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────
+function show(id){ const el=document.getElementById(id); if(el) el.style.display="block";}
+function hide(id){ const el=document.getElementById(id); if(el) el.style.display="none";}
 
-function fmtPeso(n) {
+function fmtPeso(n){
   return "$ " + Math.round(n).toLocaleString("es-AR");
 }
 
-function show(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = "block";
-}
+// ─────────────────────────
+// AUTH
+// ─────────────────────────
 
-function hide(id) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = "none";
-}
-// ─────────────────────────────────────────────
-// DETECCIÓN ?ref= (PORTAL MONI)
-// ─────────────────────────────────────────────
-
-async function checkRefAccess() {
-  const params = new URLSearchParams(window.location.search);
-  const ref = params.get("ref");
-  if (!ref) return;
-
-  const lenderRef = doc(db, "lenders", ref);
-  const snap = await getDoc(lenderRef);
-
-  if (!snap.exists()) return;
-
-  const cfg = snap.data();
-  if (typeof initMoniView === "function") {
-    initMoniView(cfg);
-  }
-}
-
-checkRefAccess();
-
-// ─────────────────────────────────────────────
-// AUTH STATE
-// ─────────────────────────────────────────────
-
-onAuthStateChanged(auth, async (user) => {
+onAuthStateChanged(auth, (user)=>{
   currentUser = user;
 
-  if (!user) {
-    hide("pendingOverlay");
-    hide("suspendedOverlay");
+  if(!user){
     hide("adminView");
-    hide("clientView");
     hide("superadminView");
     return;
   }
 
-  const lenderRef = doc(db, "lenders", user.uid);
+  const lenderRef = doc(db,"lenders",user.uid);
 
-  if (lenderUnsubscribe) lenderUnsubscribe();
+  if(lenderUnsubscribe) lenderUnsubscribe();
 
-  lenderUnsubscribe = onSnapshot(lenderRef, (snap) => {
-    if (!snap.exists()) return;
+  lenderUnsubscribe = onSnapshot(lenderRef,(snap)=>{
+    if(!snap.exists()) return;
 
     lenderData = snap.data();
 
-    applyBranding(lenderData);
-    watchStatus(lenderData.status);
+    aplicarMarcaBlanca(lenderData);
+    controlarStatus(lenderData.status);
   });
 
-  initAdminData();
+  cargarPrestamos();
 });
 
-// ─────────────────────────────────────────────
-// STATUS EN TIEMPO REAL
-// ─────────────────────────────────────────────
-
-function watchStatus(status) {
-  if (status === "pending") {
+function controlarStatus(status){
+  if(status==="pending"){
     show("pendingOverlay");
     hide("suspendedOverlay");
     return;
   }
-
-  if (status === "suspended") {
+  if(status==="suspended"){
     show("suspendedOverlay");
     hide("pendingOverlay");
     return;
   }
-
   hide("pendingOverlay");
   hide("suspendedOverlay");
 }
 
-// ─────────────────────────────────────────────
-// MARCA BLANCA DINÁMICA
-// ─────────────────────────────────────────────
+function aplicarMarcaBlanca(data){
+  if(!data) return;
 
-function applyBranding(data) {
-  if (!data) return;
+  const name=data.appName||"Prestify";
+  const logoName=document.getElementById("logoName");
+  if(logoName) logoName.innerText=name;
 
-  const name = data.appName || "Prestify";
-
-  const logoName = document.getElementById("logoName");
-  if (logoName) {
-    const parts = name.split(" ");
-    if (parts.length > 1) {
-      logoName.innerHTML = parts[0] + " <span>" + parts.slice(1).join(" ") + "</span>";
-    } else {
-      logoName.innerHTML = "<span>" + name + "</span>";
-    }
-  }
-
-  const logoMark = document.getElementById("logoMark");
-  if (logoMark) {
-    logoMark.textContent = name.charAt(0).toUpperCase();
-  }
-
-  const title = document.getElementById("pageTitle");
-  if (title) {
-    title.textContent = name + " · Tu financiera digital";
-  }
-
-  if (data.primaryColor) {
-    document.documentElement.style.setProperty("--brand", data.primaryColor);
-  }
+  const title=document.getElementById("pageTitle");
+  if(title) title.innerText=name+" · Tu financiera digital";
 }
-// ─────────────────────────────────────────────
-// SISTEMA FRANCÉS (CORREGIDO)
-// Suma gasto antes de calcular cuota
-// ─────────────────────────────────────────────
+// ─────────────────────────
+// SISTEMA FRANCÉS
+// ─────────────────────────
 
-function calcularSistemaFrances(monto, meses, tasaMensual) {
-  const gasto = monto * (GASTO_OTORGAMIENTO / 100);
-  const capitalFinanciado = monto + gasto;
+function calcularSistemaFrances(monto,meses,tasaMensual){
+  const gasto=monto*(GASTO_OTORGAMIENTO/100);
+  const capital=monto+gasto;
 
-  const cuota =
-    capitalFinanciado *
-    (tasaMensual * Math.pow(1 + tasaMensual, meses)) /
-    (Math.pow(1 + tasaMensual, meses) - 1);
+  const cuota=
+    capital*
+    (tasaMensual*Math.pow(1+tasaMensual,meses))/
+    (Math.pow(1+tasaMensual,meses)-1);
 
-  return {
-    gasto,
-    capitalFinanciado,
-    cuota
-  };
+  return {gasto,capital,cuota};
 }
 
-// ─────────────────────────────────────────────
-// CREAR PRÉSTAMO DESDE MONI
-// ─────────────────────────────────────────────
+// ─────────────────────────
+// EVENTO MONI
+// ─────────────────────────
 
-document.addEventListener("moniSolicitud", async (e) => {
-  if (!currentUser) return;
+document.addEventListener("moniSolicitud",async(e)=>{
+  if(!currentUser) return;
 
-  const data = e.detail;
+  const data=e.detail;
 
-  const tasaMensual = (lenderData?.tna || 120) / 100 / 12;
+  const tasaMensual=(lenderData?.tna||120)/100/12;
 
-  const calc = calcularSistemaFrances(
+  const calc=calcularSistemaFrances(
     data.monto,
     data.meses,
     tasaMensual
   );
 
-  await addDoc(collection(db, "loans"), {
-    lenderId: currentUser.uid,
-    clienteNombre: data.nombre,
-    clienteDni: data.dni,
-    clienteTelefono: data.telefono,
-    amount: data.monto,
-    months: data.meses,
-    gastoOtorgAmt: Math.round(calc.gasto),
-    capitalFinanciado: Math.round(calc.capitalFinanciado),
-    cuota: Math.round(calc.cuota),
-    status: "pending",
-    createdAt: new Date()
+  await addDoc(collection(db,"loans"),{
+    lenderId:currentUser.uid,
+    clienteNombre:data.nombre,
+    clienteDni:data.dni,
+    clienteTelefono:data.telefono,
+    amount:data.monto,
+    months:data.meses,
+    gastoOtorgAmt:Math.round(calc.gasto),
+    capitalFinanciado:Math.round(calc.capital),
+    cuota:Math.round(calc.cuota),
+    status:"pending",
+    createdAt:new Date()
   });
 });
 
-// ─────────────────────────────────────────────
-// ADMIN — CARGA DE PRÉSTAMOS
-// ─────────────────────────────────────────────
+// ─────────────────────────
+// CARGAR PRÉSTAMOS ADMIN
+// ─────────────────────────
 
-function initAdminData() {
-  if (!currentUser) return;
+function cargarPrestamos(){
+  if(!currentUser) return;
 
-  const loansRef = collection(db, "loans");
-  const q = query(loansRef, where("lenderId", "==", currentUser.uid));
+  const q=query(
+    collection(db,"loans"),
+    where("lenderId","==",currentUser.uid)
+  );
 
-  if (loansUnsubscribe) loansUnsubscribe();
+  if(loansUnsubscribe) loansUnsubscribe();
 
-  loansUnsubscribe = onSnapshot(q, (snapshot) => {
-    const list = document.getElementById("loansList");
-    if (!list) return;
+  loansUnsubscribe=onSnapshot(q,(snapshot)=>{
+    const list=document.getElementById("loansList");
+    if(!list) return;
 
-    list.innerHTML = "";
+    list.innerHTML="";
 
-    snapshot.forEach((docSnap) => {
-      const L = docSnap.data();
+    snapshot.forEach((docSnap)=>{
+      const L=docSnap.data();
 
-      const div = document.createElement("div");
-      div.className = "loan-item";
-
-      div.innerHTML = `
+      const div=document.createElement("div");
+      div.className="loan-item";
+      div.innerHTML=`
         <strong>${L.clienteNombre}</strong>
         <div>Monto: ${fmtPeso(L.amount)}</div>
         <div>Cuota: ${fmtPeso(L.cuota)}</div>
         <div>Estado: ${L.status}</div>
       `;
-
       list.appendChild(div);
     });
   });
 }
-// ─────────────────────────────────────────────
+// ─────────────────────────
 // SUPERADMIN
-// ─────────────────────────────────────────────
+// ─────────────────────────
 
-async function loadSuperAdmin() {
-  const view = document.getElementById("superadminView");
-  if (view) view.style.display = "block";
+async function loadSuperAdmin(){
+  const container=document.getElementById("superadminList");
+  if(!container) return;
 
-  const container = document.getElementById("superadminList");
-  if (!container) return;
+  container.innerHTML="Cargando...";
 
-  container.innerHTML = "Cargando...";
+  const q=query(collection(db,"lenders"),where("status","==","pending"));
+  const snapshot=await getDocs(q);
 
-  const q = query(collection(db, "lenders"), where("status", "==", "pending"));
-  const snapshot = await getDocs(q);
+  container.innerHTML="";
 
-  container.innerHTML = "";
+  snapshot.forEach((docSnap)=>{
+    const data=docSnap.data();
 
-  snapshot.forEach((docSnap) => {
-    const data = docSnap.data();
-
-    const row = document.createElement("div");
-    row.className = "superadmin-item";
-
-    row.innerHTML = `
-      <strong>${data.appName || "Sin nombre"}</strong>
-      <div>UID: ${docSnap.id}</div>
+    const row=document.createElement("div");
+    row.innerHTML=`
+      <strong>${data.appName||"Sin nombre"}</strong>
       <button onclick="approveLender('${docSnap.id}')">APROBAR</button>
     `;
-
     container.appendChild(row);
   });
 }
 
-async function approveLender(uid) {
-  const lenderRef = doc(db, "lenders", uid);
-  await updateDoc(lenderRef, { status: "active" });
-
-  // recargar lista
+async function approveLender(uid){
+  await updateDoc(doc(db,"lenders",uid),{status:"active"});
   loadSuperAdmin();
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────
 // LOGOUT
-// ─────────────────────────────────────────────
+// ─────────────────────────
 
-async function logout() {
-  try {
-    if (lenderUnsubscribe) lenderUnsubscribe();
-    if (loansUnsubscribe) loansUnsubscribe();
-
-    await signOut(auth);
-
-    currentUser = null;
-    lenderData = null;
-
-    location.reload();
-  } catch (err) {
-    console.error("Error logout:", err);
-  }
+async function logout(){
+  if(lenderUnsubscribe) lenderUnsubscribe();
+  if(loansUnsubscribe) loansUnsubscribe();
+  await signOut(auth);
+  location.reload();
 }
 
-// ─────────────────────────────────────────────
-// EXPOSICIÓN GLOBAL OBLIGATORIA (ES6 FIX)
-// ─────────────────────────────────────────────
+// ─────────────────────────
+// EXPOSICIÓN GLOBAL (OBLIGATORIO)
+// ─────────────────────────
 
-window.loadSuperAdmin = loadSuperAdmin;
-window.approveLender = approveLender;
-window.logout = logout;
-
-// si existen en tu HTML:
-if (typeof selectPayMethod === "function")
-  window.selectPayMethod = selectPayMethod;
-
-if (typeof moniSimular === "function")
-  window.moniSimular = moniSimular;
-
-if (typeof moniShowForm === "function")
-  window.moniShowForm = moniShowForm;
-
-if (typeof moniEnviarSolicitud === "function")
-  window.moniEnviarSolicitud = moniEnviarSolicitud;
+window.loadSuperAdmin=loadSuperAdmin;
+window.approveLender=approveLender;
+window.logout=logout;
