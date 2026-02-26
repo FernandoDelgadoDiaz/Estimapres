@@ -153,6 +153,22 @@ function renderLandingPage() {
 
 // Landing CTAs → abrir registro
 function openRegisterFlow() {
+  // Si hay sesión activa (admin), cerrarla primero para mostrar el flujo de registro limpio
+  if (auth.currentUser) {
+    signOut(auth).then(() => {
+      hideLandingPage();
+      el("heroSection").style.display = "none";
+      el("clientView").style.display  = "none";
+      el("adminView").className       = "admin-wrap visible";
+      el("btnViewClient").style.display = "";
+      el("btnViewAdmin").style.display  = "";
+      requestAnimationFrame(() => {
+        const gate = el("adminGate");
+        if (gate) gate.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    });
+    return;
+  }
   hideLandingPage();
   el("heroSection").style.display = "none";
   el("clientView").style.display  = "none";
@@ -1847,4 +1863,3 @@ el("btnSaLogout")?.addEventListener("click", () => {
   if (gStatusUnsub) { gStatusUnsub(); gStatusUnsub = null; }
   signOut(auth).then(() => { el("superadminView")?.classList.remove("show"); showLandingPage(); toast("Sesión cerrada", "info"); }).catch(() => {});
 });
-
