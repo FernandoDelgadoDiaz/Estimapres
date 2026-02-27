@@ -3011,6 +3011,28 @@ async function computeDashboard() {}
 
 console.log('✅ Módulo script.js cargado completamente');
 </script>
+<script>
+// TEST: Ver qué pasa cuando hacés click
+document.getElementById('btnLandingRegister').onclick = function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  console.log('1. Click detectado');
+  console.log('2. gLenderId =', gLenderId);
+  console.log('3. gUser =', gUser ? gUser.uid : 'null');
+  console.log('4. auth.currentUser =', auth?.currentUser?.uid || 'null');
+  
+  if (typeof showOnboarding === 'function') {
+    console.log('5. showOnboarding existe');
+    showOnboarding();
+  } else {
+    console.log('5. showOnboarding NO existe');
+    alert('showOnboarding no está definida');
+  }
+  
+  return false;
+};
+</script>
 
 </body>
 </html>
