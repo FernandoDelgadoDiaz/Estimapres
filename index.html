@@ -711,6 +711,63 @@ body.client-mode #simAmount {
 .landing-cta-section h2{font-size:clamp(24px,3vw,38px);font-weight:800;color:var(--white);letter-spacing:-1px;margin-bottom:12px}
 .landing-cta-section p{font-size:15px;color:var(--muted);margin-bottom:32px;line-height:1.6}
 
+/* ═══ LANDING PREVIEW SECTION ═══ */
+.landing-preview-section{margin:56px 0;text-align:center}
+.landing-preview-title{font-size:clamp(24px,3vw,36px);font-weight:800;color:var(--white);letter-spacing:-1px;margin-bottom:8px}
+.landing-preview-sub{font-size:14px;color:var(--muted);margin-bottom:40px;line-height:1.6}
+.landing-preview-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media(max-width:768px){.landing-preview-grid{grid-template-columns:1fr}}
+.preview-card{background:var(--navy-card);border:1px solid var(--border-hi);border-radius:20px;overflow:hidden;text-align:left;box-shadow:0 20px 60px rgba(5,13,31,.7)}
+.preview-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:rgba(5,13,31,.5)}
+.preview-card-dots{display:flex;gap:5px}
+.preview-card-dots span{width:10px;height:10px;border-radius:50%}
+.preview-card-dots span:nth-child(1){background:#ef4444}
+.preview-card-dots span:nth-child(2){background:#f59e0b}
+.preview-card-dots span:nth-child(3){background:#10b981}
+.preview-card-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.preview-card-body{padding:18px}
+/* Admin mockup */
+.mock-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.mock-metric{background:rgba(26,86,219,.1);border:1px solid rgba(96,165,250,.15);border-radius:10px;padding:10px;text-align:center}
+.mock-metric-val{font-family:'DM Mono',monospace;font-size:16px;font-weight:800;color:var(--sky)}
+.mock-metric-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.mock-chart{margin-bottom:14px}
+.mock-chart-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px}
+.mock-chart-bars{display:flex;align-items:flex-end;gap:5px;height:60px}
+.mock-bar{flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--blue-light),var(--blue));opacity:.7;transition:opacity .2s}
+.mock-bar:nth-child(3),.mock-bar:nth-child(5){background:linear-gradient(180deg,var(--sky),var(--blue-light));opacity:1}
+.mock-bar-label{font-size:8px;color:var(--muted);text-align:center;margin-top:3px}
+.mock-requests{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.mock-req-header{padding:7px 10px;background:rgba(5,13,31,.5);font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.mock-req-row{padding:8px 10px;border-bottom:1px solid rgba(96,165,250,.05);display:flex;align-items:center;justify-content:space-between;font-size:10px}
+.mock-req-row:last-child{border-bottom:none}
+.mock-req-name{color:var(--ice);font-weight:600}
+.mock-req-amount{color:var(--sky);font-family:'DM Mono',monospace;font-size:10px}
+.mock-req-status{padding:2px 7px;border-radius:999px;font-size:8px;font-weight:700}
+.mock-req-status.ok{background:rgba(16,185,129,.15);color:var(--ok)}
+.mock-req-status.warn{background:rgba(245,158,11,.15);color:var(--warn)}
+/* Client mockup */
+.mock-client{background:#fff;border-radius:0;padding:18px}
+.mock-client-logo{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.mock-client-logo-mark{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1a56db,#60a5fa);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px}
+.mock-client-logo-name{font-size:15px;font-weight:800;color:#111;letter-spacing:-.5px}
+.mock-client-title{font-size:13px;font-weight:700;color:#333;margin-bottom:14px}
+.mock-client-amount{text-align:center;padding:16px;background:linear-gradient(135deg,#EEF2FF,#E8F0FF);border-radius:12px;margin-bottom:14px;border:1px solid rgba(26,86,219,.12)}
+.mock-client-amount-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#888;font-weight:700;margin-bottom:4px}
+.mock-client-amount-val{font-size:28px;font-weight:900;color:#1a56db;letter-spacing:-1px}
+.mock-slider-track{height:6px;background:#E2E8F0;border-radius:99px;margin-bottom:8px;position:relative;overflow:hidden}
+.mock-slider-fill{height:100%;background:linear-gradient(90deg,#1a56db,#60a5fa);border-radius:99px;width:40%}
+.mock-slider-labels{display:flex;justify-content:space-between;font-size:8px;color:#aaa;margin-bottom:14px}
+.mock-cuotas-title{font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.mock-cuotas-pills{display:flex;gap:5px;margin-bottom:16px;flex-wrap:wrap}
+.mock-cuota-pill{padding:5px 10px;border:2px solid #E2E8F0;border-radius:999px;font-size:9px;font-weight:700;color:#666}
+.mock-cuota-pill.active{background:#1a56db;border-color:#1a56db;color:#fff}
+.mock-cuota-display{text-align:center;padding:14px;background:#fff;border:2px solid rgba(26,86,219,.2);border-radius:12px;margin-bottom:14px}
+.mock-cuota-display-label{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.mock-cuota-display-val{font-size:22px;font-weight:900;color:#1a56db;letter-spacing:-1px}
+.mock-cuota-display-sub{font-size:9px;color:#999;margin-top:2px}
+.mock-cta-btn{width:100%;padding:12px;background:linear-gradient(135deg,#1a56db,#2f6ef5);border:none;border-radius:10px;color:#fff;font-weight:800;font-size:12px;cursor:default;letter-spacing:-.2px;box-shadow:0 4px 14px rgba(26,86,219,.4)}
+
 /* ═══ SUPERADMIN PANEL ═══ */
 .superadmin-view{display:none;position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:32px 28px 80px}
 .superadmin-view.show{display:block}
@@ -793,6 +850,112 @@ body.client-mode #simAmount {
     </div>
   </div>
 
+  <!-- ═══ SECCIÓN: TU FINANCIERA EN MINUTOS ═══ -->
+  <div class="landing-preview-section">
+    <div class="landing-preview-title">Tu financiera en minutos</div>
+    <p class="landing-preview-sub">Así ven tu plataforma vos y tus clientes. Todo en tiempo real, todo con tu marca.</p>
+    <div class="landing-preview-grid">
+
+      <!-- Vista Administrador -->
+      <div class="preview-card">
+        <div class="preview-card-header">
+          <div class="preview-card-dots"><span></span><span></span><span></span></div>
+          <div class="preview-card-label">🏦 Vista Administrador — Dashboard</div>
+        </div>
+        <div class="preview-card-body">
+          <div class="mock-metrics">
+            <div class="mock-metric"><div class="mock-metric-val">12</div><div class="mock-metric-lbl">Préstamos</div></div>
+            <div class="mock-metric"><div class="mock-metric-val">$4.2M</div><div class="mock-metric-lbl">Capital</div></div>
+            <div class="mock-metric"><div class="mock-metric-val">3</div><div class="mock-metric-lbl">Pendientes</div></div>
+          </div>
+          <div class="mock-chart">
+            <div class="mock-chart-title">Préstamos otorgados — últimos 6 meses</div>
+            <div class="mock-chart-bars">
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+                <div class="mock-bar" style="height:35px"></div>
+                <div class="mock-bar-label">Ago</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+                <div class="mock-bar" style="height:48px"></div>
+                <div class="mock-bar-label">Sep</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+                <div class="mock-bar" style="height:52px"></div>
+                <div class="mock-bar-label">Oct</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+                <div class="mock-bar" style="height:38px"></div>
+                <div class="mock-bar-label">Nov</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+                <div class="mock-bar" style="height:60px"></div>
+                <div class="mock-bar-label">Dic</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;flex:1">
+                <div class="mock-bar" style="height:45px"></div>
+                <div class="mock-bar-label">Ene</div>
+              </div>
+            </div>
+          </div>
+          <div class="mock-requests">
+            <div class="mock-req-header">Últimas solicitudes</div>
+            <div class="mock-req-row">
+              <div class="mock-req-name">M. González</div>
+              <div class="mock-req-amount">$150,000</div>
+              <div class="mock-req-status ok">✓ Aprobado</div>
+            </div>
+            <div class="mock-req-row">
+              <div class="mock-req-name">F. López</div>
+              <div class="mock-req-amount">$300,000</div>
+              <div class="mock-req-status warn">⏳ Pendiente</div>
+            </div>
+            <div class="mock-req-row">
+              <div class="mock-req-name">C. Rodríguez</div>
+              <div class="mock-req-amount">$80,000</div>
+              <div class="mock-req-status ok">✓ Aprobado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vista Cliente -->
+      <div class="preview-card" style="background:#fff">
+        <div class="preview-card-header" style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
+          <div class="preview-card-dots"><span></span><span></span><span></span></div>
+          <div class="preview-card-label" style="color:#888">📱 Vista Cliente — Simulador</div>
+        </div>
+        <div class="mock-client">
+          <div class="mock-client-logo">
+            <div class="mock-client-logo-mark">F</div>
+            <div class="mock-client-logo-name">FinancieraTuya</div>
+          </div>
+          <div class="mock-client-title">¿Cuánto necesitás?</div>
+          <div class="mock-client-amount">
+            <div class="mock-client-amount-label">Monto solicitado</div>
+            <div class="mock-client-amount-val">$200.000</div>
+          </div>
+          <div class="mock-slider-track"><div class="mock-slider-fill"></div></div>
+          <div class="mock-slider-labels"><span>$10.000</span><span>$5.000.000</span></div>
+          <div class="mock-cuotas-title">Cuotas</div>
+          <div class="mock-cuotas-pills">
+            <div class="mock-cuota-pill">3</div>
+            <div class="mock-cuota-pill active">6</div>
+            <div class="mock-cuota-pill">12</div>
+            <div class="mock-cuota-pill">18</div>
+            <div class="mock-cuota-pill">24</div>
+          </div>
+          <div class="mock-cuota-display">
+            <div class="mock-cuota-display-label">Tu cuota mensual</div>
+            <div class="mock-cuota-display-val">$40.580</div>
+            <div class="mock-cuota-display-sub">6 cuotas · TNA 90% · Sistema Francés</div>
+          </div>
+          <button class="mock-cta-btn">Solicitar ahora →</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="landing-stats">
     <div class="stat-box"><div class="stat-num">100%</div><div class="stat-label">Digital</div></div>
     <div class="stat-box"><div class="stat-num">3min</div><div class="stat-label">Setup inicial</div></div>
@@ -872,22 +1035,22 @@ body.client-mode #simAmount {
     <div class="ob-steps">
       <div class="ob-step active" id="obStep1">
         <div class="ob-step-dot">1</div>
-        <div class="ob-step-label">DNI y Firma</div>
+        <div class="ob-step-label">Datos personales</div>
       </div>
       <div class="ob-step" id="obStep2">
         <div class="ob-step-dot">2</div>
-        <div class="ob-step-label">Tu Negocio</div>
+        <div class="ob-step-label">Tu financiera</div>
       </div>
       <div class="ob-step" id="obStep3">
         <div class="ob-step-dot">3</div>
-        <div class="ob-step-label">Método de Cobro</div>
+        <div class="ob-step-label">Montos y TNA</div>
       </div>
     </div>
 
-    <!-- PASO 1: DNI + Consentimiento + Firma -->
+    <!-- PASO 1: Datos personales -->
     <div class="ob-content active" id="obContent1">
-      <div class="ob-title">Bienvenido a la plataforma</div>
-      <div class="ob-subtitle">Antes de comenzar, necesitamos verificar tu identidad y aceptar los términos de uso.</div>
+      <div class="ob-title">Tus datos personales</div>
+      <div class="ob-subtitle">Necesitamos verificar tu identidad para crear tu cuenta de prestamista.</div>
       <div class="input-row" style="margin-bottom:16px">
         <div class="field" style="margin-bottom:0"><label>Nombre completo</label><input id="obName" placeholder="Juan Pérez"/></div>
         <div class="field" style="margin-bottom:0"><label>DNI</label><input id="obDni" inputmode="numeric" placeholder="30123456"/></div>
@@ -924,30 +1087,32 @@ body.client-mode #simAmount {
       </div>
     </div>
 
-    <!-- PASO 2: Datos del negocio -->
+    <!-- PASO 2: Nombre de tu financiera -->
     <div class="ob-content" id="obContent2">
-      <div class="ob-title">Configurá tu negocio</div>
-      <div class="ob-subtitle">Estos datos aparecerán en tus contratos y en el portal de clientes.</div>
-      <div class="field"><label>Nombre del negocio</label><input id="obAppName" placeholder="DineroYa / Préstamos Pérez"/></div>
+      <div class="ob-title">Nombre de tu financiera</div>
+      <div class="ob-subtitle">Estos datos aparecerán en el portal de clientes y en los contratos.</div>
+      <div class="field"><label>Nombre de la financiera</label><input id="obAppName" placeholder="FinancieraYa / Préstamos Pérez"/></div>
       <div class="field"><label>Ciudad de operación</label><input id="obCity" placeholder="Río Gallegos, Santa Cruz"/></div>
-      <div class="input-row">
-        <div class="field"><label>TNA % (tasa nominal anual)</label><input id="obTna" inputmode="numeric" class="mono" placeholder="100"/></div>
-        <div class="field"><label>Día de vencimiento (1-28)</label><input id="obDueDay" inputmode="numeric" placeholder="10"/></div>
-      </div>
-      <div class="input-row">
-        <div class="field"><label>% Gastos administrativos</label><input id="obExpenses" inputmode="numeric" placeholder="0" class="mono"/><p class="field-hint">0 = sin descuento al entregar el capital.</p></div>
-        <div class="field"><label>WhatsApp (ej: 5492966123456)</label><input id="obWa" inputmode="tel" placeholder="5492966123456"/></div>
-      </div>
+      <div class="field"><label>WhatsApp de contacto (ej: 5492966123456)</label><input id="obWa" inputmode="tel" placeholder="5492966123456"/></div>
       <div class="ob-nav">
         <button id="btnObBack1" class="btn-outline" style="flex:0 0 auto">← Atrás</button>
         <button id="btnObStep2" class="btn-primary" style="flex:1">Continuar al paso 3 →</button>
       </div>
     </div>
 
-    <!-- PASO 3: Método de cobro -->
+    <!-- PASO 3: Montos y TNA -->
     <div class="ob-content" id="obContent3">
-      <div class="ob-title">Método de cobro de cuotas</div>
-      <div class="ob-subtitle">Elegí cómo van a pagar tus clientes. Podés cambiarlo después desde Configuración.</div>
+      <div class="ob-title">Configuración de montos y TNA</div>
+      <div class="ob-subtitle">Configurá los parámetros financieros de tu financiera. Podés cambiarlos después desde Configuración.</div>
+      <div class="input-row">
+        <div class="field"><label>TNA % (tasa nominal anual)</label><input id="obTna" inputmode="numeric" class="mono" placeholder="90"/></div>
+        <div class="field"><label>Día de vencimiento (1-28)</label><input id="obDueDay" inputmode="numeric" placeholder="10"/></div>
+      </div>
+      <div class="input-row">
+        <div class="field"><label>Monto mínimo ($)</label><input id="obMinAmount" inputmode="numeric" class="mono" placeholder="10000"/></div>
+        <div class="field"><label>Monto máximo ($)</label><input id="obMaxAmount" inputmode="numeric" class="mono" placeholder="5000000"/></div>
+      </div>
+      <div class="field"><label>% Gasto de otorgamiento (por defecto 3%)</label><input id="obExpenses" inputmode="numeric" class="mono" placeholder="3"/><p class="field-hint">Se descuenta del capital al momento de entregar el préstamo (Sistema Francés).</p></div>
       <div class="payment-method-selector">
         <div class="pm-option selected" id="pmOptMP" onclick="selectPayMethod('mp')">
           <div class="pm-icon">💳</div>
@@ -1869,11 +2034,7 @@ el("btnObStep1")?.addEventListener("click",()=>{
 el("btnObBack1")?.addEventListener("click",()=>setObStep(1));
 el("btnObStep2")?.addEventListener("click",()=>{
   const appName=(el("obAppName").value||"").trim();
-  const tna=Number(digits(el("obTna").value));
-  const due=Number(digits(el("obDueDay").value));
-  if(!appName){ toast("Ingresá el nombre del negocio.","err"); return; }
-  if(!tna||tna<1){ toast("Ingresá la TNA.","err"); return; }
-  if(!due||due<1||due>28){ toast("Día de vencimiento entre 1 y 28.","err"); return; }
+  if(!appName){ toast("Ingresá el nombre de tu financiera.","err"); return; }
   setObStep(3);
 });
 
@@ -1889,7 +2050,9 @@ el("btnObFinish")?.addEventListener("click",async()=>{
       city:(el("obCity").value||"Río Gallegos, Santa Cruz").trim(),
       tna:Number(digits(el("obTna").value)),
       dueDay:Math.min(28,Math.max(1,Number(digits(el("obDueDay").value)))),
-      expenses:Number(el("obExpenses").value||0),
+      expenses:Number(el("obExpenses").value||3),
+      minAmount:Number(digits(el("obMinAmount")?.value||"10000"))||10000,
+      maxAmount:Number(digits(el("obMaxAmount")?.value||"5000000"))||5000000,
       wa:(el("obWa").value||"").trim(),
       status:"pendiente",
       plazos:[3,6,9,12,18,24],
@@ -3169,8 +3332,55 @@ el("btnSaLogout")?.addEventListener("click",()=>{
   signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
 });
 
-/* ══ INIT ══ */
+/* ══ LANDING PREVIEW MOCKUP SLIDER ══ */
+(function(){
+  const track=document.getElementById('mockSliderTrack');
+  const fill=document.getElementById('mockSliderFill');
+  const thumb=document.getElementById('mockSliderThumb');
+  const numEl=document.getElementById('mockAmountNum');
+  const cuotaEl=document.getElementById('mockCuota');
+  const efectivoEl=document.getElementById('mockEfectivo');
+  const totalEl=document.getElementById('mockTotal');
+  if(!track) return;
+  const MIN=10000,MAX=500000;
+  let pct=0.3;
+  function fmt(n){return'$ '+Math.round(n).toLocaleString('es-AR')}
+  function update(){
+    const amount=MIN+(MAX-MIN)*pct;
+    const tna=100,cuotas=6,expenses=0.03;
+    const tm=tna/100/12;
+    const cuota=amount*tm*Math.pow(1+tm,cuotas)/(Math.pow(1+tm,cuotas)-1);
+    const efectivo=amount*(1-expenses);
+    const total=cuota*cuotas;
+    fill.style.width=(pct*100)+'%';
+    thumb.style.left=(pct*100)+'%';
+    numEl.textContent=fmt(amount);
+    cuotaEl.textContent=fmt(cuota);
+    efectivoEl.textContent=fmt(efectivo);
+    totalEl.textContent=fmt(total);
+  }
+  function onMove(clientX){
+    const r=track.getBoundingClientRect();
+    pct=Math.max(0,Math.min(1,(clientX-r.left)/r.width));
+    update();
+  }
+  track.addEventListener('mousedown',e=>{
+    onMove(e.clientX);
+    const mm=ev=>onMove(ev.clientX);
+    const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu)};
+    document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+  });
+  track.addEventListener('touchstart',e=>{
+    onMove(e.touches[0].clientX);
+    const tm=ev=>{ev.preventDefault();onMove(ev.touches[0].clientX)};
+    const tu=()=>{document.removeEventListener('touchmove',tm);document.removeEventListener('touchend',tu)};
+    document.addEventListener('touchmove',tm,{passive:false});document.addEventListener('touchend',tu);
+  });
+  update();
+})();
+/* ══ END MOCKUP ══ */
 await loadSettings();
+
 </script>
 </body>
 </html>
