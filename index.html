@@ -681,248 +681,22 @@ body.client-mode #simAmount {
   outline: none;
 }
 
-/* ══════════════════════════════════════════════════════════
-   LANDING PAGE 2026 — Premium SaaS · Inspirado en ref. imgs
-   ══════════════════════════════════════════════════════════ */
-
-/* Override body background to deep navy per reference */
-body.landing-active{background:#0a0f18}
-body.landing-active::before{
-  background:
-    radial-gradient(ellipse 70% 55% at 75% -5%,rgba(0,100,255,.22) 0%,transparent 60%),
-    radial-gradient(ellipse 55% 45% at -5% 95%,rgba(120,50,220,.15) 0%,transparent 55%),
-    radial-gradient(ellipse 40% 35% at 50% 50%,rgba(0,80,200,.06) 0%,transparent 70%)
-}
-
-/* ─ landing root ─ */
-.landing-view{display:none;position:relative;z-index:1;overflow:hidden;background:transparent}
+/* ═══ LANDING PAGE (sin ?ref=) ═══ */
+.landing-view{display:none;position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:60px 28px 80px}
 .landing-view.show{display:block}
-
-/* ─ gradient text utility ─ */
-.grad-text{background:linear-gradient(100deg,#00d2ff 20%,#9d50bb 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-
-/* ─ Scroll-reveal: vertical + horizontal entrances ─ */
-.rv{opacity:0;will-change:opacity,transform;transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
-.rv.rv-up{transform:translateY(40px)}
-.rv.rv-left{transform:translateX(-50px)}
-.rv.rv-right{transform:translateX(50px)}
-.rv.rv-scale{transform:scale(.94)}
-.rv.visible{opacity:1;transform:none}
-.rv-d1{transition-delay:.1s}.rv-d2{transition-delay:.2s}.rv-d3{transition-delay:.3s}
-.rv-d4{transition-delay:.4s}.rv-d5{transition-delay:.5s}
-
-/* ─ NAV inside landing (full-width landing topbar override) ─ */
-.lp-nav{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:22px 60px;pointer-events:none}
-.lp-nav-links{display:flex;align-items:center;gap:32px;pointer-events:all}
-.lp-nav-link{font-size:13px;font-weight:500;color:rgba(255,255,255,.55);text-decoration:none;letter-spacing:.3px;transition:color .2s}
-.lp-nav-link:hover{color:#fff}
-.lp-nav-search{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;pointer-events:all;color:rgba(255,255,255,.55);transition:all .2s}
-.lp-nav-search:hover{background:rgba(255,255,255,.14);color:#fff}
-@media(max-width:700px){.lp-nav{padding:18px 20px}.lp-nav-links{display:none}}
-
-/* ─ HERO ─ */
-.lp-hero{position:relative;min-height:100vh;display:flex;align-items:center;padding:120px 60px 80px;overflow:hidden}
-@media(max-width:900px){.lp-hero{padding:100px 24px 60px;flex-direction:column;min-height:auto;gap:40px}}
-.lp-hero-bg-orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(90px)}
-.lp-hero-bg-orb.orb1{width:600px;height:600px;right:-100px;top:-100px;background:radial-gradient(circle,rgba(0,120,255,.28) 0%,transparent 65%)}
-.lp-hero-bg-orb.orb2{width:400px;height:400px;left:-80px;bottom:0;background:radial-gradient(circle,rgba(120,50,220,.2) 0%,transparent 65%)}
-.lp-hero-content{flex:1;max-width:580px;position:relative;z-index:2}
-.lp-hero-visual{flex:0 0 auto;width:440px;position:relative;z-index:2;display:flex;align-items:center;justify-content:center}
-@media(max-width:900px){.lp-hero-visual{width:100%;max-width:400px;margin:0 auto}}
-@media(max-width:500px){.lp-hero-visual{display:none}}
-
-.lp-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;background:rgba(0,210,255,.1);border:1px solid rgba(0,210,255,.25);font-size:11px;font-weight:700;color:#00d2ff;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:28px}
-.lp-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:#00d2ff;box-shadow:0 0 10px #00d2ff;animation:pulse-hero-dot 2s ease infinite}
-@keyframes pulse-hero-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,210,255,.6)}60%{box-shadow:0 0 0 8px rgba(0,210,255,0)}}
-
-.lp-title{font-size:clamp(40px,5.5vw,72px);font-weight:800;line-height:1.05;letter-spacing:-2.5px;color:#fff;margin-bottom:20px;font-family:'Inter','Sora',sans-serif}
-.lp-sub{font-size:17px;color:rgba(255,255,255,.55);line-height:1.75;max-width:480px;margin-bottom:38px;font-weight:400}
-@media(max-width:900px){.lp-sub{max-width:100%}}
-.lp-cta-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-
-/* Primary CTA — glowing purple-blue gradient */
-.landing-cta{
-  display:inline-flex;align-items:center;gap:10px;
-  padding:15px 32px;
-  background:linear-gradient(135deg,#1a56db,#7c3aed);
-  border:none;border-radius:12px;color:#fff;
-  font-family:'Sora',sans-serif;font-size:15px;font-weight:700;
-  cursor:pointer;letter-spacing:-.1px;
-  box-shadow:0 8px 30px rgba(100,50,220,.55),0 0 0 1px rgba(150,100,255,.2);
-  transition:transform .18s,box-shadow .18s;
-  text-decoration:none;will-change:transform
-}
-.landing-cta:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 14px 44px rgba(100,50,220,.75),0 0 0 1px rgba(180,140,255,.3)}
-.landing-cta svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.5;flex-shrink:0}
-.lp-secondary-cta{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .18s;letter-spacing:-.1px;backdrop-filter:blur(8px)}
-.lp-secondary-cta:hover{border-color:rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff}
-.landing-demo{font-size:13px;color:rgba(255,255,255,.4);margin-top:16px}
-.landing-demo a{color:#00d2ff;text-decoration:none;font-weight:600}
-.landing-demo a:hover{text-decoration:underline}
-
-/* ─ PHONE MOCKUP (levitation) ─ */
-.lp-phone-wrap{position:relative;display:flex;justify-content:center}
-.lp-phone{
-  width:255px;height:510px;
-  border-radius:42px;
-  background:linear-gradient(175deg,#111a2e,#070d1e);
-  border:2px solid rgba(255,255,255,.14);
-  box-shadow:0 50px 120px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.08);
-  position:relative;overflow:hidden;flex-shrink:0;
-  animation:phone-levitate 4s ease-in-out infinite
-}
-@keyframes phone-levitate{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-14px) rotate(-2deg)}}
-.lp-phone::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:90px;height:26px;background:#070d1e;border-bottom-left-radius:16px;border-bottom-right-radius:16px;z-index:10}
-.lp-phone-screen{position:absolute;inset:0;padding:36px 14px 18px;display:flex;flex-direction:column;gap:9px}
-.lp-phone-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px}
-.lp-phone-brand-name{font-size:12px;font-weight:800;color:#fff;letter-spacing:-.2px}
-.lp-phone-header-dot{width:6px;height:6px;border-radius:50%;background:#10b981}
-.lp-phone-amount-label{text-align:center;font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:0}
-.lp-phone-amount{text-align:center;font-family:'DM Mono',monospace;font-size:30px;font-weight:700;letter-spacing:-1px;line-height:1;background:linear-gradient(90deg,#00d2ff,#9d50bb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.lp-phone-track{height:5px;background:rgba(255,255,255,.1);border-radius:999px;position:relative;margin:4px 2px}
-.lp-phone-fill{height:100%;width:60%;background:linear-gradient(90deg,#00d2ff,#9d50bb);border-radius:999px}
-.lp-phone-thumb{position:absolute;top:50%;left:58%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,210,255,.6)}
-.lp-phone-row{display:flex;justify-content:space-between;padding:7px 10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:9px}
-.lp-phone-row-l{font-size:9px;color:rgba(255,255,255,.4)}
-.lp-phone-row-r{font-size:10px;font-weight:700;color:rgba(255,255,255,.85);font-family:'DM Mono',monospace}
-.lp-phone-cta{margin-top:auto;padding:11px;background:linear-gradient(135deg,#1a56db,#7c3aed);border-radius:10px;text-align:center;font-size:11px;font-weight:800;color:#fff;letter-spacing:.2px}
-.lp-phone-glow{position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(0,100,255,.4) 0%,transparent 65%);pointer-events:none}
-
-/* Floating status badges */
-.lp-fbadge{position:absolute;background:rgba(15,22,40,.92);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:9px;font-size:12px;font-weight:700;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.5);white-space:nowrap;backdrop-filter:blur(12px)}
-.lp-fbadge-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.lp-fbadge.fb-approved{top:60px;right:-40px}
-.lp-fbadge.fb-approved .lp-fbadge-dot{background:#10b981;box-shadow:0 0 10px #10b981}
-.lp-fbadge.fb-new{bottom:100px;left:-50px}
-.lp-fbadge.fb-new .lp-fbadge-dot{background:#00d2ff;box-shadow:0 0 10px #00d2ff}
-.lp-fbadge-sub{font-size:10px;color:rgba(255,255,255,.5);font-weight:400;display:block;margin-top:1px}
-@media(max-width:900px){.lp-fbadge.fb-approved{right:-10px}.lp-fbadge.fb-new{left:-10px}}
-
-/* ─ PROOF STRIP ─ */
-.lp-proof-strip{border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);padding:22px 60px;backdrop-filter:blur(8px)}
-.lp-proof-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:44px;flex-wrap:wrap}
-.lp-proof-item{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,.45)}
-.lp-proof-item strong{color:rgba(255,255,255,.8)}
-.lp-proof-item svg{width:15px;height:15px;stroke:#00d2ff;fill:none;stroke-width:2;flex-shrink:0}
-.lp-proof-sep{width:1px;height:20px;background:rgba(255,255,255,.1)}
-@media(max-width:700px){.lp-proof-strip{padding:18px 24px}.lp-proof-inner{gap:18px}.lp-proof-sep{display:none}}
-
-/* ─ SECTION WRAPPER ─ */
-.lp-section{max-width:1260px;margin:0 auto;padding:100px 60px}
-@media(max-width:700px){.lp-section{padding:64px 24px}}
-.lp-s-label{font-size:11px;font-weight:700;color:#00d2ff;text-transform:uppercase;letter-spacing:1.6px;margin-bottom:14px;display:block}
-.lp-s-title{font-size:clamp(28px,3.5vw,46px);font-weight:800;color:#fff;letter-spacing:-1.8px;line-height:1.1;margin-bottom:14px;font-family:'Inter','Sora',sans-serif}
-.lp-s-sub{font-size:16px;color:rgba(255,255,255,.45);line-height:1.75;max-width:520px;margin-bottom:56px}
-
-/* ─ FEATURES GRID (glass cards) ─ */
-.lp-feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-@media(max-width:900px){.lp-feat-grid{grid-template-columns:1fr}}
-.lp-feat-card{
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:20px;padding:28px 26px;
-  position:relative;overflow:hidden;
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  transition:transform .22s,border-color .22s,background .22s;
-  will-change:transform
-}
-.lp-feat-card:hover{transform:translateY(-5px);border-color:rgba(0,210,255,.25);background:rgba(255,255,255,.06)}
-.lp-feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,210,255,.4),transparent)}
-.lp-feat-icon{width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,rgba(0,100,255,.25),rgba(120,50,220,.2));display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-size:22px;border:1px solid rgba(255,255,255,.1)}
-.lp-feat-title{font-size:16px;font-weight:800;color:#fff;margin-bottom:9px;letter-spacing:-.3px}
-.lp-feat-desc{font-size:13px;color:rgba(255,255,255,.45);line-height:1.68}
-
-/* ─ BENTO / PRODUCT MOCKUP ROW ─ */
-.lp-bento{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center;max-width:1260px;margin:0 auto;padding:0 60px 100px}
-@media(max-width:900px){.lp-bento{grid-template-columns:1fr;padding:0 24px 64px}}
-.lp-bento-text{}
-.lp-bento-text .lp-s-sub{margin-bottom:32px}
-.lp-bento-check{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;font-size:14px;color:rgba(255,255,255,.7);line-height:1.5}
-.lp-bento-check-icon{width:20px;height:20px;border-radius:6px;background:rgba(0,210,255,.15);border:1px solid rgba(0,210,255,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.lp-bento-check-icon svg{width:11px;height:11px;stroke:#00d2ff;fill:none;stroke-width:3}
-
-/* Glass dashboard mockup */
-.lp-dash-mock{
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:20px;overflow:hidden;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04)
-}
-.lp-dash-topbar{display:flex;align-items:center;gap:8px;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03)}
-.lp-dash-tb-dot{width:10px;height:10px;border-radius:50%}
-.lp-dash-tb-dot.r{background:#ff5f57}.lp-dash-tb-dot.y{background:#ffbd2e}.lp-dash-tb-dot.g{background:#28c840}
-.lp-dash-tb-bar{flex:1;height:20px;background:rgba(255,255,255,.06);border-radius:5px;margin-left:8px;display:flex;align-items:center;padding:0 10px;font-size:10px;color:rgba(255,255,255,.3)}
-.lp-dash-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:16px 16px 10px}
-.lp-dash-kpi{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px 16px}
-.lp-dash-kpi-lbl{font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px}
-.lp-dash-kpi-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:#fff;letter-spacing:-1px}
-.lp-dash-kpi-sub{font-size:10px;margin-top:3px}
-.lp-dash-kpi-sub.ok{color:#10b981}.lp-dash-kpi-sub.warn{color:#f59e0b}
-.lp-dash-table{padding:0 16px 16px}
-.lp-dash-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);margin-bottom:7px}
-.lp-dash-row:last-child{margin-bottom:0}
-.lp-dash-row-name{font-size:12px;font-weight:600;color:rgba(255,255,255,.85)}
-.lp-dash-row-meta{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
-.lp-dash-row-right{text-align:right}
-.lp-dash-row-amt{font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,.7);font-weight:600}
-.lp-dash-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700;margin-top:2px}
-.lp-dash-pill.ok{background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.2)}
-.lp-dash-pill.warn{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
-
-/* ─ TESTIMONIALS (glass cards horizontal scroll on mobile) ─ */
-.lp-test-section{max-width:1260px;margin:0 auto;padding:0 60px 100px}
-@media(max-width:700px){.lp-test-section{padding:0 24px 64px}}
-.lp-test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-@media(max-width:900px){.lp-test-grid{grid-template-columns:1fr}}
-.lp-test-card{
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.09);
-  border-radius:20px;padding:26px;
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  transition:border-color .2s,transform .2s;
-  will-change:transform
-}
-.lp-test-card:hover{border-color:rgba(0,210,255,.2);transform:translateY(-4px)}
-.lp-test-avatar{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px;background:linear-gradient(135deg,rgba(0,100,255,.3),rgba(120,50,220,.25));border:1px solid rgba(255,255,255,.1)}
-.lp-test-stars{display:flex;gap:3px;margin-bottom:12px}
-.lp-test-stars span{font-size:12px;color:#f59e0b}
-.lp-test-quote{font-size:14px;color:rgba(255,255,255,.65);line-height:1.72;font-style:italic;margin-bottom:16px}
-.lp-test-name{font-size:13px;font-weight:700;color:#fff}
-.lp-test-role{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
-
-/* ─ STATS ROW ─ */
-.lp-stats-row{max-width:1260px;margin:0 auto;padding:0 60px 100px}
-@media(max-width:700px){.lp-stats-row{padding:0 24px 64px}}
-.lp-stats-inner{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-@media(max-width:700px){.lp-stats-inner{grid-template-columns:1fr 1fr}}
-.lp-stat-box{
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:18px;padding:28px 22px;text-align:center;
-  backdrop-filter:blur(12px);
-  transition:border-color .2s
-}
-.lp-stat-box:hover{border-color:rgba(0,210,255,.2)}
-.lp-stat-num{font-family:'DM Mono',monospace;font-size:38px;font-weight:800;letter-spacing:-2px;line-height:1;background:linear-gradient(100deg,#00d2ff,#9d50bb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.lp-stat-label{font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:1.1px;font-weight:600;margin-top:10px}
-
-/* ─ FINAL CTA ─ */
-.lp-final-section{max-width:1260px;margin:0 auto;padding:0 60px 120px}
-@media(max-width:700px){.lp-final-section{padding:0 24px 80px}}
-.lp-final-inner{
-  position:relative;text-align:center;
-  background:linear-gradient(135deg,rgba(0,100,255,.15),rgba(120,50,220,.12));
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:28px;padding:72px 48px;overflow:hidden
-}
-.lp-final-inner::before{content:'';position:absolute;top:-80px;left:50%;transform:translateX(-50%);width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,100,255,.18) 0%,transparent 65%);pointer-events:none}
-.lp-final-inner::after{content:'';position:absolute;bottom:-40px;right:-40px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(120,50,220,.15) 0%,transparent 65%);pointer-events:none}
-.lp-final-inner h2{position:relative;font-size:clamp(28px,4vw,52px);font-weight:800;color:#fff;letter-spacing:-2px;line-height:1.08;margin-bottom:18px;font-family:'Inter','Sora',sans-serif}
-.lp-final-inner p{position:relative;font-size:17px;color:rgba(255,255,255,.5);line-height:1.7;max-width:480px;margin:0 auto 40px}
-@media(max-width:600px){.lp-final-inner{padding:44px 24px}}
-
-/* ─ Legacy aliases (used by non-landing sections) ─ */
+.landing-hero{text-align:center;margin-bottom:64px}
+.landing-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;background:rgba(26,86,219,.18);border:1px solid var(--border-hi);font-size:11px;font-weight:700;color:var(--sky);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
+.landing-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--sky);animation:pulse-blue 2s ease infinite}
+.landing-title{font-size:clamp(36px,5vw,64px);font-weight:800;line-height:1.08;letter-spacing:-2px;color:var(--white);margin-bottom:20px}
+.landing-title em{font-style:normal;background:linear-gradient(90deg,var(--sky),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.landing-sub{font-size:17px;color:var(--muted);line-height:1.7;max-width:560px;margin:0 auto 36px}
+.landing-cta{display:inline-flex;align-items:center;gap:12px;padding:18px 36px;background:linear-gradient(135deg,var(--blue-light),var(--sky));border:none;border-radius:16px;color:#fff;font-family:'Sora',sans-serif;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 8px 32px rgba(47,110,245,.5);transition:transform .2s,box-shadow .2s;text-decoration:none;letter-spacing:-.3px}
+.landing-cta:hover{transform:translateY(-3px);box-shadow:0 14px 44px rgba(47,110,245,.65)}
+.landing-cta svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.5}
+.landing-demo{font-size:13px;color:var(--muted);margin-top:16px}
+.landing-demo a{color:var(--sky);text-decoration:none;font-weight:600}
+.landing-features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:56px}
+@media(max-width:768px){.landing-features{grid-template-columns:1fr}.landing-stats{grid-template-columns:1fr 1fr}}
 .feature-card{background:var(--navy-card);border:1px solid var(--border);border-radius:20px;padding:28px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s}
 .feature-card:hover{transform:translateY(-4px);border-color:var(--border-hi)}
 .feature-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(96,165,250,.4),transparent)}
@@ -930,7 +704,6 @@ body.landing-active::before{
 .feature-title{font-size:16px;font-weight:800;color:var(--white);margin-bottom:8px;letter-spacing:-.3px}
 .feature-desc{font-size:13px;color:var(--muted);line-height:1.65}
 .landing-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:56px}
-@media(max-width:768px){.landing-features{grid-template-columns:1fr}.landing-stats{grid-template-columns:1fr 1fr}}
 .stat-box{background:var(--navy-card);border:1px solid var(--border);border-radius:16px;padding:24px 20px;text-align:center}
 .stat-num{font-family:'DM Mono',monospace;font-size:32px;font-weight:800;color:var(--white);letter-spacing:-1px}
 .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-top:6px}
@@ -976,325 +749,65 @@ body.landing-active::before{
 
 <!-- ═══ LANDING PAGE (para visitantes sin ?ref=) ═══ -->
 <div class="landing-view" id="landingView">
+  <div class="landing-hero">
+    <div class="landing-eyebrow">✦ Para prestamistas</div>
+    <h1 class="landing-title">Tu financiera digital,<br><em>lista en minutos</em></h1>
+    <p class="landing-sub">Prestify es la plataforma que transforma tu actividad de préstamos en una financiera digital profesional. Gestioná clientes, cobrá cuotas y crecé — sin código, sin papeles.</p>
+    <button class="landing-cta" id="btnLandingRegister">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Creá tu propia financiera digital
+    </button>
+    <div class="landing-demo">¿Ya tenés cuenta? <a href="#" id="btnLandingLogin">Iniciá sesión acá</a></div>
+  </div>
 
-  <!-- ── HERO ── -->
-  <section class="lp-hero">
-    <!-- Background orbs -->
-    <div class="lp-hero-bg-orb orb1"></div>
-    <div class="lp-hero-bg-orb orb2"></div>
-
-    <!-- Content left -->
-    <div class="lp-hero-content">
-      <div class="lp-eyebrow rv rv-up"><span class="lp-eyebrow-dot"></span>Para prestamistas independientes</div>
-
-      <h1 class="lp-title rv rv-up rv-d1">
-        Tu Financiera<br>
-        <span class="grad-text">Digital,</span><br>
-        Lista en <span class="grad-text">Minutos</span>
-      </h1>
-
-      <p class="lp-sub rv rv-up rv-d2">
-        Gestión. Cobros. Crecimiento. Ilimitado.<br>
-        La plataforma que digitaliza tu actividad de préstamos sin código, sin papeles, desde hoy.
-      </p>
-
-      <div class="lp-cta-row rv rv-up rv-d3">
-        <button class="landing-cta" id="btnLandingRegister">
-          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          Creá tu propia financiera
-        </button>
-        <button class="lp-secondary-cta" id="btnLandingHowItWorks">
-          <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
-          Descubrí cómo funciona
-        </button>
-      </div>
-      <div class="landing-demo rv rv-up rv-d4">¿Ya tenés cuenta? <a href="#" id="btnLandingLogin">Iniciá sesión acá</a></div>
+  <div class="landing-features">
+    <div class="feature-card">
+      <div class="feature-icon">🏦</div>
+      <div class="feature-title">Tu marca blanca</div>
+      <div class="feature-desc">Personalizá con tu nombre, logo y colores. Tus clientes ven tu financiera, no Prestify.</div>
     </div>
-
-    <!-- Visual right: phone mockup + floating badges -->
-    <div class="lp-hero-visual rv rv-right rv-d2">
-      <div class="lp-phone-wrap">
-        <!-- Floating badges -->
-        <div class="lp-fbadge fb-approved">
-          <span class="lp-fbadge-dot"></span>
-          <div>
-            <span>Solicitud Aprobada ✓</span>
-            <span class="lp-fbadge-sub">hace 2 minutos</span>
-          </div>
-        </div>
-        <div class="lp-fbadge fb-new">
-          <span class="lp-fbadge-dot"></span>
-          <div>
-            <span>Nueva solicitud 🔔</span>
-            <span class="lp-fbadge-sub">Sin Límites</span>
-          </div>
-        </div>
-
-        <!-- Phone -->
-        <div class="lp-phone">
-          <div class="lp-phone-screen">
-            <div class="lp-phone-header">
-              <span class="lp-phone-brand-name">Mi Financiera</span>
-              <span class="lp-phone-header-dot"></span>
-            </div>
-            <div class="lp-phone-amount-label">¿Cuánto necesitás?</div>
-            <div class="lp-phone-amount">$ 150.000</div>
-            <div class="lp-phone-track">
-              <div class="lp-phone-fill"></div>
-              <div class="lp-phone-thumb"></div>
-            </div>
-            <div class="lp-phone-row">
-              <span class="lp-phone-row-l">Plazo</span>
-              <span class="lp-phone-row-r">6 meses</span>
-            </div>
-            <div class="lp-phone-row">
-              <span class="lp-phone-row-l">Cuota mensual</span>
-              <span class="lp-phone-row-r">$ 32.450</span>
-            </div>
-            <div class="lp-phone-row">
-              <span class="lp-phone-row-l">TNA</span>
-              <span class="lp-phone-row-r">120%</span>
-            </div>
-            <div class="lp-phone-row">
-              <span class="lp-phone-row-l">Total a pagar</span>
-              <span class="lp-phone-row-r">$ 194.700</span>
-            </div>
-            <div class="lp-phone-cta">Solicitar préstamo →</div>
-          </div>
-          <div class="lp-phone-glow"></div>
-        </div>
-      </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <div class="feature-title">Link de cliente</div>
+      <div class="feature-desc">Compartí un link único. Tus clientes simulan, solicitan y firman contratos digitalmente.</div>
     </div>
-  </section>
-
-  <!-- ── PROOF STRIP ── -->
-  <div class="lp-proof-strip">
-    <div class="lp-proof-inner">
-      <div class="lp-proof-item rv rv-up">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        <span>Simple</span>
-      </div>
-      <div class="lp-proof-sep"></div>
-      <div class="lp-proof-item rv rv-up rv-d1">
-        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Seguro</span>
-      </div>
-      <div class="lp-proof-sep"></div>
-      <div class="lp-proof-item rv rv-up rv-d2">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>Setup en <strong>3 minutos</strong></span>
-      </div>
-      <div class="lp-proof-sep"></div>
-      <div class="lp-proof-item rv rv-up rv-d3">
-        <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-        <span>Firma ley 25.506</span>
-      </div>
-      <div class="lp-proof-sep"></div>
-      <div class="lp-proof-item rv rv-up rv-d4">
-        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.33a2 2 0 0 1 1.99-2.18H6.5c1.06 0 1.96.76 2.12 1.81"/></svg>
-        <span>Soporte WhatsApp</span>
-      </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Panel en tiempo real</div>
+      <div class="feature-desc">Recibí solicitudes al instante, aprobá préstamos y gestioná cobros desde un solo panel.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Motor financiero</div>
+      <div class="feature-desc">Calculadora de cuotas con sistema francés, TNA configurable y gestión de mora automatizada.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💳</div>
+      <div class="feature-title">Cobro online</div>
+      <div class="feature-desc">Integración con Mercado Pago o transferencia manual. Tus clientes pagan y el sistema registra.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📝</div>
+      <div class="feature-title">Contratos digitales</div>
+      <div class="feature-desc">Generá contratos con firma electrónica válida (Ley 25.506) en segundos. Cero papeles.</div>
     </div>
   </div>
 
-  <!-- ── FEATURES SECTION ── -->
-  <section class="lp-section" id="lpFeatures">
-    <div style="text-align:center;margin-bottom:52px">
-      <span class="lp-s-label rv rv-up">✦ Todo lo que necesitás</span>
-      <h2 class="lp-s-title rv rv-up rv-d1">Tu Financiera en <span class="grad-text">Minutos</span></h2>
-      <p class="rv rv-up rv-d2" style="font-size:16px;color:rgba(255,255,255,.45);max-width:480px;margin:0 auto;line-height:1.7">Desde el simulador hasta el cobro, todo integrado. Sin planillas ni aplicaciones separadas.</p>
-    </div>
-    <div class="lp-feat-grid">
-      <div class="lp-feat-card rv rv-left rv-d1">
-        <div class="lp-feat-icon">🏦</div>
-        <div class="lp-feat-title">Tu Marca Blanca</div>
-        <div class="lp-feat-desc">Personalizá con tu nombre, logo y colores. Tus clientes ven <em>tu financiera</em>, no Prestify. Identidad 100% tuya.</div>
-      </div>
-      <div class="lp-feat-card rv rv-up rv-d2">
-        <div class="lp-feat-icon">📱</div>
-        <div class="lp-feat-title">Link de Cliente Único</div>
-        <div class="lp-feat-desc">Compartí un link. Tus clientes simulan, solicitan y firman contratos desde el celu, sin bajar ninguna app.</div>
-      </div>
-      <div class="lp-feat-card rv rv-right rv-d3">
-        <div class="lp-feat-icon">⚡</div>
-        <div class="lp-feat-title">Panel en Tiempo Real</div>
-        <div class="lp-feat-desc">Recibí solicitudes al instante. Aprobá, rechazá y gestioná cobros desde un panel limpio y poderoso.</div>
-      </div>
-      <div class="lp-feat-card rv rv-left rv-d2">
-        <div class="lp-feat-icon">📊</div>
-        <div class="lp-feat-title">Motor Financiero</div>
-        <div class="lp-feat-desc">Sistema francés, TNA configurable y gestión de mora automática. Todo el músculo financiero que necesitás.</div>
-      </div>
-      <div class="lp-feat-card rv rv-up rv-d3">
-        <div class="lp-feat-icon">💳</div>
-        <div class="lp-feat-title">Cobro Online</div>
-        <div class="lp-feat-desc">Mercado Pago o transferencia manual. Tus clientes pagan y el sistema registra automáticamente.</div>
-      </div>
-      <div class="lp-feat-card rv rv-right rv-d4">
-        <div class="lp-feat-icon">📝</div>
-        <div class="lp-feat-title">Contratos Digitales</div>
-        <div class="lp-feat-desc">Firma electrónica válida (Ley 25.506) en segundos. Cero papeles, cero burocracia.</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── BENTO: PRODUCT PREVIEW ── -->
-  <div class="lp-bento">
-    <!-- Text left (enters from left) -->
-    <div class="lp-bento-text rv rv-left">
-      <span class="lp-s-label">✦ Panel de administración</span>
-      <h2 class="lp-s-title">Ponele fin a las<br><span class="grad-text">planillas de Excel</span></h2>
-      <p class="lp-s-sub">Un dashboard limpio que te da el control total de tu cartera en tiempo real. Sin complicaciones.</p>
-      <div class="lp-bento-check">
-        <div class="lp-bento-check-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <span>KPIs de cartera actualizados en tiempo real</span>
-      </div>
-      <div class="lp-bento-check">
-        <div class="lp-bento-check-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <span>Notificaciones push de nuevas solicitudes</span>
-      </div>
-      <div class="lp-bento-check">
-        <div class="lp-bento-check-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <span>Gestión de mora y cobranza automatizada</span>
-      </div>
-      <div class="lp-bento-check">
-        <div class="lp-bento-check-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <span>Acceso desde cualquier dispositivo, 24/7</span>
-      </div>
-    </div>
-
-    <!-- Dashboard mockup (enters from right) -->
-    <div class="rv rv-right rv-d1">
-      <div class="lp-dash-mock">
-        <div class="lp-dash-topbar">
-          <div class="lp-dash-tb-dot r"></div>
-          <div class="lp-dash-tb-dot y"></div>
-          <div class="lp-dash-tb-dot g"></div>
-          <div class="lp-dash-tb-bar">Mi Financiera · Panel Admin</div>
-        </div>
-        <div class="lp-dash-kpis">
-          <div class="lp-dash-kpi">
-            <div class="lp-dash-kpi-lbl">Capital activo</div>
-            <div class="lp-dash-kpi-val">$2.4M</div>
-            <div class="lp-dash-kpi-sub ok">↑ +12% mes</div>
-          </div>
-          <div class="lp-dash-kpi">
-            <div class="lp-dash-kpi-lbl">Préstamos</div>
-            <div class="lp-dash-kpi-val">34</div>
-            <div class="lp-dash-kpi-sub ok">↑ 6 nuevos</div>
-          </div>
-          <div class="lp-dash-kpi">
-            <div class="lp-dash-kpi-lbl">Cobros/mes</div>
-            <div class="lp-dash-kpi-val">$780K</div>
-            <div class="lp-dash-kpi-sub ok">Al día</div>
-          </div>
-          <div class="lp-dash-kpi">
-            <div class="lp-dash-kpi-lbl">Mora</div>
-            <div class="lp-dash-kpi-val">3.2%</div>
-            <div class="lp-dash-kpi-sub warn">2 en seguim.</div>
-          </div>
-        </div>
-        <div class="lp-dash-table">
-          <div class="lp-dash-row">
-            <div>
-              <div class="lp-dash-row-name">María García</div>
-              <div class="lp-dash-row-meta">DNI 28.714.992 · 6 cuotas</div>
-            </div>
-            <div class="lp-dash-row-right">
-              <div class="lp-dash-row-amt">$150.000</div>
-              <div class="lp-dash-pill ok">● Al día</div>
-            </div>
-          </div>
-          <div class="lp-dash-row">
-            <div>
-              <div class="lp-dash-row-name">Carlos Rodríguez</div>
-              <div class="lp-dash-row-meta">DNI 35.201.774 · 12 cuotas</div>
-            </div>
-            <div class="lp-dash-row-right">
-              <div class="lp-dash-row-amt">$300.000</div>
-              <div class="lp-dash-pill ok">● Al día</div>
-            </div>
-          </div>
-          <div class="lp-dash-row">
-            <div>
-              <div class="lp-dash-row-name">Lucía Fernández</div>
-              <div class="lp-dash-row-meta">DNI 41.008.312 · 3 cuotas</div>
-            </div>
-            <div class="lp-dash-row-right">
-              <div class="lp-dash-row-amt">$80.000</div>
-              <div class="lp-dash-pill warn">⚠ Vence hoy</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="landing-stats">
+    <div class="stat-box"><div class="stat-num">100%</div><div class="stat-label">Digital</div></div>
+    <div class="stat-box"><div class="stat-num">3min</div><div class="stat-label">Setup inicial</div></div>
+    <div class="stat-box"><div class="stat-num">0</div><div class="stat-label">Código requerido</div></div>
+    <div class="stat-box"><div class="stat-num">∞</div><div class="stat-label">Clientes</div></div>
   </div>
 
-  <!-- ── TESTIMONIALS ── -->
-  <section class="lp-test-section">
-    <div style="text-align:center;margin-bottom:44px">
-      <span class="lp-s-label rv rv-up">✦ Testimoniales</span>
-      <h2 class="lp-s-title rv rv-up rv-d1">Prestamistas que ya<br><span class="grad-text">digitalizaron</span> su negocio</h2>
-    </div>
-    <div class="lp-test-grid">
-      <div class="lp-test-card rv rv-left rv-d1">
-        <div class="lp-test-avatar">👨‍💼</div>
-        <div class="lp-test-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
-        <div class="lp-test-quote">"Antes llevaba todo en Excel. Ahora mis clientes entran al link, simulan y me mandan la solicitud. Yo apruebo desde el celu. Cambió todo."</div>
-        <div class="lp-test-name">Roberto M.</div>
-        <div class="lp-test-role">Prestamista independiente · Córdoba</div>
-      </div>
-      <div class="lp-test-card rv rv-up rv-d2">
-        <div class="lp-test-avatar">👩‍💻</div>
-        <div class="lp-test-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
-        <div class="lp-test-quote">"El panel me avisa cuando vence una cuota. Redujo mi mora a casi cero. Los clientes reciben recordatorio automático por WhatsApp. Genial."</div>
-        <div class="lp-test-name">Valeria S.</div>
-        <div class="lp-test-role">Financiera Familiar · Buenos Aires</div>
-      </div>
-      <div class="lp-test-card rv rv-right rv-d3">
-        <div class="lp-test-avatar">👨‍🔧</div>
-        <div class="lp-test-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
-        <div class="lp-test-quote">"En 3 minutos configuré todo. Mis clientes ven 'Préstamos Martínez', nunca supieron que uso Prestify. Es mi herramienta secreta de crecimiento."</div>
-        <div class="lp-test-name">Juan P.</div>
-        <div class="lp-test-role">Inversor independiente · Rosario</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── STATS ── -->
-  <section class="lp-stats-row">
-    <div class="lp-stats-inner">
-      <div class="lp-stat-box rv rv-up rv-d1">
-        <div class="lp-stat-num">100%</div>
-        <div class="lp-stat-label">Digital</div>
-      </div>
-      <div class="lp-stat-box rv rv-up rv-d2">
-        <div class="lp-stat-num">3min</div>
-        <div class="lp-stat-label">Setup inicial</div>
-      </div>
-      <div class="lp-stat-box rv rv-up rv-d3">
-        <div class="lp-stat-num">0</div>
-        <div class="lp-stat-label">Código requerido</div>
-      </div>
-      <div class="lp-stat-box rv rv-up rv-d4">
-        <div class="lp-stat-num">∞</div>
-        <div class="lp-stat-label">Clientes</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── FINAL CTA ── -->
-  <section class="lp-final-section">
-    <div class="lp-final-inner rv rv-up">
-      <h2>¿Listo para digitalizar<br>tu <span class="grad-text">financiera</span>?</h2>
-      <p>Registrate gratis y empezá a gestionar tu actividad de préstamos de forma 100% profesional. Sin tarjeta de crédito.</p>
-      <button class="landing-cta" id="btnLandingRegister2" style="display:inline-flex">
-        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-        Creá tu cuenta ahora — Es gratis
-      </button>
-    </div>
-  </section>
-
+  <div class="landing-cta-section">
+    <h2>¿Listo para digitalizarte?</h2>
+    <p>Registrate gratis y empezá a gestionar tu actividad de préstamos de forma profesional.</p>
+    <button class="landing-cta" id="btnLandingRegister2">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Creá tu cuenta ahora — Es gratis
+    </button>
+  </div>
 </div>
 
 <!-- ═══ SUPERADMIN PANEL ═══ -->
@@ -1350,7 +863,7 @@ body.landing-active::before{
   </div>
   <div class="suspended-title">Cuenta suspendida</div>
   <div class="suspended-msg">Tu cuenta ha sido <strong>pausada por falta de pago</strong> o incumplimiento de los términos del servicio.<br><br>Para reactivarla, contactá al soporte de la plataforma.</div>
-  <a href="/cdn-cgi/l/email-protection#f2819d829d808697b2969b9c97809d8b93dc919d9f" style="padding:13px 28px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:12px;color:#f87171;font-weight:700;font-size:14px;text-decoration:none;margin-top:8px">Contactar soporte</a>
+  <a href="mailto:soporte@dineroya.com" style="padding:13px 28px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:12px;color:#f87171;font-weight:700;font-size:14px;text-decoration:none;margin-top:8px">Contactar soporte</a>
 </div>
 
 <!-- ═══ ONBOARDING OVERLAY (3 pasos) ═══ -->
@@ -1480,11 +993,11 @@ body.landing-active::before{
       <span class="logo-name" id="logoName">Presti<span>fy</span></span>
     </a>
     <nav class="topbar-nav">
-      <button id="btnViewClient" class="nav-btn active" style="display:none">
+      <button id="btnViewClient" class="nav-btn active">
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="nav-label">Portal cliente</span>
       </button>
-      <button id="btnViewAdmin" class="nav-btn" style="display:none">
+      <button id="btnViewAdmin" class="nav-btn">
         <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span class="nav-label">Admin</span>
       </button>
@@ -1519,7 +1032,7 @@ body.landing-active::before{
 </header>
 
 <!-- HERO -->
-<section class="hero-section" id="heroSection" style="display:none">
+<section class="hero-section" id="heroSection">
   <div>
     <div class="hero-eyebrow" id="heroEyebrow">Prestify · Tu financiera, digitalizada</div>
     <h1 class="hero-title">Préstamos personales<br><em>rápidos y seguros</em></h1>
@@ -1540,7 +1053,7 @@ body.landing-active::before{
 <main class="main-wrap">
 
   <!-- ──── VISTA CLIENTE ──── -->
-  <div id="clientView" style="display:none">
+  <div id="clientView">
     <!-- Lender brand header (only shows in client mode) -->
     <div class="lender-brand-header" id="lenderBrandHeader" style="display:none">
       <div class="lender-brand-name" id="lenderBrandName">Mi Financiera</div>
@@ -1933,7 +1446,7 @@ body.landing-active::before{
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
+<script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
@@ -1999,16 +1512,14 @@ let gObSigData=null, gObPayMethod="mp";
 /* ══ ?ref= MULTITENANT — captura inmediata al cargar ══ */
 (()=>{
   const params=new URLSearchParams(location.search);
-  const urlRef=params.get("ref");
-  if(urlRef){
-    // URL tiene ?ref= explícito → modo cliente, guardar en session
-    gRefLenderId=urlRef;
-    sessionStorage.setItem("prestify_ref",urlRef);
+  gRefLenderId=params.get("ref")||null;
+  // Si hay ?ref= en la URL, guardar en sessionStorage para persistir navegación
+  if(gRefLenderId){
+    sessionStorage.setItem("prestify_ref",gRefLenderId);
   } else {
-    // Sin ?ref= en la URL → limpiar sessionStorage para NO forzar modo cliente
-    // Esto permite que el admin acceda limpiamente desde la raíz
-    sessionStorage.removeItem("prestify_ref");
-    gRefLenderId=null;
+    // Recuperar de sessionStorage si el usuario navegó dentro de la misma sesión
+    const stored=sessionStorage.getItem("prestify_ref");
+    if(stored) gRefLenderId=stored;
   }
 })();
 
@@ -2019,77 +1530,48 @@ let gObSigData=null, gObPayMethod="mp";
 */
 function showLandingPage(){
   el("landingView")?.classList.add("show");
-  document.body.classList.add("landing-active");
   el("heroSection").style.display="none";
   el("clientView").style.display="none";
   el("adminView").className="admin-wrap";
   el("superadminView")?.classList.remove("show");
   el("btnViewClient").style.display="none";
   el("btnViewAdmin").style.display="none";
-  renderLandingPage();
 }
 
 function hideLandingPage(){
   el("landingView")?.classList.remove("show");
-  document.body.classList.remove("landing-active");
   el("btnViewClient").style.display="";
   el("btnViewAdmin").style.display="";
 }
 
-/* ══ renderLandingPage — Scroll-reveal via IntersectionObserver (GPU-optimized, no libs) ══ */
-function renderLandingPage(){
-  const lv=el("landingView");
-  if(!lv) return;
-  // Apply deep-navy background class to body while landing is shown
-  document.body.classList.add("landing-active");
-  // Observe all .rv elements (vertical, horizontal, scale)
-  const rvEls=lv.querySelectorAll(".rv");
-  if(!rvEls.length) return;
-  const io=new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      if(entry.isIntersecting){
-        entry.target.classList.add("visible");
-        io.unobserve(entry.target);
-      }
-    });
-  },{threshold:0.1,rootMargin:"0px 0px -30px 0px"});
-  rvEls.forEach(e=>io.observe(e));
-}
-
-// Al cargar: ocultar todo y esperar a que Firebase responda.
-// Si hay ?ref= → mostrar portal cliente una vez que auth resuelva.
-// Si no hay ?ref= y no hay sesión → mostrar landing (lo hace onAuthStateChanged).
-// Esto evita el "flash" de landing para usuarios ya logueados.
-(()=>{
-  const lv=el("landingView");
-  const hs=el("heroSection");
-  const cv=el("clientView");
-  if(lv) lv.classList.remove("show");
-  if(hs) hs.style.display="none";
-  if(cv) cv.style.display="none";
+// Al cargar: si no hay ?ref= y no hay sesión, mostramos landing
+if(!gRefLenderId){
+  // Mostrar landing temporalmente; se actualizará cuando onAuthStateChanged responda
+  el("landingView")?.classList.add("show");
+  el("heroSection").style.display="none";
+  el("clientView").style.display="none";
   el("btnViewClient").style.display="none";
   el("btnViewAdmin").style.display="none";
-})();
+}
 
 // Landing CTA buttons → abrir onboarding de registro
 function openRegisterFlow(){
+  // Abrir el panel de admin que tiene el login/registro
   hideLandingPage();
   el("heroSection").style.display="none";
   el("clientView").style.display="none";
   el("adminView").className="admin-wrap visible";
   el("btnViewClient").style.display="";
   el("btnViewAdmin").style.display="";
-  // Scroll al formulario de login/registro
-  requestAnimationFrame(()=>{
-    const gate=el("adminGate");
-    if(gate) gate.scrollIntoView({behavior:"smooth",block:"center"});
-  });
+  // Scroll to login
+  el("adminGate")?.scrollIntoView({behavior:"smooth"});
 }
 document.getElementById("btnLandingRegister")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingRegister2")?.addEventListener("click",openRegisterFlow);
 document.getElementById("btnLandingLogin")?.addEventListener("click",(e)=>{
   e.preventDefault();
   openRegisterFlow();
+  setTimeout(()=>doLogin(),300);
 });
 
 const effectiveLid = () => gLenderId||gRefLenderId;
@@ -2663,7 +2145,6 @@ document.addEventListener("click",e=>{
 /* ══ VISTAS Y TABS ══ */
 function showView(v){
   el("landingView")?.classList.remove("show");
-  document.body.classList.remove("landing-active");
   el("superadminView")?.classList.remove("show");
   const a=v==="admin";
   const sa=v==="superadmin";
@@ -3685,3 +3166,11 @@ window.saSetStatus=async function(lenderId,newStatus){
 // Logout para superadmin
 el("btnSaLogout")?.addEventListener("click",()=>{
   if(gStatusUnsub){ gStatusUnsub(); gStatusUnsub=null; }
+  signOut(auth).then(()=>toast("Sesión cerrada","info")).catch(()=>{});
+});
+
+/* ══ INIT ══ */
+await loadSettings();
+</script>
+</body>
+</html>
