@@ -5,54 +5,102 @@
   <meta name="viewport" content="width=device-width,initial-scale=1, viewport-fit=cover"/>
   <title id="pageTitle">Prestify · Tu financiera, digitalizada</title>
   <link rel="icon" href="assets/ping.png"/>
-  <!-- CSS CRÍTICO INLINE para evitar flash -->
-  <style>
-    /* Ocultar todas las vistas que no deben mostrarse inicialmente */
-    #moniView, #superadminView, #adminView, #clientView, 
-    #onboardingOverlay, .pending-overlay, .suspended-overlay, 
-    .modal-overlay, #adminGate {
-      display: none !important;
-    }
-    /* Solo mostrar landing si corresponde */
-    body.landing-active #landingView {
-      display: block !important;
-    }
-    body {
-      font-family: 'Sora', sans-serif;
-      background: #050d1f;
-      color: #e8f0fe;
-      margin: 0;
-      padding: 0;
-    }
-  </style>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* Solo estilos críticos - nada de display none !important */
+    body.landing-active #landingView { display: block; }
+    #landingView { display: none; }
+    #onboardingOverlay, #adminGate, #moniView, #superadminView, #adminView, #clientView { display: none; }
+    /* Estilos básicos para avatares */
+    .lp-avatar-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); object-fit: cover; margin-left: -8px; }
+    .lp-avatar-img:first-child { margin-left: 0; }
+    .lp-avatars { display: flex; align-items: center; }
+  </style>
 </head>
 <body>
 
-<!-- SCRIPT SÍNCRONO -->
+<!-- ============================================
+     SCRIPT DE INICIALIZACIÓN - CORREGIDO
+     ============================================ -->
 <script>
-(function(){
-  var params = new URLSearchParams(location.search);
-  var hasRef = params.get('ref');
-  if(!hasRef){
+(function() {
+  // Detectar ?ref=
+  const params = new URLSearchParams(location.search);
+  const hasRef = params.get('ref');
+  
+  if (!hasRef) {
     document.body.classList.add('landing-active');
+    document.getElementById('landingView').style.display = 'block';
   }
+  
+  // Configurar SuperAdmin
+  window.SUPERADMIN_UID = 'cuQqbuHWkTWdFPdknVTUAkx5Xri2';
+  window.SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
+  
+  // ========================================
+  // MANEJADORES DE BOTONES - DIRECTOS
+  // ========================================
   setTimeout(function() {
-    var elements = ['moniView', 'superadminView', 'adminView', 'clientView', 'onboardingOverlay'];
-    elements.forEach(function(id) {
-      var el = document.getElementById(id);
-      if(el) el.style.display = '';
+    console.log('🟢 Inicializando botones...');
+    
+    // Crear cuenta
+    const btnsRegister = [
+      'btnLandingRegister',
+      'btnLandingRegister2',
+      'btnLandingRegister3'
+    ];
+    
+    btnsRegister.forEach(function(id) {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('👉 Crear cuenta clickeado');
+          document.getElementById('landingView').style.display = 'none';
+          const overlay = document.getElementById('onboardingOverlay');
+          overlay.style.display = 'flex';
+          overlay.style.setProperty('display', 'flex', 'important');
+          return false;
+        };
+      }
     });
-  }, 100);
+    
+    // Iniciar sesión
+    const loginBtn = document.getElementById('btnLandingLogin');
+    if (loginBtn) {
+      loginBtn.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('👉 Iniciar sesión clickeado');
+        document.getElementById('landingView').style.display = 'none';
+        const gate = document.getElementById('adminGate');
+        gate.style.display = 'block';
+        gate.style.setProperty('display', 'block', 'important');
+        return false;
+      };
+    }
+    
+    // Volver al registro desde login
+    const goToRegister = document.getElementById('btnGoToRegister');
+    if (goToRegister) {
+      goToRegister.onclick = function(e) {
+        e.preventDefault();
+        document.getElementById('adminGate').style.display = 'none';
+        document.getElementById('landingView').style.display = 'block';
+        return false;
+      };
+    }
+    
+    console.log('✅ Botones inicializados');
+  }, 200);
 })();
-
-// TU UID Y EMAIL CONFIGURADOS
-const SUPERADMIN_UID = 'cuQqbuHWkTWdFPdknVTUAkx5Xri2';
-const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
 </script>
 
-<!-- LANDING PAGE - PERFECTA, NO TOCAR -->
+<!-- ============================================
+     LANDING PAGE - COMPLETA
+     ============================================ -->
 <div class="landing-view" id="landingView">
   <section class="lp-hero">
     <div class="lp-orb lp-orb1"></div>
@@ -126,6 +174,7 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
     </div>
   </section>
 
+  <!-- PROOF STRIP -->
   <div class="lp-proof-strip rv">
     <div class="lp-proof-inner">
       <div class="lp-proof-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span>100% Digital</span></div>
@@ -140,6 +189,7 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
     </div>
   </div>
 
+  <!-- FEATURES -->
   <section class="lp-section" id="lpFeatures">
     <div style="text-align:center">
       <span class="lp-s-label rv">✦ Todo lo que necesitás</span>
@@ -204,6 +254,7 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
     </div>
   </section>
 
+  <!-- STATS -->
   <section class="lp-stats-row">
     <div class="lp-stats-inner">
       <div class="lp-stat-box rv rv-d1"><div class="lp-stat-num">100%</div><div class="lp-stat-label">Digital</div></div>
@@ -213,6 +264,7 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
     </div>
   </section>
 
+  <!-- FINAL CTA -->
   <section class="lp-final-section">
     <div class="lp-final-inner rv">
       <h2>¿Listo para digitalizar<br>tu <span class="grad-text">financiera</span>?</h2>
@@ -222,7 +274,9 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
   </section>
 </div>
 
-<!-- LOGIN GATE -->
+<!-- ============================================
+     LOGIN GATE
+     ============================================ -->
 <div class="admin-gate" id="adminGate" style="display: none; max-width: 400px; margin: 40px auto; padding: 30px; background: var(--navy-card); border: 1px solid var(--border-hi); border-radius: 20px;">
   <div style="text-align: center; margin-bottom: 20px;">
     <div style="width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(135deg, var(--blue), var(--sky)); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
@@ -246,128 +300,14 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
   </div>
   
   <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center;">
-    <p style="color: var(--muted); font-size: 12px;">¿No tenés cuenta? <a href="#" id="btnGoToRegister" style="color: var(--sky); font-weight: 600; text-decoration: none;">Registrate como prestamista</a></p>
+    <p style="color: var(--muted); font-size: 12px;">¿No tenés cuenta? <a href="#" id="btnGoToRegister" style="color: var(--sky); font-weight: 600; text-decoration: none;">Registrate</a></p>
   </div>
 </div>
 
-<!-- VISTA MONI (PORTAL CLIENTE) -->
-<div id="moniView">
-  <div class="moni-topbar">
-    <div class="moni-logo">
-      <div class="moni-logo-circle" id="moniLogoCircle">M</div>
-      <span class="moni-logo-name" id="moniLogoName">Mi <span>Financiera</span></span>
-    </div>
-    <div style="font-size:12px;color:#64748b;font-weight:600" id="moniTagline">Préstamos rápidos y seguros</div>
-  </div>
-
-  <div class="moni-hero">
-    <div class="moni-hero-pill"><span>✅</span> 100% seguro y digital</div>
-    <h1 class="moni-hero-title">Conseguí tu préstamo<br>en <span>minutos</span></h1>
-    <p class="moni-hero-sub">Simulá el monto que necesitás, completá tus datos y enviá tu solicitud. Rápido, fácil y sin papeles.</p>
-    <div class="moni-steps-row">
-      <div class="moni-step-pill"><span class="moni-step-icon">🧮</span> Simulá</div>
-      <div class="moni-step-pill"><span class="moni-step-icon">📝</span> Solicitá</div>
-      <div class="moni-step-pill"><span class="moni-step-icon">💸</span> Recibí</div>
-    </div>
-  </div>
-
-  <div class="moni-main">
-    <div class="moni-card" id="moniSimCard">
-      <div class="moni-card-title"><div class="moni-card-title-icon">🧮</div>Simulá tu préstamo</div>
-      <div style="text-align:center;font-size:12px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">¿Cuánto necesitás?</div>
-      <div class="moni-amount-display" id="moniAmountDisplay">$ 50.000</div>
-      <input type="range" class="moni-slider" id="moniSlider" min="5000" max="1000000" step="5000" value="50000" oninput="window.moniUpdateSlider(this)"/>
-      <div class="moni-slider-labels"><span id="moniSliderMin">$ 5.000</span><span id="moniSliderMax">$ 1.000.000</span></div>
-
-      <div style="font-size:13px;font-weight:600;color:#334155;margin-bottom:10px">Elegí el plazo</div>
-      <div class="moni-pill-row" id="moniPillRow"></div>
-
-      <button class="moni-btn-primary" onclick="window.moniSimular()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Calcular cuotas</button>
-
-      <div id="moniSimResult" style="margin-top:18px">
-        <div class="moni-result-table">
-          <div class="moni-result-row"><span class="lbl">Monto solicitado</span><span class="val" id="moniResCapital">$ —</span></div>
-          <div class="moni-result-row"><span class="lbl">Plazo</span><span class="val" id="moniResPlazo">— meses</span></div>
-          <div class="moni-result-row"><span class="lbl">TNA</span><span class="val" id="moniResTna">—%</span></div>
-          <div class="moni-result-row highlight"><span class="lbl" style="font-weight:700;color:#0f172a">Cuota mensual</span><span class="val" id="moniResCuota">$ —</span></div>
-          <div class="moni-result-row"><span class="lbl">Total a pagar</span><span class="val" id="moniResTotal">$ —</span></div>
-        </div>
-        <button class="moni-btn-primary" onclick="window.moniShowForm()" id="moniBtnSolicitar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Solicitar este préstamo</button>
-      </div>
-    </div>
-
-    <div class="moni-card" id="moniFormSection">
-      <div class="moni-card-title"><div class="moni-card-title-icon">📝</div>Tus datos personales</div>
-      <label class="moni-input-label">Nombre y apellido</label><input class="moni-input" id="moniName" placeholder="Juan Pérez"/>
-      <label class="moni-input-label">DNI</label><input class="moni-input" id="moniDni" inputmode="numeric" placeholder="30123456"/>
-      <label class="moni-input-label">Email</label><input class="moni-input" id="moniEmail" type="email" placeholder="correo@mail.com"/>
-      <label class="moni-input-label">Teléfono (WhatsApp)</label><input class="moni-input" id="moniPhone" inputmode="tel" placeholder="2966 123456"/>
-      <label class="moni-input-label">Alias o CBU / CVU</label><input class="moni-input" id="moniAlias" placeholder="alias.banco o 22 dígitos"/>
-      <div style="background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.18);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#374151;line-height:1.6">🔒 Tus datos están protegidos bajo la Ley 25.326 de Protección de Datos Personales.</div>
-      <button class="moni-btn-primary" onclick="window.moniEnviarSolicitud()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar solicitud</button>
-      <button onclick="document.getElementById('moniFormSection').style.display='none';document.getElementById('moniSimResult').style.display='block'" style="width:100%;margin-top:10px;background:none;border:1.5px solid #e2e8f0;border-radius:14px;padding:11px;font-family:inherit;font-size:13px;font-weight:600;color:#64748b;cursor:pointer">← Volver al simulador</button>
-    </div>
-
-    <div class="moni-card" id="moniSuccessSection" style="text-align:center">
-      <div style="font-size:56px;margin-bottom:12px">🎉</div>
-      <div style="font-size:20px;font-weight:800;color:#0f172a;margin-bottom:8px">¡Solicitud enviada!</div>
-      <div style="font-size:14px;color:#64748b;line-height:1.65;margin-bottom:24px">Tu solicitud fue recibida con éxito. En breve <strong id="moniLenderContactName">tu financiera</strong> se pondrá en contacto para informarte el estado.</div>
-      <div class="moni-result-table"><div class="moni-result-row"><span class="lbl">Monto solicitado</span><span class="val" id="moniSucCapital">—</span></div><div class="moni-result-row highlight"><span class="lbl">Cuota mensual</span><span class="val" id="moniSucCuota">—</span></div></div>
-      <div id="moniWaContact" style="display:none;margin-top:16px"><a id="moniWaLink" href="#" target="_blank" class="moni-btn-primary" style="text-decoration:none;display:flex"><span>💬</span> Consultar por WhatsApp</a></div>
-    </div>
-
-    <div class="moni-card" id="moniMyLoan"><div class="moni-card-title"><div class="moni-card-title-icon">💸</div>Mi préstamo activo</div><div id="moniMyLoanContent" style="font-size:14px;color:#64748b">Cargando...</div></div>
-
-    <div class="moni-trust-strip">
-      <div class="moni-trust-item"><span class="moni-trust-icon">🔒</span> Datos protegidos</div>
-      <div class="moni-trust-item"><span class="moni-trust-icon">✅</span> Firma Ley 25.506</div>
-      <div class="moni-trust-item"><span class="moni-trust-icon">⚡</span> Respuesta rápida</div>
-    </div>
-  </div>
-</div>
-
-<!-- SUPERADMIN PANEL -->
-<div class="superadmin-view" id="superadminView">
-  <div class="sa-header">
-    <div class="sa-title">🛡️ SuperAdmin <span class="sa-badge">Acceso restringido</span></div>
-    <button class="btn-outline btn-sm" id="btnSaLogout">Cerrar sesión</button>
-  </div>
-  <div class="sa-metrics" id="saMetrics">
-    <div class="sa-metric-card"><div class="sa-metric-label">Prestamistas registrados</div><div class="sa-metric-val" id="saCountLenders">—</div></div>
-    <div class="sa-metric-card"><div class="sa-metric-label">Activos</div><div class="sa-metric-val" id="saCountActive">—</div></div>
-    <div class="sa-metric-card"><div class="sa-metric-label">Pendientes de aprobación</div><div class="sa-metric-val" id="saCountPending">—</div></div>
-    <div class="sa-metric-card"><div class="sa-metric-label">Total préstamos plataforma</div><div class="sa-metric-val" id="saCountLoans">—</div></div>
-  </div>
-  <div class="sa-lenders-table">
-    <div class="sa-table-header"><div class="sa-table-title">📋 Listado de prestamistas</div><button class="btn-outline btn-sm" onclick="loadSuperAdmin()">↻ Actualizar</button></div>
-    <div class="sa-row sa-row-head"><div>Prestamista</div><div>Email operador</div><div>Status</div><div>Acción</div></div>
-    <div id="saLendersList"><div class="sa-loading"><div class="spinner"></div></div></div>
-  </div>
-</div>
-
-<!-- PENDING OVERLAY -->
-<div class="pending-overlay" id="pendingOverlay">
-  <div class="pending-logo-wrap">
-    <div class="pending-logo-mark" id="pendingLogoMark">P</div>
-    <div class="pending-logo-name">Presti<span>fy</span></div>
-  </div>
-  <div class="pending-badge">⏳ Validación pendiente</div>
-  <div class="pending-title">Tu financiera está siendo validada</div>
-  <div class="pending-msg">Estamos revisando tu registro para activar tu cuenta.<br><strong>Te contactaremos a la brevedad</strong> para confirmar la activación de tu financiera digital.</div>
-  <a href="https://wa.me/542966678029?text=Hola%2C+quiero+activar+mi+cuenta+en+Prestify" target="_blank" class="pending-wa-btn"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Contactar para activar mi cuenta</a>
-  <button id="btnPendingLogout" class="pending-logout-btn">Cerrar sesión</button>
-</div>
-
-<!-- SUSPENDED OVERLAY -->
-<div class="suspended-overlay" id="suspendedOverlay">
-  <div class="suspended-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
-  <div class="suspended-title">Cuenta suspendida</div>
-  <div class="suspended-msg">Tu cuenta ha sido <strong>pausada por falta de pago</strong> o incumplimiento de los términos del servicio.<br><br>Para reactivarla, contactá al soporte de la plataforma.</div>
-  <a href="mailto:soporte@prestify.app" class="suspended-contact-btn">Contactar soporte</a>
-</div>
-
-<!-- ONBOARDING OVERLAY - 3 PASOS -->
-<div class="onboarding-overlay" id="onboardingOverlay">
+<!-- ============================================
+     ONBOARDING OVERLAY - 3 PASOS
+     ============================================ -->
+<div class="onboarding-overlay" id="onboardingOverlay" style="display: none;">
   <div class="onboarding-box">
     <div class="ob-steps">
       <div class="ob-step active" id="obStep1"><div class="ob-step-dot">1</div><div class="ob-step-label">DNI y Firma</div></div>
@@ -375,26 +315,17 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
       <div class="ob-step" id="obStep3"><div class="ob-step-dot">3</div><div class="ob-step-label">Método de Cobro</div></div>
     </div>
 
+    <!-- PASO 1 -->
     <div class="ob-content active" id="obContent1">
-      <div class="ob-content active" id="obContent1">
       <div class="ob-title">Bienvenido a la plataforma</div>
       <div class="ob-subtitle">Verificamos tu identidad y aceptás los términos de uso antes de comenzar.</div>
       
       <div class="input-row" style="margin-bottom:16px">
-        <div class="field" style="margin-bottom:0">
-          <label>Nombre completo</label>
-          <input id="obName" placeholder="Juan Pérez"/>
-        </div>
-        <div class="field" style="margin-bottom:0">
-          <label>DNI</label>
-          <input id="obDni" inputmode="numeric" placeholder="30123456"/>
-        </div>
+        <div class="field" style="margin-bottom:0"><label>Nombre completo</label><input id="obName" placeholder="Juan Pérez"/></div>
+        <div class="field" style="margin-bottom:0"><label>DNI</label><input id="obDni" inputmode="numeric" placeholder="30123456"/></div>
       </div>
       
-      <div class="field" style="margin-bottom:16px">
-        <label>Email</label>
-        <input id="obEmail" type="email" placeholder="correo@mail.com"/>
-      </div>
+      <div class="field" style="margin-bottom:16px"><label>Email</label><input id="obEmail" type="email" placeholder="correo@mail.com"/></div>
 
       <div class="ob-consent-box">
         <p><strong>Términos de Uso de la Plataforma Prestify</strong></p>
@@ -428,41 +359,22 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
       </div>
     </div>
 
+    <!-- PASO 2 -->
     <div class="ob-content" id="obContent2">
       <div class="ob-title">Configurá tu negocio</div>
       <div class="ob-subtitle">Estos datos aparecerán en tus contratos y en el portal de clientes.</div>
 
-      <div class="field">
-        <label>Nombre del negocio</label>
-        <input id="obAppName" placeholder="DineroYa / Préstamos Pérez"/>
-      </div>
+      <div class="field"><label>Nombre del negocio</label><input id="obAppName" placeholder="DineroYa / Préstamos Pérez"/></div>
+      <div class="field"><label>Ciudad de operación</label><input id="obCity" placeholder="Río Gallegos, Santa Cruz"/></div>
       
-      <div class="field">
-        <label>Ciudad de operación</label>
-        <input id="obCity" placeholder="Río Gallegos, Santa Cruz"/>
+      <div class="input-row">
+        <div class="field"><label>TNA % (tasa nominal anual)</label><input id="obTna" inputmode="numeric" class="mono" placeholder="100"/></div>
+        <div class="field"><label>Día de vencimiento (1-28)</label><input id="obDueDay" inputmode="numeric" placeholder="10"/></div>
       </div>
       
       <div class="input-row">
-        <div class="field">
-          <label>TNA % (tasa nominal anual)</label>
-          <input id="obTna" inputmode="numeric" class="mono" placeholder="100"/>
-        </div>
-        <div class="field">
-          <label>Día de vencimiento (1-28)</label>
-          <input id="obDueDay" inputmode="numeric" placeholder="10"/>
-        </div>
-      </div>
-      
-      <div class="input-row">
-        <div class="field">
-          <label>% Gastos administrativos</label>
-          <input id="obExpenses" inputmode="numeric" placeholder="0" class="mono"/>
-          <p class="field-hint">0 = sin descuento al entregar el capital.</p>
-        </div>
-        <div class="field">
-          <label>WhatsApp (ej: 5492966123456)</label>
-          <input id="obWa" inputmode="tel" placeholder="5492966123456"/>
-        </div>
+        <div class="field"><label>% Gastos administrativos</label><input id="obExpenses" inputmode="numeric" placeholder="0" class="mono"/><p class="field-hint">0 = sin descuento al entregar el capital.</p></div>
+        <div class="field"><label>WhatsApp (ej: 5492966123456)</label><input id="obWa" inputmode="tel" placeholder="5492966123456"/></div>
       </div>
 
       <div class="ob-nav">
@@ -471,6 +383,7 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
       </div>
     </div>
 
+    <!-- PASO 3 -->
     <div class="ob-content" id="obContent3">
       <div class="ob-title">Método de cobro de cuotas</div>
       <div class="ob-subtitle">Elegí cómo van a pagar tus clientes. Podés cambiarlo después desde Configuración.</div>
@@ -489,15 +402,8 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
       </div>
 
       <div id="obMpFields">
-        <div class="field">
-          <label>Access Token de producción</label>
-          <input id="obMpToken" type="password" placeholder="APP_USR-xxxxxxxxxxxx"/>
-          <p class="field-hint">Obtenelo en Mercado Pago → Tu negocio → Credenciales.</p>
-        </div>
-        <div class="field">
-          <label>Public Key</label>
-          <input id="obMpPublicKey" placeholder="APP_USR-xxxxxxxxxxxx"/>
-        </div>
+        <div class="field"><label>Access Token de producción</label><input id="obMpToken" type="password" placeholder="APP_USR-xxxxxxxxxxxx"/><p class="field-hint">Obtenelo en Mercado Pago → Tu negocio → Credenciales.</p></div>
+        <div class="field"><label>Public Key</label><input id="obMpPublicKey" placeholder="APP_USR-xxxxxxxxxxxx"/></div>
       </div>
 
       <div id="obManualMsg" style="display:none;padding:14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:12px;margin-bottom:16px">
@@ -513,599 +419,197 @@ const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
   </div>
 </div>
 
-<!-- TOAST CONTAINER -->
+<!-- ============================================
+     TOAST CONTAINER
+     ============================================ -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ALERT BANNER -->
-<div class="alert-banner" id="alertBanner">
-  <span style="font-size:20px;flex-shrink:0">🔔</span>
-  <span id="alertBannerText">Nueva solicitud recibida</span>
-  <button class="alert-banner-close" id="alertBannerClose" title="Cerrar">✕</button>
-</div>
-
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="topbar-inner">
-    <a href="#" class="logo" id="logoLink">
-      <div class="logo-mark" id="logoMark">P</div>
-      <span class="logo-name" id="logoName">Presti<span>fy</span></span>
-    </a>
-
-    <nav class="topbar-nav">
-      <button id="btnViewClient" class="nav-btn active" style="display:none">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span class="nav-label">Portal cliente</span>
-      </button>
-      <button id="btnViewAdmin" class="nav-btn" style="display:none">
-        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span class="nav-label">Admin</span>
-      </button>
-      <button id="btnViewSuperAdmin" class="nav-btn" style="display:none" title="SuperAdmin">
-        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
-        <span class="nav-label">SuperAdmin</span>
-      </button>
-
-      <div class="nav-sep"></div>
-
-      <div class="notif-wrap" id="notifWrap" style="display:none">
-        <button class="notif-bell" id="notifBell" title="Notificaciones">
-          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span class="notif-badge" id="notifBadge" style="display:none">0</span>
-        </button>
-        <div class="notif-dropdown" id="notifDropdown">
-          <div class="notif-header">
-            <span>Alertas</span>
-            <button id="btnClearNotifs" class="btn-outline btn-sm">Limpiar</button>
-          </div>
-          <div class="notif-list" id="notifList">
-            <div class="notif-empty">Sin notificaciones</div>
-          </div>
-        </div>
-      </div>
-
-      <button id="btnResetPass" class="nav-btn">
-        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span class="nav-label">Llave</span>
-      </button>
-      <button id="btnLogout" class="nav-btn danger" style="display:none">
-        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        <span class="nav-label">Salir</span>
-      </button>
-    </nav>
-  </div>
-</header>
-
-<!-- HERO SECTION -->
-<section class="hero-section" id="heroSection" style="display:none">
-  <div>
-    <div class="hero-eyebrow" id="heroEyebrow">Prestify · Tu financiera, digitalizada</div>
-    <h1 class="hero-title">Préstamos personales<br><em>rápidos y seguros</em></h1>
-    <p class="hero-sub">Simulá, solicitá y gestioná tu préstamo en minutos. Sin papeles ni filas.</p>
-    <div class="hero-badges">
-      <div class="badge"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SSL Seguro</div>
-      <div class="badge"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Datos protegidos</div>
-      <div class="badge"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Sin burocracia</div>
-    </div>
-  </div>
-  <div class="hero-kpis">
-    <div class="kpi-box">
-      <div class="kpi-label">TNA vigente</div>
-      <div class="kpi-value" id="heroTna">&#8212;<small>%</small></div>
-    </div>
-    <div class="kpi-box">
-      <div class="kpi-label">Día de pago</div>
-      <div class="kpi-value" id="heroDue">&#8212;<small>del mes</small></div>
-    </div>
-  </div>
-</section>
-
-<!-- MAIN CONTENT -->
-<main class="main-wrap">
-  <!-- VISTA CLIENTE -->
-  <div id="clientView" style="display:none">
-    <div class="lender-brand-header" id="lenderBrandHeader" style="display:none">
-      <div class="lender-brand-name" id="lenderBrandName">Mi Financiera</div>
-      <div class="lender-brand-tagline">Préstamos rápidos y seguros</div>
-    </div>
-
-    <div class="client-grid">
-      <!-- SIMULADOR -->
-      <div class="card">
-        <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Simulador de cuotas</div>
-        <div class="sim-meta">
-          <div class="sim-meta-item">TNA <strong id="lblTna">--%</strong></div>
-          <div class="sim-meta-item">Vence día <strong id="lblDue">--</strong></div>
-          <div class="sim-meta-item">Gasto otorg. <strong id="lblGastoOtorg">3%</strong></div>
-          <div class="sim-meta-item" id="lblExpMeta" style="display:none">Gastos admin <strong id="lblExp">--%</strong></div>
-        </div>
-
-        <div id="clientAmountWrap" style="display:none">
-          <div class="client-amount-label">¿Cuánto necesitás?</div>
-          <div class="client-amount-display" id="clientAmountDisplay">$ 50.000</div>
-          <input type="range" id="clientAmountSlider" class="client-amount-slider" min="5000" max="1000000" step="5000" value="50000"/>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-bottom:10px">
-            <span id="sliderMinLabel">$ 5.000</span>
-            <span id="sliderMaxLabel">$ 1.000.000</span>
-          </div>
-          <div class="field" style="margin-bottom:14px">
-            <label style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:5px;display:block">O ingresá el monto manualmente</label>
-            <input id="clientAmountManual" inputmode="numeric" placeholder="Ej: 2.500.000" style="background:#F5F7FA;border:1.5px solid #E2E8F0;border-radius:14px;padding:11px 15px;width:100%;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#111;outline:none;transition:border-color .2s"/>
-          </div>
-          <input type="hidden" id="simAmount" value="50000"/>
-        </div>
-
-        <div id="adminAmountWrap">
-          <div class="input-row">
-            <div class="field">
-              <label>Monto solicitado por el cliente</label>
-              <input id="simAmountInput" class="mono" inputmode="numeric" placeholder="$ 500.000"/>
-            </div>
-          </div>
-        </div>
-
-        <div id="adminPlazoWrap">
-          <div class="field">
-            <label>Plazo en meses</label>
-            <select id="simMonths"><option value="">— Seleccioná un plazo —</option></select>
-          </div>
-        </div>
-
-        <div id="clientPillsWrap" style="display:none">
-          <div style="font-size:13px;font-weight:600;color:#444;margin-bottom:10px">Elegí el plazo</div>
-          <div class="client-pills-wrap" id="clientPillsContainer"></div>
-          <input type="hidden" id="simMonthsHidden" value=""/>
-        </div>
-
-        <div id="simDeductionBadge" style="display:none" class="sim-deduction-badge">
-          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Se descontarán <strong id="simExpAmt">$0</strong> en gastos administrativos al acreditar.
-        </div>
-
-        <button id="btnSim" class="btn-primary" onclick="window.calculateLoan()">
-          <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Calcular cuotas
-        </button>
-        <div id="simResult"></div>
-      </div>
-
-      <!-- NUEVA SOLICITUD -->
-      <div class="card">
-        <div class="card-title"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Nueva solicitud</div>
-        <div class="input-row">
-          <div class="field"><label>Nombre y apellido</label><input id="bName" placeholder="Juan Pérez"/></div>
-          <div class="field"><label>DNI</label><input id="bDni" inputmode="numeric" placeholder="30123456"/></div>
-        </div>
-        <div class="input-row">
-          <div class="field"><label>Email</label><input id="bEmail" type="email" placeholder="correo@mail.com"/></div>
-          <div class="field"><label>Teléfono (WhatsApp)</label><input id="bPhone" inputmode="tel" placeholder="2966 123456"/></div>
-        </div>
-        <div class="field">
-          <label>Alias o CBU / CVU</label>
-          <input id="bAlias" placeholder="alias.banco o 22 dígitos"/>
-        </div>
-        <div class="sep"></div>
-        <p id="simHintText" style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.55">El monto y plazo se toman del Simulador. Completalo primero.</p>
-        <button id="btnSendReq" class="btn-primary" style="background:linear-gradient(135deg,#0f766e,#0d9488)">
-          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Enviar solicitud
-        </button>
-      </div>
-
-      <!-- MI PRÉSTAMO -->
-      <div class="card full-width" id="myloan">
-        <div class="card-title"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Mi préstamo activo</div>
-        <div id="loanStatus"><div class="empty">No tenés préstamos activos en este momento.</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VISTA ADMIN -->
-  <div id="adminView" style="display:none">
-    <div class="kpi-grid" id="kpiGrid">
-      <div class="kpi-card"><div class="kpi-card-label">Capital activo</div><div class="kpi-card-val" id="kpiCapital">$ 0</div></div>
-      <div class="kpi-card"><div class="kpi-card-label">Ingresos del mes</div><div class="kpi-card-val" id="kpiMonthly">$ 0</div></div>
-      <div class="kpi-card"><div class="kpi-card-label">Préstamos activos</div><div class="kpi-card-val" id="kpiActive">0</div></div>
-      <div class="kpi-card"><div class="kpi-card-label">Clientes en mora</div><div class="kpi-card-val" id="kpiMora">0</div></div>
-      <div class="kpi-card"><div class="kpi-card-label">Solicitudes pendientes</div><div class="kpi-card-val" id="kpiPending">0</div></div>
-      <div class="kpi-card"><div class="kpi-card-label">Capital cobrado hoy</div><div class="kpi-card-val" id="kpiToday">$ 0</div></div>
-    </div>
-
-    <div class="tab-bar" id="adminTabBar">
-      <button class="tab-btn active" data-tab="tabDash">Dashboard</button>
-      <button class="tab-btn" data-tab="tabPending">Pendientes <span class="tab-badge" id="badgePending">0</span></button>
-      <button class="tab-btn" data-tab="tabPre">Preaprobados <span class="tab-badge" id="badgePre">0</span></button>
-      <button class="tab-btn" data-tab="tabActive">Activos</button>
-      <button class="tab-btn" data-tab="tabMora">Mora</button>
-      <button class="tab-btn" data-tab="tabComprobantes">Comprobantes <span class="tab-badge" id="badgeComp">0</span></button>
-      <button class="tab-btn" data-tab="tabHistory">Histórico</button>
-      <button class="tab-btn" data-tab="tabCfg">⚙ Config</button>
-    </div>
-
-    <div id="adminContent">
-      <div class="tab-content active" id="tabDash">
-        <div class="card">
-          <div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Resumen de actividad</div>
-          <div id="dashContent"><div class="empty"><div class="spinner"></div></div></div>
-        </div>
-      </div>
-      <!-- Las otras tabs se mantienen igual -->
-    </div>
-  </div>
-</main>
-
-<!-- MODAL FIRMA -->
-<div class="modal-overlay" id="sigModal">
-  <div class="modal-box">
-    <div class="modal-title">Firma digital</div>
-    <div class="modal-sub">Firmá con el dedo</div>
-    <div class="sig-canvas-wrap"><canvas id="sigCanvas"></canvas></div>
-    <div class="sig-actions">
-      <button id="btnClearSig" class="btn-outline">Borrar</button>
-      <button id="btnConfirmSig" class="btn-success">Confirmar</button>
-    </div>
-    <button id="btnCancelSig" class="btn-outline">Cancelar</button>
-  </div>
-</div>
-
-<!-- MODAL ACTIVAR -->
-<div class="modal-overlay" id="activateModal">
-  <div class="modal-box">
-    <div class="modal-title">Activar préstamo</div>
-    <div class="activate-summary" id="activateSummary"></div>
-    <div style="display:flex;gap:10px">
-      <button id="btnCancelActivate" class="btn-outline">Cancelar</button>
-      <button id="btnConfirmActivate" class="btn-success">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- SCRIPTS -->
+<!-- ============================================
+     SCRIPTS - FUNCIONES GLOBALES
+     ============================================ -->
 <script>
-const SUPERADMIN_UID = 'cuQqbuHWkTWdFPdknVTUAkx5Xri2';
-const SUPERADMIN_EMAIL = 'fernandogastondelgado81@gmail.com';
-
-function closeDemoModal(){ document.getElementById('demoModal')?.classList.remove('open'); }
-function fmtPeso(n){ return '$ ' + Math.round(n).toLocaleString('es-AR'); }
-
-// Variables Moni
-var moniAmount = 50000, moniMonths = 3, moniTna = 100, moniDueDay = 10, 
-    moniTerms = [3,6,9,12,18,24], moniLenderWa = '', moniLenderName = 'tu financiera';
-
-function initMoniView(cfg){
-  if(!cfg) return;
-  moniTna = parseFloat(cfg.tna) || 100;
-  moniDueDay = parseInt(cfg.dueDay) || 10;
-  moniLenderWa = cfg.wa || '';
-  moniLenderName = cfg.appName || 'tu financiera';
-  var minAmt = parseInt(cfg.minAmt) || 5000, maxAmt = parseInt(cfg.maxAmt) || 1000000;
-  moniTerms = (cfg.terms||'3,6,12').split(',').map(Number).filter(Boolean);
-
-  if(cfg.appName){
-    var logoName = document.getElementById('moniLogoName');
-    if(logoName){
-      var parts = cfg.appName.split(' ');
-      logoName.innerHTML = parts.length > 1 ? parts[0] + ' <span>' + parts.slice(1).join(' ') + '</span>' : '<span>' + cfg.appName + '</span>';
+// ============================================
+// FUNCIONES GLOBALES PARA ONBOARDING
+// ============================================
+window.nextStep = function(step) {
+  [1,2,3].forEach(s => {
+    const stepEl = document.getElementById(`obStep${s}`);
+    const contentEl = document.getElementById(`obContent${s}`);
+    if (stepEl && contentEl) {
+      stepEl.className = s === step ? 'ob-step active' : s < step ? 'ob-step done' : 'ob-step';
+      contentEl.className = s === step ? 'ob-content active' : 'ob-content';
     }
-    var circle = document.getElementById('moniLogoCircle');
-    if(circle) circle.textContent = cfg.appName.charAt(0).toUpperCase();
-  }
-
-  var slider = document.getElementById('moniSlider');
-  if(slider){
-    slider.min = minAmt; slider.max = maxAmt;
-    slider.value = Math.min(50000, maxAmt);
-    moniAmount = parseInt(slider.value);
-    document.getElementById('moniAmountDisplay').textContent = fmtPeso(moniAmount);
-    document.getElementById('moniSliderMin').textContent = fmtPeso(minAmt);
-    document.getElementById('moniSliderMax').textContent = fmtPeso(maxAmt);
-    moniUpdateSlider(slider);
-  }
-
-  var pillRow = document.getElementById('moniPillRow');
-  if(pillRow){
-    pillRow.innerHTML = '';
-    moniTerms.forEach(function(m){
-      var btn = document.createElement('button');
-      btn.className = 'moni-pill' + (m===moniTerms[0]?' active':'');
-      btn.textContent = m + ' mes' + (m===1?'':'es');
-      btn.onclick = function(){
-        document.querySelectorAll('.moni-pill').forEach(p=> p.classList.remove('active'));
-        btn.classList.add('active');
-        moniMonths = m;
-      };
-      pillRow.appendChild(btn);
-    });
-    moniMonths = moniTerms[0];
-  }
-
-  document.getElementById('moniView').style.display = 'block';
-  ['landingView','heroSection','clientView','adminView'].forEach(id => { 
-    let e = document.getElementById(id); 
-    if(e) e.style.display = 'none'; 
   });
-  let topbar = document.querySelector('.topbar');
-  if(topbar) topbar.style.display = 'none';
-}
-
-function moniUpdateSlider(slider){
-  moniAmount = parseInt(slider.value);
-  document.getElementById('moniAmountDisplay').textContent = fmtPeso(moniAmount);
-  var pct = ((moniAmount - parseInt(slider.min)) / (parseInt(slider.max) - parseInt(slider.min))) * 100;
-  slider.style.background = 'linear-gradient(to right, #10b981 0%, #10b981 '+pct+'%, #e2e8f0 '+pct+'%)';
-}
-
-function moniSimular(){
-  var tnaDecimal = moniTna / 100, tmv = Math.pow(1 + tnaDecimal, 1/12) - 1;
-  var cuota = tmv === 0 ? moniAmount / moniMonths : moniAmount * (tmv * Math.pow(1+tmv, moniMonths)) / (Math.pow(1+tmv, moniMonths) - 1);
-  var total = cuota * moniMonths;
-  document.getElementById('moniResCapital').textContent = fmtPeso(moniAmount);
-  document.getElementById('moniResPlazo').textContent = moniMonths + ' meses';
-  document.getElementById('moniResTna').textContent = moniTna + '%';
-  document.getElementById('moniResCuota').textContent = fmtPeso(cuota);
-  document.getElementById('moniResTotal').textContent = fmtPeso(total);
-  document.getElementById('moniSimResult').style.display = 'block';
-  document.getElementById('moniSucCapital').textContent = fmtPeso(moniAmount);
-  document.getElementById('moniSucCuota').textContent = fmtPeso(cuota);
-}
-
-function moniShowForm(){
-  document.getElementById('moniSimResult').style.display = 'none';
-  document.getElementById('moniFormSection').style.display = 'block';
-  document.getElementById('moniFormSection').scrollIntoView({behavior:'smooth',block:'start'});
-}
-
-function moniEnviarSolicitud(){
-  var name = document.getElementById('moniName').value.trim();
-  var dni = document.getElementById('moniDni').value.trim();
-  var email = document.getElementById('moniEmail').value.trim();
-  if(!name || !dni || !email){ alert('Completá nombre, DNI y email'); return; }
-  var evt = new CustomEvent('moniSolicitud', { detail: {
-    name, dni, email,
-    phone: document.getElementById('moniPhone').value.trim(),
-    alias: document.getElementById('moniAlias').value.trim(),
-    amount: moniAmount, months: moniMonths
-  }});
-  document.dispatchEvent(evt);
-  document.getElementById('moniFormSection').style.display = 'none';
-  document.getElementById('moniSimCard').style.display = 'none';
-  document.getElementById('moniSuccessSection').style.display = 'block';
-  document.getElementById('moniLenderContactName').textContent = moniLenderName;
-  if(moniLenderWa){
-    var waDiv = document.getElementById('moniWaContact');
-    var waLink = document.getElementById('moniWaLink');
-    var msg = encodeURIComponent('Hola! Acabo de enviar una solicitud de préstamo. Soy ' + name + ', DNI ' + dni);
-    waLink.href = 'https://wa.me/' + moniLenderWa + '?text=' + msg;
-    waDiv.style.display = 'block';
-  }
-}
-
-// Exponer funciones
-window.closeDemoModal = closeDemoModal;
-window.moniUpdateSlider = moniUpdateSlider;
-window.moniSimular = moniSimular;
-window.moniShowForm = moniShowForm;
-window.moniEnviarSolicitud = moniEnviarSolicitud;
-window.selectPayMethod = function(method) {
-  if(window.gObPayMethod) window.gObPayMethod = method;
-  document.getElementById('pmOptMP')?.classList.toggle('selected', method==='mp');
-  document.getElementById('pmOptManual')?.classList.toggle('selected', method==='manual');
-  document.getElementById('obMpFields').style.display = method==='mp' ? 'block' : 'none';
-  document.getElementById('obManualMsg').style.display = method==='manual' ? 'block' : 'none';
 };
 
-// CORRECCIÓN DE BOTONES
+window.prevStep = function(step) {
+  if (step - 1 >= 1) window.nextStep(step - 1);
+};
+
+window.selectPayMethod = function(method) {
+  document.getElementById('pmOptMP')?.classList.toggle('selected', method === 'mp');
+  document.getElementById('pmOptManual')?.classList.toggle('selected', method === 'manual');
+  document.getElementById('obMpFields').style.display = method === 'mp' ? 'block' : 'none';
+  document.getElementById('obManualMsg').style.display = method === 'manual' ? 'block' : 'none';
+};
+
+window.handleSignup = function() {
+  document.getElementById('landingView').style.display = 'none';
+  document.getElementById('onboardingOverlay').style.display = 'flex';
+};
+
+// ============================================
+// INICIALIZACIÓN DE BOTONES DEL ONBOARDING
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('btnLandingRegister')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
+  // Paso 1
+  document.getElementById('btnObStep1')?.addEventListener('click', function() {
+    const name = document.getElementById('obName')?.value.trim();
+    const dni = document.getElementById('obDni')?.value.trim();
+    const email = document.getElementById('obEmail')?.value.trim();
+    
+    if (!name || !dni || !email) {
+      alert('Completá nombre, DNI y email');
+      return;
+    }
+    
+    const canvas = document.getElementById('obSigCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const hasSignature = Array.from(imgData).some((v, i) => i % 4 === 3 && v > 0);
+      
+      if (!hasSignature) {
+        alert('Dibujá tu firma antes de continuar');
+        return;
+      }
+    }
+    
+    if (!document.getElementById('obConsentCheck')?.checked) {
+      alert('Debés aceptar los términos de uso');
+      return;
+    }
+    
+    window.nextStep(2);
   });
   
-  document.getElementById('btnLandingRegister2')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
+  // Volver a paso 1
+  document.getElementById('btnObBack1')?.addEventListener('click', function() {
+    window.nextStep(1);
   });
   
-  document.getElementById('btnLandingRegister3')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
+  // Paso 2
+  document.getElementById('btnObStep2')?.addEventListener('click', function() {
+    const appName = document.getElementById('obAppName')?.value.trim();
+    const tna = document.getElementById('obTna')?.value.trim();
+    const dueDay = document.getElementById('obDueDay')?.value.trim();
+    
+    if (!appName || !tna || !dueDay) {
+      alert('Completá nombre del negocio, TNA y día de vencimiento');
+      return;
+    }
+    
+    window.nextStep(3);
   });
   
-  document.getElementById('btnLandingLogin')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('adminGate').style.display = 'block';
+  // Volver a paso 2
+  document.getElementById('btnObBack2')?.addEventListener('click', function() {
+    window.nextStep(2);
   });
   
-  document.getElementById('btnGoToRegister')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    document.getElementById('adminGate').style.display = 'none';
+  // Finalizar
+  document.getElementById('btnObFinish')?.addEventListener('click', function() {
+    alert('✅ Cuenta creada con éxito. Aguardá la activación.');
+    document.getElementById('onboardingOverlay').style.display = 'none';
     document.getElementById('landingView').style.display = 'block';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
   });
   
+  // Botón SuperAdmin (temporal)
   document.getElementById('btnSuperAdminLogin')?.addEventListener('click', function(e) {
     e.preventDefault();
-    const pass = prompt('Ingresá la contraseña de SuperAdmin:');
-    if (!pass) return;
-    alert('Función de login a implementar en script.js');
+    alert('Función SuperAdmin a implementar en script.js');
   });
-});
-</script>
-
-<script type="module" src="script.js"></script>
-
-<!-- FALLBACK FUNCTIONS -->
-<script>
-window.nextStep = window.nextStep || function(step){
-  [1,2,3].forEach(s=>{
-    let stepEl = document.getElementById(`obStep${s}`);
-    let contentEl = document.getElementById(`obContent${s}`);
-    if(stepEl && contentEl){
-      stepEl.className = s===step ? 'ob-step active' : s<step ? 'ob-step done' : 'ob-step';
-      contentEl.className = s===step ? 'ob-content active' : 'ob-content';
+  
+  // Inicializar canvas de firma
+  const canvas = document.getElementById('obSigCanvas');
+  if (canvas) {
+    canvas.width = canvas.parentElement?.clientWidth || 400;
+    canvas.height = 150;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 2.5;
+    
+    let drawing = false;
+    let lastX = 0, lastY = 0;
+    
+    function getCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+    
+    canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      drawing = true;
+      const coord = getCoordinates(e);
+      lastX = coord.x;
+      lastY = coord.y;
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (!drawing) return;
+      e.preventDefault();
+      const coord = getCoordinates(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(coord.x, coord.y);
+      ctx.stroke();
+      lastX = coord.x;
+      lastY = coord.y;
+    });
+    
+    canvas.addEventListener('mouseup', () => drawing = false);
+    canvas.addEventListener('mouseleave', () => drawing = false);
+    
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      drawing = true;
+      const coord = getCoordinates(e);
+      lastX = coord.x;
+      lastY = coord.y;
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!drawing) return;
+      const coord = getCoordinates(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(coord.x, coord.y);
+      ctx.stroke();
+      lastX = coord.x;
+      lastY = coord.y;
+    });
+    
+    canvas.addEventListener('touchend', () => drawing = false);
+  }
+  
+  // Botón borrar firma
+  document.getElementById('btnObClearSig')?.addEventListener('click', function() {
+    const canvas = document.getElementById('obSigCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   });
-};
-
-window.prevStep = window.prevStep || function(step){ 
-  if(step-1>=1) window.nextStep(step-1); 
-};
-
-window.handleSignup = window.handleSignup || function(){ 
-  document.getElementById('landingView').style.display = 'none';
-  document.getElementById('onboardingOverlay').style.display = 'flex'; 
-};
-
-window.calculateLoan = window.calculateLoan || function(){
-  let amount = parseInt(document.getElementById('simAmountInput')?.value.replace(/\D/g,'') || 
-               document.getElementById('clientAmountSlider')?.value || 0);
-  let months = parseInt(document.getElementById('simMonths')?.value || 
-               document.getElementById('simMonthsHidden')?.value || 0);
-  if(!amount || !months){ alert('Completá monto y plazo'); return; }
-  let tna = parseFloat(document.getElementById('lblTna')?.textContent) || 100;
-  let gasto = Math.round(amount * 3 / 100);
-  let capital = amount + gasto;
-  let i = (tna/100)/12;
-  let cuota = i===0 ? capital/months : Math.round(capital * i * Math.pow(1+i, months) / (Math.pow(1+i, months)-1));
-  document.getElementById('simResult').innerHTML = `<div class="sim-result-box">
-    <div class="sim-cuota-display">
-      <span class="sim-cuota-label">Cuota mensual</span>
-      <span class="sim-cuota-value">$${cuota.toLocaleString('es-AR')}</span>
-    </div>
-    <div class="breakdown-box">
-      <div class="breakdown-row"><span class="bl">Monto solicitado</span><span class="bv">$${amount.toLocaleString('es-AR')}</span></div>
-      <div class="breakdown-row warn-row"><span class="bl">Gasto de otorgamiento (3%)</span><span class="bv">+ $${gasto.toLocaleString('es-AR')}</span></div>
-      <div class="breakdown-row"><span class="bl">Capital a financiar</span><span class="bv">$${capital.toLocaleString('es-AR')}</span></div>
-      <div class="breakdown-row accent"><span class="bl">Total a pagar</span><span class="bv">$${(cuota*months).toLocaleString('es-AR')}</span></div>
-    </div>
-  </div>`;
-  return {amount, months, cuota};
-};
-</script>
-
-<!-- MODAL DEMO (oculto por defecto) -->
-<div class="modal-overlay" id="demoModal" style="display:none;">
-  <div class="modal-box" style="max-width:680px;padding:0;overflow:hidden;border-radius:20px;background:#0d1117">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;border-bottom:1px solid rgba(255,255,255,.07)">
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff">P</div>
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#fff">Demo de Prestify</div>
-          <div style="font-size:12px;color:#64748b">Tu financiera digital en 3 minutos</div>
-        </div>
-      </div>
-      <button onclick="document.getElementById('demoModal').style.display='none'" style="background:rgba(255,255,255,.07);border:none;color:#94a3b8;font-size:18px;cursor:pointer;border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center">✕</button>
-    </div>
-    <div class="demo-modal-content" style="padding:32px 28px;background:#0d1117">
-      <div class="demo-modal-title" style="font-size:22px;font-weight:800;color:#fff;margin-bottom:10px">¿Cómo funciona Prestify?</div>
-      <div class="demo-modal-sub" style="font-size:14px;color:#94a3b8;line-height:1.65;margin-bottom:24px">Prestify es la plataforma todo-en-uno para que prestamistas independientes digitalicen su negocio de forma rápida, profesional y sin código. Configurá tu financiera en minutos y empezá a recibir solicitudes hoy mismo.</div>
-      <div class="demo-feature-list" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px">
-        <div class="demo-feat-item" style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-          <span class="demo-feat-icon" style="font-size:20px">🏦</span>
-          <div class="demo-feat-text" style="font-size:12px;color:#cbd5e1;line-height:1.5"><strong style="color:#fff;display:block;font-size:13px;margin-bottom:2px">Marca Blanca Total</strong>Tus clientes ven tu nombre y colores, nunca Prestify. Identidad 100% tuya.</div>
-        </div>
-        <div class="demo-feat-item" style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-          <span class="demo-feat-icon" style="font-size:20px">📱</span>
-          <div class="demo-feat-text" style="font-size:12px;color:#cbd5e1;line-height:1.5"><strong style="color:#fff;display:block;font-size:13px;margin-bottom:2px">Link único de cliente</strong>Compartís un link. El cliente simula, solicita y firma desde el celular.</div>
-        </div>
-        <div class="demo-feat-item" style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-          <span class="demo-feat-icon" style="font-size:20px">⚡</span>
-          <div class="demo-feat-text" style="font-size:12px;color:#cbd5e1;line-height:1.5"><strong style="color:#fff;display:block;font-size:13px;margin-bottom:2px">Panel en tiempo real</strong>Recibís solicitudes al instante. Aprobás desde tu celu en segundos.</div>
-        </div>
-        <div class="demo-feat-item" style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-          <span class="demo-feat-icon" style="font-size:20px">📊</span>
-          <div class="demo-feat-text" style="font-size:12px;color:#cbd5e1;line-height:1.5"><strong style="color:#fff;display:block;font-size:13px;margin-bottom:2px">Motor financiero</strong>Sistema francés, TNA configurable, mora automática y más.</div>
-        </div>
-        <div class="demo-feat-item" style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-          <span class="demo-feat-icon" style="font-size:20px">💳</span>
-          <div class="demo-feat-text" style="font-size:12px;color:#cbd5e1;line-height:1.5"><strong style="color:#fff;display:block;font-size:13px;margin-bottom:2px">Cobro online</strong>Mercado Pago o transferencia manual. El sistema registra todo solo.</div>
-        </div>
-        <div class="demo-feat-item" style="display:flex;align-items:flex-start;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px">
-          <span class="demo-feat-icon" style="font-size:20px">✍️</span>
-          <div class="demo-feat-text" style="font-size:12px;color:#cbd5e1;line-height:1.5"><strong style="color:#fff;display:block;font-size:13px;margin-bottom:2px">Firma Ley 25.506</strong>Contratos digitales con validez legal. Cero papeles, cero burocracia.</div>
-        </div>
-      </div>
-      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:14px;padding:16px 18px;margin-bottom:24px">
-        <div style="font-size:12px;font-weight:700;color:#a5b4fc;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">3 pasos para arrancar</div>
-        <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
-          <div style="flex:1;min-width:120px;text-align:center">
-            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;margin:0 auto 8px">1</div>
-            <div style="font-size:12px;color:#cbd5e1;line-height:1.5">Registrate y completá tu perfil</div>
-          </div>
-          <div style="font-size:20px;color:#334155;align-self:flex-start;margin-top:8px">→</div>
-          <div style="flex:1;min-width:120px;text-align:center">
-            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;margin:0 auto 8px">2</div>
-            <div style="font-size:12px;color:#cbd5e1;line-height:1.5">Compartí tu link con tus clientes</div>
-          </div>
-          <div style="font-size:20px;color:#334155;align-self:flex-start;margin-top:8px">→</div>
-          <div style="flex:1;min-width:120px;text-align:center">
-            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;margin:0 auto 8px">3</div>
-            <div style="font-size:12px;color:#cbd5e1;line-height:1.5">Gestioná todo desde tu panel</div>
-          </div>
-        </div>
-      </div>
-      <div class="demo-cta-row" style="display:flex;gap:12px">
-        <button class="demo-cta-primary" onclick="document.getElementById('demoModal').style.display='none';window.handleSignup()" style="flex:1;padding:13px 20px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;border-radius:14px;color:#fff;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer">🚀 Empezar gratis ahora</button>
-        <button class="demo-cta-secondary" onclick="document.getElementById('demoModal').style.display='none'" style="padding:13px 20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;color:#94a3b8;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-// FORZAR APERTURA DE OVERLAYS - SOLUCIÓN RÁPIDA
-document.addEventListener('DOMContentEditado', function() {
-  // Botón crear cuenta
-  document.getElementById('btnLandingRegister')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('👉 Crear cuenta clickeado');
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
-  });
   
-  document.getElementById('btnLandingRegister2')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
-  });
-  
-  document.getElementById('btnLandingRegister3')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('onboardingOverlay').style.display = 'flex';
-  });
-  
-  // Botón iniciar sesión
-  document.getElementById('btnLandingLogin')?.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('👉 Iniciar sesión clickeado');
-    document.getElementById('landingView').style.display = 'none';
-    document.getElementById('adminGate').style.display = 'block';
-  });
-  
-  // Quitar !important de los overlays al abrir
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.attributeName === 'style') {
-        const overlay = mutation.target;
-        if (overlay.style.display === 'flex' || overlay.style.display === 'block') {
-          overlay.style.setProperty('display', overlay.style.display, 'important');
-        }
-      }
-    });
-  });
-  
-  observer.observe(document.getElementById('onboardingOverlay'), { attributes: true });
-  observer.observe(document.getElementById('adminGate'), { attributes: true });
-  
-  console.log('✅ Script de corrección cargado');
+  console.log('✅ Funciones de onboarding listas');
 });
 </script>
+
+<!-- SCRIPT PRINCIPAL MODULAR -->
+<script type="module" src="script.js"></script>
+
 </body>
-</html>  
+</html>
