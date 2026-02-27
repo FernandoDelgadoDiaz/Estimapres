@@ -1054,6 +1054,58 @@ window.calculateLoan = window.calculateLoan || function(){
     </div>
   </div>
 </div>
-
+<script>
+// FORZAR APERTURA DE OVERLAYS - SOLUCIÓN RÁPIDA
+document.addEventListener('DOMContentEditado', function() {
+  // Botón crear cuenta
+  document.getElementById('btnLandingRegister')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('👉 Crear cuenta clickeado');
+    document.getElementById('landingView').style.display = 'none';
+    document.getElementById('onboardingOverlay').style.display = 'flex';
+  });
+  
+  document.getElementById('btnLandingRegister2')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('landingView').style.display = 'none';
+    document.getElementById('onboardingOverlay').style.display = 'flex';
+  });
+  
+  document.getElementById('btnLandingRegister3')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('landingView').style.display = 'none';
+    document.getElementById('onboardingOverlay').style.display = 'flex';
+  });
+  
+  // Botón iniciar sesión
+  document.getElementById('btnLandingLogin')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('👉 Iniciar sesión clickeado');
+    document.getElementById('landingView').style.display = 'none';
+    document.getElementById('adminGate').style.display = 'block';
+  });
+  
+  // Quitar !important de los overlays al abrir
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.attributeName === 'style') {
+        const overlay = mutation.target;
+        if (overlay.style.display === 'flex' || overlay.style.display === 'block') {
+          overlay.style.setProperty('display', overlay.style.display, 'important');
+        }
+      }
+    });
+  });
+  
+  observer.observe(document.getElementById('onboardingOverlay'), { attributes: true });
+  observer.observe(document.getElementById('adminGate'), { attributes: true });
+  
+  console.log('✅ Script de corrección cargado');
+});
+</script>
 </body>
 </html>  
