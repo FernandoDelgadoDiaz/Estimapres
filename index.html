@@ -1607,10 +1607,6 @@ body.client-mode .moni-brand-strip { display:flex; }
           <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
           Creá tu propia financiera
         </button>
-        <button class="lp-secondary-cta" onclick="document.getElementById('demoModal').classList.add('open')">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
-          Ver demo
-        </button>
       </div>
       <div class="lp-social-proof rv rv-d4">
         <div class="lp-avatars">
@@ -2342,15 +2338,69 @@ body.client-mode .moni-brand-strip { display:flex; }
   </div>
 </div>
 
-<!-- Modal Demo -->
-<div class="modal-overlay" id="demoModal" style="z-index:9999" onclick="if(event.target===this){this.classList.remove('open');document.getElementById('demoFrame').src=''}">
-  <div class="modal-box" style="max-width:680px;padding:0;overflow:hidden;background:#000;border-radius:16px">
-    <div style="display:flex;justify-content:flex-end;padding:10px 14px;background:#111">
-      <button onclick="document.getElementById('demoModal').classList.remove('open');document.getElementById('demoFrame').src=''" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer">✕</button>
+<!-- ════════════════════════════════════════════════════
+     MODAL: REGISTRO NUEVO PRESTAMISTA
+     ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal-box" style="max-width:420px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(109,40,217,.4)">
+        <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      </div>
+      <div class="modal-title" style="font-size:22px">Crear tu financiera</div>
+      <div class="modal-sub" style="margin-bottom:0">Ingresá tu email y elegí una contraseña segura. Después configurarás tu negocio paso a paso.</div>
     </div>
-    <iframe id="demoFrame" width="100%" height="380" src="" allow="autoplay; encrypted-media" allowfullscreen style="display:block;border:none"></iframe>
-    <div style="padding:20px;text-align:center;background:#0d1117">
-      <p style="color:#94a3b8;font-size:14px;margin:0">Demo de Prestify — <strong style="color:#60a5fa">prestify.netlify.app</strong></p>
+    <div id="regError" style="display:none;padding:10px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:10px;color:#f87171;font-size:13px;font-weight:600;margin-bottom:14px"></div>
+    <div class="field">
+      <label>Email</label>
+      <input id="regEmail" type="email" placeholder="tu@email.com" autocomplete="email"/>
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input id="regPass" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"/>
+    </div>
+    <div class="field" style="margin-bottom:20px">
+      <label>Confirmar contraseña</label>
+      <input id="regPass2" type="password" placeholder="Repetí la contraseña" autocomplete="new-password"/>
+    </div>
+    <button id="btnRegConfirm" class="btn-primary" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed);margin-bottom:10px">
+      <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Crear mi cuenta
+    </button>
+    <button id="btnRegCancel" class="btn-outline" style="width:100%;margin-bottom:12px">Cancelar</button>
+    <p style="text-align:center;font-size:13px;color:var(--muted)">¿Ya tenés cuenta? <a id="btnGoToLogin" href="#" style="color:var(--sky);font-weight:700;text-decoration:none">Iniciá sesión</a></p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     MODAL: LOGIN PRESTAMISTA EXISTENTE
+     ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box" style="max-width:420px">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:16px;background:rgba(26,86,219,.18);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+        <svg viewBox="0 0 24 24" style="width:24px;height:24px;stroke:var(--sky);fill:none;stroke-width:2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="modal-title" style="font-size:22px">Iniciar sesión</div>
+      <div class="modal-sub" style="margin-bottom:0">Ingresá con tu cuenta de administrador.</div>
+    </div>
+    <div id="loginError" style="display:none;padding:10px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:10px;color:#f87171;font-size:13px;font-weight:600;margin-bottom:14px"></div>
+    <div class="field">
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="tu@email.com" autocomplete="email"/>
+    </div>
+    <div class="field" style="margin-bottom:20px">
+      <label>Contraseña</label>
+      <input id="loginPass" type="password" placeholder="Tu contraseña" autocomplete="current-password"/>
+    </div>
+    <button id="btnLoginConfirm" class="btn-primary" style="margin-bottom:10px">
+      <svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Iniciar sesión
+    </button>
+    <button id="btnLoginCancel" class="btn-outline" style="width:100%;margin-bottom:12px">Cancelar</button>
+    <div style="display:flex;justify-content:space-between;font-size:13px">
+      <p style="color:var(--muted)">¿No tenés cuenta? <a id="btnGoToRegister" href="#" style="color:var(--sky);font-weight:700;text-decoration:none">Registrate</a></p>
+      <a id="btnLoginForgot" href="#" style="color:var(--muted);font-size:13px;text-decoration:none">Olvidé mi contraseña</a>
     </div>
   </div>
 </div>
@@ -2395,7 +2445,7 @@ body.client-mode .moni-brand-strip { display:flex; }
    ════════════════════════════════════════════════════════════════ */
 
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
          serverTimestamp, query, where, orderBy, limit, onSnapshot, writeBatch }
@@ -2542,39 +2592,29 @@ function renderLandingPage() {
   }
 })();
 
-// Landing CTAs → abrir registro
+// Landing CTAs → Registro de nuevo prestamista
 function openRegisterFlow() {
-  // Si hay sesión activa (admin), cerrarla primero para mostrar el flujo de registro limpio
-  if (auth.currentUser) {
-    signOut(auth).then(() => {
-      hideLandingPage();
-      el("heroSection").style.display = "none";
-      el("clientView").style.display  = "none";
-      el("adminView").className       = "admin-wrap visible";
-      el("btnViewClient").style.display = "";
-      el("btnViewAdmin").style.display  = "";
-      requestAnimationFrame(() => {
-        const gate = el("adminGate");
-        if (gate) gate.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    });
-    return;
-  }
-  hideLandingPage();
-  el("heroSection").style.display = "none";
-  el("clientView").style.display  = "none";
-  el("adminView").className       = "admin-wrap visible";
-  el("btnViewClient").style.display = "";
-  el("btnViewAdmin").style.display  = "";
-  requestAnimationFrame(() => {
-    const gate = el("adminGate");
-    if (gate) gate.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
+  // Mostrar el modal de registro (email + contraseña)
+  el("registerModal").classList.add("open");
+  // Limpiar campos
+  const em = el("regEmail"); if (em) { em.value = ""; em.focus(); }
+  const pw = el("regPass");  if (pw)   pw.value = "";
+  const pw2 = el("regPass2"); if (pw2) pw2.value = "";
+  const err = el("regError"); if (err) { err.textContent = ""; err.style.display = "none"; }
 }
+
+// Login existente (admin)
+function openLoginFlow() {
+  el("loginModal").classList.add("open");
+  const em = el("loginEmail"); if (em) { em.value = ""; em.focus(); }
+  const pw = el("loginPass");  if (pw)   pw.value = "";
+  const err = el("loginError"); if (err) { err.textContent = ""; err.style.display = "none"; }
+}
+
 el("btnLandingRegister")?.addEventListener("click", openRegisterFlow);
 el("btnLandingRegister2")?.addEventListener("click", openRegisterFlow);
 el("btnLandingRegister3")?.addEventListener("click", openRegisterFlow);
-el("btnLandingLogin")?.addEventListener("click", e => { e.preventDefault(); openRegisterFlow(); });
+el("btnLandingLogin")?.addEventListener("click", e => { e.preventDefault(); openLoginFlow(); });
 
 /* ══════════════════════════════════════════════════════════════
    HELPERS FIRESTORE
@@ -3072,17 +3112,83 @@ function startStatusListener() {
 /* ══════════════════════════════════════════════════════════════
    LOGIN / LOGOUT
    ══════════════════════════════════════════════════════════════ */
-async function doLogin() {
-  const email = prompt("Email de administrador:") || "";
-  const pass  = prompt("Contraseña:")             || "";
-  if (!email || !pass) return;
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    toast("Sesión iniciada", "ok");
-  } catch { toast("Credenciales incorrectas", "err"); }
-}
+/* ── Modal Login existente ── */
+function doLogin() { openLoginFlow(); }
 el("btnAdminLogin").onclick  = doLogin;
 el("btnAdminLogin2").onclick = doLogin;
+
+/* ── Handler: Registrar nueva cuenta ── */
+el("btnRegConfirm")?.addEventListener("click", async () => {
+  const email = (el("regEmail")?.value || "").trim();
+  const pass  = (el("regPass")?.value  || "").trim();
+  const pass2 = (el("regPass2")?.value || "").trim();
+  const errEl = el("regError");
+  const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = ""; } };
+  if (!email || !pass) { showErr("Completá email y contraseña."); return; }
+  if (pass.length < 6)  { showErr("La contraseña debe tener al menos 6 caracteres."); return; }
+  if (pass !== pass2)   { showErr("Las contraseñas no coinciden."); return; }
+  const btn = el("btnRegConfirm");
+  btn.disabled = true; btn.textContent = "Creando cuenta...";
+  try {
+    await createUserWithEmailAndPassword(auth, email, pass);
+    el("registerModal").classList.remove("open");
+    // onAuthStateChanged detectará !onboardingDone y abrirá el onboarding automáticamente
+    toast("✅ Cuenta creada. Completá tu perfil.", "ok", 4000);
+  } catch(e) {
+    const msgs = {
+      "auth/email-already-in-use": "Ese email ya tiene una cuenta. Usá 'Iniciar sesión'.",
+      "auth/invalid-email":        "Email inválido.",
+      "auth/weak-password":        "Contraseña muy débil (mínimo 6 caracteres).",
+    };
+    showErr(msgs[e.code] || "Error: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "Crear mi cuenta";
+  }
+});
+
+/* ── Handler: Login existente ── */
+el("btnLoginConfirm")?.addEventListener("click", async () => {
+  const email = (el("loginEmail")?.value || "").trim();
+  const pass  = (el("loginPass")?.value  || "").trim();
+  const errEl = el("loginError");
+  const showErr = msg => { if (errEl) { errEl.textContent = msg; errEl.style.display = ""; } };
+  if (!email || !pass) { showErr("Completá email y contraseña."); return; }
+  const btn = el("btnLoginConfirm");
+  btn.disabled = true; btn.textContent = "Ingresando...";
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    el("loginModal").classList.remove("open");
+    toast("Sesión iniciada", "ok");
+  } catch(e) {
+    const msgs = {
+      "auth/invalid-credential":   "Email o contraseña incorrectos.",
+      "auth/user-not-found":       "No existe cuenta con ese email.",
+      "auth/wrong-password":       "Contraseña incorrecta.",
+      "auth/invalid-email":        "Email inválido.",
+    };
+    showErr(msgs[e.code] || "Credenciales incorrectas.");
+  } finally {
+    btn.disabled = false; btn.textContent = "Iniciar sesión";
+  }
+});
+
+/* ── Recuperar contraseña desde modal login ── */
+el("btnLoginForgot")?.addEventListener("click", async () => {
+  const email = (el("loginEmail")?.value || "").trim();
+  if (!email) { const e = el("loginError"); if(e){e.textContent="Ingresá tu email primero.";e.style.display="";} return; }
+  try { await sendPasswordResetEmail(auth, email); toast("Email de recuperación enviado ✅", "ok", 5000); }
+  catch { toast("No se pudo enviar el email.", "err"); }
+});
+
+/* ── Cerrar modales al clickear fondo ── */
+el("registerModal")?.addEventListener("click", e => { if (e.target === el("registerModal")) el("registerModal").classList.remove("open"); });
+el("loginModal")?.addEventListener("click",    e => { if (e.target === el("loginModal"))    el("loginModal").classList.remove("open"); });
+el("btnRegCancel")?.addEventListener("click",  () => el("registerModal").classList.remove("open"));
+el("btnLoginCancel")?.addEventListener("click",() => el("loginModal").classList.remove("open"));
+/* Switch entre modales */
+el("btnGoToLogin")?.addEventListener("click",    () => { el("registerModal").classList.remove("open"); openLoginFlow(); });
+el("btnGoToRegister")?.addEventListener("click", () => { el("loginModal").classList.remove("open");    openRegisterFlow(); });
+
 el("btnLogout").onclick = () => {
   if (gStatusUnsub) { gStatusUnsub(); gStatusUnsub = null; }
   signOut(auth).then(() => toast("Sesión cerrada", "info")).catch(() => {});
