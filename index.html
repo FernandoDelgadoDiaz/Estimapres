@@ -1323,6 +1323,209 @@ body.landing-active::before {
 .rv.io-hidden.rv-right { transform:translateX(32px); }
 .rv.io-visible { opacity:1 !important; transform:none !important; }
 
+/* ══ MONI HEADER — Banner de marca premium ══ */
+.moni-header {
+  --moni-primary: #1a56db;
+  background: linear-gradient(160deg, var(--moni-primary) 0%, color-mix(in srgb, var(--moni-primary) 80%, #000) 100%);
+  padding: 28px 24px 32px;
+  margin-bottom: 0;
+  position: relative;
+  overflow: hidden;
+}
+.moni-header::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  pointer-events: none;
+}
+.moni-header::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; left: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.05);
+  pointer-events: none;
+}
+.moni-header-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+.moni-header-logo {
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.2);
+  border: 2px solid rgba(255,255,255,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900; color: #fff;
+  flex-shrink: 0; overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+.moni-header-info { flex: 1; }
+.moni-header-name {
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  font-family: 'Plus Jakarta Sans','Sora',sans-serif;
+}
+.moni-header-tagline {
+  font-size: 13px;
+  color: rgba(255,255,255,.7);
+  margin-top: 4px;
+  font-weight: 400;
+}
+.moni-header-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.moni-header-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,.9);
+  backdrop-filter: blur(8px);
+}
+.moni-header-badge svg {
+  width: 11px; height: 11px;
+  stroke: rgba(255,255,255,.9); fill: none; stroke-width: 2.5;
+}
+@media(max-width: 500px) {
+  .moni-header-badges { display: none; }
+  .moni-header-inner  { gap: 12px; }
+}
+
+/* ══ Transición suave del header al client-grid ══ */
+body.client-mode #clientView > .moni-header + .client-grid {
+  border-radius: 0;
+  padding-top: 20px;
+}
+body.client-mode .main-wrap {
+  padding-top: 0;
+}
+
+/* ══ Mejorar cards del panel cliente ══ */
+body.client-mode .client-grid {
+  background: #F0F4FF;
+  padding: 20px 16px 16px;
+  gap: 16px;
+}
+@media(min-width: 600px) {
+  body.client-mode .client-grid { padding: 24px 24px 20px; }
+}
+
+/* ══ Cuota hero mejorada (más grande, más impacto) ══ */
+body.client-mode .client-cuota-hero {
+  background: #fff !important;
+  border: 2px solid color-mix(in srgb, var(--brand-color,#1a56db) 20%, transparent) !important;
+  border-radius: 20px !important;
+  padding: 28px 20px !important;
+  margin: 16px 0 !important;
+  text-align: center;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--brand-color,#1a56db) 12%, transparent) !important;
+}
+body.client-mode .client-cuota-label {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 2px !important;
+  color: #888 !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+}
+body.client-mode .client-cuota-value {
+  font-size: clamp(40px, 10vw, 58px) !important;
+  font-weight: 900 !important;
+  color: var(--brand-color,#1a56db) !important;
+  letter-spacing: -2px !important;
+  line-height: 1 !important;
+  font-family: 'Plus Jakarta Sans','Sora',sans-serif !important;
+}
+body.client-mode .client-cuota-months {
+  font-size: 14px !important;
+  color: #666 !important;
+  margin-top: 8px !important;
+  font-weight: 500 !important;
+}
+
+/* ══ Slider mejorado ══ */
+body.client-mode .client-amount-display {
+  font-size: clamp(32px,8vw,48px) !important;
+  font-weight: 900 !important;
+  color: var(--brand-color,#1a56db) !important;
+  text-align: center !important;
+  letter-spacing: -2px !important;
+  line-height: 1 !important;
+  margin: 12px 0 6px !important;
+  font-family: 'Plus Jakarta Sans','Sora',sans-serif !important;
+}
+body.client-mode .client-amount-label {
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.5px !important;
+  color: #888 !important;
+  text-align: center !important;
+  font-weight: 700 !important;
+  margin-bottom: 4px !important;
+}
+
+/* ══ Pills más grandes y vistosas ══ */
+body.client-mode .client-pill {
+  flex: 1 !important;
+  min-width: 58px !important;
+  padding: 12px 8px !important;
+  border-radius: 999px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  transition: all .18s !important;
+}
+body.client-mode .client-pill.active {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand-color,#1a56db) 35%, transparent) !important;
+}
+
+/* ══ Botón CTA cliente grande ══ */
+body.client-mode .btn-primary {
+  padding: 16px 20px !important;
+  font-size: 15px !important;
+  border-radius: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: .2px !important;
+}
+
+/* ══ sim-result-box estilo Moni ══ */
+body.client-mode .sim-result-box {
+  background: #fff !important;
+  border: 1.5px solid #E2E8F0 !important;
+  border-radius: 20px !important;
+  padding: 20px !important;
+  margin-top: 16px !important;
+}
+body.client-mode .sim-cuota-value {
+  font-size: 38px !important;
+  font-weight: 900 !important;
+  color: var(--brand-color,#1a56db) !important;
+  letter-spacing: -1.5px !important;
+  font-family: 'Plus Jakarta Sans','Sora',sans-serif !important;
+}
+body.client-mode .sim-cuota-label {
+  color: #888 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
 /* Moni brand strip (en hero modo cliente) */
 .moni-brand-strip { display:none; align-items:center; justify-content:center; gap:14px; padding:20px 24px 0; }
 body.client-mode .moni-brand-strip { display:flex; }
@@ -1627,7 +1830,7 @@ body.client-mode .moni-brand-strip { display:flex; }
   <div class="suspended-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
   <div class="suspended-title">Cuenta suspendida</div>
   <div class="suspended-msg">Tu cuenta ha sido <strong>pausada por falta de pago</strong> o incumplimiento de los términos del servicio.<br><br>Para reactivarla, contactá al soporte de la plataforma.</div>
-  <a href="mailto:soporte@prestify.app" class="suspended-contact-btn">Contactar soporte</a>
+  <a href="/cdn-cgi/l/email-protection#2e5d415e415c5a4b6e5e5c4b5d5a474857004f5e5e" class="suspended-contact-btn">Contactar soporte</a>
 </div>
 
 
@@ -1816,10 +2019,28 @@ body.client-mode .moni-brand-strip { display:flex; }
 
   <!-- VISTA CLIENTE -->
   <div id="clientView" style="display:none">
-    <div class="lender-brand-header" id="lenderBrandHeader" style="display:none">
-      <div class="lender-brand-name" id="lenderBrandName">Mi Financiera</div>
-      <div class="lender-brand-tagline">Préstamos rápidos y seguros</div>
+
+    <!-- ══ HEADER MONI — Banner de marca del prestamista ══ -->
+    <div class="moni-header" id="lenderBrandHeader" style="display:none">
+      <div class="moni-header-inner">
+        <div class="moni-header-logo" id="lenderLogoCircle">P</div>
+        <div class="moni-header-info">
+          <div class="moni-header-name" id="lenderBrandName">Mi Financiera</div>
+          <div class="moni-header-tagline">Préstamos rápidos y seguros</div>
+        </div>
+        <div class="moni-header-badges">
+          <div class="moni-header-badge">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Seguro
+          </div>
+          <div class="moni-header-badge">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Sin burocracia
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="client-grid">
       <!-- Simulador -->
       <div class="card">
@@ -2141,7 +2362,7 @@ body.client-mode .moni-brand-strip { display:flex; }
 <!-- ════════════════════════════════════════════════════
      SCRIPT: mejora brand strip Moni (sin tocar Firebase)
      ════════════════════════════════════════════════════ -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // Sincroniza el brand strip (logo + nombre) con el lender cargado
 (function() {
   var _origAB = typeof applyBranding === 'function' ? applyBranding : null;
@@ -2352,6 +2573,7 @@ function openRegisterFlow() {
 }
 el("btnLandingRegister")?.addEventListener("click", openRegisterFlow);
 el("btnLandingRegister2")?.addEventListener("click", openRegisterFlow);
+el("btnLandingRegister3")?.addEventListener("click", openRegisterFlow);
 el("btnLandingLogin")?.addEventListener("click", e => { e.preventDefault(); openRegisterFlow(); });
 
 /* ══════════════════════════════════════════════════════════════
@@ -2598,6 +2820,18 @@ function applyBranding() {
     const minLbl = el("sliderMinLabel"); if (minLbl) minLbl.textContent = "$ 5.000";
     const bh = el("lenderBrandHeader"); if (bh) bh.style.display = "";
     const bn = el("lenderBrandName");   if (bn) bn.textContent = name;
+    // Actualizar logo circle con imagen real o iniciales
+    const lc = el("lenderLogoCircle");
+    if (lc) {
+      if (gSettings.logoBase64) {
+        lc.innerHTML = `<img src="${gSettings.logoBase64}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+      } else {
+        lc.textContent = name.trim().slice(0,1).toUpperCase();
+        lc.style.background = `linear-gradient(135deg, ${gSettings.brandColor||"#1a56db"}, ${gSettings.brandColor||"#1a56db"}aa)`;
+      }
+    }
+    // Aplicar color de marca al header Moni
+    if (bh) bh.style.setProperty("--moni-primary", gSettings.brandColor || "#1a56db");
     const ft = el("prestifyFooter");    if (ft) ft.style.display = "";
     const caw = el("clientAmountWrap"); if (caw) caw.style.display = "";
     const aaw = el("adminAmountWrap");  if (aaw) aaw.style.display = "none";
@@ -2764,10 +2998,15 @@ onAuthStateChanged(auth, async u => {
     hideLandingPage();
 
     if (u.uid === SUPER_ADMIN_UID) {
-      el("heroSection").style.display = "none";
-      el("clientView").style.display  = "none";
-      el("adminView").className       = "admin-wrap";
+      el("heroSection").style.display   = "none";
+      el("clientView").style.display    = "none";
+      el("adminView").className         = "admin-wrap";
       el("superadminView")?.classList.add("show");
+      // Mostrar los 3 botones de navegación para el dueño
+      el("btnViewClient").style.display = "";
+      el("btnViewAdmin").style.display  = "";
+      const saBtn2 = el("btnViewSuperAdmin");
+      if (saBtn2) saBtn2.style.display  = "";
       loadSuperAdmin();
       return;
     }
