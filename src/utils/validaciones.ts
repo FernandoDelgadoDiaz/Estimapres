@@ -1,8 +1,9 @@
 import { JornadaAsignada, Turno } from '../types'
 import { minutosDesdeMedianoche, formatoHoraDesdeMinutos } from './timeUtils'
 
-export function validarDistribucionFull(jornadas: JornadaAsignada[]): string[] {
+export function validarDistribucionFull(jornadas: JornadaAsignada[], tipo?: string): string[] {
   const errores: string[] = []
+  if (tipo === 'AUX' || tipo === 'EVENTUAL') return []
   const diasActivos = jornadas.filter(j => !j.esFranco)
 
   // Contar jornadas por duración
@@ -109,8 +110,12 @@ export function validarDescanso3hBloques(turnos: Turno[]): string[] {
   return errores
 }
 
-export function validarFranco(jornadas: JornadaAsignada[]): string[] {
+export function validarFranco(jornadas: JornadaAsignada[], tipo?: string): string[] {
   const errores: string[] = []
+  // AUX y EVENTUAL no tienen distribución fija de francos
+  if (tipo === 'AUX' || tipo === 'EVENTUAL') {
+    return []
+  }
   const francos = jornadas.filter(j => j.esFranco).length
   if (francos !== 1) {
     errores.push(`Debe tener exactamente 1 franco (tiene ${francos})`)
@@ -121,9 +126,13 @@ export function validarFranco(jornadas: JornadaAsignada[]): string[] {
 export function validarHorasSemanales(
   jornadas: JornadaAsignada[],
   maxHoras: number,
-  tipo: 'FULL' | 'PART' | 'AUX'
+  tipo: 'FULL' | 'PART' | 'AUX' | 'EVENTUAL'
 ): string[] {
   const errores: string[] = []
+  // AUX y EVENTUAL no tienen distribución fija de horas
+  if (tipo === 'AUX' || tipo === 'EVENTUAL') {
+    return []
+  }
   const totalHoras = jornadas
     .filter(j => !j.esFranco)
     .reduce((sum, j) => sum + j.horas, 0)

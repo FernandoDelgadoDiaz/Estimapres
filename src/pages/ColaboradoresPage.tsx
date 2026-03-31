@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useColaboradores } from '../hooks/useColaboradores'
+import { useAuxiliares } from '../hooks/useAuxiliares'
+import { useEventuales } from '../hooks/useEventuales'
 import TablaColaboradores from '../components/colaboradores/TablaColaboradores'
+import TablaAuxiliares from '../components/colaboradores/TablaAuxiliares'
+import TablaEventuales from '../components/colaboradores/TablaEventuales'
 import FormColaborador from '../components/colaboradores/FormColaborador'
 import { Colaborador } from '../types'
 
@@ -14,6 +18,26 @@ export default function ColaboradoresPage() {
     toggleActivo,
   } = useColaboradores()
 
+  const {
+    auxiliares,
+    auxiliaresActivos,
+    agregarAuxiliar,
+    actualizarAuxiliar,
+    eliminarAuxiliar,
+    toggleActivo: toggleActivoAux,
+    resetAuxiliares,
+  } = useAuxiliares()
+
+  const {
+    eventuales,
+    eventualesActivos,
+    agregarEventual,
+    actualizarEventual,
+    eliminarEventual,
+    toggleActivo: toggleActivoEv,
+  } = useEventuales()
+
+  const [activeTab, setActiveTab] = useState<'cajeros' | 'auxiliares' | 'eventuales'>('cajeros')
   const [showForm, setShowForm] = useState(false)
   const [editingColaborador, setEditingColaborador] = useState<Colaborador | null>(null)
 
@@ -43,12 +67,31 @@ export default function ColaboradoresPage() {
     setEditingColaborador(null)
   }
 
+  const handleAgregarAuxiliar = () => {
+    agregarAuxiliar({
+      nombre: 'Nuevo auxiliar',
+      horarioSemanal: ['', '', '', '', '', '', ''],
+    })
+  }
+
+  const handleAgregarEventual = () => {
+    agregarEventual({
+      nombre: 'Nuevo eventual',
+      sector: '',
+      horarioSemanal: ['', '', '', '', '', '', ''],
+    })
+  }
+
+  const cajeros = colaboradores.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
+  const cajerosActivos = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
+
   const stats = {
-    total: colaboradores.length,
-    activos: colaboradoresActivos.length,
-    full: colaboradoresActivos.filter(c => c.tipo === 'FULL').length,
-    part: colaboradoresActivos.filter(c => c.tipo === 'PART').length,
-    aux: colaboradoresActivos.filter(c => c.tipo === 'AUX').length,
+    cajerosTotal: cajeros.length,
+    cajerosActivos: cajerosActivos.length,
+    auxiliaresTotal: auxiliares.length,
+    auxiliaresActivos: auxiliaresActivos.length,
+    eventualesTotal: eventuales.length,
+    eventualesActivos: eventualesActivos.length,
   }
 
   return (
@@ -57,58 +100,138 @@ export default function ColaboradoresPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Colaboradores</h1>
           <p className="text-gray-600 mt-2">
-            Gestiona los cajeros que participarán en la asignación de horarios.
+            Gestiona cajeros, auxiliares y eventuales para la asignación de horarios.
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-        >
-          <span className="text-xl mr-2">+</span>
-          Agregar colaborador
-        </button>
+        {activeTab === 'cajeros' && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+          >
+            <span className="text-xl mr-2">+</span>
+            Agregar cajero
+          </button>
+        )}
+        {activeTab === 'auxiliares' && (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleAgregarAuxiliar}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+            >
+              <span className="text-xl mr-2">+</span>
+              Agregar auxiliar
+            </button>
+            <button
+              onClick={resetAuxiliares}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center"
+            >
+              <span className="text-xl mr-2">↺</span>
+              Restaurar horarios de prueba
+            </button>
+          </div>
+        )}
+        {activeTab === 'eventuales' && (
+          <button
+            onClick={handleAgregarEventual}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+          >
+            <span className="text-xl mr-2">+</span>
+            Agregar eventual
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-8">
+        <nav className="-mb-px flex space-x-8">
+          {['cajeros', 'auxiliares', 'eventuales'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`
+                py-2 px-1 border-b-2 font-medium text-sm
+                ${activeTab === tab
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }
+              `}
+            >
+              {tab === 'cajeros' && 'Cajeros'}
+              {tab === 'auxiliares' && 'Auxiliares'}
+              {tab === 'eventuales' && 'Eventuales'}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-          <div className="text-sm text-gray-600">Total colaboradores</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.cajerosTotal}</div>
+          <div className="text-sm text-gray-600">Cajeros total</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.activos}</div>
-          <div className="text-sm text-gray-600">Activos</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.cajerosActivos}</div>
+          <div className="text-sm text-gray-600">Cajeros activos</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.full}</div>
-          <div className="text-sm text-gray-600">Full Time</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.auxiliaresTotal}</div>
+          <div className="text-sm text-gray-600">Auxiliares total</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.part}</div>
-          <div className="text-sm text-gray-600">Part Time</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.auxiliaresActivos}</div>
+          <div className="text-sm text-gray-600">Auxiliares activos</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-gray-900">{stats.eventualesTotal}</div>
+          <div className="text-sm text-gray-600">Eventuales total</div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+          <div className="text-2xl font-bold text-gray-900">{stats.eventualesActivos}</div>
+          <div className="text-sm text-gray-600">Eventuales activos</div>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="mb-4 flex items-center space-x-4">
-        <div>
-          <span className="text-sm font-medium text-gray-700">Mostrar: </span>
-          <span className="text-sm text-gray-900">Todos los colaboradores</span>
-        </div>
-        <div className="text-sm text-gray-500">
-          {stats.activos} activos de {stats.total} total
-        </div>
-      </div>
+      {/* Tabla según pestaña */}
+      {activeTab === 'cajeros' && (
+        <>
+          <div className="mb-4 flex items-center space-x-4">
+            <div>
+              <span className="text-sm font-medium text-gray-700">Mostrar: </span>
+              <span className="text-sm text-gray-900">Todos los cajeros (FULL + PART)</span>
+            </div>
+            <div className="text-sm text-gray-500">
+              {stats.cajerosActivos} activos de {stats.cajerosTotal} total
+            </div>
+          </div>
+          <TablaColaboradores
+            colaboradores={cajeros}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onToggleActivo={toggleActivo}
+          />
+        </>
+      )}
 
-      {/* Tabla */}
-      <TablaColaboradores
-        colaboradores={colaboradores}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onToggleActivo={toggleActivo}
-      />
+      {activeTab === 'auxiliares' && (
+        <TablaAuxiliares
+          auxiliares={auxiliares}
+          onEdit={actualizarAuxiliar}
+          onDelete={eliminarAuxiliar}
+          onToggleActivo={toggleActivoAux}
+        />
+      )}
 
-      {/* Formulario modal */}
+      {activeTab === 'eventuales' && (
+        <TablaEventuales
+          eventuales={eventuales}
+          onEdit={actualizarEventual}
+          onDelete={eliminarEventual}
+          onToggleActivo={toggleActivoEv}
+        />
+      )}
+
+      {/* Formulario modal (solo para cajeros) */}
       {showForm && (
         <FormColaborador
           colaborador={editingColaborador}

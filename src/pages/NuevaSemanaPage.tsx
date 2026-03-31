@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { ExcepcionSemanal, DIAS_SEMANA } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
+import { useAuxiliares } from '../hooks/useAuxiliares'
+import { useEventuales } from '../hooks/useEventuales'
 import { useAsignacion } from '../hooks/useAsignacion'
 import PDFUploader from '../components/semana/PDFUploader'
 import PreviewNecesidad from '../components/semana/PreviewNecesidad'
@@ -17,8 +20,15 @@ export default function NuevaSemanaPage() {
   const [paso, setPaso] = useState<Paso>('upload')
   const { necesidad, loading: loadingPDF, error: errorPDF, parsearPDF, reset: resetPDF } = usePDFParser()
   const { colaboradoresActivos } = useColaboradores()
+  const { auxiliaresActivos } = useAuxiliares()
+  const { eventualesActivos } = useEventuales()
   const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, reset: resetAsignacion } = useAsignacion()
   const [semanaDesc, setSemanaDesc] = useState('')
+  const [excepciones, setExcepciones] = useState<ExcepcionSemanal[]>([])
+  const [mostrarExcepciones, setMostrarExcepciones] = useState(false)
+  const [colaboradorSeleccionado, setColaboradorSeleccionado] = useState('')
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<ExcepcionSemanal['tipo']>('franco_dia')
+  const [valorInput, setValorInput] = useState('')
 
   const handlePDFSelect = async (file: File) => {
     await parsearPDF(file)
@@ -26,6 +36,55 @@ export default function NuevaSemanaPage() {
     const hoy = new Date()
     setSemanaDesc(`Semana ${format(hoy, 'w', { locale: es })} - ${format(hoy, 'MMMM yyyy', { locale: es })}`)
     setPaso('revisar')
+  }
+
+  const agregarExcepcion = () => {
+    if (excepciones.length >= 10) {
+      alert('Máximo 10 excepciones por semana')
+      return
+    }
+    if (!colaboradorSeleccionado) {
+      alert('Selecciona un colaborador')
+      return
+    }
+    const colaborador = colaboradoresActivos.find(c => c.id === colaboradorSeleccionado)
+    if (!colaborador) return
+    let descripcion = ''
+    switch (tipoSeleccionado) {
+      case 'franco_dia':
+        descripcion = `Franco el ${valorInput}`
+        break
+      case 'no_antes_de':
+        descripcion = `No disponible antes de ${valorInput}`
+        break
+      case 'no_despues_de':
+        descripcion = `No disponible después de ${valorInput}`
+        break
+      case 'siempre_cierre':
+        descripcion = 'Siempre hacer cierre (turno hasta 22:30)'
+        break
+      case 'solo_matutino':
+        descripcion = 'Solo turno matutino (terminar antes de las 15:00)'
+        break
+      case 'solo_nocturno':
+        descripcion = 'Solo turno nocturno (empezar después de las 17:00)'
+        break
+    }
+    const nuevaExcepcion: ExcepcionSemanal = {
+      id: Date.now().toString(),
+      colaboradorNombre: colaborador.nombre,
+      tipo: tipoSeleccionado,
+      valor: valorInput || undefined,
+      descripcion,
+    }
+    setExcepciones([...excepciones, nuevaExcepcion])
+    setColaboradorSeleccionado('')
+    setTipoSeleccionado('franco_dia')
+    setValorInput('')
+  }
+
+  const eliminarExcepcion = (id: string) => {
+    setExcepciones(excepciones.filter(e => e.id !== id))
   }
 
   const handleGenerarHorarios = async () => {
@@ -36,7 +95,8 @@ export default function NuevaSemanaPage() {
       const fecha = addDays(lunes, i)
       return format(fecha, 'yyyy-MM-dd')
     })
-    await generarHorarios(necesidad, colaboradoresActivos, fechas)
+    const cajerosActivos = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
+    await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepciones)
     setPaso('resultado')
   }
 
@@ -49,6 +109,8 @@ export default function NuevaSemanaPage() {
   const handleNuevaSemana = () => {
     resetPDF()
     resetAsignacion()
+    setExcepciones([])
+    setMostrarExcepciones(false)
     setPaso('upload')
   }
 
@@ -195,6 +257,120 @@ export default function NuevaSemanaPage() {
               </div>
             </div>
 
+            {/* Sección de excepciones semanales */}
+            <div className="mt-8 p-6 border border-gray-200 rounded-xl bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">Excepciones semanales (opcional)</h3>
+                <button
+                  onClick={() => setMostrarExcepciones(!mostrarExcepciones)}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  {mostrarExcepciones ? 'Ocultar' : 'Agregar excepción'}
+                </button>
+              </div>
+
+              {mostrarExcepciones && (
+                <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador</label>
+                      <select
+                        value={colaboradorSeleccionado}
+                        onChange={(e) => setColaboradorSeleccionado(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">Seleccionar...</option>
+                        {colaboradoresActivos.map(col => (
+                          <option key={col.id} value={col.id}>{col.nombre}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de excepción</label>
+                      <select
+                        value={tipoSeleccionado}
+                        onChange={(e) => {
+                          setTipoSeleccionado(e.target.value as ExcepcionSemanal['tipo'])
+                          setValorInput('')
+                        }}
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="franco_dia">Franco en día específico</option>
+                        <option value="no_antes_de">No disponible antes de cierta hora</option>
+                        <option value="no_despues_de">No disponible después de cierta hora</option>
+                        <option value="siempre_cierre">Siempre hacer cierre (turno hasta 22:30)</option>
+                        <option value="solo_matutino">Solo turno matutino (terminar antes de las 15:00)</option>
+                        <option value="solo_nocturno">Solo turno nocturno (empezar después de las 17:00)</option>
+                      </select>
+                    </div>
+                    <div>
+                      {(tipoSeleccionado === 'franco_dia' || tipoSeleccionado === 'no_antes_de' || tipoSeleccionado === 'no_despues_de') && (
+                        <>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {tipoSeleccionado === 'franco_dia' ? 'Día de la semana' : 'Hora (HH:MM)'}
+                          </label>
+                          {tipoSeleccionado === 'franco_dia' ? (
+                            <select
+                              value={valorInput}
+                              onChange={(e) => setValorInput(e.target.value)}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="">Seleccionar...</option>
+                              {DIAS_SEMANA.map(dia => (
+                                <option key={dia} value={dia}>{dia}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="time"
+                              value={valorInput}
+                              onChange={(e) => setValorInput(e.target.value)}
+                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              step="300"
+                            />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={agregarExcepcion}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                    >
+                      <span className="mr-2">+</span>
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Lista de excepciones agregadas */}
+              {excepciones.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {excepciones.map(exc => (
+                      <div
+                        key={exc.id}
+                        className="inline-flex items-center bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
+                      >
+                        <span>{exc.descripcion}</span>
+                        <button
+                          onClick={() => eliminarExcepcion(exc.id)}
+                          className="ml-2 text-blue-600 hover:text-blue-900 font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    {excepciones.length} / 10 excepciones agregadas
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="mt-8 flex justify-end">
               <button
                 onClick={handleGenerarHorarios}
@@ -265,6 +441,8 @@ export default function NuevaSemanaPage() {
           <TablaHorarios
             horarios={resultado.horarios}
             colaboradores={colaboradoresActivos}
+            auxiliares={auxiliaresActivos}
+            eventuales={eventualesActivos}
           />
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Colaborador, Franja, ResultadoAsignacion } from '../types'
+import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual } from '../types'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 
 export function useAsignacion() {
@@ -7,7 +7,7 @@ export function useAsignacion() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const generarHorarios = async (necesidad: Franja[], colaboradores: Colaborador[], fechas?: string[]) => {
+  const generarHorarios = async (necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[], fechas?: string[], excepciones: ExcepcionSemanal[] = []) => {
     setLoading(true)
     setError(null)
     try {
@@ -16,7 +16,7 @@ export function useAsignacion() {
       if (!fechasAUsar || fechasAUsar.length === 0) {
         fechasAUsar = generarFechasSemanaActual()
       }
-      const resultado = await asignarHorariosConIA(necesidad, colaboradores, fechasAUsar)
+      const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechasAUsar, excepciones)
       setResultado(resultado)
       return resultado
     } catch (err) {
