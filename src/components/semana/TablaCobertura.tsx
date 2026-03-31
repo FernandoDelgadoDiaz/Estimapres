@@ -3,16 +3,19 @@ import { DIAS_SEMANA, HORAS_FRANJAS } from '../../types'
 interface TablaCoberturaProps {
   coberturaFranjas: number[][]
   faltantesFranjas: number[][]
+  necesidadFranjas: number[][]
 }
 
 export default function TablaCobertura({
   coberturaFranjas,
-  faltantesFranjas,
+  faltantesFranjas: _faltantesFranjas,
+  necesidadFranjas,
 }: TablaCoberturaProps) {
   const getCellColor = (asignados: number, necesarios: number) => {
     if (necesarios === 0) return 'bg-gray-100 text-gray-500'
-    if (asignados >= necesarios) return 'bg-green-100 text-green-800'
+    if (asignados === necesarios) return 'bg-green-100 text-green-800'
     if (asignados < necesarios) return 'bg-red-100 text-red-800'
+    // asignados > necesarios (sobrecobertura)
     return 'bg-yellow-100 text-yellow-800'
   }
 
@@ -52,14 +55,14 @@ export default function TablaCobertura({
           <tbody className="bg-white divide-y divide-gray-200">
             {HORAS_FRANJAS.map((hora, idx) => {
               const asignados = coberturaFranjas[idx] || Array(7).fill(0)
-              const faltantes = faltantesFranjas[idx] || Array(7).fill(0)
+              const necesidad = necesidadFranjas[idx] || Array(7).fill(0)
               return (
                 <tr key={hora} className="hover:bg-gray-50">
                   <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white">
                     {hora}
                   </td>
                   {DIAS_SEMANA.map((_, diaIdx) => {
-                    const necesarios = asignados[diaIdx] + faltantes[diaIdx]
+                    const necesarios = necesidad[diaIdx]
                     return (
                       <td
                         key={diaIdx}

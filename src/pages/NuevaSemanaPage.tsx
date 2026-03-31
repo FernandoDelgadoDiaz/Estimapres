@@ -436,6 +436,7 @@ export default function NuevaSemanaPage() {
           <TablaCobertura
             coberturaFranjas={resultado.coberturaFranjas}
             faltantesFranjas={resultado.faltantesFranjas}
+            necesidadFranjas={necesidad.map(f => f.necesidad)}
           />
 
           <TablaHorarios

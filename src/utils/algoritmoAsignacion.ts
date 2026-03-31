@@ -748,9 +748,11 @@ export function generarHorariosDeterministicos(
   _fechas: string[],
   excepciones: ExcepcionSemanal[]
 ): ResultadoAsignacion {
+  // Copia profunda de la necesidad original (inmutable)
+  const necesidadOriginal: Franja[] = structuredClone(necesidad)
 
   // PASO 1: Asignar francos
-  const francosMap = asignarFrancos(cajeros, necesidad, excepciones)
+  const francosMap = asignarFrancos(cajeros, necesidadOriginal, excepciones)
 
   // PASO 2 y 3: Asignar jornadas cajeros
   const horariosCajeros: HorarioColaborador[] = []
@@ -763,14 +765,14 @@ export function generarHorariosDeterministicos(
   )
   const cajerosHasta2230PorDia = Array(7).fill(0)
   const cupo2200PorDia = Array.from({length: 7}, (_, dia) =>
-    Math.max(1, necesidadEnFranja(necesidad, dia, '22:00'))
+    Math.max(1, necesidadEnFranja(necesidadOriginal, dia, '22:00'))
   )
 
   for (let i = 0; i < cajerosFull.length; i++) {
     const cajero = cajerosFull[i]
     const franco = francosMap.get(cajero.id) ?? 0
     const erroresCajero: string[] = []
-    const jornadas = asignarJornadasFull(cajero, franco, necesidad, cajerosHasta2230PorDia, cupo2200PorDia, i, excepciones, erroresCajero)
+    const jornadas = asignarJornadasFull(cajero, franco, necesidadOriginal, cajerosHasta2230PorDia, cupo2200PorDia, i, excepciones, erroresCajero)
     horariosCajeros.push({
       colaboradorId: cajero.id,
       rolGeneral: 'cajero',
@@ -783,7 +785,7 @@ export function generarHorariosDeterministicos(
   for (const cajero of cajerosPart) {
     const franco = francosMap.get(cajero.id) ?? 0
     const erroresCajero: string[] = []
-    const jornadas = asignarJornadasPart(cajero, franco, necesidad, cajerosHasta2230PorDia, cupo2200PorDia, excepciones, erroresCajero)
+    const jornadas = asignarJornadasPart(cajero, franco, necesidadOriginal, cajerosHasta2230PorDia, cupo2200PorDia, excepciones, erroresCajero)
     horariosCajeros.push({
       colaboradorId: cajero.id,
       rolGeneral: 'cajero',
@@ -795,23 +797,23 @@ export function generarHorariosDeterministicos(
 
   // PASO 5: Asignar auxiliares
   const horariosAux = asignarAuxiliares(
-    auxiliares, horariosCajeros, necesidad
+    auxiliares, horariosCajeros, necesidadOriginal
   )
 
   // PASO 6: Asignar eventuales
   const todosHastaNow = [...horariosCajeros, ...horariosAux]
   const horariosEv = asignarEventuales(
-    eventuales, todosHastaNow, necesidad
+    eventuales, todosHastaNow, necesidadOriginal
   )
 
   // Combinar todos
   const horarios = [...horariosCajeros, ...horariosAux, ...horariosEv]
 
   // Calcular cobertura final
-  const coberturaFranjas = calcularCobertura(horarios, necesidad)
+  const coberturaFranjas = calcularCobertura(horarios, necesidadOriginal)
 
   // Calcular faltantes
-  const faltantesFranjas = necesidad.map((f, fi) =>
+  const faltantesFranjas = necesidadOriginal.map((f, fi) =>
     f.necesidad.map((nec, di) =>
       Math.max(0, nec - coberturaFranjas[fi][di])
     )
@@ -820,11 +822,11 @@ export function generarHorariosDeterministicos(
   // Calcular porcentaje
   let franjasCubiertas = 0
   let franjasConNecesidad = 0
-  for (let fi = 0; fi < necesidad.length; fi++) {
+  for (let fi = 0; fi < necesidadOriginal.length; fi++) {
     for (let di = 0; di < 7; di++) {
-      if (necesidad[fi].necesidad[di] > 0) {
+      if (necesidadOriginal[fi].necesidad[di] > 0) {
         franjasConNecesidad++
-        if (coberturaFranjas[fi][di] >= necesidad[fi].necesidad[di]) {
+        if (coberturaFranjas[fi][di] >= necesidadOriginal[fi].necesidad[di]) {
           franjasCubiertas++
         }
       }
@@ -839,7 +841,7 @@ export function generarHorariosDeterministicos(
   const dias = ['lunes','martes','miércoles','jueves',
     'viernes','sábado','domingo']
 
-  necesidad.forEach((franja, fi) => {
+  necesidadOriginal.forEach((franja, fi) => {
     franja.necesidad.forEach((nec, di) => {
       const diff = nec - coberturaFranjas[fi][di]
       if (diff > 0) {
