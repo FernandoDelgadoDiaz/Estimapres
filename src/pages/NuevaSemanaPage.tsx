@@ -102,7 +102,7 @@ export default function NuevaSemanaPage() {
 
   const handleExportarPDF = () => {
     if (!resultado) return
-    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc)
+    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, auxiliaresActivos, eventualesActivos)
     pdf.save(`horarios-${semanaDesc.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
 

@@ -1,12 +1,37 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { ResultadoAsignacion, Colaborador, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
+import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
 import { formatoTurno } from './timeUtils'
+
+function sanitizarTexto(texto: string): string {
+  // Eliminar caracteres no imprimibles (ASCII < 32 excepto \n, \t, \r)
+  let limpio = texto.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+  // Eliminar markdown básico: **, ##, -, *, `, etc.
+  limpio = limpio.replace(/\*\*|##|__|~~|`/g, '')
+  // Reemplazar múltiples espacios por uno solo
+  limpio = limpio.replace(/\s+/g, ' ')
+  return limpio.trim()
+}
+
+function limpiarValorCelda(valor: string): string {
+  // Si contiene salto de línea, tomar la primera línea no vacía
+  const lineas = valor.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+  if (lineas.length === 0) return ''
+  // Si todas las líneas son iguales, devolver solo una
+  const primera = lineas[0]
+  if (lineas.every(l => l === primera)) {
+    return primera
+  }
+  // Si hay diferencias, unir con espacio (no debería ocurrir)
+  return lineas.join(' ')
+}
 
 export function generarPDF(
   resultado: ResultadoAsignacion,
   colaboradores: Colaborador[],
-  semanaDesc: string
+  semanaDesc: string,
+  auxiliares: Auxiliar[] = [],
+  eventuales: Eventual[] = []
 ): jsPDF {
   const doc = new jsPDF('landscape')
   const fecha = new Date().toLocaleDateString('es-AR')
@@ -18,7 +43,12 @@ export function generarPDF(
   doc.text(`Generado: ${fecha}`, 14, 22)
 
   // Página 1: Horarios por colaborador
-  const colaboradoresMap = new Map(colaboradores.map(c => [c.id, c]))
+  // Mapa combinado de todos los colaboradores (cajeros, auxiliares, eventuales)
+  const colaboradoresMap = new Map<string, { nombre: string, tipo: string }>()
+  colaboradores.forEach(c => colaboradoresMap.set(c.id, { nombre: c.nombre, tipo: c.tipo }))
+  auxiliares.forEach(a => colaboradoresMap.set(a.id, { nombre: a.nombre, tipo: 'AUX' }))
+  eventuales.forEach(e => colaboradoresMap.set(e.id, { nombre: e.nombre, tipo: 'EVENTUAL' }))
+
   const tableData = resultado.horarios.map(horario => {
     const col = colaboradoresMap.get(horario.colaboradorId)
     if (!col) return []
@@ -41,7 +71,20 @@ export function generarPDF(
     body: tableData,
     startY: 30,
     theme: 'grid',
-    headStyles: { fillColor: [59, 130, 246] },
+    headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+    bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { halign: 'left' },
+      1: { halign: 'center' },
+      2: { halign: 'center' },
+      // Columnas de días (3 a 9)
+      ...Object.fromEntries(
+        Array.from({ length: 7 }, (_, i) => [3 + i, { halign: 'center' }])
+      ),
+    },
+    margin: { left: 14 },
+    styles: { cellPadding: 3, fontSize: 9 },
   })
 
   // Si la tabla ocupa mucho, agregar nueva página
@@ -83,10 +126,22 @@ export function generarPDF(
     body: coberturaDataUnica,
     startY: 30,
     theme: 'grid',
-    headStyles: { fillColor: [34, 197, 94] },
+    headStyles: { fillColor: [34, 197, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
+    bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { halign: 'left' },
+      // Columnas de días (1 a 7)
+      ...Object.fromEntries(
+        Array.from({ length: 7 }, (_, i) => [1 + i, { halign: 'center' }])
+      ),
+    },
+    margin: { left: 14 },
+    styles: { cellPadding: 3, fontSize: 9 },
     didDrawCell: (data) => {
       if (data.row.index === undefined || data.column.index === 0) return
-      const cellValue = data.cell.raw as string
+      let cellValue = limpiarValorCelda(data.cell.raw as string)
+      if (!cellValue) return
       const [asignados, necesarios] = cellValue.split('/').map(Number)
       if (asignados < necesarios) {
         // Rojo para faltante
@@ -123,7 +178,8 @@ export function generarPDF(
           doc.addPage()
           y = 20
         }
-        doc.text(`${idx + 1}. ${alerta}`, 20, y)
+        const alertaLimpia = sanitizarTexto(alerta)
+        doc.text(`${idx + 1}. ${alertaLimpia}`, 20, y)
         y += 6
       })
     }

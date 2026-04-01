@@ -47,33 +47,33 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
         <h3 className="text-xl font-semibold text-gray-800">
           Horarios asignados por colaborador
         </h3>
-        <p className="text-gray-600 text-sm mt-1">
+        <p className="text-gray-600 text-xs mt-1">
           {horarios.length} colaboradores con horarios generados
         </p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="w-full table-auto divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50">
                 Colaborador
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase w-20">
                 Tipo
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase w-16">
                 Hs
               </th>
               {DIAS_SEMANA.map((dia) => (
                 <th
                   key={dia}
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase w-16"
                 >
                   {dia}
                 </th>
               ))}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase w-32">
                 Errores
               </th>
             </tr>
@@ -109,17 +109,17 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
 
               return (
                 <tr key={horario.colaboradorId} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white">
+                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900 sticky left-0 bg-white">
                     {nombre}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-2 py-2 whitespace-nowrap w-20">
                     <span
                       className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${tipoColor}`}
                     >
                       {tipo}
                     </span>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 w-16 text-center">
                     {horario.totalHoras}h
                   </td>
                   {DIAS_SEMANA.map((_, diaIndex) => {
@@ -130,7 +130,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     return (
                       <td
                         key={diaIndex}
-                        className={`px-4 py-3 whitespace-nowrap text-sm ${
+                        className={`px-2 py-2 whitespace-nowrap text-xs w-16 text-center ${
                           isFrancoReal ? 'text-gray-500 italic' : 'text-gray-900'
                         }`}
                         style={{ backgroundColor: bgColor }}
@@ -139,7 +139,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                       </td>
                     )
                   })}
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-2 py-2 whitespace-nowrap w-32">
                     {horario.errores.length > 0 ? (
                       <div className="text-xs text-red-600">
                         {horario.errores.map((err, idx) => (
@@ -159,7 +159,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
 
       {/* Leyenda de colores */}
       <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Leyenda de roles</h4>
+        <h4 className="text-xs font-medium text-gray-700 mb-2">Leyenda de roles</h4>
         <div className="flex flex-wrap gap-4">
           {Object.entries(rolColor).map(([rol, color]) => (
             <div key={rol} className="flex items-center">
