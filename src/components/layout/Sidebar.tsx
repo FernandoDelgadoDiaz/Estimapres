@@ -9,33 +9,69 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <div className="w-64 bg-gray-900 text-gray-300 flex flex-col h-full">
-      <div className="p-6 border-b border-gray-800">
-        <h1 className="text-2xl font-bold text-white">Aliada Horarios</h1>
-        <p className="text-sm text-gray-400 mt-1">Aliada Tech 2026</p>
+    <div style={{
+      width: '240px',
+      background: 'var(--surface)',
+      color: 'var(--text)',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      borderRight: '1px solid var(--border)',
+    }}>
+      <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: 800,
+          fontFamily: "'Syne', sans-serif",
+          color: 'white',
+          margin: 0,
+          letterSpacing: '-0.5px',
+        }}>
+          Aliada Horarios
+        </h1>
+        <p style={{
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          marginTop: '4px',
+        }}>
+          Aliada Tech 2026
+        </p>
       </div>
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
+      <nav style={{ flex: 1, padding: '16px' }}>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {navItems.map((item) => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-blue-600 text-white'
-                      : 'hover:bg-gray-800 hover:text-white'
-                  }`
-                }
+                style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  textDecoration: 'none',
+                  transition: 'background-color 0.2s',
+                  background: isActive ? 'var(--accent)' : 'transparent',
+                  color: isActive ? 'var(--accent-dark)' : 'var(--text)',
+                })}
               >
-                <span className="text-xl">{item.icon}</span>
-                <span>{item.label}</span>
+                <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                <span style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 500,
+                  fontSize: '15px',
+                }}>{item.label}</span>
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
-      <div className="p-4 border-t border-gray-800 text-sm text-gray-500">
+      <div style={{
+        padding: '16px',
+        borderTop: '1px solid var(--border)',
+        fontSize: '14px',
+        color: 'var(--text-muted)',
+      }}>
         <p>© {new Date().getFullYear()} Aliada Tech</p>
       </div>
     </div>

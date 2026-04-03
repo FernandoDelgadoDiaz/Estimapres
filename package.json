@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@fontsource/space-grotesk": "^5.2.10",
+    "@fontsource/syne": "^5.2.7",
+    "@supabase/supabase-js": "^2.101.1",
     "clsx": "^2.0.0",
     "date-fns": "^3.0.6",
     "jspdf": "^2.5.1",

@@ -10,31 +10,48 @@ interface TablaHorariosProps {
 
 export default function TablaHorarios({ horarios, colaboradores, auxiliares = [], eventuales = [] }: TablaHorariosProps) {
 
-  const tiposColor = {
-    FULL: 'bg-blue-100 text-blue-800',
-    PART: 'bg-green-100 text-green-800',
-    AUX: 'bg-purple-100 text-purple-800',
-    EVENTUAL: 'bg-yellow-100 text-yellow-800',
-    cajero: 'bg-gray-100 text-gray-800',
+  const tiposColor: Record<string, { background: string, color: string }> = {
+    FULL: { background: 'var(--accent)', color: 'var(--accent-dark)' },
+    PART: { background: 'var(--purple)', color: 'var(--bg)' },
+    AUX: { background: 'var(--surface)', color: 'var(--accent)' },
+    EVENTUAL: { background: 'var(--card)', color: 'var(--text)' },
+    cajero: { background: 'var(--surface)', color: 'var(--text)' },
   }
 
   const rolColor: Record<string, string> = {
-    cajero: '#ffffff',
-    aux_supervisor: '#D1FAE5',
-    aux_eventual: '#DBEAFE',
-    eventual_sector: '#FED7AA',
-    franco: '#F3F4F6', // gray-100
-    franco_medio: '#FEF9C3',
+    cajero: 'var(--card)',
+    aux_supervisor: 'var(--surface)',
+    aux_eventual: 'var(--card)',
+    eventual_sector: 'var(--surface)',
+    franco: 'var(--bg)',
+    franco_medio: 'var(--card)',
   }
 
   if (horarios.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-8 text-center">
-        <div className="text-4xl mb-4">📋</div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+      <div style={{
+        background: 'var(--card)',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        padding: '40px',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+        <h3 style={{
+          fontSize: '24px',
+          fontWeight: 800,
+          fontFamily: "'Syne', sans-serif",
+          color: 'white',
+          marginBottom: '8px',
+          letterSpacing: '-0.5px',
+        }}>
           No hay horarios generados
         </h3>
-        <p className="text-gray-600">
+        <p style={{
+          color: 'var(--text-muted)',
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: '16px',
+        }}>
           Genera los horarios primero para ver la asignación por colaborador.
         </p>
       </div>
@@ -42,43 +59,101 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-      <div className="p-6 border-b border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800">
+    <div style={{
+      background: 'var(--card)',
+      borderRadius: '16px',
+      border: '1px solid var(--border)',
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
+        <h3 style={{
+          fontSize: '24px',
+          fontWeight: 800,
+          fontFamily: "'Syne', sans-serif",
+          color: 'white',
+          letterSpacing: '-0.5px',
+        }}>
           Horarios asignados por colaborador
         </h3>
-        <p className="text-gray-600 text-xs mt-1">
+        <p style={{
+          color: 'var(--text-muted)',
+          fontSize: '12px',
+          marginTop: '4px',
+        }}>
           {horarios.length} colaboradores con horarios generados
         </p>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full table-auto divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+          <thead style={{ background: 'var(--surface)' }}>
             <tr>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase sticky left-0 bg-gray-50">
+              <th style={{
+                padding: '8px',
+                textAlign: 'left',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                position: 'sticky',
+                left: 0,
+                background: 'var(--surface)',
+                width: '112px',
+              }}>
                 Colaborador
               </th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase w-20">
+              <th style={{
+                padding: '8px',
+                textAlign: 'left',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                width: '48px',
+              }}>
                 Tipo
               </th>
-              <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase w-16">
+              <th style={{
+                padding: '8px',
+                textAlign: 'center',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                width: '48px',
+              }}>
                 Hs
               </th>
               {DIAS_SEMANA.map((dia) => (
                 <th
                   key={dia}
-                  className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase w-16"
+                  style={{
+                    padding: '8px',
+                    textAlign: 'center',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    width: '80px',
+                  }}
                 >
                   {dia}
                 </th>
               ))}
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase w-32">
+              <th style={{
+                padding: '8px',
+                textAlign: 'left',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                width: '96px',
+              }}>
                 Errores
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody>
             {horarios.map((horario) => {
               // Buscar colaborador en este orden: colaboradores -> auxiliares -> eventuales
               const col = colaboradores.find(c => c.id === horario.colaboradorId)
@@ -105,49 +180,79 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   tipo = 'EVENTUAL'
                 }
               }
-              const tipoColor = tiposColor[tipo as keyof typeof tiposColor] || tiposColor.FULL
+              const tipoStyle = tiposColor[tipo] || tiposColor.FULL
 
               return (
-                <tr key={horario.colaboradorId} className="hover:bg-gray-50">
-                  <td className="px-2 py-2 whitespace-nowrap text-xs font-medium text-gray-900 sticky left-0 bg-white">
+                <tr key={horario.colaboradorId} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{
+                    padding: '8px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    color: 'white',
+                    position: 'sticky',
+                    left: 0,
+                    background: 'var(--card)',
+                  }}>
                     {nombre}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap w-20">
+                  <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '48px' }}>
                     <span
-                      className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${tipoColor}`}
+                      style={{
+                        display: 'inline-flex',
+                        padding: '4px 8px',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        borderRadius: '100px',
+                        background: tipoStyle.background,
+                        color: tipoStyle.color,
+                      }}
                     >
                       {tipo}
                     </span>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 w-16 text-center">
+                  <td style={{
+                    padding: '8px',
+                    whiteSpace: 'nowrap',
+                    fontSize: '10px',
+                    color: 'white',
+                    width: '48px',
+                    textAlign: 'center',
+                  }}>
                     {horario.totalHoras}h
                   </td>
                   {DIAS_SEMANA.map((_, diaIndex) => {
                     const jornada = horario.jornadas[diaIndex]
                     const rol = jornada.rol || (jornada.esFranco ? 'franco' : 'cajero')
-                    const bgColor = rolColor[rol] || '#ffffff'
+                    const bgColor = rolColor[rol] || 'var(--card)'
                     const isFrancoReal = jornada.esFranco || rol === 'franco'
                     return (
                       <td
                         key={diaIndex}
-                        className={`px-2 py-2 whitespace-nowrap text-xs w-16 text-center ${
-                          isFrancoReal ? 'text-gray-500 italic' : 'text-gray-900'
-                        }`}
-                        style={{ backgroundColor: bgColor }}
+                        style={{
+                          padding: '8px',
+                          whiteSpace: 'nowrap',
+                          fontSize: '10px',
+                          width: '80px',
+                          textAlign: 'center',
+                          color: isFrancoReal ? 'var(--text-muted)' : 'white',
+                          fontStyle: isFrancoReal ? 'italic' : 'normal',
+                          backgroundColor: bgColor,
+                        }}
                       >
                         {isFrancoReal ? 'FRANCO' : formatoTurno(jornada.turnos)}
                       </td>
                     )
                   })}
-                  <td className="px-2 py-2 whitespace-nowrap w-32">
+                  <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '96px' }}>
                     {horario.errores.length > 0 ? (
-                      <div className="text-xs text-red-600">
+                      <div style={{ fontSize: '10px', color: 'var(--accent)' }}>
                         {horario.errores.map((err, idx) => (
                           <div key={idx}>• {err}</div>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs text-green-600">✅ OK</span>
+                      <span style={{ fontSize: '10px', color: 'var(--accent)' }}>✅ OK</span>
                     )}
                   </td>
                 </tr>
@@ -158,13 +263,26 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
       </div>
 
       {/* Leyenda de colores */}
-      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-        <h4 className="text-xs font-medium text-gray-700 mb-2">Leyenda de roles</h4>
-        <div className="flex flex-wrap gap-4">
+      <div style={{
+        padding: '16px 24px',
+        borderTop: '1px solid var(--border)',
+        background: 'var(--surface)',
+      }}>
+        <h4 style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
+          Leyenda de roles
+        </h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
           {Object.entries(rolColor).map(([rol, color]) => (
-            <div key={rol} className="flex items-center">
-              <div className="w-4 h-4 rounded mr-2 border border-gray-300" style={{ backgroundColor: color }}></div>
-              <span className="text-xs text-gray-600">{rol}</span>
+            <div key={rol} style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{
+                width: '16px',
+                height: '16px',
+                borderRadius: '4px',
+                marginRight: '8px',
+                border: '1px solid var(--border)',
+                backgroundColor: color,
+              }}></div>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{rol}</span>
             </div>
           ))}
         </div>

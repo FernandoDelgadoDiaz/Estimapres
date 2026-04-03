@@ -6,19 +6,68 @@ export default function Header() {
   const semanaActual = `Semana ${format(hoy, 'w', { locale: es })} - ${format(hoy, 'yyyy', { locale: es })}`
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
+    <header style={{
+      background: 'var(--card)',
+      borderBottom: '1px solid var(--border)',
+      padding: '16px 24px',
+    }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
         <div>
-          <h2 className="text-xl font-semibold text-gray-800">Aliada Horarios</h2>
-          <p className="text-sm text-gray-600">{semanaActual}</p>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            margin: 0,
+            letterSpacing: '-0.5px',
+          }}>
+            Aliada Horarios
+          </h2>
+          <p style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            marginTop: '4px',
+          }}>
+            {semanaActual}
+          </p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-800">Aliada Tech</p>
-            <p className="text-xs text-gray-500">Sucursal Central</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{
+              fontSize: '14px',
+              fontWeight: 600,
+              fontFamily: "'Space Grotesk', sans-serif",
+              color: 'white',
+              margin: 0,
+            }}>
+              Aliada Tech
+            </p>
+            <p style={{
+              fontSize: '12px',
+              color: 'var(--text-muted)',
+              marginTop: '2px',
+            }}>
+              Sucursal Central
+            </p>
           </div>
-          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-blue-600 font-bold">SC</span>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'var(--accent)',
+            color: 'var(--accent-dark)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: "'Syne', sans-serif",
+            fontWeight: 800,
+            fontSize: '16px',
+          }}>
+            SC
           </div>
         </div>
       </div>

@@ -1,3 +1,51 @@
+/* Import fonts */
+@import '@fontsource/syne';
+@import '@fontsource/space-grotesk';
+
+/* CSS Variables */
+:root {
+  --bg: #080808;
+  --surface: #0e0e0e;
+  --card: #111111;
+  --border: #1c1c1c;
+  --border-hover: #2a2a2a;
+  --accent: #B8FF47;
+  --accent-dark: #080808;
+  --purple: #c084fc;
+  --text: #ffffff;
+  --text-muted: #444444;
+  --text-dim: #2a2a2a;
+}
+
+/* Base styles */
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

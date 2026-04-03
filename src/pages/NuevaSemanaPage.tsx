@@ -126,43 +126,120 @@ export default function NuevaSemanaPage() {
   }, 0)
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Nueva Semana</h1>
-        <p className="text-gray-600 mt-2">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '36px',
+          fontWeight: 800,
+          fontFamily: "'Syne', sans-serif",
+          color: 'white',
+          margin: 0,
+          letterSpacing: '-0.5px',
+        }}>
+          Nueva Semana
+        </h1>
+        <p style={{
+          color: 'var(--text-muted)',
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: '16px',
+          marginTop: '8px',
+        }}>
           Sube el PDF con la necesidad de cajas y genera los horarios automáticamente.
         </p>
       </div>
 
       {/* Pasos */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <div className={`flex items-center ${paso === 'upload' ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${paso === 'upload' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '32px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'upload' ? 'var(--accent)' : 'var(--text-muted)' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: paso === 'upload' ? 'var(--accent)' : 'var(--surface)',
+              color: paso === 'upload' ? 'var(--accent-dark)' : 'var(--text-muted)',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+            }}>
               1
             </div>
-            <span className="ml-2 font-medium">Subir PDF</span>
+            <span style={{
+              marginLeft: '8px',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 500,
+            }}>
+              Subir PDF
+            </span>
           </div>
-          <div className="w-12 h-0.5 bg-gray-300"></div>
-          <div className={`flex items-center ${paso === 'revisar' ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${paso === 'revisar' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+          <div style={{ width: '48px', height: '2px', background: 'var(--border)' }}></div>
+          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'revisar' ? 'var(--accent)' : 'var(--text-muted)' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: paso === 'revisar' ? 'var(--accent)' : 'var(--surface)',
+              color: paso === 'revisar' ? 'var(--accent-dark)' : 'var(--text-muted)',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+            }}>
               2
             </div>
-            <span className="ml-2 font-medium">Revisar</span>
+            <span style={{
+              marginLeft: '8px',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 500,
+            }}>
+              Revisar
+            </span>
           </div>
-          <div className="w-12 h-0.5 bg-gray-300"></div>
-          <div className={`flex items-center ${paso === 'resultado' ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${paso === 'resultado' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+          <div style={{ width: '48px', height: '2px', background: 'var(--border)' }}></div>
+          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'resultado' ? 'var(--accent)' : 'var(--text-muted)' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: paso === 'resultado' ? 'var(--accent)' : 'var(--surface)',
+              color: paso === 'resultado' ? 'var(--accent-dark)' : 'var(--text-muted)',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+            }}>
               3
             </div>
-            <span className="ml-2 font-medium">Resultado</span>
+            <span style={{
+              marginLeft: '8px',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 500,
+            }}>
+              Resultado
+            </span>
           </div>
         </div>
 
         {paso !== 'upload' && (
           <button
             onClick={handleNuevaSemana}
-            className="text-gray-600 hover:text-gray-900"
+            style={{
+              color: 'var(--text-muted)',
+              background: 'none',
+              border: 'none',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '14px',
+              cursor: 'pointer',
+            }}
           >
             ← Nueva semana
           </button>
@@ -171,7 +248,12 @@ export default function NuevaSemanaPage() {
 
       {/* Paso 1: Upload */}
       {paso === 'upload' && (
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-8">
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '16px',
+          border: '1px solid var(--border)',
+          padding: '40px',
+        }}>
           <PDFUploader
             onFileSelect={handlePDFSelect}
             loading={loadingPDF}
@@ -182,44 +264,90 @@ export default function NuevaSemanaPage() {
 
       {/* Paso 2: Revisar */}
       {paso === 'revisar' && (
-        <div className="space-y-8">
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            padding: '32px',
+          }}>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              fontFamily: "'Syne', sans-serif",
+              color: 'white',
+              marginBottom: '16px',
+              letterSpacing: '-0.5px',
+            }}>
               Resumen de necesidad
             </h3>
             <PreviewNecesidad necesidad={necesidad} />
           </div>
 
-          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+          <div style={{
+            background: 'var(--card)',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            padding: '32px',
+          }}>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              fontFamily: "'Syne', sans-serif",
+              color: 'white',
+              marginBottom: '16px',
+              letterSpacing: '-0.5px',
+            }}>
               Colaboradores activos esta semana
             </h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ minWidth: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ background: 'var(--surface)' }}>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Horas Sem.</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Nombre
+                    </th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Tipo
+                    </th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Horas Sem.
+                    </th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                      Estado
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {colaboradoresActivos.map((col) => (
-                    <tr key={col.id}>
-                      <td className="px-4 py-3 text-sm text-gray-900">{col.nombre}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
-                          col.tipo === 'FULL' ? 'bg-blue-100 text-blue-800' :
-                          col.tipo === 'PART' ? 'bg-green-100 text-green-800' :
-                          'bg-purple-100 text-purple-800'
-                        }`}>
+                    <tr key={col.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'white' }}>{col.nombre}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          padding: '4px 12px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          borderRadius: '100px',
+                          background: col.tipo === 'FULL' ? 'var(--accent)' :
+                                    col.tipo === 'PART' ? 'var(--purple)' : 'var(--surface)',
+                          color: col.tipo === 'FULL' ? 'var(--accent-dark)' :
+                                 col.tipo === 'PART' ? 'var(--bg)' : 'var(--text)',
+                        }}>
                           {col.tipo}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{col.horasSemanales}h</td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'white' }}>{col.horasSemanales}h</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          padding: '4px 12px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          borderRadius: '100px',
+                          background: 'var(--accent)',
+                          color: 'var(--accent-dark)',
+                        }}>
                           Activo
                         </span>
                       </td>
@@ -229,27 +357,91 @@ export default function NuevaSemanaPage() {
               </table>
             </div>
 
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <div className="grid grid-cols-2 gap-4">
+            <div style={{
+              marginTop: '24px',
+              padding: '20px',
+              background: 'var(--surface)',
+              borderRadius: '12px',
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+                marginBottom: '16px',
+              }}>
                 <div>
-                  <h4 className="font-semibold text-gray-800 mb-1">Horas necesarias estimadas</h4>
-                  <p className="text-2xl font-bold text-gray-900">{horasNecesariasEstimadas.toFixed(1)}h</p>
-                  <p className="text-sm text-gray-600">Basado en la tabla de necesidad</p>
+                  <h4 style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    color: 'var(--text)',
+                    marginBottom: '4px',
+                  }}>
+                    Horas necesarias estimadas
+                  </h4>
+                  <p style={{
+                    fontSize: '32px',
+                    fontWeight: 800,
+                    fontFamily: "'Syne', sans-serif",
+                    color: 'white',
+                    letterSpacing: '-0.5px',
+                  }}>
+                    {horasNecesariasEstimadas.toFixed(1)}h
+                  </p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--text-muted)',
+                  }}>
+                    Basado en la tabla de necesidad
+                  </p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-800 mb-1">Horas disponibles máximas</h4>
-                  <p className="text-2xl font-bold text-gray-900">{horasDisponibles}h</p>
-                  <p className="text-sm text-gray-600">Sumatoria de todos los colaboradores activos</p>
+                  <h4 style={{
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    color: 'var(--text)',
+                    marginBottom: '4px',
+                  }}>
+                    Horas disponibles máximas
+                  </h4>
+                  <p style={{
+                    fontSize: '32px',
+                    fontWeight: 800,
+                    fontFamily: "'Syne', sans-serif",
+                    color: 'white',
+                    letterSpacing: '-0.5px',
+                  }}>
+                    {horasDisponibles}h
+                  </p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--text-muted)',
+                  }}>
+                    Sumatoria de todos los colaboradores activos
+                  </p>
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div style={{ marginTop: '16px' }}>
+                <div style={{
+                  height: '8px',
+                  background: 'var(--surface)',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                }}>
                   <div
-                    className="h-full bg-green-500"
-                    style={{ width: `${Math.min(100, (horasDisponibles / horasNecesariasEstimadas) * 100)}%` }}
+                    style={{
+                      height: '100%',
+                      background: 'var(--accent)',
+                      width: `${Math.min(100, (horasDisponibles / horasNecesariasEstimadas) * 100)}%`,
+                    }}
                   ></div>
                 </div>
-                <p className="text-sm text-gray-600 mt-2">
+                <p style={{
+                  fontSize: '14px',
+                  color: 'var(--text-muted)',
+                  marginTop: '8px',
+                }}>
                   {horasDisponibles >= horasNecesariasEstimadas
                     ? '✅ Horas suficientes para cubrir la necesidad'
                     : '⚠️ Puede haber faltantes de cobertura'}
@@ -258,26 +450,76 @@ export default function NuevaSemanaPage() {
             </div>
 
             {/* Sección de excepciones semanales */}
-            <div className="mt-8 p-6 border border-gray-200 rounded-xl bg-white">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Excepciones semanales (opcional)</h3>
+            <div style={{
+              marginTop: '32px',
+              padding: '24px',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              background: 'var(--card)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: 800,
+                  fontFamily: "'Syne', sans-serif",
+                  color: 'white',
+                  letterSpacing: '-0.5px',
+                }}>
+                  Excepciones semanales (opcional)
+                </h3>
                 <button
                   onClick={() => setMostrarExcepciones(!mostrarExcepciones)}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  style={{
+                    color: 'var(--accent)',
+                    background: 'none',
+                    border: 'none',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 500,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
                 >
                   {mostrarExcepciones ? 'Ocultar' : 'Agregar excepción'}
                 </button>
               </div>
 
               {mostrarExcepciones && (
-                <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div style={{
+                  marginBottom: '24px',
+                  padding: '20px',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  background: 'var(--surface)',
+                }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                    gap: '16px',
+                    marginBottom: '16px',
+                  }}>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Colaborador</label>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        marginBottom: '8px',
+                      }}>
+                        Colaborador
+                      </label>
                       <select
                         value={colaboradorSeleccionado}
                         onChange={(e) => setColaboradorSeleccionado(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        style={{
+                          width: '100%',
+                          border: '1px solid var(--border)',
+                          borderRadius: '12px',
+                          padding: '12px 16px',
+                          background: 'var(--card)',
+                          color: 'var(--text)',
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontSize: '14px',
+                        }}
                       >
                         <option value="">Seleccionar...</option>
                         {colaboradoresActivos.map(col => (
@@ -286,14 +528,31 @@ export default function NuevaSemanaPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de excepción</label>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text)',
+                        marginBottom: '8px',
+                      }}>
+                        Tipo de excepción
+                      </label>
                       <select
                         value={tipoSeleccionado}
                         onChange={(e) => {
                           setTipoSeleccionado(e.target.value as ExcepcionSemanal['tipo'])
                           setValorInput('')
                         }}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        style={{
+                          width: '100%',
+                          border: '1px solid var(--border)',
+                          borderRadius: '12px',
+                          padding: '12px 16px',
+                          background: 'var(--card)',
+                          color: 'var(--text)',
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontSize: '14px',
+                        }}
                       >
                         <option value="franco_dia">Franco en día específico</option>
                         <option value="no_antes_de">No disponible antes de cierta hora</option>
@@ -306,14 +565,29 @@ export default function NuevaSemanaPage() {
                     <div>
                       {(tipoSeleccionado === 'franco_dia' || tipoSeleccionado === 'no_antes_de' || tipoSeleccionado === 'no_despues_de') && (
                         <>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            color: 'var(--text)',
+                            marginBottom: '8px',
+                          }}>
                             {tipoSeleccionado === 'franco_dia' ? 'Día de la semana' : 'Hora (HH:MM)'}
                           </label>
                           {tipoSeleccionado === 'franco_dia' ? (
                             <select
                               value={valorInput}
                               onChange={(e) => setValorInput(e.target.value)}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              style={{
+                                width: '100%',
+                                border: '1px solid var(--border)',
+                                borderRadius: '12px',
+                                padding: '12px 16px',
+                                background: 'var(--card)',
+                                color: 'var(--text)',
+                                fontFamily: "'Space Grotesk', sans-serif",
+                                fontSize: '14px',
+                              }}
                             >
                               <option value="">Seleccionar...</option>
                               {DIAS_SEMANA.map(dia => (
@@ -325,7 +599,16 @@ export default function NuevaSemanaPage() {
                               type="time"
                               value={valorInput}
                               onChange={(e) => setValorInput(e.target.value)}
-                              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              style={{
+                                width: '100%',
+                                border: '1px solid var(--border)',
+                                borderRadius: '12px',
+                                padding: '12px 16px',
+                                background: 'var(--card)',
+                                color: 'var(--text)',
+                                fontFamily: "'Space Grotesk', sans-serif",
+                                fontSize: '14px',
+                              }}
                               step="300"
                             />
                           )}
@@ -333,12 +616,25 @@ export default function NuevaSemanaPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex justify-end">
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button
                       onClick={agregarExcepcion}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                      style={{
+                        background: 'var(--accent)',
+                        color: 'var(--accent-dark)',
+                        padding: '12px 24px',
+                        borderRadius: '100px',
+                        border: 'none',
+                        fontFamily: "'Syne', sans-serif",
+                        fontWeight: 800,
+                        fontSize: '14px',
+                        letterSpacing: '-0.2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                      }}
                     >
-                      <span className="mr-2">+</span>
+                      <span style={{ marginRight: '8px' }}>+</span>
                       Agregar
                     </button>
                   </div>
@@ -347,44 +643,78 @@ export default function NuevaSemanaPage() {
 
               {/* Lista de excepciones agregadas */}
               {excepciones.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex flex-wrap gap-2">
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {excepciones.map(exc => (
                       <div
                         key={exc.id}
-                        className="inline-flex items-center bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-sm"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          background: 'var(--surface)',
+                          color: 'var(--accent)',
+                          borderRadius: '100px',
+                          padding: '8px 16px',
+                          fontSize: '14px',
+                        }}
                       >
                         <span>{exc.descripcion}</span>
                         <button
                           onClick={() => eliminarExcepcion(exc.id)}
-                          className="ml-2 text-blue-600 hover:text-blue-900 font-bold"
+                          style={{
+                            marginLeft: '8px',
+                            color: 'var(--accent)',
+                            background: 'none',
+                            border: 'none',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                          }}
                         >
                           ×
                         </button>
                       </div>
                     ))}
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'var(--text-muted)',
+                    marginTop: '8px',
+                  }}>
                     {excepciones.length} / 10 excepciones agregadas
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="mt-8 flex justify-end">
+            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleGenerarHorarios}
                 disabled={loadingAsignacion}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 flex items-center disabled:opacity-50"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--accent-dark)',
+                  padding: '16px 32px',
+                  borderRadius: '100px',
+                  border: 'none',
+                  fontFamily: "'Syne', sans-serif",
+                  fontWeight: 800,
+                  fontSize: '16px',
+                  letterSpacing: '-0.2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: loadingAsignacion ? 'not-allowed' : 'pointer',
+                  opacity: loadingAsignacion ? 0.5 : 1,
+                }}
               >
                 {loadingAsignacion ? (
                   <>
-                    <span className="animate-spin mr-2">⟳</span>
+                    <span style={{ marginRight: '8px', animation: 'spin 1s linear infinite' }}>⟳</span>
                     Aliada IA está generando el horario óptimo...
                   </>
                 ) : (
                   <>
-                    <span className="text-xl mr-2">🚀</span>
+                    <span style={{ fontSize: '20px', marginRight: '8px' }}>🚀</span>
                     Generar horarios automáticamente
                   </>
                 )}
@@ -396,34 +726,77 @@ export default function NuevaSemanaPage() {
 
       {/* Paso 3: Resultado */}
       {paso === 'resultado' && resultado && (
-        <div className="space-y-8">
-          <div className="flex justify-between items-center">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Horarios generados</h2>
-              <p className="text-gray-600">{semanaDesc}</p>
+              <h2 style={{
+                fontSize: '32px',
+                fontWeight: 800,
+                fontFamily: "'Syne', sans-serif",
+                color: 'white',
+                margin: 0,
+                letterSpacing: '-0.5px',
+              }}>
+                Horarios generados
+              </h2>
+              <p style={{
+                color: 'var(--text-muted)',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '16px',
+                marginTop: '4px',
+              }}>
+                {semanaDesc}
+              </p>
             </div>
-            <div className="flex space-x-4">
+            <div style={{ display: 'flex', gap: '16px' }}>
               <button
                 onClick={handleNuevaSemana}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                style={{
+                  padding: '12px 24px',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  background: 'var(--card)',
+                  color: 'var(--text)',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                }}
               >
                 Nueva semana
               </button>
               <button
                 onClick={handleExportarPDF}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+                style={{
+                  background: 'var(--accent)',
+                  color: 'var(--accent-dark)',
+                  padding: '12px 24px',
+                  borderRadius: '100px',
+                  border: 'none',
+                  fontFamily: "'Syne', sans-serif",
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  letterSpacing: '-0.2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                }}
               >
-                <span className="mr-2">📄</span>
+                <span style={{ marginRight: '8px' }}>📄</span>
                 Exportar a PDF
               </button>
             </div>
           </div>
 
           {errorAsignacion && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <span className="text-red-500 mr-2">❌</span>
-                <p className="text-red-700">{errorAsignacion}</p>
+            <div style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '20px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: 'var(--accent)', marginRight: '8px' }}>❌</span>
+                <p style={{ color: 'var(--text)' }}>{errorAsignacion}</p>
               </div>
             </div>
           )}

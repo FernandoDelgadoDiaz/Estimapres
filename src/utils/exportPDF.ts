@@ -6,11 +6,19 @@ import { formatoTurno } from './timeUtils'
 function sanitizarTexto(texto: string): string {
   // Eliminar caracteres no imprimibles (ASCII < 32 excepto \n, \t, \r)
   let limpio = texto.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-  // Eliminar markdown básico: **, ##, -, *, `, etc.
-  limpio = limpio.replace(/\*\*|##|__|~~|`/g, '')
+  // Eliminar caracteres no ASCII excepto letras latinas con tildes, ñ, ¡, ¿
+  // Permitir Latin-1 Supplement (U+00A0-00FF) y Latin Extended (U+0100-024F)
+  limpio = limpio.replace(/[^\x00-\x7F\u00A0-\u024F]/g, '')
+  // Eliminar markdown básico: **, ##, __, ~~, `, *, _, #
+  limpio = limpio.replace(/\*\*|##|__|~~|`|\*|_|#/g, '')
   // Reemplazar múltiples espacios por uno solo
   limpio = limpio.replace(/\s+/g, ' ')
-  return limpio.trim()
+  const resultado = limpio.trim()
+  // Si el texto resultante tiene menos de 10 caracteres, reemplazar por mensaje
+  if (resultado.length < 10) {
+    return 'Sugerencia no disponible'
+  }
+  return resultado
 }
 
 function limpiarValorCelda(valor: string): string {
@@ -51,7 +59,20 @@ export function generarPDF(
 
   const tableData = resultado.horarios.map(horario => {
     const col = colaboradoresMap.get(horario.colaboradorId)
-    if (!col) return []
+    if (!col) {
+      console.warn(`Colaborador no encontrado en map: ${horario.colaboradorId}`)
+      // Crear fila con datos mínimos para evitar fila vacía
+      return [
+        horario.colaboradorId,
+        'DESCONOCIDO',
+        `${horario.totalHoras}h`,
+        ...DIAS_SEMANA.map((_, diaIndex) => {
+          const jornada = horario.jornadas[diaIndex]
+          if (jornada.esFranco) return 'FRANCO'
+          return formatoTurno(jornada.turnos)
+        }),
+      ]
+    }
 
     const row = [
       col.nombre,
@@ -64,7 +85,7 @@ export function generarPDF(
       }),
     ]
     return row
-  })
+  }).filter(row => row.length > 0) // Filtrar filas vacías por si acaso
 
   autoTable(doc, {
     head: [['Colaborador', 'Tipo', 'Hs', ...DIAS_SEMANA]],
@@ -84,7 +105,10 @@ export function generarPDF(
       ),
     },
     margin: { left: 14 },
-    styles: { cellPadding: 3, fontSize: 9 },
+    rowPageBreak: 'avoid',
+    styles: { cellPadding: 3, fontSize: 8 },
+    tableWidth: 'auto',
+    showHead: 'everyPage', // Repite encabezado en cada página
   })
 
   // Si la tabla ocupa mucho, agregar nueva página
@@ -137,7 +161,8 @@ export function generarPDF(
       ),
     },
     margin: { left: 14 },
-    styles: { cellPadding: 3, fontSize: 9 },
+    rowPageBreak: 'avoid',
+    styles: { cellPadding: 3, fontSize: 8 },
     didDrawCell: (data) => {
       if (data.row.index === undefined || data.column.index === 0) return
       let cellValue = limpiarValorCelda(data.cell.raw as string)
@@ -179,8 +204,29 @@ export function generarPDF(
           y = 20
         }
         const alertaLimpia = sanitizarTexto(alerta)
-        doc.text(`${idx + 1}. ${alertaLimpia}`, 20, y)
-        y += 6
+        // Separar sugerencias numeradas (1. texto 2. texto 3. texto)
+        const sugerencias = alertaLimpia.split(/\d+\.\s/).filter(s => s.trim().length > 0)
+        // Si no se detectó patrón numérico, tratar como una sola sugerencia
+        if (sugerencias.length === 0) {
+          sugerencias.push(alertaLimpia)
+        }
+        // Para cada sugerencia, escribir en línea separada con posible wrap
+        const anchoMax = doc.internal.pageSize.width - 40 // margen izquierdo + derecho
+        sugerencias.forEach((texto, sugIdx) => {
+          const prefijo = sugIdx === 0 ? `${idx + 1}. ` : '   '
+          const textoCompleto = prefijo + texto.trim()
+          const lineas = doc.splitTextToSize(textoCompleto, anchoMax)
+          lineas.forEach((linea: string) => {
+            if (y > 270) {
+              doc.addPage()
+              y = 20
+            }
+            doc.text(linea, 20, y)
+            y += 8
+          })
+        })
+        // Agregar espacio extra entre alertas
+        y += 2
       })
     }
   }

@@ -95,37 +95,95 @@ export default function ColaboradoresPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '32px',
+      }}>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Colaboradores</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 style={{
+            fontSize: '36px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            margin: 0,
+            letterSpacing: '-0.5px',
+          }}>
+            Colaboradores
+          </h1>
+          <p style={{
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: '16px',
+            marginTop: '8px',
+          }}>
             Gestiona cajeros, auxiliares y eventuales para la asignación de horarios.
           </p>
         </div>
         {activeTab === 'cajeros' && (
           <button
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+            style={{
+              background: 'var(--accent)',
+              color: 'var(--accent-dark)',
+              padding: '12px 24px',
+              borderRadius: '100px',
+              border: 'none',
+              fontFamily: "'Syne', sans-serif",
+              fontWeight: 800,
+              fontSize: '14px',
+              letterSpacing: '-0.2px',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
           >
-            <span className="text-xl mr-2">+</span>
+            <span style={{ fontSize: '20px', marginRight: '8px' }}>+</span>
             Agregar cajero
           </button>
         )}
         {activeTab === 'auxiliares' && (
-          <div className="flex space-x-2">
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={handleAgregarAuxiliar}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+              style={{
+                background: 'var(--accent)',
+                color: 'var(--accent-dark)',
+                padding: '12px 24px',
+                borderRadius: '100px',
+                border: 'none',
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 800,
+                fontSize: '14px',
+                letterSpacing: '-0.2px',
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
             >
-              <span className="text-xl mr-2">+</span>
+              <span style={{ fontSize: '20px', marginRight: '8px' }}>+</span>
               Agregar auxiliar
             </button>
             <button
               onClick={resetAuxiliares}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center"
+              style={{
+                background: 'var(--surface)',
+                color: 'var(--text-muted)',
+                padding: '12px 24px',
+                borderRadius: '100px',
+                border: 'none',
+                fontFamily: "'Syne', sans-serif",
+                fontWeight: 800,
+                fontSize: '14px',
+                letterSpacing: '-0.2px',
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
             >
-              <span className="text-xl mr-2">↺</span>
+              <span style={{ fontSize: '20px', marginRight: '8px' }}>↺</span>
               Restaurar horarios de prueba
             </button>
           </div>
@@ -133,28 +191,46 @@ export default function ColaboradoresPage() {
         {activeTab === 'eventuales' && (
           <button
             onClick={handleAgregarEventual}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+            style={{
+              background: 'var(--accent)',
+              color: 'var(--accent-dark)',
+              padding: '12px 24px',
+              borderRadius: '100px',
+              border: 'none',
+              fontFamily: "'Syne', sans-serif",
+              fontWeight: 800,
+              fontSize: '14px',
+              letterSpacing: '-0.2px',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
           >
-            <span className="text-xl mr-2">+</span>
+            <span style={{ fontSize: '20px', marginRight: '8px' }}>+</span>
             Agregar eventual
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-8">
-        <nav className="-mb-px flex space-x-8">
+      <div style={{ borderBottom: '1px solid var(--border)', marginBottom: '32px' }}>
+        <nav style={{ display: 'flex', gap: '32px' }}>
           {['cajeros', 'auxiliares', 'eventuales'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`
-                py-2 px-1 border-b-2 font-medium text-sm
-                ${activeTab === tab
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }
-              `}
+              style={{
+                padding: '8px 0',
+                borderBottom: '2px solid',
+                borderBottomColor: activeTab === tab ? 'var(--accent)' : 'transparent',
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 500,
+                fontSize: '14px',
+                color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               {tab === 'cajeros' && 'Cajeros'}
               {tab === 'auxiliares' && 'Auxiliares'}
@@ -165,42 +241,178 @@ export default function ColaboradoresPage() {
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.cajerosTotal}</div>
-          <div className="text-sm text-gray-600">Cajeros total</div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        gap: '16px',
+        marginBottom: '32px',
+      }}>
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            letterSpacing: '-0.5px',
+          }}>
+            {stats.cajerosTotal}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Cajeros total
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.cajerosActivos}</div>
-          <div className="text-sm text-gray-600">Cajeros activos</div>
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            letterSpacing: '-0.5px',
+          }}>
+            {stats.cajerosActivos}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Cajeros activos
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.auxiliaresTotal}</div>
-          <div className="text-sm text-gray-600">Auxiliares total</div>
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            letterSpacing: '-0.5px',
+          }}>
+            {stats.auxiliaresTotal}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Auxiliares total
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.auxiliaresActivos}</div>
-          <div className="text-sm text-gray-600">Auxiliares activos</div>
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            letterSpacing: '-0.5px',
+          }}>
+            {stats.auxiliaresActivos}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Auxiliares activos
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.eventualesTotal}</div>
-          <div className="text-sm text-gray-600">Eventuales total</div>
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            letterSpacing: '-0.5px',
+          }}>
+            {stats.eventualesTotal}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Eventuales total
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
-          <div className="text-2xl font-bold text-gray-900">{stats.eventualesActivos}</div>
-          <div className="text-sm text-gray-600">Eventuales activos</div>
+        <div style={{
+          background: 'var(--card)',
+          borderRadius: '12px',
+          padding: '20px',
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{
+            fontSize: '32px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            letterSpacing: '-0.5px',
+          }}>
+            {stats.eventualesActivos}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: 'var(--text-muted)',
+            fontFamily: "'Space Grotesk', sans-serif",
+          }}>
+            Eventuales activos
+          </div>
         </div>
       </div>
 
       {/* Tabla según pestaña */}
       {activeTab === 'cajeros' && (
         <>
-          <div className="mb-4 flex items-center space-x-4">
+          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div>
-              <span className="text-sm font-medium text-gray-700">Mostrar: </span>
-              <span className="text-sm text-gray-900">Todos los cajeros (FULL + PART)</span>
+              <span style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '14px',
+                fontWeight: 600,
+                color: 'var(--text)',
+              }}>
+                Mostrar:{' '}
+              </span>
+              <span style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontSize: '14px',
+                color: 'white',
+              }}>
+                Todos los cajeros (FULL + PART)
+              </span>
             </div>
-            <div className="text-sm text-gray-500">
+            <div style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: '14px',
+              color: 'var(--text-muted)',
+            }}>
               {stats.cajerosActivos} activos de {stats.cajerosTotal} total
             </div>
           </div>
@@ -241,9 +453,32 @@ export default function ColaboradoresPage() {
       )}
 
       {/* Notas */}
-      <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <h4 className="font-semibold text-blue-800 mb-2">Notas importantes</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
+      <div style={{
+        marginTop: '32px',
+        padding: '20px',
+        background: 'var(--card)',
+        borderRadius: '12px',
+        border: '1px solid var(--border)',
+      }}>
+        <h4 style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontWeight: 700,
+          fontSize: '16px',
+          color: 'var(--accent)',
+          marginBottom: '8px',
+        }}>
+          Notas importantes
+        </h4>
+        <ul style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: '14px',
+          color: 'var(--text-muted)',
+          paddingLeft: '20px',
+          margin: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+        }}>
           <li>• Los colaboradores inactivos no participarán en la asignación de horarios.</li>
           <li>• FULL Time: 48h semanales (3×9h + 2×8h + 1×5h).</li>
           <li>• PART Time: máximo 32h semanales, solo turno corrido.</li>
