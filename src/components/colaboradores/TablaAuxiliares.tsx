@@ -122,8 +122,10 @@ export default function TablaAuxiliares({
                     value={aux.horarioSemanal[idx] || ''}
                     onChange={(e) => handleHorarioChange(aux.id, idx, e.target.value)}
                     onBlur={(e) => handleHorarioBlur(aux.id, idx, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.target.select()}
                     placeholder="HH:MM-HH:MM o 8-13, 8 a 12 y 18 a 23"
-                    className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                    className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 ${
                       normalizarHorario(aux.horarioSemanal[idx] || '').esValido
                         ? 'border-gray-300'
                         : 'border-red-500'

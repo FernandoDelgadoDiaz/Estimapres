@@ -1,22 +1,37 @@
-import { Franja, Colaborador, ExcepcionSemanal, JornadaAsignada, Turno, HorarioColaborador, Auxiliar, Eventual, ResultadoAsignacion } from '../types'
+import {
+  Franja,
+  Colaborador,
+  ExcepcionSemanal,
+  JornadaAsignada,
+  Turno,
+  HorarioColaborador,
+  Auxiliar,
+  Eventual,
+  ResultadoAsignacion
+} from '../types'
 
 // ========================================
-// FUNCIONES AUXILIARES
+// CONSTANTES GLOBALES
 // ========================================
 
-function timeToMinutes(time: string): number {
+const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
+
+// ========================================
+// UTILIDADES
+// ========================================
+
+export function timeToMinutes(time: string): number {
   const [h, m] = time.split(':').map(Number)
   return h * 60 + (m || 0)
 }
 
-function minutesToTime(minutes: number): string {
+export function minutesToTime(minutes: number): string {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
 }
 
-function parsearHorarioDia(horario: string):
-  { turnos: Turno[], horas: number, esFranco: boolean } {
+function parsearHorarioDia(horario: string): { turnos: Turno[], horas: number, esFranco: boolean } {
   if (!horario || !horario.trim()) {
     return { turnos: [], horas: 0, esFranco: true }
   }
@@ -26,30 +41,13 @@ function parsearHorarioDia(horario: string):
   for (const bloque of bloques) {
     const partes = bloque.split('-').map(s => s.trim())
     if (partes.length < 2) continue
-    const inicio = partes[0].includes(':') ? partes[0] :
-      `${partes[0].padStart(2,'0')}:00`
-    const fin = partes[1].includes(':') ? partes[1] :
-      `${partes[1].padStart(2,'0')}:00`
+    const inicio = partes[0].includes(':') ? partes[0] : `${partes[0].padStart(2, '0')}:00`
+    const fin = partes[1].includes(':') ? partes[1] : `${partes[1].padStart(2, '0')}:00`
     turnos.push({ inicio, fin })
     horas += (timeToMinutes(fin) - timeToMinutes(inicio)) / 60
   }
-  turnos.sort((a,b) => timeToMinutes(a.inicio) - timeToMinutes(b.inicio))
+  turnos.sort((a, b) => timeToMinutes(a.inicio) - timeToMinutes(b.inicio))
   return { turnos, horas, esFranco: false }
-}
-
-function calcularNecesidadDia(
-  necesidad: Franja[],
-  dia: number,
-  franjaInicio?: string,
-  franjaFin?: string
-): number {
-  return necesidad.reduce((sum, f) => {
-    if (franjaInicio && timeToMinutes(f.hora) < timeToMinutes(franjaInicio))
-      return sum
-    if (franjaFin && timeToMinutes(f.hora) >= timeToMinutes(franjaFin))
-      return sum
-    return sum + (f.necesidad[dia] || 0)
-  }, 0)
 }
 
 function franjaEnTurno(franja: string, turnos: Turno[]): boolean {
@@ -60,17 +58,27 @@ function franjaEnTurno(franja: string, turnos: Turno[]): boolean {
   )
 }
 
-function calcularCobertura(
-  horarios: HorarioColaborador[],
-  necesidad: Franja[]
-): number[][] {
+function calcularCoberturaCajeros(horarios: HorarioColaborador[], necesidad: Franja[]): number[][] {
   const cob = necesidad.map(() => Array(7).fill(0))
+  // Para evitar contar un mismo cajero dos veces en la misma franja cuando tiene turno cortado
+  const yaContado = new Map<string, Set<number>>() // clave: `${colaboradorId}-${dia}` -> Set de índices de franja ya contados
   for (const h of horarios) {
+    if (h.rolGeneral !== 'cajero') continue
     for (const j of h.jornadas) {
       if (j.esFranco || !j.turnos.length) continue
+      const clave = `${h.colaboradorId}-${j.dia}`
+      let setFrancas = yaContado.get(clave)
+      if (!setFrancas) {
+        setFrancas = new Set<number>()
+        yaContado.set(clave, setFrancas)
+      }
       for (let fi = 0; fi < necesidad.length; fi++) {
         if (franjaEnTurno(necesidad[fi].hora, j.turnos)) {
-          cob[fi][j.dia]++
+          // Si este cajero ya fue contado en esta franja este día, no incrementar
+          if (!setFrancas.has(fi)) {
+            cob[fi][j.dia]++
+            setFrancas.add(fi)
+          }
         }
       }
     }
@@ -93,184 +101,338 @@ function obtenerExcepcion(
   )
 }
 
-function aplicarExcepcionesHorario(
-  inicioMin: number,
-  finMin: number,
-  exNoAntes?: ExcepcionSemanal,
-  exNoDespues?: ExcepcionSemanal,
-  exSiempreCierre?: ExcepcionSemanal,
-  exSoloMatutino?: ExcepcionSemanal,
-  exSoloNocturno?: ExcepcionSemanal
-): { inicioMinAjustado: number; finMinAjustado: number; errores: string[] } {
-  let inicioMinAjustado = inicioMin
-  let finMinAjustado = finMin
-  const errores: string[] = []
-  const DURACION_MINIMA = 60 // 1 hora
+// ========================================
+// 1. VALIDACIÓN DE FACTIBILIDAD
+// ========================================
 
-  // 1. siempre_cierre – forzar fin a 22:30 (prioridad máxima)
-  if (exSiempreCierre) {
-    const cierre = timeToMinutes('22:30')
-    inicioMinAjustado = cierre - (finMinAjustado - inicioMinAjustado) // mantener duración
-    finMinAjustado = cierre
+function validarFactibilidad(
+  colaboradores: Colaborador[],
+  auxiliares: Auxiliar[],
+  eventuales: Eventual[],
+  necesidad: Franja[]
+): { valido: boolean; mensaje: string } {
+  // Solo cajeros activos (FULL + PART) contribuyen a horas disponibles
+  const cajerosActivos = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
+  const horasCajeros = cajerosActivos.reduce((sum, c) => sum + c.horasSemanales, 0)
+
+  // Función para calcular horas disponibles de un horario semanal
+  function horasDisponiblesDeHorario(horarioSemanal: string[]): number {
+    let total = 0
+    for (let dia = 0; dia < 7; dia++) {
+      const horarioDia = horarioSemanal[dia]
+      const { horas, esFranco } = parsearHorarioDia(horarioDia)
+      if (!esFranco) total += horas
+    }
+    return total
   }
 
-  // 2. no_antes_de – desplazar inicio si es necesario
-  if (exNoAntes && exNoAntes.valor) {
-    const limite = timeToMinutes(exNoAntes.valor)
-    if (inicioMinAjustado < limite) {
-      const desplaza = limite - inicioMinAjustado
-      inicioMinAjustado += desplaza
-      finMinAjustado += desplaza
+  // Horas disponibles de AUX activos
+  const auxiliaresActivos = auxiliares.filter(a => a.activo)
+  const horasAUX = auxiliaresActivos.reduce((sum, a) => sum + horasDisponiblesDeHorario(a.horarioSemanal), 0)
+
+  // Horas disponibles de eventuales activos
+  const eventualesActivos = eventuales.filter(e => e.activo)
+  const horasEventuales = eventualesActivos.reduce((sum, e) => sum + horasDisponiblesDeHorario(e.horarioSemanal), 0)
+
+  const horasDisponibles = horasCajeros + horasAUX + horasEventuales
+
+  // Horas totales necesarias: cada franja es media hora, necesidad es cantidad de cajeros
+  let horasNecesarias = 0
+  for (const franja of necesidad) {
+    for (let dia = 0; dia < 7; dia++) {
+      horasNecesarias += franja.necesidad[dia] || 0
+    }
+  }
+  // Convertir franjas de 30 minutos a horas
+  horasNecesarias *= 0.5
+
+  const umbral = horasNecesarias * 0.9 // 90%
+  if (horasDisponibles < umbral) {
+    return {
+      valido: false,
+      mensaje: `Horas insuficientes. Disponibles: ${horasDisponibles}h (Cajeros: ${horasCajeros}h, AUX: ${horasAUX}h, Eventuales: ${horasEventuales}h), Necesarias (90%): ${umbral.toFixed(1)}h (total ${horasNecesarias.toFixed(1)}h)`
     }
   }
 
-  // 3. no_despues_de – desplazar fin si es necesario (ignorar si siempre_cierre presente)
-  if (exNoDespues && exNoDespues.valor && !exSiempreCierre) {
-    const limite = timeToMinutes(exNoDespues.valor)
-    if (finMinAjustado > limite) {
-      const exceso = finMinAjustado - limite
-      finMinAjustado -= exceso
-      inicioMinAjustado = Math.max(inicioMinAjustado - exceso, 0)
-    }
+  return {
+    valido: true,
+    mensaje: `Factible. Horas disponibles: ${horasDisponibles}h (Cajeros: ${horasCajeros}h, AUX: ${horasAUX}h, Eventuales: ${horasEventuales}h), necesarias: ${horasNecesarias.toFixed(1)}h`
   }
-
-  // 4. solo_matutino – asegurar fin ≤ 15:00 (a menos que siempre_cierre lo anule)
-  if (exSoloMatutino && !exSiempreCierre) {
-    const limite = timeToMinutes('15:00')
-    if (finMinAjustado > limite) {
-      const exceso = finMinAjustado - limite
-      finMinAjustado = limite
-      inicioMinAjustado = Math.max(inicioMinAjustado - exceso, 0)
-    }
-  }
-
-  // 5. solo_nocturno – asegurar inicio ≥ 17:00
-  if (exSoloNocturno) {
-    const limite = timeToMinutes('17:00')
-    if (inicioMinAjustado < limite) {
-      const desplaza = limite - inicioMinAjustado
-      inicioMinAjustado = limite
-      finMinAjustado += desplaza
-    }
-  }
-
-  // Validar duración mínima
-  const duracion = finMinAjustado - inicioMinAjustado
-  if (duracion < DURACION_MINIMA) {
-    errores.push('Excepción hace imposible asignar jornada de duración mínima (1 hora)')
-    // Intentar ajustar ignorando la excepción menos prioritaria
-    // Por simplicidad, revertir al horario original
-    inicioMinAjustado = inicioMin
-    finMinAjustado = finMin
-  }
-
-  return { inicioMinAjustado, finMinAjustado, errores }
 }
 
 // ========================================
-// PASO 1 — ASIGNAR FRANCOS
+// 2. CSP: DEFINICIÓN DE VARIABLES Y DOMINIOS
 // ========================================
 
-function asignarFrancos(
+type TurnoSymbol = 'franco' | 'mañana' | 'tarde' | 'cortado'
+type AsignacionCSP = Map<string, TurnoSymbol[]> // colaboradorId -> array de 7 símbolos
+
+/**
+ * Genera dominios válidos para un cajero según su tipo y excepciones.
+ * Retorna array de combinaciones (cada combinación es array de 7 símbolos).
+ */
+function generarDominioCajero(cajero: Colaborador, excepciones: ExcepcionSemanal[]): TurnoSymbol[][] {
+  const combinaciones: TurnoSymbol[][] = []
+  const exFrancoDia = obtenerExcepcion(excepciones, cajero.nombre, 'franco_dia')
+  const exSoloMatutino = obtenerExcepcion(excepciones, cajero.nombre, 'solo_matutino')
+  const exSoloNocturno = obtenerExcepcion(excepciones, cajero.nombre, 'solo_nocturno')
+
+  // Si tiene excepción de franco en día fijo, restringir.
+  let diasFrancoPosibles = Array.from({ length: 7 }, (_, i) => i)
+  if (exFrancoDia?.valor) {
+    const diaFranco = DIAS.indexOf(exFrancoDia.valor.toLowerCase())
+    if (diaFranco !== -1) {
+      diasFrancoPosibles = [diaFranco]
+    }
+  }
+
+  if (cajero.tipo === 'FULL') {
+    // FULL: 1 franco, 6 días trabajados. Distribución: 3×9h, 2×8h, 1×5h.
+    // Simplificamos: asignamos símbolos 'mañana', 'tarde', 'cortado'. La duración se define luego.
+    for (const francoDia of diasFrancoPosibles) {
+      const diasTrabajados = Array.from({ length: 7 }, (_, i) => i).filter(d => d !== francoDia)
+      // Turnos permitidos según excepciones
+      let turnosPermitidos: TurnoSymbol[] = ['mañana', 'tarde', 'cortado']
+      if (exSoloMatutino) turnosPermitidos = ['mañana']
+      if (exSoloNocturno) turnosPermitidos = ['tarde']
+      // Generar todas las secuencias de longitud 6 con repetición
+      const secuencias = generarSecuencias(turnosPermitidos, 6)
+      for (const secuencia of secuencias) {
+        const combinacion: TurnoSymbol[] = Array(7).fill('franco')
+        combinacion[francoDia] = 'franco'
+        for (let i = 0; i < diasTrabajados.length; i++) {
+          combinacion[diasTrabajados[i]] = secuencia[i]
+        }
+        combinaciones.push(combinacion)
+      }
+    }
+  } else if (cajero.tipo === 'PART') {
+    // PART: 1 franco, 6 días trabajados, mínimo 2 mañanas, total ≤31h, jornadas 4‑6h.
+    for (const francoDia of diasFrancoPosibles) {
+      const diasTrabajados = Array.from({ length: 7 }, (_, i) => i).filter(d => d !== francoDia)
+      let turnosPermitidos: TurnoSymbol[] = ['mañana', 'tarde']
+      if (exSoloMatutino) turnosPermitidos = ['mañana']
+      if (exSoloNocturno) turnosPermitidos = ['tarde']
+      const secuencias = generarSecuencias(turnosPermitidos, 6)
+      for (const secuencia of secuencias) {
+        const mañanas = secuencia.filter(t => t === 'mañana').length
+        if (mañanas < 2) continue
+        const combinacion: TurnoSymbol[] = Array(7).fill('franco')
+        combinacion[francoDia] = 'franco'
+        for (let i = 0; i < diasTrabajados.length; i++) {
+          combinacion[diasTrabajados[i]] = secuencia[i]
+        }
+        combinaciones.push(combinacion)
+      }
+    }
+  }
+  return combinaciones
+}
+
+/**
+ * Genera todas las secuencias de longitud n con elementos del conjunto dado (con repetición)
+ */
+function generarSecuencias<T>(conjunto: T[], n: number): T[][] {
+  const resultados: T[][] = []
+  const backtrack = (pos: number, actual: T[]) => {
+    if (pos === n) {
+      resultados.push([...actual])
+      return
+    }
+    for (const elem of conjunto) {
+      actual.push(elem)
+      backtrack(pos + 1, actual)
+      actual.pop()
+    }
+  }
+  backtrack(0, [])
+  return resultados
+}
+
+// ========================================
+// 3. RESTRICCIONES GLOBALES
+// ========================================
+
+/**
+ * Restricción global: máximo 2 cajeros con franco el mismo día.
+ * Además, máximo 1 FULL por día (regla adicional).
+ */
+function cumpleRestriccionesGlobales(asignacion: AsignacionCSP, cajeros: Colaborador[]): boolean {
+  // Mapa colaboradorId -> tipo
+  const tipoPorId = new Map(cajeros.map(c => [c.id, c.tipo]))
+
+  for (let dia = 0; dia < 7; dia++) {
+    let francos = 0
+    let fullFrancos = 0
+    for (const [id, turnos] of Array.from(asignacion)) {
+      if (turnos[dia] === 'franco') {
+        francos++
+        if (tipoPorId.get(id) === 'FULL') fullFrancos++
+      }
+    }
+    if (francos > 2) return false
+    if (fullFrancos > 1) return false
+  }
+  return true
+}
+
+// ========================================
+// 4. BACKTRACKING CSP (MRV + HEURÍSTICAS)
+// ========================================
+
+function resolverCSP(
+  cajeros: Colaborador[],
+  dominios: Map<string, TurnoSymbol[][]>,
+  _excepciones: ExcepcionSemanal[]
+): AsignacionCSP | null {
+  const asignacion = new Map<string, TurnoSymbol[]>()
+  // Ordenar cajeros por menor dominio (MRV)
+  const indices = cajeros.map((_, i) => i)
+  indices.sort((a, b) => {
+    const domA = dominios.get(cajeros[a].id)?.length || Infinity
+    const domB = dominios.get(cajeros[b].id)?.length || Infinity
+    return domA - domB
+  })
+
+  const backtrack = (idx: number): boolean => {
+    if (idx === indices.length) {
+      return true
+    }
+    const cajero = cajeros[indices[idx]]
+    const dominio = dominios.get(cajero.id) || []
+    // Ordenar valores por heurística: preferir combinaciones que agreguen menos francos en días ya cargados
+    dominio.sort((a, b) => {
+      let costoA = 0
+      let costoB = 0
+      for (let dia = 0; dia < 7; dia++) {
+        if (a[dia] === 'franco') {
+          // Contar francos existentes en este día
+          let francosExistentes = 0
+          for (const turnos of Array.from(asignacion.values())) {
+            if (turnos[dia] === 'franco') francosExistentes++
+          }
+          costoA += francosExistentes
+        }
+        if (b[dia] === 'franco') {
+          let francosExistentes = 0
+          for (const turnos of Array.from(asignacion.values())) {
+            if (turnos[dia] === 'franco') francosExistentes++
+          }
+          costoB += francosExistentes
+        }
+      }
+      return costoA - costoB
+    })
+
+    for (const combinacion of dominio) {
+      asignacion.set(cajero.id, combinacion)
+      if (cumpleRestriccionesGlobales(asignacion, cajeros)) {
+        if (backtrack(idx + 1)) {
+          return true
+        }
+      }
+      asignacion.delete(cajero.id)
+    }
+    return false
+  }
+
+  if (backtrack(0)) {
+    return asignacion
+  }
+  return null
+}
+
+// ========================================
+// 5. CONVERSIÓN A HORARIOS CONCRETOS
+// ========================================
+
+/**
+ * Convierte asignación simbólica en horarios reales, respetando duraciones, descansos y excepciones.
+ */
+function convertirAsignacionAHorarios(
+  asignacion: AsignacionCSP,
   cajeros: Colaborador[],
   necesidad: Franja[],
-  excepciones: ExcepcionSemanal[]
-): Map<string, number> {
-  const francosMap = new Map<string, number>()
-  const francosPorDia = Array(7).fill(0)
-  const francosFullPorDia = Array(7).fill(0)
+  excepciones: ExcepcionSemanal[],
+  semilla: number
+): HorarioColaborador[] {
+  const horarios: HorarioColaborador[] = []
+  const cajerosFull = cajeros.filter(c => c.tipo === 'FULL')
+  const cajerosPart = cajeros.filter(c => c.tipo === 'PART')
 
-  for (const cajero of cajeros) {
-    if (cajero.tipo === 'AUX') continue
+  // Precalcular cupo para cierre 22:00-22:30 por día
+  const cupo2200PorDia = Array.from({ length: 7 }, (_, dia) =>
+    Math.max(1, necesidadEnFranja(necesidad, dia, '22:00'))
+  )
+  const cajerosHasta2230PorDia = Array(7).fill(0)
 
-    // Verificar excepción de franco
-    const excepcion = excepciones.find(e =>
-      e.colaboradorNombre === cajero.nombre &&
-      e.tipo === 'franco_dia'
-    )
-    if (excepcion && excepcion.valor !== undefined) {
-      const diaExcepcion = parseInt(excepcion.valor || '0')
-      francosMap.set(cajero.id, diaExcepcion)
-      francosPorDia[diaExcepcion]++
-      if (cajero.tipo === 'FULL') {
-        francosFullPorDia[diaExcepcion]++
-      }
-      continue
-    }
-
-    // Elegir día con menor necesidad respetando límites
-    const necesidadPorDia = Array.from({length: 7}, (_, di) =>
-      calcularNecesidadDia(necesidad, di)
-    )
-    const diasOrdenados = Array.from({length: 7}, (_, i) => i)
-      .sort((a, b) => necesidadPorDia[a] - necesidadPorDia[b])
-
-    let diaElegido = -1
-    for (const dia of diasOrdenados) {
-      // Límites diferentes según tipo
-      if (cajero.tipo === 'FULL') {
-        // FULL: máximo 1 FULL por día y máximo 2 cajeros totales por día
-        if (francosFullPorDia[dia] < 1 && francosPorDia[dia] < 2) {
-          diaElegido = dia
-          break
-        }
-      } else {
-        // PART: máximo 2 cajeros totales por día
-        if (francosPorDia[dia] < 2) {
-          diaElegido = dia
-          break
-        }
-      }
-    }
-    if (diaElegido === -1) diaElegido = diasOrdenados[0]
-
-    francosMap.set(cajero.id, diaElegido)
-    francosPorDia[diaElegido]++
-    if (cajero.tipo === 'FULL') {
-      francosFullPorDia[diaElegido]++
-    }
+  // Asignar FULL
+  for (let i = 0; i < cajerosFull.length; i++) {
+    const cajero = cajerosFull[i]
+    const simbolos = asignacion.get(cajero.id)
+    if (!simbolos) continue
+    const franco = simbolos.findIndex(s => s === 'franco')
+    const jornadas = asignarJornadasFull(cajero, franco, simbolos, necesidad, cajerosHasta2230PorDia, cupo2200PorDia, i, semilla, excepciones)
+    horarios.push({
+      colaboradorId: cajero.id,
+      rolGeneral: 'cajero',
+      jornadas,
+      totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
+      errores: []
+    })
   }
 
-  return francosMap
+  // Asignar PART
+  for (const cajero of cajerosPart) {
+    const simbolos = asignacion.get(cajero.id)
+    if (!simbolos) continue
+    const franco = simbolos.findIndex(s => s === 'franco')
+    const jornadas = asignarJornadasPart(cajero, franco, simbolos, necesidad, cajerosHasta2230PorDia, cupo2200PorDia, semilla, excepciones)
+    horarios.push({
+      colaboradorId: cajero.id,
+      rolGeneral: 'cajero',
+      jornadas,
+      totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
+      errores: []
+    })
+  }
+
+  return horarios
 }
 
 // ========================================
-// PASO 2 — ASIGNAR JORNADAS FULL
+// 6. ASIGNACIÓN DE JORNADAS FULL
 // ========================================
 
 function asignarJornadasFull(
-  _cajero: Colaborador,
+  cajero: Colaborador,
   franco: number,
+  simbolos: TurnoSymbol[],
   necesidad: Franja[],
-  cajerosHasta2230PorDia: number[] = Array(7).fill(0),
-  cupo2200PorDia: number[] = Array(7).fill(0),
-  indiceFull: number = 0,
-  excepciones: ExcepcionSemanal[] = [],
-  errores: string[] = []
+  cajerosHasta2230PorDia: number[],
+  cupo2200PorDia: number[],
+  indiceFull: number,
+  semilla: number,
+  excepciones: ExcepcionSemanal[]
 ): JornadaAsignada[] {
-  const exNoAntes = obtenerExcepcion(excepciones, _cajero.nombre, 'no_antes_de')
-  const exNoDespues = obtenerExcepcion(excepciones, _cajero.nombre, 'no_despues_de')
-  const exSiempreCierre = obtenerExcepcion(excepciones, _cajero.nombre, 'siempre_cierre')
-  const exSoloMatutino = obtenerExcepcion(excepciones, _cajero.nombre, 'solo_matutino')
-  const exSoloNocturno = obtenerExcepcion(excepciones, _cajero.nombre, 'solo_nocturno')
+  // Obtener excepciones relevantes
+  const exNoAntes = obtenerExcepcion(excepciones, cajero.nombre, 'no_antes_de')
+  const exNoDespues = obtenerExcepcion(excepciones, cajero.nombre, 'no_despues_de')
+  const exSiempreCierre = obtenerExcepcion(excepciones, cajero.nombre, 'siempre_cierre')
 
-  const diasTrabajados = Array.from({length: 7}, (_, i) => i)
-    .filter(d => d !== franco)
-
-  // Ordenar por necesidad tarde descendente
-  const necesidadTarde = diasTrabajados.map(d => ({
-    dia: d,
-    nec: calcularNecesidadDia(necesidad, d, '17:00', '22:00')
-  })).sort((a, b) => b.nec - a.nec)
-
-  // Distribuir: top3=9h, mid2=8h, bottom1=5h(franco_medio)
-  const distribucion = new Map<number, number>()
-  const duraciones = [9,9,9,8,8,5]
-  const desplazamiento = indiceFull % 2
-  necesidadTarde.forEach((item, idx) => {
-    const pos = (idx + desplazamiento) % duraciones.length
-    distribucion.set(item.dia, duraciones[pos])
+  // Determinar duraciones por día: 3×9h, 2×8h, 1×5h (franco medio)
+  const duraciones = [9, 9, 9, 8, 8, 5]
+  const diasTrabajados = Array.from({ length: 7 }, (_, i) => i).filter(d => d !== franco)
+  // Ordenar días trabajados por necesidad tarde descendente (priorizar días con más necesidad en tarde)
+  diasTrabajados.sort((a, b) => {
+    const necA = calcularNecesidadDia(necesidad, a, '17:00', '22:00')
+    const necB = calcularNecesidadDia(necesidad, b, '17:00', '22:00')
+    return necB - necA
   })
+  const duracionPorDia = new Map<number, number>()
+  for (let i = 0; i < diasTrabajados.length; i++) {
+    duracionPorDia.set(diasTrabajados[i], duraciones[i])
+  }
 
   const jornadas: JornadaAsignada[] = []
   let finDiaAnterior = -1
@@ -279,59 +441,73 @@ function asignarJornadasFull(
   for (let dia = 0; dia < 7; dia++) {
     if (dia === franco) {
       jornadas.push({
-        dia, esFranco: true, turnos: [], horas: 0, rol: 'franco'
+        dia,
+        esFranco: true,
+        turnos: [],
+        horas: 0,
+        rol: 'franco'
       })
       finDiaAnterior = -1
       diaAnterior = dia
       continue
     }
 
-    const horas = distribucion.get(dia) || 8
+    const horas = duracionPorDia.get(dia) || 8
+    const simbolo = simbolos[dia]
     const esFrancoMedio = horas === 5
 
-    // Horarios base según duración
-    let inicioMin = horas === 9 ? timeToMinutes('13:30') :
-                    horas === 8 ? timeToMinutes('14:30') :
-                    timeToMinutes('17:30')
-    const duracionMin = horas * 60
+    // Determinar horario según símbolo y duración
+    let inicioMin: number
+    let finMin: number
+    if (simbolo === 'mañana') {
+      // Mañana: inicio entre 08:00 y 10:00
+      inicioMin = timeToMinutes('08:00') + (semilla * 30 + indiceFull * 17) % 120 // variación
+      finMin = inicioMin + horas * 60
+    } else if (simbolo === 'tarde') {
+      // Tarde: fin a las 22:00 (o 22:30 si hay cupo)
+      finMin = timeToMinutes('22:00')
+      inicioMin = finMin - horas * 60
+    } else { // cortado (solo FULL puede tener cortado)
+      // Turno cortado: dos bloques separados al menos 4h (simplificado a un solo bloque por ahora)
+      inicioMin = timeToMinutes('08:00') + (semilla * 30) % 120
+      finMin = inicioMin + horas * 60
+    }
 
-    // Verificar descanso 12h con día anterior
+    // Verificar descanso 12h con día anterior (si días consecutivos)
     if (finDiaAnterior > 0 && diaAnterior === dia - 1) {
-      const minimoInicio = finDiaAnterior + 12 * 60 - 24 * 60
+      const minimoInicio = finDiaAnterior + 12 * 60 - 24 * 60 // finDiaAnterior es del día anterior, en minutos del mismo día
       if (minimoInicio > inicioMin) inicioMin = minimoInicio
     }
 
-    const finMin = inicioMin + duracionMin
-
-    // Aplicar excepciones
-    const { inicioMinAjustado, finMinAjustado, errores: erroresEx } = aplicarExcepcionesHorario(
-      inicioMin, finMin, exNoAntes, exNoDespues, exSiempreCierre, exSoloMatutino, exSoloNocturno
-    )
-    if (erroresEx.length > 0 && errores) {
-      errores.push(...erroresEx)
-    }
-
-    const cupo2200 = cupo2200PorDia[dia]
-    let finMinAjustada = finMinAjustado
-    // Si hay excepción siempre_cierre, forzar fin a 22:30 sin verificar cupo
+    // Aplicar excepción "siempre_cierre"
     if (exSiempreCierre) {
-      finMinAjustada = timeToMinutes('22:30')
+      finMin = timeToMinutes('22:30')
+      inicioMin = finMin - horas * 60
       cajerosHasta2230PorDia[dia]++
-    } else if (finMinAjustado >= timeToMinutes('22:00')) {
-      // La jornada llega al menos a las 22:00
-      if (cajerosHasta2230PorDia[dia] < cupo2200) {
-        // Aún hay cupo para cajeros hasta las 22:30
-        finMinAjustada = Math.min(finMinAjustado, timeToMinutes('22:30'))
+    } else if (finMin >= timeToMinutes('22:00')) {
+      // Cupo para cierre 22:00-22:30
+      if (cajerosHasta2230PorDia[dia] < cupo2200PorDia[dia]) {
+        finMin = Math.min(finMin, timeToMinutes('22:30'))
+        cajerosHasta2230PorDia[dia]++
       } else {
-        // No hay cupo, terminar a las 22:00
-        finMinAjustada = Math.min(finMinAjustado, timeToMinutes('22:00'))
+        finMin = Math.min(finMin, timeToMinutes('22:00'))
       }
-    } // else: la jornada termina antes de 22:00, no se ajusta
-    const inicio = minutesToTime(inicioMinAjustado)
-    const fin = minutesToTime(finMinAjustada)
-    if (finMinAjustada === timeToMinutes('22:30') && !exSiempreCierre) {
-      cajerosHasta2230PorDia[dia]++
     }
+
+    // Ajustes por excepciones de horario
+    if (exNoAntes?.valor && inicioMin < timeToMinutes(exNoAntes.valor)) {
+      const desplaza = timeToMinutes(exNoAntes.valor) - inicioMin
+      inicioMin += desplaza
+      finMin += desplaza
+    }
+    if (exNoDespues?.valor && finMin > timeToMinutes(exNoDespues.valor)) {
+      const exceso = finMin - timeToMinutes(exNoDespues.valor)
+      finMin -= exceso
+      inicioMin = Math.max(inicioMin - exceso, 0)
+    }
+
+    const inicio = minutesToTime(inicioMin)
+    const fin = minutesToTime(finMin)
 
     jornadas.push({
       dia,
@@ -349,69 +525,30 @@ function asignarJornadasFull(
 }
 
 // ========================================
-// PASO 3 — ASIGNAR JORNADAS PART
+// 7. ASIGNACIÓN DE JORNADAS PART
 // ========================================
-
-const PART_TARDE = [
-  'claudia altamirano', 'giuliana ciarlante',
-  'mariana soruco', 'martina beron'
-]
-const PART_MANANA = [
-  'ignacio barrios', 'jorgelina nanez', 'tobias benitez'
-]
-
-function getTurnoPartTime(cajero: Colaborador): 'tarde' | 'manana' {
-  const nombre = cajero.nombre.toLowerCase()
-  if (PART_MANANA.some(n => nombre.includes(n.split(' ')[0])))
-    return 'manana'
-  return 'tarde'
-}
 
 function asignarJornadasPart(
   cajero: Colaborador,
   franco: number,
-  necesidad: Franja[],
-  cajerosHasta2230PorDia: number[] = Array(7).fill(0),
-  cupo2200PorDia: number[] = Array(7).fill(0),
-  excepciones: ExcepcionSemanal[] = [],
-  errores: string[] = []
+  simbolos: TurnoSymbol[],
+  _necesidad: Franja[],
+  cajerosHasta2230PorDia: number[],
+  cupo2200PorDia: number[],
+  _semilla: number,
+  excepciones: ExcepcionSemanal[]
 ): JornadaAsignada[] {
-  const turno = getTurnoPartTime(cajero)
-  // Obtener excepciones, filtrando incompatibilidades según turno
   const exNoAntes = obtenerExcepcion(excepciones, cajero.nombre, 'no_antes_de')
   const exNoDespues = obtenerExcepcion(excepciones, cajero.nombre, 'no_despues_de')
-  const exSiempreCierre = turno === 'tarde' ? obtenerExcepcion(excepciones, cajero.nombre, 'siempre_cierre') : undefined
-  const exSoloMatutino = turno === 'manana' ? obtenerExcepcion(excepciones, cajero.nombre, 'solo_matutino') : undefined
-  const exSoloNocturno = turno === 'tarde' ? obtenerExcepcion(excepciones, cajero.nombre, 'solo_nocturno') : undefined
-  const diasTrabajados = Array.from({length: 7}, (_, i) => i)
-    .filter(d => d !== franco)
+  const exSiempreCierre = obtenerExcepcion(excepciones, cajero.nombre, 'siempre_cierre')
 
-  const franjaRef = turno === 'tarde' ?
-    { ini: '17:00', fin: '22:30' } :
-    { ini: '09:00', fin: '14:00' }
-
-  // Ordenar días por necesidad en su franja
-  const diasOrdenados = diasTrabajados
-    .map(d => ({
-      dia: d,
-      nec: calcularNecesidadDia(necesidad, d, franjaRef.ini, franjaRef.fin)
-    }))
-    .sort((a, b) => b.nec - a.nec)
-
-  // Distribuir 32h en 6 días: 2 días de 6h + 4 días de 5h
-  const horasPorDia = new Map<number, number>()
-  diasOrdenados.forEach((item, idx) => {
-    horasPorDia.set(item.dia, idx < 2 ? 6 : 5)
-  })
-
-  // Verificar suma = 32h
-  const totalHoras = Array.from(horasPorDia.values())
-    .reduce((s, h) => s + h, 0)
-  if (totalHoras !== 32) {
-    // Ajustar último día
-    const ultimoDia = diasOrdenados[diasOrdenados.length - 1].dia
-    const diff = 32 - totalHoras
-    horasPorDia.set(ultimoDia, (horasPorDia.get(ultimoDia) || 5) + diff)
+  // Determinar duraciones por día: total 31h, jornadas 4-6h
+  const duraciones = [6, 6, 5, 5, 5, 4] // ejemplo que suma 31
+  const diasTrabajados = Array.from({ length: 7 }, (_, i) => i).filter(d => d !== franco)
+  // Asignar duraciones según necesidad (simplificado)
+  const duracionPorDia = new Map<number, number>()
+  for (let i = 0; i < diasTrabajados.length; i++) {
+    duracionPorDia.set(diasTrabajados[i], duraciones[i])
   }
 
   const jornadas: JornadaAsignada[] = []
@@ -421,55 +558,56 @@ function asignarJornadasPart(
   for (let dia = 0; dia < 7; dia++) {
     if (dia === franco) {
       jornadas.push({
-        dia, esFranco: true, turnos: [], horas: 0, rol: 'franco'
+        dia,
+        esFranco: true,
+        turnos: [],
+        horas: 0,
+        rol: 'franco'
       })
       finDiaAnterior = -1
       diaAnterior = dia
       continue
     }
 
-    const horas = horasPorDia.get(dia) || 5
+    const horas = duracionPorDia.get(dia) || 5
+    const simbolo = simbolos[dia]
 
     let inicioMin: number
     let finMin: number
-
-    let inicioMinBase: number
-    let finMinBase: number
-    if (turno === 'tarde') {
-      // PART tarde compite por cupo para cubrir franja 22:00-22:30
-      const cupo2200 = cupo2200PorDia[dia]
-      if (exSiempreCierre) {
-        // Siempre cierre: forzar fin a 22:30 sin verificar cupo
-        finMinBase = timeToMinutes('22:30')
-        cajerosHasta2230PorDia[dia]++
-      } else if (cajerosHasta2230PorDia[dia] < cupo2200) {
-        // Aún hay cupo para cajeros hasta las 22:30
-        finMinBase = timeToMinutes('22:30')
-        cajerosHasta2230PorDia[dia]++
-      } else {
-        // No hay cupo, terminar a las 22:00
-        finMinBase = timeToMinutes('22:00')
-      }
-      inicioMinBase = finMinBase - horas * 60
-    } else {
-      inicioMinBase = timeToMinutes('09:00')
-      // Verificar descanso con día anterior
+    if (simbolo === 'mañana') {
+      // PART mañana: inicio 09:00, ajustar por descanso 12h
+      inicioMin = timeToMinutes('09:00')
       if (finDiaAnterior > 0 && diaAnterior === dia - 1) {
         const minimoInicio = finDiaAnterior + 12 * 60 - 24 * 60
-        if (minimoInicio > inicioMinBase) inicioMinBase = minimoInicio
+        if (minimoInicio > inicioMin) inicioMin = minimoInicio
       }
-      finMinBase = inicioMinBase + horas * 60
+      finMin = inicioMin + horas * 60
+    } else { // tarde
+      // PART tarde: fin a las 22:00 o 22:30 según cupo
+      const cupo2200 = cupo2200PorDia[dia]
+      if (exSiempreCierre) {
+        finMin = timeToMinutes('22:30')
+        cajerosHasta2230PorDia[dia]++
+      } else if (cajerosHasta2230PorDia[dia] < cupo2200) {
+        finMin = timeToMinutes('22:30')
+        cajerosHasta2230PorDia[dia]++
+      } else {
+        finMin = timeToMinutes('22:00')
+      }
+      inicioMin = finMin - horas * 60
     }
 
-    // Aplicar excepciones compatibles
-    const { inicioMinAjustado, finMinAjustado, errores: erroresEx } = aplicarExcepcionesHorario(
-      inicioMinBase, finMinBase, exNoAntes, exNoDespues, exSiempreCierre, exSoloMatutino, exSoloNocturno
-    )
-    if (erroresEx.length > 0 && errores) {
-      errores.push(...erroresEx)
+    // Aplicar excepciones de horario
+    if (exNoAntes?.valor && inicioMin < timeToMinutes(exNoAntes.valor)) {
+      const desplaza = timeToMinutes(exNoAntes.valor) - inicioMin
+      inicioMin += desplaza
+      finMin += desplaza
     }
-    inicioMin = inicioMinAjustado
-    finMin = finMinAjustado
+    if (exNoDespues?.valor && finMin > timeToMinutes(exNoDespues.valor)) {
+      const exceso = finMin - timeToMinutes(exNoDespues.valor)
+      finMin -= exceso
+      inicioMin = Math.max(inicioMin - exceso, 0)
+    }
 
     const inicio = minutesToTime(inicioMin)
     const fin = minutesToTime(finMin)
@@ -490,7 +628,19 @@ function asignarJornadasPart(
 }
 
 // ========================================
-// PASO 5 — ASIGNAR AUXILIARES
+// 8. FUNCIONES AUXILIARES
+// ========================================
+
+function calcularNecesidadDia(necesidad: Franja[], dia: number, franjaInicio?: string, franjaFin?: string): number {
+  return necesidad.reduce((sum, f) => {
+    if (franjaInicio && timeToMinutes(f.hora) < timeToMinutes(franjaInicio)) return sum
+    if (franjaFin && timeToMinutes(f.hora) >= timeToMinutes(franjaFin)) return sum
+    return sum + (f.necesidad[dia] || 0)
+  }, 0)
+}
+
+// ========================================
+// 9. ASIGNACIÓN DE AUXILIARES
 // ========================================
 
 function asignarAuxiliares(
@@ -498,10 +648,11 @@ function asignarAuxiliares(
   horariosCajeros: HorarioColaborador[],
   necesidad: Franja[]
 ): HorarioColaborador[] {
-  let cobertura = calcularCobertura(horariosCajeros, necesidad)
+  // Calcular cobertura actual solo de cajeros
+  let cobertura = calcularCoberturaCajeros(horariosCajeros, necesidad)
   const horariosAux: HorarioColaborador[] = []
 
-  // Precalcular auxiliares reservados para cierre por día
+  // Precalcular auxiliares reservados para cierre por día (máximo 2)
   const auxReservadosCierrePorDia: Set<string>[] = Array.from({ length: 7 }, () => new Set())
   for (let dia = 0; dia < 7; dia++) {
     // Filtrar auxiliares activos con disponibilidad hasta 23:00 este día
@@ -535,8 +686,7 @@ function asignarAuxiliares(
       }
 
       const horarioDia = aux.horarioSemanal[dia]
-      const { turnos: turnosDisponibles, esFranco } =
-        parsearHorarioDia(horarioDia)
+      const { turnos: turnosDisponibles, esFranco } = parsearHorarioDia(horarioDia)
 
       if (esFranco || !turnosDisponibles.length) {
         jornadas.push({
@@ -546,11 +696,10 @@ function asignarAuxiliares(
         continue
       }
 
-
       // Reservar cierre: si este auxiliar está entre los seleccionados para cierre este día
       const reservarParaCierre = auxReservadosCierrePorDia[dia].has(aux.id)
 
-      // Franjas con bache este día
+      // Franjas con bache este día (solo donde faltan cajeros)
       const franjasConBache: string[] = []
       for (let fi = 0; fi < necesidad.length; fi++) {
         const bache = necesidad[fi].necesidad[dia] - cobertura[fi][dia]
@@ -558,7 +707,7 @@ function asignarAuxiliares(
 
         const franjaMin = timeToMinutes(necesidad[fi].hora)
 
-        // Franja 08:00-09:00: solo 1 AUX, sin cajeros
+        // Franja 08:00-09:00: solo 1 AUX, sin cajeros (regla especial)
         if (franjaMin >= timeToMinutes('08:00') &&
             franjaMin < timeToMinutes('09:00')) {
           if (franjaEnTurno(necesidad[fi].hora, turnosDisponibles)) {
@@ -614,7 +763,7 @@ function asignarAuxiliares(
         rol: 'aux_supervisor'
       })
 
-      // Actualizar cobertura con este auxiliar
+      // Actualizar cobertura con este auxiliar (para cálculos posteriores de eventuales)
       if (turnosAsignados.length > 0) {
         for (let fi = 0; fi < necesidad.length; fi++) {
           if (franjaEnTurno(necesidad[fi].hora, turnosAsignados)) {
@@ -637,7 +786,7 @@ function asignarAuxiliares(
 }
 
 // ========================================
-// PASO 6 — ASIGNAR EVENTUALES
+// 10. ASIGNACIÓN DE EVENTUALES
 // ========================================
 
 function asignarEventuales(
@@ -645,6 +794,7 @@ function asignarEventuales(
   horariosExistentes: HorarioColaborador[],
   necesidad: Franja[]
 ): HorarioColaborador[] {
+  // Calcular cobertura actual (cajeros + AUX)
   let cobertura = calcularCobertura(horariosExistentes, necesidad)
   const horariosEv: HorarioColaborador[] = []
 
@@ -663,8 +813,7 @@ function asignarEventuales(
       }
 
       const horarioDia = ev.horarioSemanal[dia]
-      const { turnos: turnosDisponibles, esFranco } =
-        parsearHorarioDia(horarioDia)
+      const { turnos: turnosDisponibles, esFranco } = parsearHorarioDia(horarioDia)
 
       if (esFranco || !turnosDisponibles.length) {
         jornadas.push({
@@ -737,7 +886,76 @@ function asignarEventuales(
 }
 
 // ========================================
-// FUNCIÓN PRINCIPAL
+// 11. CÁLCULO DE COBERTURA GENERAL
+// ========================================
+
+function calcularCobertura(horarios: HorarioColaborador[], necesidad: Franja[]): number[][] {
+  const cob = necesidad.map(() => Array(7).fill(0))
+  for (const h of horarios) {
+    for (const j of h.jornadas) {
+      if (j.esFranco || !j.turnos.length) continue
+      for (let fi = 0; fi < necesidad.length; fi++) {
+        if (franjaEnTurno(necesidad[fi].hora, j.turnos)) {
+          cob[fi][j.dia]++
+        }
+      }
+    }
+  }
+  return cob
+}
+
+// ========================================
+// 12. GENERACIÓN DE SOLUCIÓN CSP COMPLETA
+// ========================================
+
+function generarSolucionCSP(
+  cajeros: Colaborador[],
+  auxiliares: Auxiliar[],
+  eventuales: Eventual[],
+  necesidad: Franja[],
+  excepciones: ExcepcionSemanal[],
+  semilla: number
+): HorarioColaborador[] {
+  // Filtrar cajeros activos
+  const cajerosActivos = cajeros.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
+
+  // 1. Validar factibilidad
+  const factibilidad = validarFactibilidad(cajerosActivos, auxiliares, eventuales, necesidad)
+  if (!factibilidad.valido) {
+    throw new Error(factibilidad.mensaje)
+  }
+
+  // 2. Generar dominios para cada cajero
+  const dominios = new Map<string, TurnoSymbol[][]>()
+  for (const cajero of cajerosActivos) {
+    const dominio = generarDominioCajero(cajero, excepciones)
+    if (dominio.length === 0) {
+      throw new Error(`Cajero ${cajero.nombre} no tiene combinaciones válidas con las excepciones dadas`)
+    }
+    dominios.set(cajero.id, dominio)
+  }
+
+  // 3. Resolver CSP
+  const asignacion = resolverCSP(cajerosActivos, dominios, excepciones)
+  if (!asignacion) {
+    throw new Error('No se pudo encontrar una solución válida con CSP')
+  }
+
+  // 4. Convertir asignación a horarios concretos de cajeros
+  const horariosCajeros = convertirAsignacionAHorarios(asignacion, cajerosActivos, necesidad, excepciones, semilla)
+
+  // 5. Asignar AUXILIARES
+  const horariosAux = asignarAuxiliares(auxiliares, horariosCajeros, necesidad)
+
+  // 6. Asignar EVENTUALES
+  const todosHastaAhora = [...horariosCajeros, ...horariosAux]
+  const horariosEv = asignarEventuales(eventuales, todosHastaAhora, necesidad)
+
+  return [...horariosCajeros, ...horariosAux, ...horariosEv]
+}
+
+// ========================================
+// 13. FUNCIÓN PRINCIPAL (LEGACY)
 // ========================================
 
 export function generarHorariosDeterministicos(
@@ -748,85 +966,24 @@ export function generarHorariosDeterministicos(
   _fechas: string[],
   excepciones: ExcepcionSemanal[]
 ): ResultadoAsignacion {
-  // Copia profunda de la necesidad original (inmutable)
-  const necesidadOriginal: Franja[] = structuredClone(necesidad)
+  // Usar semilla 0 para la solución por defecto
+  const horarios = generarSolucionCSP(cajeros, auxiliares, eventuales, necesidad, excepciones, 0)
 
-  // PASO 1: Asignar francos
-  const francosMap = asignarFrancos(cajeros, necesidadOriginal, excepciones)
+  // Calcular métricas (solo cajeros)
+  const coberturaFranjas = calcularCoberturaCajeros(horarios, necesidad)
 
-  // PASO 2 y 3: Asignar jornadas cajeros
-  const horariosCajeros: HorarioColaborador[] = []
-
-  const cajerosFull = cajeros.filter(
-    c => c.tipo === 'FULL' && c.activo
-  )
-  const cajerosPart = cajeros.filter(
-    c => c.tipo === 'PART' && c.activo
-  )
-  const cajerosHasta2230PorDia = Array(7).fill(0)
-  const cupo2200PorDia = Array.from({length: 7}, (_, dia) =>
-    Math.max(1, necesidadEnFranja(necesidadOriginal, dia, '22:00'))
+  const faltantesFranjas = necesidad.map((f, fi) =>
+    f.necesidad.map((nec, di) => Math.max(0, nec - coberturaFranjas[fi][di]))
   )
 
-  for (let i = 0; i < cajerosFull.length; i++) {
-    const cajero = cajerosFull[i]
-    const franco = francosMap.get(cajero.id) ?? 0
-    const erroresCajero: string[] = []
-    const jornadas = asignarJornadasFull(cajero, franco, necesidadOriginal, cajerosHasta2230PorDia, cupo2200PorDia, i, excepciones, erroresCajero)
-    horariosCajeros.push({
-      colaboradorId: cajero.id,
-      rolGeneral: 'cajero',
-      jornadas,
-      totalHoras: jornadas.reduce((s,j) => s + j.horas, 0),
-      errores: erroresCajero
-    })
-  }
-
-  for (const cajero of cajerosPart) {
-    const franco = francosMap.get(cajero.id) ?? 0
-    const erroresCajero: string[] = []
-    const jornadas = asignarJornadasPart(cajero, franco, necesidadOriginal, cajerosHasta2230PorDia, cupo2200PorDia, excepciones, erroresCajero)
-    horariosCajeros.push({
-      colaboradorId: cajero.id,
-      rolGeneral: 'cajero',
-      jornadas,
-      totalHoras: jornadas.reduce((s,j) => s + j.horas, 0),
-      errores: erroresCajero
-    })
-  }
-
-  // PASO 5: Asignar auxiliares
-  const horariosAux = asignarAuxiliares(
-    auxiliares, horariosCajeros, necesidadOriginal
-  )
-
-  // PASO 6: Asignar eventuales
-  const todosHastaNow = [...horariosCajeros, ...horariosAux]
-  const horariosEv = asignarEventuales(
-    eventuales, todosHastaNow, necesidadOriginal
-  )
-
-  // Combinar todos
-  const horarios = [...horariosCajeros, ...horariosAux, ...horariosEv]
-
-  // Calcular cobertura final
-  const coberturaFranjas = calcularCobertura(horarios, necesidadOriginal)
-
-  // Calcular faltantes
-  const faltantesFranjas = necesidadOriginal.map((f, fi) =>
-    f.necesidad.map((nec, di) =>
-      Math.max(0, nec - coberturaFranjas[fi][di])
-    )
-  )
-
-  // Calcular porcentaje
+  // Calcular porcentaje de cobertura
   let franjasCubiertas = 0
   let franjasConNecesidad = 0
-  for (let fi = 0; fi < necesidadOriginal.length; fi++) {
+  for (let fi = 0; fi < necesidad.length; fi++) {
     for (let di = 0; di < 7; di++) {
-      if (necesidadOriginal[fi].necesidad[di] > 0) {
+      if (necesidad[fi].necesidad[di] > 0) {
         franjasConNecesidad++
-        if (coberturaFranjas[fi][di] >= necesidadOriginal[fi].necesidad[di]) {
+        if (coberturaFranjas[fi][di] >= necesidad[fi].necesidad[di]) {
           franjasCubiertas++
         }
       }
@@ -838,16 +995,11 @@ export function generarHorariosDeterministicos(
 
   // Generar alertas
   const alertas: string[] = []
-  const dias = ['lunes','martes','miércoles','jueves',
-    'viernes','sábado','domingo']
-
-  necesidadOriginal.forEach((franja, fi) => {
+  necesidad.forEach((franja, fi) => {
     franja.necesidad.forEach((nec, di) => {
       const diff = nec - coberturaFranjas[fi][di]
       if (diff > 0) {
-        alertas.push(
-          `Falta ${diff} cajero(s) en ${franja.hora} el ${dias[di]}`
-        )
+        alertas.push(`Falta ${diff} cajero(s) en ${franja.hora} el ${DIAS[di]}`)
       }
     })
   })
@@ -859,21 +1011,4 @@ export function generarHorariosDeterministicos(
     alertas,
     porcentajeCobertura
   }
-}
-
-export {
-  timeToMinutes,
-  minutesToTime,
-  parsearHorarioDia,
-  calcularNecesidadDia,
-  franjaEnTurno,
-  calcularCobertura,
-  asignarFrancos,
-  asignarJornadasFull,
-  asignarJornadasPart,
-  asignarAuxiliares,
-  asignarEventuales,
-  getTurnoPartTime,
-  PART_TARDE,
-  PART_MANANA
 }

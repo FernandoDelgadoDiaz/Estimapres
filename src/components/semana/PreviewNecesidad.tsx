@@ -81,7 +81,7 @@ export default function PreviewNecesidad({ necesidad }: PreviewNecesidadProps) {
       </div>
 
       <div className="p-4 bg-blue-50 border-t border-blue-100">
-        <div className="flex items-center text-sm text-blue-800">
+        <div className="flex items-center text-sm text-blue-800 mb-2">
           <span className="mr-2">ℹ️</span>
           <p>
             Se necesitan{' '}
@@ -89,6 +89,12 @@ export default function PreviewNecesidad({ necesidad }: PreviewNecesidadProps) {
               {totalesPorDia.reduce((a, b) => a + b, 0)} cajas-hora
             </span>{' '}
             esta semana. Cada cajero aporta ~48h (FULL/AUX) o ~30h (PART).
+          </p>
+        </div>
+        <div className="flex items-center text-sm text-amber-800 bg-amber-50 p-2 rounded">
+          <span className="mr-2">⚠️</span>
+          <p className="text-xs">
+            <strong>Nota:</strong> Los totales son informativos. La demanda real es por franja de 30 minutos (valores de la tabla). No se suman ni acumulan franjas para la asignación.
           </p>
         </div>
       </div>

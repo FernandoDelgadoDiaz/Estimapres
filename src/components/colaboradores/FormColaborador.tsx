@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Colaborador } from '../../types'
 
 interface FormColaboradorProps {
@@ -17,6 +17,19 @@ export default function FormColaborador({
   const [horasSemanales, setHorasSemanales] = useState(
     colaborador?.horasSemanales.toString() || '48'
   )
+
+  // Sincronizar estado cuando cambia el colaborador (edición)
+  useEffect(() => {
+    if (colaborador) {
+      setNombre(colaborador.nombre || '')
+      setTipo(colaborador.tipo || 'FULL')
+      setHorasSemanales(colaborador.horasSemanales.toString() || '48')
+    } else {
+      setNombre('')
+      setTipo('FULL')
+      setHorasSemanales('48')
+    }
+  }, [colaborador])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,8 +64,9 @@ export default function FormColaborador({
                   required
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   placeholder="Ej: Carlos Paz"
+                  autoFocus
                 />
               </div>
 
@@ -70,7 +84,7 @@ export default function FormColaborador({
                       setHorasSemanales(tipoObj.defaultHours.toString())
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 >
                   {tipos.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -92,7 +106,7 @@ export default function FormColaborador({
                   step={1}
                   value={horasSemanales}
                   onChange={(e) => setHorasSemanales(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   FULL y AUX: 48h | PART: 30-32h

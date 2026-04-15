@@ -60,7 +60,9 @@ export default function TablaEventuales({
                   type="text"
                   value={ev.nombre}
                   onChange={(e) => handleNombreChange(ev.id, e.target.value)}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.target.select()}
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900"
                 />
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
@@ -68,7 +70,9 @@ export default function TablaEventuales({
                   type="text"
                   value={ev.sector}
                   onChange={(e) => handleSectorChange(ev.id, e.target.value)}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onClick={(e) => e.stopPropagation()}
+                  onFocus={(e) => e.target.select()}
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900"
                 />
               </td>
               {DIAS_SEMANA.map((_, idx) => (
@@ -77,8 +81,10 @@ export default function TablaEventuales({
                     type="text"
                     value={ev.horarioSemanal[idx] || ''}
                     onChange={(e) => handleHorarioChange(ev.id, idx, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.target.select()}
                     placeholder="HH:MM-HH:MM"
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900"
                   />
                 </td>
               ))}
