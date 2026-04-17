@@ -168,28 +168,31 @@ export function validarDescansoEntreDias(
   jornada_dia_n: Jornada | null,
   jornada_dia_siguiente: Jornada | null
 ): RegulaViolada[] {
+  // Si alguno es null o franco, la regla no aplica
   if (!jornada_dia_n || !jornada_dia_siguiente) return [];
-  if (jornada_dia_n.bloques.length === 0 || jornada_dia_siguiente.bloques.length === 0) return [];
+  if (jornada_dia_n.bloques.length === 0) return [];
+  if (jornada_dia_siguiente.bloques.length === 0) return [];
 
-  const ultimoBloqueN = jornada_dia_n.bloques[jornada_dia_n.bloques.length - 1];
-  const primerBloqueSiguiente = jornada_dia_siguiente.bloques[0];
-  // slot_inicio_dia_siguiente >= slot_fin_dia_n - 25
-  // donde slot_fin_dia_n es del último bloque, slot_inicio del primer bloque del día siguiente
-  // descanso mínimo 12h = 24 slots
-  // fórmula: slot_inicio_sig >= slot_fin_n - 25? Revisar.
-  // Si slot_fin_n = 20 (10:00), descanso 24 slots = slot_inicio_sig >= 44? No, slot_fin_n - 25 = -5.
-  // Mejor calcular diferencia en slots: slot_inicio_sig - slot_fin_n >= 24? Pero hay diferencia de día (30 slots por día).
-  // Necesitamos convertir a slots absolutos sumando dia*30.
-  const slot_fin_abs = ultimoBloqueN.slot_fin + jornada_dia_n.dia * 30;
-  const slot_inicio_abs = primerBloqueSiguiente.slot_inicio + jornada_dia_siguiente.dia * 30;
-  const diferencia = slot_inicio_abs - slot_fin_abs;
-  if (diferencia < 24) {
+  // slot_fin del último bloque del día N
+  const ultimo_bloque_n = jornada_dia_n.bloques[jornada_dia_n.bloques.length - 1];
+  const slot_fin_d1 = ultimo_bloque_n.slot_fin;
+
+  // slot_inicio del primer bloque del día N+1
+  const primer_bloque_d2 = jornada_dia_siguiente.bloques[0];
+  const slot_inicio_d2 = primer_bloque_d2.slot_inicio;
+
+  // Descanso total = slots libres día N + slots muertos nocturnos + slots libres día N+1
+  const descanso_slots = (30 - slot_fin_d1) + 19 + slot_inicio_d2;
+
+  if (descanso_slots < 24) {
     return [{
       regla: "H-D1",
       colab_id,
-      detalle: `Descanso insuficiente entre días: ${diferencia} slots (${diferencia / 2}h), mínimo 24 slots (12h)`,
+      dia: jornada_dia_siguiente.dia,
+      detalle: `Descanso insuficiente entre dia ${jornada_dia_n.dia} y dia ${jornada_dia_siguiente.dia}: ${descanso_slots} slots (${descanso_slots / 2}h), minimo 24 slots (12h)`
     }];
   }
+
   return [];
 }
 

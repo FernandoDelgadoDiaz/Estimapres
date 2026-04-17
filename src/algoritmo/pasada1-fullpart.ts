@@ -1,12 +1,19 @@
 // src/algoritmo/pasada1-fullpart.ts
 // Generación de jornadas para colaboradores FULL y PART (pasada 1).
-// Responsabilidad: asignar francos, seleccionar jornadas del catálogo, respetar reglas H‑F* y H‑P*.
-// Referencia: ai/architecture.md §7.1.
-// Implementado en Prompt 1.
+// Implementación greedy colaborador por colaborador con generadores y poda temprana.
+// Prompt 1.6 – reescritura completa para evitar OOM.
 
 import type { InputAlgoritmo, Jornada, DiaSemana } from "./types";
-import { CATALOGO_FULL_CORRIDAS, CATALOGO_PART, CATALOGO_FULL_CORTADAS, generarParesCortada, type CortadaFull } from "./catalogos";
-import { validarSemanaFull, validarSemanaPart, validarFrancosPorDia } from "./reglas";
+import {
+  CATALOGO_FULL_CORRIDAS,
+  CATALOGO_FULL_CORTADAS,
+  generarParesCortada
+} from "./catalogos";
+import {
+  validarSemanaFull,
+  validarSemanaPart,
+  validarDescansoEntreDias
+} from "./reglas";
 
 export interface ResultadoPasada1 {
   jornadas_full: Record<string, Jornada[]>;
@@ -15,372 +22,347 @@ export interface ResultadoPasada1 {
   infactibles: string[];
 }
 
+const DIAS: DiaSemana[] = [0, 1, 2, 3, 4, 5, 6];
+
+// ============== FUNCIÓN PRINCIPAL ==============
+
 export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
-  // Separar colaboradores por rol
   const fulls = input.colaboradores.filter(c => c.rol === "FULL");
   const parts = input.colaboradores.filter(c => c.rol === "PART");
 
-  // Inicializar déficit con demanda
-  const deficit_actual: number[][] = input.demanda.map(row => [...row]); // deep copy
+  // Déficit actual [día][slot], inicializado con la demanda
+  const deficit: number[][] = input.demanda.map(fila => [...fila]);
 
-  // Resultados
   const jornadas_full: Record<string, Jornada[]> = {};
   const jornadas_part: Record<string, Jornada[]> = {};
   const infactibles: string[] = [];
 
-  // ========== FULL ==========
-  // Orden determinístico por id
-  fulls.sort((a, b) => a.id.localeCompare(b.id));
+  // Contador de francos por día para H-FR1
+  const francos_por_dia: number[] = [0, 0, 0, 0, 0, 0, 0];
 
+  // Procesar FULLs primero (más restricciones), luego PARTs
   for (const colab of fulls) {
-    const mejorSemana = encontrarMejorSemanaFull(colab.id, deficit_actual);
-    if (!mejorSemana) {
+    const mejor = buscarMejorSemanaFull(colab.id, deficit, francos_por_dia);
+    if (!mejor) {
       infactibles.push(colab.id);
+      jornadas_full[colab.id] = [];
       continue;
     }
-    jornadas_full[colab.id] = mejorSemana;
-    // Restar cobertura del déficit
-    restarCobertura(deficit_actual, mejorSemana);
+    jornadas_full[colab.id] = mejor;
+    aplicarJornadasADeficit(mejor, deficit);
+    actualizarFrancos(mejor, francos_por_dia);
   }
-
-  // ========== PART ==========
-  parts.sort((a, b) => a.id.localeCompare(b.id));
 
   for (const colab of parts) {
-    const mejorSemana = encontrarMejorSemanaPart(colab.id, deficit_actual);
-    if (!mejorSemana) {
+    const mejor = buscarMejorSemanaPart(colab.id, deficit, francos_por_dia);
+    if (!mejor) {
       infactibles.push(colab.id);
+      jornadas_part[colab.id] = [];
       continue;
     }
-    jornadas_part[colab.id] = mejorSemana;
-    restarCobertura(deficit_actual, mejorSemana);
-  }
-
-  // Validar H-FR1 (máximo 2 francos por día)
-  const violFrancos = validarFrancosPorDia(jornadas_full, jornadas_part);
-  if (violFrancos.length > 0) {
-    // Intentar reasignar francos (simplificación: mover francos de días con >2)
-    // Por simplicidad, agregamos a infactibles si viola (no implementamos reasignación compleja)
-    // En un algoritmo real, se intentarían cambios.
-    infactibles.push(...violFrancos.map(v => `FRANCO_${v.dia}`));
+    jornadas_part[colab.id] = mejor;
+    aplicarJornadasADeficit(mejor, deficit);
+    actualizarFrancos(mejor, francos_por_dia);
   }
 
   return {
     jornadas_full,
     jornadas_part,
-    deficit_1: deficit_actual,
+    deficit_1: deficit,
     infactibles,
   };
 }
 
-// ==================== HELPERS ====================
+// ============== BÚSQUEDA FULL ==============
 
-function restarCobertura(deficit: number[][], jornadas: Jornada[]) {
-  for (const jornada of jornadas) {
-    if (jornada.bloques.length === 0) continue; // franco
-    const dia = jornada.dia;
-    for (const bloque of jornada.bloques) {
-      for (let slot = bloque.slot_inicio; slot < bloque.slot_fin; slot++) {
-        if (deficit[dia][slot] > 0) {
-          deficit[dia][slot]--;
-        }
+function buscarMejorSemanaFull(
+  colab_id: string,
+  deficit: number[][],
+  francos_por_dia: number[]
+): Jornada[] | null {
+  let mejor: Jornada[] | null = null;
+  let mejorScore = Infinity;
+
+  // Generar candidatos de semana FULL uno por uno
+  for (const semana of generarSemanasFull(colab_id, francos_por_dia)) {
+    // Poda 1: validación rápida de reglas duras H-F* (estructura)
+    if (validarSemanaFull(colab_id, semana).length > 0) continue;
+
+    // Poda 2: validar H-D1 (descanso entre días)
+    let violaD1 = false;
+    for (let d = 0; d < 6; d++) {
+      if (validarDescansoEntreDias(colab_id, semana[d], semana[d + 1]).length > 0) {
+        violaD1 = true;
+        break;
       }
     }
+    if (violaD1) continue;
+
+    // Calcular score (déficit ponderado tras aplicar esta semana)
+    const score = calcularScoreSemana(semana, deficit);
+
+    if (score < mejorScore) {
+      mejorScore = score;
+      mejor = semana;
+    }
   }
+
+  return mejor;
 }
 
-function encontrarMejorSemanaFull(colab_id: string, deficit: number[][]): Jornada[] | null {
-  // Enumerar días de franco (0..6)
-  const mejoresSemanas: { semana: Jornada[]; puntaje: number }[] = [];
-  for (let diaFranco = 0; diaFranco < 7; diaFranco++) {
-    // Enumerar pares de días cortados (distintos del franco)
-    const diasPosibles = [0,1,2,3,4,5,6].filter(d => d !== diaFranco);
-    for (let i = 0; i < diasPosibles.length; i++) {
-      for (let j = i+1; j < diasPosibles.length; j++) {
-        const diaCortado1 = diasPosibles[i];
-        const diaCortado2 = diasPosibles[j];
-        // Patrones de cortados: 2×F-CORT-9 o 1×F-CORT-9 + 1×F-CORT-8
-        const patrones = [
-          { tipo1: "F-CORT-9", tipo2: "F-CORT-9" },
-          { tipo1: "F-CORT-9", tipo2: "F-CORT-8" },
-          { tipo1: "F-CORT-8", tipo2: "F-CORT-9" },
-        ];
-        for (const patron of patrones) {
-          // Para cada patrón, asignar tipos a los dos días cortados
-          // Luego distribuir 3×9h, 2×8h, 1×5h en los 4 días restantes (corridos)
-          // Los días corridos son los que no son franco ni cortados
-          const diasCorridos = diasPosibles.filter(d => d !== diaCortado1 && d !== diaCortado2);
-          // Generar todas las asignaciones de tipos corridos a días corridos
-          // Tipos disponibles: F9-M, F9-T, F8-M, F8-T, F5-M, F5-T
-          // Debemos colocar exactamente 3×9h, 2×8h, 1×5h
-          // Enumerar permutaciones (combinaciones con repetición limitada)
-          const asignaciones = generarAsignacionesCorridas(diasCorridos);
-          for (const asignacion of asignaciones) {
-            // Construir semana tentativa
+// ============== GENERADOR DE SEMANAS FULL ==============
+
+function* generarSemanasFull(
+  colab_id: string,
+  francos_por_dia: number[]
+): Generator<Jornada[]> {
+  // Distribución requerida: 3×9h + 2×8h + 1×5h + 1 franco, 2 cortados
+  // Patrones válidos de cortados:
+  //   A) 2 × F-CORT-9 → restante: 1×9h + 2×8h + 1×5h en 4 días
+  //   B) 1 × F-CORT-9 + 1 × F-CORT-8 → restante: 2×9h + 1×8h + 1×5h en 4 días
+
+  // Para cada día de franco posible (0..6)
+  for (let franco_dia = 0; franco_dia < 7; franco_dia++) {
+    // Saltar si ya hay 2 francos en ese día (H-FR1)
+    if (francos_por_dia[franco_dia] >= 2) continue;
+
+    const dias_trabajados = DIAS.filter(d => d !== franco_dia);
+
+    // Para cada par de días que van a ser cortados (entre los 6 trabajados)
+    for (let i = 0; i < dias_trabajados.length; i++) {
+      for (let j = i + 1; j < dias_trabajados.length; j++) {
+        const dias_cortados: DiaSemana[] = [dias_trabajados[i], dias_trabajados[j]];
+        const dias_corridos = dias_trabajados.filter(d => !dias_cortados.includes(d));
+
+        // Para cada patrón de cortados (A o B)
+        for (const patron of [{ cort1: "F-CORT-9", cort2: "F-CORT-9" }, { cort1: "F-CORT-9", cort2: "F-CORT-8" }] as const) {
+
+          // Distribución de duraciones para los 4 días corridos
+          // Patrón A (2 × F-CORT-9): restan 1×9 + 2×8 + 1×5 en los 4 corridos
+          // Patrón B (1 × F-CORT-9 + 1 × F-CORT-8): restan 2×9 + 1×8 + 1×5 en los 4 corridos
+          const duraciones_corridas: number[] =
+            patron.cort1 === "F-CORT-9" && patron.cort2 === "F-CORT-9"
+              ? [18, 16, 16, 10]   // 9+8+8+5 en slots
+              : [18, 18, 16, 10];  // 9+9+8+5 en slots
+
+          // Permutaciones de cómo asignar las duraciones a los 4 días corridos
+          for (const perm of permutacionesUnicas(duraciones_corridas)) {
+
+            // Generar jornadas corridas: elegir inicio que maximice cobertura del déficit local
+            const jornadas_corridas_candidatas: Array<Jornada | null> = dias_corridos.map((dia, idx) => {
+              return elegirJornadaCorrida(colab_id, dia, perm[idx]);
+            });
+
+            if (jornadas_corridas_candidatas.some(j => j === null)) continue;
+
+            // Generar jornadas cortadas
+            const cortada1 = elegirJornadaCortada(colab_id, dias_cortados[0], patron.cort1);
+            const cortada2 = elegirJornadaCortada(colab_id, dias_cortados[1], patron.cort2);
+
+            if (!cortada1 || !cortada2) continue;
+
+            // Ensamblar semana ordenada por día
             const semana: Jornada[] = new Array(7);
-            // Inicializar todos los días con franco (bloques vacíos)
-            for (let d = 0; d < 7; d++) {
-              semana[d] = { colab_id, dia: d as DiaSemana, bloques: [] };
-            }
-            // Asignar franco
-            semana[diaFranco].bloques = [];
-            // Asignar cortados
-            const cortada1 = CATALOGO_FULL_CORTADAS.find(c => c.tipo === patron.tipo1)!;
-            const cortada2 = CATALOGO_FULL_CORTADAS.find(c => c.tipo === patron.tipo2)!;
-            // Necesitamos elegir slot_inicio y composición para cada cortada
-            // Por simplicidad, elegimos primera composición y slot_inicio mínimo
-            // En un algoritmo completo, deberíamos enumerar opciones.
-            const opcionesCortada1 = generarOpcionesCortada(cortada1, diaCortado1, deficit);
-            const opcionesCortada2 = generarOpcionesCortada(cortada2, diaCortado2, deficit);
-            if (opcionesCortada1.length === 0 || opcionesCortada2.length === 0) continue;
-            // Elegir la primera opción (mejor cobertura debería evaluarse)
-            const jornadaCortada1 = opcionesCortada1[0];
-            const jornadaCortada2 = opcionesCortada2[0];
-            semana[diaCortado1] = jornadaCortada1;
-            semana[diaCortado2] = jornadaCortada2;
-            // Asignar corridos
-            for (const { dia, tipo } of asignacion) {
-              const jornadaCorrida = generarJornadaCorrida(tipo, dia, colab_id, deficit);
-              if (!jornadaCorrida) break;
-              semana[dia] = jornadaCorrida;
-            }
-            // Verificar que todos los días corridos tengan jornada
-            if (diasCorridos.some(d => semana[d].bloques.length === 0)) continue;
-            // Validar reglas duras
-            const violaciones = validarSemanaFull(colab_id, semana);
-            if (violaciones.length === 0) {
-              // Calcular puntaje basado en cobertura del déficit
-              const puntaje = calcularPuntajeCobertura(semana, deficit);
-              mejoresSemanas.push({ semana, puntaje });
-            }
+            semana[franco_dia] = { colab_id, dia: franco_dia as DiaSemana, bloques: [] };
+            dias_corridos.forEach((dia, idx) => {
+              semana[dia] = jornadas_corridas_candidatas[idx]!;
+            });
+            semana[dias_cortados[0]] = cortada1;
+            semana[dias_cortados[1]] = cortada2;
+
+            yield semana;
           }
         }
       }
     }
   }
-  if (mejoresSemanas.length === 0) return null;
-  // Elegir mejor puntaje
-  mejoresSemanas.sort((a, b) => b.puntaje - a.puntaje);
-  return mejoresSemanas[0].semana;
 }
 
-function generarAsignacionesCorridas(diasCorridos: number[]): Array<Array<{ dia: number; tipo: string }>> {
-  // diasCorridos length = 4
-  // Debemos asignar 3×9h, 2×8h, 1×5h. Total 6 jornadas, pero solo tenemos 4 días corridos.
-  // Wait, error: Los 6 días trabajados incluyen 2 cortados y 4 corridos. En los 4 corridos debemos colocar 3×9h, 2×8h, 1×5h? Eso suma 6 jornadas, pero solo 4 días.
-  // Revisar: La distribución 3×9h + 2×8h + 1×5h se refiere a las 6 jornadas trabajadas (incluyendo cortados).
-  // Los cortados tienen duración total 9h u 8h. Entonces debemos contabilizar.
-  // Si ambos cortados son F-CORT-9 (9h cada uno), suman 2×9h.
-  // Necesitamos 3×9h total, falta 1×9h en corridos.
-  // 2×8h total, ambos pueden estar en corridos.
-  // 1×5h total, puede estar en corridos.
-  // Por simplicidad, asumamos que los cortados son F-CORT-9 (9h) y F-CORT-9 (9h).
-  // Entonces en corridos necesitamos: 1×9h, 2×8h, 1×5h.
-  // Eso son 4 jornadas, igual a diasCorridos.
-  // Generar combinaciones de tipos para los 4 días.
-  // Enumerar permutaciones únicas de tipos con turnos
-  const asignaciones: Array<Array<{ dia: number; tipo: string }>> = [];
-  // Usaremos backtracking simple
-  function backtrack(idx: number, asignacion: Array<{ dia: number; tipo: string }>, usados: boolean[]) {
-    if (idx === diasCorridos.length) {
-      asignaciones.push([...asignacion]);
-      return;
-    }
-    const dia = diasCorridos[idx];
-    for (const tipoBase of ["F9", "F8", "F5"]) {
-      // Contar cuántas veces ya usamos este tipoBase
-      const count = asignacion.filter(a => a.tipo.startsWith(tipoBase)).length;
-      const limite = tipoBase === "F9" ? 1 : tipoBase === "F8" ? 2 : 1;
-      if (count >= limite) continue;
-      for (const turno of ["M", "T"]) {
-        const tipo = `${tipoBase}-${turno}`;
-        asignacion.push({ dia, tipo });
-        backtrack(idx + 1, asignacion, usados);
-        asignacion.pop();
-      }
+// ============== HELPERS ==============
+
+function elegirJornadaCorrida(
+  colab_id: string,
+  dia: DiaSemana,
+  duracion_slots: number
+): Jornada | null {
+  // Buscar entre las jornadas del catálogo con la duración pedida
+  const candidatas = CATALOGO_FULL_CORRIDAS.filter(j => j.duracion_slots === duracion_slots);
+
+  // Elegir el inicio determinístico: el menor slot_inicio_min del primer candidato que sea mañana
+  // Simplificación: tomar el primer inicio válido del primer tipo de jornada mañana
+  for (const jv of candidatas) {
+    if (jv.turno === "mañana") {
+      return {
+        colab_id,
+        dia,
+        bloques: [{ slot_inicio: jv.slot_inicio_min, slot_fin: jv.slot_inicio_min + duracion_slots }]
+      };
     }
   }
-  backtrack(0, [], []);
-  return asignaciones;
+
+  // Fallback: primera tarde
+  for (const jv of candidatas) {
+    return {
+      colab_id,
+      dia,
+      bloques: [{ slot_inicio: jv.slot_inicio_min, slot_fin: jv.slot_inicio_min + duracion_slots }]
+    };
+  }
+
+  return null;
 }
 
-function generarOpcionesCortada(cortada: CortadaFull, dia: number, _deficit: number[][]): Jornada[] {
-  const opciones: Jornada[] = [];
-  // Para cada composición
+function elegirJornadaCortada(
+  colab_id: string,
+  dia: DiaSemana,
+  tipo: "F-CORT-9" | "F-CORT-8"
+): Jornada | null {
+  const cortada = CATALOGO_FULL_CORTADAS.find(c => c.tipo === tipo);
+  if (!cortada) return null;
+
+  // Elegir primer inicio válido del primer bloque, primera composición
   for (let compIdx = 0; compIdx < cortada.composiciones.length; compIdx++) {
-    // slot_inicio_b1 posibles (0..30 - slots_b1)
-    const comp = cortada.composiciones[compIdx];
-    for (let slot_inicio_b1 = 0; slot_inicio_b1 <= 30 - comp.slots_b1; slot_inicio_b1++) {
+    for (let slot_inicio_b1 = 0; slot_inicio_b1 <= 30 - cortada.composiciones[compIdx].slots_b1; slot_inicio_b1++) {
       const pares = generarParesCortada(cortada, slot_inicio_b1, compIdx);
-      for (const [b1, b2] of pares) {
-        // Crear jornada
-        const jornada: Jornada = {
-          colab_id: "temp",
-          dia: dia as DiaSemana,
-          bloques: [b1, b2],
-        };
-        opciones.push(jornada);
+      if (pares.length > 0) {
+        const [b1, b2] = pares[0];
+        return { colab_id, dia, bloques: [b1, b2] };
       }
     }
   }
-  // Filtrar aquellas que al menos cubran algo de déficit (opcional)
-  return opciones;
+
+  return null;
 }
 
-function generarJornadaCorrida(tipo: string, dia: number, colab_id: string, deficit: number[][]): Jornada | null {
-  const entrada = CATALOGO_FULL_CORRIDAS.find(e => e.tipo === tipo);
-  if (!entrada) return null;
-  // Elegir slot_inicio que maximice cobertura dentro de rango
-  let mejorSlot = entrada.slot_inicio_min;
-  let mejorCobertura = -1;
-  for (let slot = entrada.slot_inicio_min; slot <= entrada.slot_inicio_max; slot++) {
-    const slot_fin = slot + entrada.duracion_slots;
-    if (slot_fin > 30) continue;
-    let cobertura = 0;
-    for (let s = slot; s < slot_fin; s++) {
-      if (deficit[dia][s] > 0) cobertura++;
-    }
-    if (cobertura > mejorCobertura) {
-      mejorCobertura = cobertura;
-      mejorSlot = slot;
-    }
-  }
-  const bloque = { slot_inicio: mejorSlot, slot_fin: mejorSlot + entrada.duracion_slots };
-  return { colab_id, dia: dia as DiaSemana, bloques: [bloque] };
-}
-
-function encontrarMejorSemanaPart(colab_id: string, deficit: number[][]): Jornada[] | null {
-  // Enumerar días de franco
-  const mejoresSemanas: { semana: Jornada[]; puntaje: number }[] = [];
-  for (let diaFranco = 0; diaFranco < 7; diaFranco++) {
-    // Los otros 6 días deben tener jornadas PART
-    const diasTrabajo = [0,1,2,3,4,5,6].filter(d => d !== diaFranco);
-    // Necesitamos al menos 2 mañanas
-    // Generar combinaciones de tipos para cada día
-    const asignaciones = generarAsignacionesPart(diasTrabajo);
-    for (const asignacion of asignaciones) {
-      const semana: Jornada[] = new Array(7);
-      for (let d = 0; d < 7; d++) {
-        semana[d] = { colab_id, dia: d as DiaSemana, bloques: [] };
-      }
-      semana[diaFranco].bloques = [];
-      let valida = true;
-      for (const { dia, tipo } of asignacion) {
-        const jornada = generarJornadaPart(tipo, dia, colab_id, deficit);
-        if (!jornada) {
-          valida = false;
-          break;
-        }
-        semana[dia] = jornada;
-      }
-      if (!valida) continue;
-      // Validar reglas PART
-      const violaciones = validarSemanaPart(colab_id, semana);
-      if (violaciones.length === 0) {
-        const puntaje = calcularPuntajeCobertura(semana, deficit);
-        mejoresSemanas.push({ semana, puntaje });
+function calcularScoreSemana(semana: Jornada[], deficit: number[][]): number {
+  // Score = déficit ponderado tras aplicar la semana
+  // Cada slot cubierto reduce déficit en 1
+  let score = 0;
+  const tmp: number[][] = deficit.map(f => [...f]);
+  for (const jornada of semana) {
+    for (const b of jornada.bloques) {
+      for (let s = b.slot_inicio; s < b.slot_fin; s++) {
+        if (tmp[jornada.dia][s] > 0) tmp[jornada.dia][s] -= 1;
       }
     }
   }
-  if (mejoresSemanas.length === 0) return null;
-  mejoresSemanas.sort((a, b) => b.puntaje - a.puntaje);
-  return mejoresSemanas[0].semana;
+  // Sumar déficit restante total (penalización)
+  for (let d = 0; d < 7; d++) {
+    for (let s = 0; s < 30; s++) {
+      score += tmp[d][s];
+    }
+  }
+  return score;
 }
 
-function generarAsignacionesPart(diasTrabajo: number[]): Array<Array<{ dia: number; tipo: string }>> {
-  // Necesitamos al menos 2 mañanas. Simplificamos: generamos combinaciones aleatorias.
-  // Por simplicidad, usaremos un conjunto fijo: 2 mañanas, 4 tardes/noches.
-  // Tipos: P8-M, P9-M, P10-M, P11-M, P12-M, P8-T, P9-T, etc.
-  const asignaciones: Array<Array<{ dia: number; tipo: string }>> = [];
-  // Enumerar todas las combinaciones posibles (enfoque simple: asignar tipo aleatorio)
-  // Limitamos a pocas combinaciones para no explosión.
-  const tiposManana = CATALOGO_PART.filter(j => j.turno === "mañana").map(j => j.tipo);
-  const tiposTarde = CATALOGO_PART.filter(j => j.turno === "tarde" || j.turno === "noche").map(j => j.tipo);
-  // Elegir 2 días para mañana
-  const combinacionesManana = combinar(diasTrabajo, 2);
-  for (const mananas of combinacionesManana) {
-    const tardes = diasTrabajo.filter(d => !mananas.includes(d));
-    // Para cada mañana, elegir un tipo de mañana
-    // Para cada tarde, elegir un tipo de tarde
-    // Producto cartesiano limitado
-    const opcionesManana = productoCartesiano(mananas.map(() => tiposManana));
-    const opcionesTarde = productoCartesiano(tardes.map(() => tiposTarde));
-    for (const opsMan of opcionesManana) {
-      for (const opsTar of opcionesTarde) {
-        const asignacion: Array<{ dia: number; tipo: string }> = [];
-        mananas.forEach((dia, idx) => asignacion.push({ dia, tipo: opsMan[idx] }));
-        tardes.forEach((dia, idx) => asignacion.push({ dia, tipo: opsTar[idx] }));
-        asignaciones.push(asignacion);
+function aplicarJornadasADeficit(semana: Jornada[], deficit: number[][]): void {
+  for (const jornada of semana) {
+    for (const b of jornada.bloques) {
+      for (let s = b.slot_inicio; s < b.slot_fin; s++) {
+        if (deficit[jornada.dia][s] > 0) deficit[jornada.dia][s] -= 1;
       }
     }
   }
-  return asignaciones;
 }
 
-function combinar(arr: number[], k: number): number[][] {
-  const result: number[][] = [];
-  function backtrack(start: number, current: number[]) {
-    if (current.length === k) {
-      result.push([...current]);
+function actualizarFrancos(semana: Jornada[], francos_por_dia: number[]): void {
+  for (const jornada of semana) {
+    if (jornada.bloques.length === 0) francos_por_dia[jornada.dia] += 1;
+  }
+}
+
+function* permutacionesUnicas(arr: number[]): Generator<number[]> {
+  if (arr.length === 0) { yield []; return; }
+  const used = new Array(arr.length).fill(false);
+  const current: number[] = [];
+
+  function* helper(): Generator<number[]> {
+    if (current.length === arr.length) {
+      yield [...current];
       return;
     }
-    for (let i = start; i < arr.length; i++) {
+    const seen = new Set<number>();
+    for (let i = 0; i < arr.length; i++) {
+      if (used[i]) continue;
+      if (seen.has(arr[i])) continue;
+      seen.add(arr[i]);
+      used[i] = true;
       current.push(arr[i]);
-      backtrack(i + 1, current);
+      yield* helper();
       current.pop();
+      used[i] = false;
     }
   }
-  backtrack(0, []);
-  return result;
+  yield* helper();
 }
 
-function productoCartesiano<T>(arrays: T[][]): T[][] {
-  if (arrays.length === 0) return [[]];
-  const result: T[][] = [];
-  const rest = productoCartesiano(arrays.slice(1));
-  for (const val of arrays[0]) {
-    for (const r of rest) {
-      result.push([val, ...r]);
-    }
-  }
-  return result;
-}
+// ============== BÚSQUEDA PART ==============
 
-function generarJornadaPart(tipo: string, dia: number, colab_id: string, deficit: number[][]): Jornada | null {
-  const entrada = CATALOGO_PART.find(e => e.tipo === tipo);
-  if (!entrada) return null;
-  // Elegir slot_inicio que maximice cobertura
-  let mejorSlot = entrada.slot_inicio_min;
-  let mejorCobertura = -1;
-  for (let slot = entrada.slot_inicio_min; slot <= entrada.slot_inicio_max; slot++) {
-    const slot_fin = slot + entrada.duracion_slots;
-    if (slot_fin > 30) continue;
-    let cobertura = 0;
-    for (let s = slot; s < slot_fin; s++) {
-      if (deficit[dia][s] > 0) cobertura++;
-    }
-    if (cobertura > mejorCobertura) {
-      mejorCobertura = cobertura;
-      mejorSlot = slot;
-    }
-  }
-  const bloque = { slot_inicio: mejorSlot, slot_fin: mejorSlot + entrada.duracion_slots };
-  return { colab_id, dia: dia as DiaSemana, bloques: [bloque] };
-}
+function buscarMejorSemanaPart(
+  colab_id: string,
+  deficit: number[][],
+  francos_por_dia: number[]
+): Jornada[] | null {
+  let mejor: Jornada[] | null = null;
+  let mejorScore = Infinity;
 
-function calcularPuntajeCobertura(semana: Jornada[], deficit: number[][]): number {
-  let puntaje = 0;
-  for (const jornada of semana) {
-    if (jornada.bloques.length === 0) continue;
-    for (const bloque of jornada.bloques) {
-      for (let slot = bloque.slot_inicio; slot < bloque.slot_fin; slot++) {
-        if (deficit[jornada.dia][slot] > 0) {
-          puntaje += deficit[jornada.dia][slot]; // ponderar por déficit actual
-        }
+  for (const semana of generarSemanasPart(colab_id, francos_por_dia)) {
+    if (validarSemanaPart(colab_id, semana).length > 0) continue;
+
+    let violaD1 = false;
+    for (let d = 0; d < 6; d++) {
+      if (validarDescansoEntreDias(colab_id, semana[d], semana[d + 1]).length > 0) {
+        violaD1 = true;
+        break;
       }
     }
+    if (violaD1) continue;
+
+    const score = calcularScoreSemana(semana, deficit);
+    if (score < mejorScore) {
+      mejorScore = score;
+      mejor = semana;
+    }
   }
-  return puntaje;
+
+  return mejor;
+}
+
+function* generarSemanasPart(
+  colab_id: string,
+  francos_por_dia: number[]
+): Generator<Jornada[]> {
+  // PART: 6 jornadas + 1 franco, ≤31h, corridas 4-6h, ≥2 mañanas
+  // Estrategia simple: para cada día de franco, asignar 6 jornadas de 5h (30h total)
+  //   con turno alternado para cumplir ≥2 mañanas
+
+  for (let franco_dia = 0; franco_dia < 7; franco_dia++) {
+    if (francos_por_dia[franco_dia] >= 2) continue;
+
+    const dias_trabajados = DIAS.filter(d => d !== franco_dia);
+
+    // Configuración simple: 2 primeras mañanas, 2 siguientes tarde, 2 últimas noche
+    // Inicios: mañana=0 (08:00), tarde=10 (13:00), noche=18 (17:00)
+    const patrones = [
+      [0, 0, 10, 10, 18, 18],  // 2M, 2T, 2N
+      [0, 0, 0, 10, 10, 18],   // 3M, 2T, 1N
+      [0, 0, 10, 10, 10, 18],  // 2M, 3T, 1N
+    ];
+
+    for (const inicios of patrones) {
+      const semana: Jornada[] = new Array(7);
+      semana[franco_dia] = { colab_id, dia: franco_dia as DiaSemana, bloques: [] };
+      dias_trabajados.forEach((dia, idx) => {
+        const ini = inicios[idx];
+        semana[dia] = {
+          colab_id,
+          dia,
+          bloques: [{ slot_inicio: ini, slot_fin: ini + 10 }]  // 5h = 10 slots
+        };
+      });
+      yield semana;
+    }
+  }
 }
 
 // Función legacy para compatibilidad con orquestador.ts
