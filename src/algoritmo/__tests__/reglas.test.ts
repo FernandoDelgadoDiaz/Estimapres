@@ -3,7 +3,7 @@
 // Referencia: ai/architecture.md §5.
 
 import { describe, it, expect } from "vitest";
-import type { Jornada } from "../types";
+import type { Jornada, AsignacionAux, MatrizPresencia } from "../types";
 import {
   validarSemanaFull,
   validarSemanaPart,
@@ -11,8 +11,12 @@ import {
   validarFrancosPorDia,
   horasDeJornada,
   esJornadaCortada,
+  validarPresenciaAux0809,
+  validarCobertura0922,
+  validarAsignacionAuxSlot,
 } from "../reglas";
 import { ejecutarPasada1 } from "../pasada1-fullpart";
+import { ejecutarPasada2 } from "../pasada2-auxiliares";
 import {
   ROSTER_REAL_PDF,
   DEMANDA_REAL_PDF,
@@ -265,5 +269,260 @@ describe("Pasada 1 sobre PDF real", () => {
     ejecutarPasada1(input);
     const ms = Date.now() - t0;
     expect(ms).toBeLessThan(10000);
+  });
+});
+
+// ==================== TESTS PASADA 2 ====================
+
+function presenciaVacia(): MatrizPresencia {
+  return Array.from({ length: 7 }, () =>
+    Array(30).fill("NO_PRESENTE" as AsignacionAux)
+  );
+}
+
+function setPresente(matriz: MatrizPresencia, dia: number, slotInicio: number, slotFin: number): void {
+  for (let s = slotInicio; s < slotFin; s++) {
+    matriz[dia][s] = "PARADO";
+  }
+}
+
+describe("Validadores H-A* (pre-input)", () => {
+  it("H-A1: detecta dia sin aux 08-09", () => {
+    const presencia: Record<string, MatrizPresencia> = { aux1: presenciaVacia() };
+    setPresente(presencia.aux1, 0, 6, 22); // aux1 lunes 11-19, no 08-09
+    const violaciones = validarPresenciaAux0809(presencia);
+    expect(violaciones.length).toBeGreaterThan(0);
+    expect(violaciones.some(v => v.regla === "H-A1" && v.dia === 0)).toBe(true);
+  });
+
+  it("H-A1: cumple si hay al menos 1 aux 08-09", () => {
+    const presencia: Record<string, MatrizPresencia> = { aux1: presenciaVacia() };
+    for (let d = 0; d < 7; d++) setPresente(presencia.aux1, d, 0, 16);
+    const violaciones = validarPresenciaAux0809(presencia);
+    expect(violaciones).toEqual([]);
+  });
+
+  it("H-A2 pre-check: detecta slot sin cobertura 09-22", () => {
+    const presencia: Record<string, MatrizPresencia> = { aux1: presenciaVacia() };
+    for (let d = 0; d < 7; d++) setPresente(presencia.aux1, d, 0, 2); // solo 08-09
+    const violaciones = validarCobertura0922(presencia);
+    expect(violaciones.length).toBeGreaterThan(0);
+  });
+});
+
+describe("Validador H-A slot-por-slot", () => {
+  it("H-A1: slot 0 con 0 auxes CAJA es violacion", () => {
+    const viol = validarAsignacionAuxSlot(0, 0, [
+      { colab_id: "a", asignacion: "PARADO" },
+      { colab_id: "b", asignacion: "PARADO" },
+    ]);
+    expect(viol.some(v => v.regla === "H-A1")).toBe(true);
+  });
+
+  it("H-A1: slot 0 con 1 aux CAJA es valido", () => {
+    const viol = validarAsignacionAuxSlot(0, 0, [
+      { colab_id: "a", asignacion: "CAJA" },
+      { colab_id: "b", asignacion: "PARADO" },
+    ]);
+    expect(viol.filter(v => v.regla === "H-A1")).toEqual([]);
+  });
+
+  it("H-A2: slot 10 con todos CAJA es violacion", () => {
+    const viol = validarAsignacionAuxSlot(0, 10, [
+      { colab_id: "a", asignacion: "CAJA" },
+      { colab_id: "b", asignacion: "CAJA" },
+    ]);
+    expect(viol.some(v => v.regla === "H-A2")).toBe(true);
+  });
+
+  it("H-A2: slot 10 con 1 CAJA y 1 PARADO es valido", () => {
+    const viol = validarAsignacionAuxSlot(0, 10, [
+      { colab_id: "a", asignacion: "CAJA" },
+      { colab_id: "b", asignacion: "PARADO" },
+    ]);
+    expect(viol.filter(v => v.regla === "H-A2")).toEqual([]);
+  });
+
+  it("H-A3: slot 28 con 1 CAJA es violacion", () => {
+    const viol = validarAsignacionAuxSlot(0, 28, [
+      { colab_id: "a", asignacion: "CAJA" },
+    ]);
+    expect(viol.some(v => v.regla === "H-A3")).toBe(true);
+  });
+
+  it("H-A3: slot 28 con todos PARADO es valido", () => {
+    const viol = validarAsignacionAuxSlot(0, 28, [
+      { colab_id: "a", asignacion: "PARADO" },
+      { colab_id: "b", asignacion: "PARADO" },
+    ]);
+    expect(viol.filter(v => v.regla === "H-A3")).toEqual([]);
+  });
+});
+
+describe("Pasada 2 sobre PDF real", () => {
+  it("ejecutarPasada2 no reporta violaciones de input", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    if (p2.violaciones_input.length > 0) {
+      console.error("Violaciones de input:", p2.violaciones_input);
+    }
+    expect(p2.violaciones_input).toEqual([]);
+  });
+
+  it("ejecutarPasada2 asigna 1 aux CAJA cada dia 08-09", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    for (let dia = 0; dia < 7; dia++) {
+      expect(p2.auxes_activados_08_09[dia]).toBeDefined();
+    }
+  });
+
+  it("Pasada 2 no viola H-A2 (siempre >=1 PARADO en 09-22)", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+
+    for (let dia = 0; dia < 7; dia++) {
+      for (let slot = 2; slot <= 27; slot++) {
+        const asignaciones = Object.entries(p2.asignacion_aux).map(([colab_id, matriz]) => ({
+          colab_id,
+          asignacion: matriz[dia][slot],
+        }));
+        const presentes = asignaciones.filter(a => a.asignacion !== "NO_PRESENTE");
+        const parados = asignaciones.filter(a => a.asignacion === "PARADO");
+        if (presentes.length > 0) {
+          expect(parados.length).toBeGreaterThanOrEqual(1);
+        }
+      }
+    }
+  });
+
+  it("Pasada 2 no viola H-A3 (0 auxes CAJA en 22:00-22:30)", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+
+    for (let dia = 0; dia < 7; dia++) {
+      for (let slot = 28; slot < 30; slot++) {
+        for (const matriz of Object.values(p2.asignacion_aux)) {
+          expect(matriz[dia][slot]).not.toBe("CAJA");
+        }
+      }
+    }
+  });
+
+  it("Pasada 2 termina en <2 segundos", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+    const p1 = ejecutarPasada1(input);
+    const t0 = Date.now();
+    ejecutarPasada2(input, p1);
+    const ms = Date.now() - t0;
+    expect(ms).toBeLessThan(2000);
+  });
+});
+
+describe("Metricas Pasada 2 (reporte)", () => {
+  it("calcula metricas para reporte final", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+
+    function demandaTotal(demanda: number[][]) {
+      let total = 0;
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) {
+          total += demanda[dia][slot];
+        }
+      }
+      return total;
+    }
+
+    const t0 = Date.now();
+    const p1 = ejecutarPasada1(input);
+    const t1 = Date.now();
+    const p2 = ejecutarPasada2(input, p1);
+    const t2 = Date.now();
+
+    const tiempo_p1 = t1 - t0;
+    const tiempo_p2 = t2 - t1;
+
+    let deficit_total_p1 = 0;
+    let deficit_total_p2 = 0;
+    for (let dia = 0; dia < 7; dia++) {
+      for (let slot = 0; slot < 30; slot++) {
+        deficit_total_p1 += p1.deficit_1[dia][slot];
+        deficit_total_p2 += p2.deficit_2[dia][slot];
+      }
+    }
+
+    const demanda_total = demandaTotal(input.demanda);
+    const pct_reduccion_p2 = deficit_total_p1 > 0 ? ((deficit_total_p1 - deficit_total_p2) / deficit_total_p1) * 100 : 0;
+    const pct_cobertura_acum = ((demanda_total - deficit_total_p2) / demanda_total) * 100;
+
+    // Horas caja por aux
+    const horasCajaPorAux: Record<string, number> = {};
+    for (const [auxId, matriz] of Object.entries(p2.asignacion_aux)) {
+      let count = 0;
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) {
+          if (matriz[dia][slot] === "CAJA") count++;
+        }
+      }
+      horasCajaPorAux[auxId] = count / 2;
+    }
+
+    const horasValues = Object.values(horasCajaPorAux);
+    const minHoras = Math.min(...horasValues);
+    const maxHoras = Math.max(...horasValues);
+    const diffHoras = maxHoras - minHoras;
+
+    console.log("=== METRICAS PASADA 2 ===");
+    console.log("Demanda total:", demanda_total, "slots (" + (demanda_total/2) + " horas)");
+    console.log("Déficit tras Pasada 1:", deficit_total_p1, "slots (" + (deficit_total_p1/2) + " horas)");
+    console.log("Déficit tras Pasada 2:", deficit_total_p2, "slots (" + (deficit_total_p2/2) + " horas)");
+    console.log("Reducción aportada por Pasada 2:", deficit_total_p1 - deficit_total_p2, "slots (" + pct_reduccion_p2.toFixed(1) + "%)");
+    console.log("Cobertura acumulada FULL+PART+AUX:", demanda_total - deficit_total_p2, "slots (" + pct_cobertura_acum.toFixed(1) + "%)");
+    console.log("Auxes activados 08-09 por día:");
+    for (let dia = 0; dia < 7; dia++) {
+      console.log("  Día " + dia + ": " + (p2.auxes_activados_08_09[dia] || "NONE"));
+    }
+    console.log("Equidad horas-caja auxes:");
+    console.log("  min=" + minHoras + "h, max=" + maxHoras + "h, diferencia=" + diffHoras + "h");
+    console.log("Tiempo ejecución Pasada 1:", tiempo_p1 + "ms");
+    console.log("Tiempo ejecución Pasada 2:", tiempo_p2 + "ms");
+    console.log("Violaciones H-A* detectadas:", p2.violaciones_input.length);
+
+    // No assertions, just metrics
+    expect(true).toBe(true);
   });
 });

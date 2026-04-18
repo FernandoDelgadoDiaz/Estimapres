@@ -4,7 +4,7 @@
 // Referencia: ai/architecture.md §5.
 // Implementado en Prompt 1.
 
-import type { Jornada, DiaSemana, RegulaViolada, Colaborador, AsignacionAux, AsignacionEv } from "./types";
+import type { Jornada, DiaSemana, RegulaViolada, Colaborador, AsignacionAux, AsignacionEv, MatrizPresencia, SlotIdx } from "./types";
 import { clasificarTurno } from "./catalogos";
 
 // H-F1 a H-F7 (FULL)
@@ -307,4 +307,119 @@ export function validarReglasEventual(
 ): { duras_cumplidas: boolean; violaciones: RegulaViolada[] } {
   // H‑E1..H‑E2 a implementar en Prompt 3
   return { duras_cumplidas: true, violaciones: [] };
+}
+
+// ============== REGLAS H-A* (AUX) ==============
+// Validadores para reglas de auxiliares (architecture.md §5.5)
+// Agregado en Prompt 2.
+
+/**
+ * H-A1: validacion de input previa a Pasada 2.
+ * Cada dia debe tener al menos 1 aux presente en 08:00-09:00 (slots 0 y 1).
+ * Si hay 0 auxes presentes en 08-09 algun dia, es input invalido.
+ */
+export function validarPresenciaAux0809(
+  presencia_aux: Record<string, MatrizPresencia>
+): RegulaViolada[] {
+  const violaciones: RegulaViolada[] = [];
+  const dias: DiaSemana[] = [0, 1, 2, 3, 4, 5, 6];
+
+  for (const dia of dias) {
+    let n_presentes_08_09 = 0;
+    for (const matriz of Object.values(presencia_aux)) {
+      if (matriz[dia][0] !== "NO_PRESENTE" && matriz[dia][1] !== "NO_PRESENTE") {
+        n_presentes_08_09++;
+      }
+    }
+    if (n_presentes_08_09 < 1) {
+      violaciones.push({
+        regla: "H-A1",
+        dia,
+        detalle: `Dia ${dia}: no hay ningun aux presente 08-09. Se requiere al menos 1.`,
+      });
+    }
+  }
+
+  return violaciones;
+}
+
+/**
+ * H-A2 pre-check: en cada slot del rango 09:00-22:00 debe haber al menos 1 aux presente.
+ * Si algun slot no tiene ningun aux, H-A2 es imposible de cumplir.
+ */
+export function validarCobertura0922(
+  presencia_aux: Record<string, MatrizPresencia>
+): RegulaViolada[] {
+  const violaciones: RegulaViolada[] = [];
+  const dias: DiaSemana[] = [0, 1, 2, 3, 4, 5, 6];
+
+  for (const dia of dias) {
+    // slots 2 a 27 corresponden a 09:00-22:00
+    for (let slot = 2; slot <= 27; slot++) {
+      let n_presentes = 0;
+      for (const matriz of Object.values(presencia_aux)) {
+        if (matriz[dia][slot] !== "NO_PRESENTE") n_presentes++;
+      }
+      if (n_presentes < 1) {
+        violaciones.push({
+          regla: "H-A2",
+          dia,
+          detalle: `Dia ${dia} slot ${slot}: no hay ningun aux presente 09-22.`,
+        });
+      }
+    }
+  }
+
+  return violaciones;
+}
+
+/**
+ * Valida que la asignacion final de auxes cumpla H-A1, H-A2, H-A3 en un dia+slot concreto.
+ * Se usa como validador post-generacion.
+ */
+export function validarAsignacionAuxSlot(
+  dia: DiaSemana,
+  slot: SlotIdx,
+  asignaciones_en_slot: Array<{ colab_id: string; asignacion: AsignacionAux }>
+): RegulaViolada[] {
+  const violaciones: RegulaViolada[] = [];
+
+  const en_caja = asignaciones_en_slot.filter(a => a.asignacion === "CAJA");
+  const parados = asignaciones_en_slot.filter(a => a.asignacion === "PARADO");
+  const presentes = asignaciones_en_slot.filter(a => a.asignacion !== "NO_PRESENTE");
+
+  // H-A1: slot 0 y 1 (08:00-09:00)
+  if (slot === 0 || slot === 1) {
+    if (en_caja.length !== 1) {
+      violaciones.push({
+        regla: "H-A1",
+        dia,
+        detalle: `Dia ${dia} slot ${slot}: debe haber exactamente 1 aux en CAJA (hay ${en_caja.length}).`,
+      });
+    }
+  }
+
+  // H-A2: slots 2..27 (09:00-22:00)
+  if (slot >= 2 && slot <= 27) {
+    if (presentes.length >= 1 && parados.length < 1) {
+      violaciones.push({
+        regla: "H-A2",
+        dia,
+        detalle: `Dia ${dia} slot ${slot}: todos los auxes presentes estan en CAJA. Debe quedar al menos 1 PARADO.`,
+      });
+    }
+  }
+
+  // H-A3: slots 28, 29 (22:00-22:30)
+  if (slot >= 28) {
+    if (en_caja.length > 0) {
+      violaciones.push({
+        regla: "H-A3",
+        dia,
+        detalle: `Dia ${dia} slot ${slot}: ${en_caja.length} auxes en CAJA despues de las 22:00. Debe ser 0.`,
+      });
+    }
+  }
+
+  return violaciones;
 }
