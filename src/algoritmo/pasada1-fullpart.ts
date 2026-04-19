@@ -149,7 +149,7 @@ function buscarMejorSemanaFull(
   let mejorScore = Infinity;
 
   // Generar candidatos de semana FULL uno por uno
-  for (const semana of generarSemanasFull(colab_id, francos_por_dia)) {
+  for (const semana of generarSemanasFull(colab_id, francos_por_dia, deficit)) {
     // Poda 0: filtrar por excepciones del colaborador (mas barato que H-F*)
     if (semana.some(j => jornadaViolaExcepcion(j, excepciones, nombre_colaborador))) continue;
 
@@ -182,7 +182,8 @@ function buscarMejorSemanaFull(
 
 function* generarSemanasFull(
   colab_id: string,
-  francos_por_dia: number[]
+  francos_por_dia: number[],
+  deficit: number[][]
 ): Generator<Jornada[]> {
   // Distribución requerida: 3×9h + 2×8h + 1×5h + 1 franco, 2 cortados
   // Patrones válidos de cortados:
@@ -218,14 +219,14 @@ function* generarSemanasFull(
 
             // Generar jornadas corridas: elegir inicio que maximice cobertura del déficit local
             const jornadas_corridas_candidatas: Array<Jornada | null> = dias_corridos.map((dia, idx) => {
-              return elegirJornadaCorrida(colab_id, dia, perm[idx]);
+              return elegirJornadaCorrida(colab_id, dia, perm[idx], deficit);
             });
 
             if (jornadas_corridas_candidatas.some(j => j === null)) continue;
 
             // Generar jornadas cortadas
-            const cortada1 = elegirJornadaCortada(colab_id, dias_cortados[0], patron.cort1);
-            const cortada2 = elegirJornadaCortada(colab_id, dias_cortados[1], patron.cort2);
+            const cortada1 = elegirJornadaCortada(colab_id, dias_cortados[0], patron.cort1, deficit);
+            const cortada2 = elegirJornadaCortada(colab_id, dias_cortados[1], patron.cort2, deficit);
 
             if (!cortada1 || !cortada2) continue;
 
@@ -251,55 +252,68 @@ function* generarSemanasFull(
 function elegirJornadaCorrida(
   colab_id: string,
   dia: DiaSemana,
-  duracion_slots: number
+  duracion_slots: number,
+  deficit: number[][]
 ): Jornada | null {
-  // Buscar entre las jornadas del catálogo con la duración pedida
   const candidatas = CATALOGO_FULL_CORRIDAS.filter(j => j.duracion_slots === duracion_slots);
 
-  // Elegir el inicio determinístico: el menor slot_inicio_min del primer candidato que sea mañana
-  // Simplificación: tomar el primer inicio válido del primer tipo de jornada mañana
+  let mejorCobertura = -1;
+  let mejorInicio = Infinity;
+  let mejorJornada: Jornada | null = null;
+
   for (const jv of candidatas) {
-    if (jv.turno === "mañana") {
-      return {
-        colab_id,
-        dia,
-        bloques: [{ slot_inicio: jv.slot_inicio_min, slot_fin: jv.slot_inicio_min + duracion_slots }]
-      };
+    for (let inicio = jv.slot_inicio_min; inicio <= jv.slot_inicio_max; inicio++) {
+      const fin = inicio + duracion_slots;
+      let cobertura = 0;
+      for (let s = inicio; s < fin && s < 30; s++) {
+        if (deficit[dia][s] > 0) cobertura++;
+      }
+      if (cobertura > mejorCobertura || (cobertura === mejorCobertura && inicio < mejorInicio)) {
+        mejorCobertura = cobertura;
+        mejorInicio = inicio;
+        mejorJornada = { colab_id, dia, bloques: [{ slot_inicio: inicio, slot_fin: fin }] };
+      }
     }
   }
 
-  // Fallback: primera tarde
-  for (const jv of candidatas) {
-    return {
-      colab_id,
-      dia,
-      bloques: [{ slot_inicio: jv.slot_inicio_min, slot_fin: jv.slot_inicio_min + duracion_slots }]
-    };
-  }
-
-  return null;
+  return mejorJornada;
 }
 
 function elegirJornadaCortada(
   colab_id: string,
   dia: DiaSemana,
-  tipo: "F-CORT-9" | "F-CORT-8"
+  tipo: "F-CORT-9" | "F-CORT-8",
+  deficit: number[][]
 ): Jornada | null {
   const cortada = CATALOGO_FULL_CORTADAS.find(c => c.tipo === tipo);
   if (!cortada) return null;
 
-  // Elegir primer inicio válido del primer bloque, primera composición
+  let mejorCobertura = -1;
+  let mejorInicio = Infinity;
+  let mejorJornada: Jornada | null = null;
+
   for (let compIdx = 0; compIdx < cortada.composiciones.length; compIdx++) {
-    for (let slot_inicio_b1 = 0; slot_inicio_b1 <= 30 - cortada.composiciones[compIdx].slots_b1; slot_inicio_b1++) {
+    const comp = cortada.composiciones[compIdx];
+    for (let slot_inicio_b1 = 0; slot_inicio_b1 <= 30 - comp.slots_b1; slot_inicio_b1++) {
       const pares = generarParesCortada(cortada, slot_inicio_b1, compIdx);
-      if (pares.length > 0) {
-        const [b1, b2] = pares[0];
-        return { colab_id, dia, bloques: [b1, b2] };
+      for (const [b1, b2] of pares) {
+        let cobertura = 0;
+        for (let s = b1.slot_inicio; s < b1.slot_fin && s < 30; s++) {
+          if (deficit[dia][s] > 0) cobertura++;
+        }
+        for (let s = b2.slot_inicio; s < b2.slot_fin && s < 30; s++) {
+          if (deficit[dia][s] > 0) cobertura++;
+        }
+        if (cobertura > mejorCobertura || (cobertura === mejorCobertura && b1.slot_inicio < mejorInicio)) {
+          mejorCobertura = cobertura;
+          mejorInicio = b1.slot_inicio;
+          mejorJornada = { colab_id, dia, bloques: [b1, b2] };
+        }
       }
     }
   }
 
-  return null;
+  return mejorJornada;
 }
 
 function calcularScoreSemana(semana: Jornada[], deficit: number[][]): number {
