@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { Franja, Colaborador, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual } from '../types'
-import { generarHorariosDeterministicos } from './algoritmoAsignacion'
+import { convertirInputAV2, convertirOutputDeV2 } from '../algoritmo/adapter'
+import { ejecutarAlgoritmo } from '../algoritmo/orquestador'
 
 // API key configuration
 const DEV_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -63,14 +64,13 @@ export async function asignarHorariosConIA(
   cajeros: Colaborador[],
   auxiliares: Auxiliar[],
   eventuales: Eventual[],
-  fechas: string[],
+  _fechas: string[],
   excepciones: ExcepcionSemanal[] = []
 ): Promise<ResultadoAsignacion> {
-  // 1. Ejecutar algoritmo determinístico
-  const resultado = generarHorariosDeterministicos(
-    necesidad, cajeros, auxiliares, eventuales,
-    fechas, excepciones
-  )
+  // 1. Ejecutar algoritmo v2
+  const inputV2 = convertirInputAV2(necesidad, cajeros, auxiliares, eventuales, excepciones)
+  const resultadoV2 = ejecutarAlgoritmo(inputV2)
+  const resultado = convertirOutputDeV2(resultadoV2, cajeros, auxiliares, eventuales)
 
   // 2. Opcionalmente pedir sugerencias a Claude (via proxy en producción)
   try {

@@ -2,58 +2,50 @@
 // Pipeline completo del algoritmo de horarios v2.
 // Integra las tres pasadas y produce el ResultadoSemanal final.
 // Referencia: ai/architecture.md §6.
-// STATUS: placeholder — a implementar después de los Prompts 1, 2 y 3.
 
-import { InputAlgoritmo, ResultadoSemanal } from './types';
-import { generarJornadasFullPart } from './pasada1-fullpart';
-import { activarAuxiliares } from './pasada2-auxiliares';
-import { asignarEventuales } from './pasada3-eventuales';
-import { validarReglasFull, validarReglasPart, validarDescanso12h, validarReglasAux, validarReglasEventual } from './reglas';
+import type { InputAlgoritmo, ResultadoSemanal } from './types';
+import { ejecutarPasada1 } from './pasada1-fullpart';
+import { ejecutarPasada2 } from './pasada2-auxiliares';
+import { ejecutarPasada3 } from './pasada3-eventuales';
 import { calcularMetricasCobertura } from './validador';
 
 export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
-  // 1. Pasada 1: FULL + PART
-  const { jornadas_full, jornadas_part } = generarJornadasFullPart(input);
+  // Pasada 1: FULL + PART
+  const p1 = ejecutarPasada1(input);
 
-  // 2. Pasada 2: AUX
-  const { asignacion_aux } = activarAuxiliares(input, jornadas_full, jornadas_part);
+  // Pasada 2: AUX
+  const p2 = ejecutarPasada2(input, p1);
 
-  // 3. Pasada 3: EVENTUAL
-  const { asignacion_eventual } = asignarEventuales(input, jornadas_full, jornadas_part, asignacion_aux);
+  // Pasada 3: EVENTUAL (se ejecuta incluso si hay violaciones de input en P2 —
+  // las violaciones se reportan pero no abortan el pipeline)
+  const p3 = ejecutarPasada3(input, p2);
 
-  // 4. Validación reglas duras
-  const violacionesFull = validarReglasFull(jornadas_full, input.colaboradores.filter(c => c.rol === 'FULL'));
-  const violacionesPart = validarReglasPart(jornadas_part, input.colaboradores.filter(c => c.rol === 'PART'));
-  const violacionesDescanso = validarDescanso12h({ ...jornadas_full, ...jornadas_part });
-  const violacionesAux = validarReglasAux(asignacion_aux, input.presencia_aux);
-  const violacionesEv = validarReglasEventual(asignacion_eventual, input.disponibilidad_eventual);
+  // Metricas de cobertura
+  const metricas = calcularMetricasCobertura(
+    input.demanda,
+    p1.jornadas_full,
+    p1.jornadas_part,
+    p2.asignacion_aux,
+    p3.asignacion_eventual,
+    p3.deficit_3
+  );
 
-  const todasViolaciones = [
-    ...violacionesFull.violaciones,
-    ...violacionesPart.violaciones,
-    ...violacionesDescanso.violaciones,
-    ...violacionesAux.violaciones,
-    ...violacionesEv.violaciones,
-  ];
-  const duras_cumplidas = todasViolaciones.length === 0;
+  // Reporte de reglas
+  const todasViolaciones = [...p2.violaciones_input];
 
-  // 5. Métricas de cobertura
-  const metricas = calcularMetricasCobertura(input.demanda, jornadas_full, jornadas_part, asignacion_aux, asignacion_eventual);
-
-  // 6. Construir resultado final
-  const resultado: ResultadoSemanal = {
-    semana: { desde: new Date(), hasta: new Date() }, // TODO: calcular desde fechas
-    jornadas_full,
-    jornadas_part,
-    asignacion_aux,
-    asignacion_eventual,
+  return {
+    semana: { desde: new Date(), hasta: new Date() },
+    jornadas_full: p1.jornadas_full,
+    jornadas_part: p1.jornadas_part,
+    asignacion_aux: p2.asignacion_aux,
+    asignacion_eventual: p3.asignacion_eventual,
     metricas,
     reporte_reglas: {
-      duras_cumplidas,
+      duras_cumplidas: todasViolaciones.length === 0,
       violaciones: todasViolaciones,
-      advertencias: [], // TODO: generar advertencias suaves
+      advertencias: p1.infactibles.map(id =>
+        `Colaborador ${id} no pudo ser asignado con las restricciones dadas`
+      ),
     },
   };
-
-  return resultado;
 }
