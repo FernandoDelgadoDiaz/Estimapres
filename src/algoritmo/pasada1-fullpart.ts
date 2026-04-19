@@ -44,7 +44,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
 
   // Procesar FULLs primero (más restricciones), luego PARTs
   for (const colab of fulls) {
-    const mejor = buscarMejorSemanaFull(colab.id, deficit, francos_por_dia, excepciones, colab.nombre);
+    const mejor = buscarMejorSemanaFull(colab.id, deficit, input.demanda, francos_por_dia, excepciones, colab.nombre);
     if (!mejor) {
       infactibles.push(colab.id);
       jornadas_full[colab.id] = [];
@@ -56,7 +56,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   }
 
   for (const colab of parts) {
-    const mejor = buscarMejorSemanaPart(colab.id, deficit, francos_por_dia, excepciones, colab.nombre);
+    const mejor = buscarMejorSemanaPart(colab.id, deficit, input.demanda, francos_por_dia, excepciones, colab.nombre);
     if (!mejor) {
       infactibles.push(colab.id);
       jornadas_part[colab.id] = [];
@@ -141,6 +141,7 @@ function jornadaViolaExcepcion(
 function buscarMejorSemanaFull(
   colab_id: string,
   deficit: number[][],
+  demanda: number[][],
   francos_por_dia: number[],
   excepciones: ExcepcionSemanal[],
   nombre_colaborador: string
@@ -149,7 +150,7 @@ function buscarMejorSemanaFull(
   let mejorScore = Infinity;
 
   // Generar candidatos de semana FULL uno por uno
-  for (const semana of generarSemanasFull(colab_id, francos_por_dia, deficit)) {
+  for (const semana of generarSemanasFull(colab_id, francos_por_dia, deficit, demanda)) {
     // Poda 0: filtrar por excepciones del colaborador (mas barato que H-F*)
     if (semana.some(j => jornadaViolaExcepcion(j, excepciones, nombre_colaborador))) continue;
 
@@ -166,8 +167,7 @@ function buscarMejorSemanaFull(
     }
     if (violaD1) continue;
 
-    // Calcular score (déficit ponderado tras aplicar esta semana)
-    const score = calcularScoreSemana(semana, deficit);
+    const score = calcularScoreSemana(semana, deficit, demanda);
 
     if (score < mejorScore) {
       mejorScore = score;
@@ -183,7 +183,8 @@ function buscarMejorSemanaFull(
 function* generarSemanasFull(
   colab_id: string,
   francos_por_dia: number[],
-  deficit: number[][]
+  deficit: number[][],
+  demanda: number[][]
 ): Generator<Jornada[]> {
   // Distribución requerida: 3×9h + 2×8h + 1×5h + 1 franco, 2 cortados
   // Patrones válidos de cortados:
@@ -219,14 +220,14 @@ function* generarSemanasFull(
 
             // Generar jornadas corridas: elegir inicio que maximice cobertura del déficit local
             const jornadas_corridas_candidatas: Array<Jornada | null> = dias_corridos.map((dia, idx) => {
-              return elegirJornadaCorrida(colab_id, dia, perm[idx], deficit);
+              return elegirJornadaCorrida(colab_id, dia, perm[idx], deficit, demanda);
             });
 
             if (jornadas_corridas_candidatas.some(j => j === null)) continue;
 
             // Generar jornadas cortadas
-            const cortada1 = elegirJornadaCortada(colab_id, dias_cortados[0], patron.cort1, deficit);
-            const cortada2 = elegirJornadaCortada(colab_id, dias_cortados[1], patron.cort2, deficit);
+            const cortada1 = elegirJornadaCortada(colab_id, dias_cortados[0], patron.cort1, deficit, demanda);
+            const cortada2 = elegirJornadaCortada(colab_id, dias_cortados[1], patron.cort2, deficit, demanda);
 
             if (!cortada1 || !cortada2) continue;
 
@@ -253,7 +254,8 @@ function elegirJornadaCorrida(
   colab_id: string,
   dia: DiaSemana,
   duracion_slots: number,
-  deficit: number[][]
+  deficit: number[][],
+  demanda: number[][]
 ): Jornada | null {
   const candidatas = CATALOGO_FULL_CORRIDAS.filter(j => j.duracion_slots === duracion_slots);
 
@@ -266,7 +268,7 @@ function elegirJornadaCorrida(
       const fin = inicio + duracion_slots;
       let cobertura = 0;
       for (let s = inicio; s < fin && s < 30; s++) {
-        if (deficit[dia][s] > 0) cobertura++;
+        if (deficit[dia][s] > 0) cobertura += demanda[dia][s];
       }
       if (cobertura > mejorCobertura || (cobertura === mejorCobertura && inicio < mejorInicio)) {
         mejorCobertura = cobertura;
@@ -283,7 +285,8 @@ function elegirJornadaCortada(
   colab_id: string,
   dia: DiaSemana,
   tipo: "F-CORT-9" | "F-CORT-8",
-  deficit: number[][]
+  deficit: number[][],
+  demanda: number[][]
 ): Jornada | null {
   const cortada = CATALOGO_FULL_CORTADAS.find(c => c.tipo === tipo);
   if (!cortada) return null;
@@ -299,10 +302,10 @@ function elegirJornadaCortada(
       for (const [b1, b2] of pares) {
         let cobertura = 0;
         for (let s = b1.slot_inicio; s < b1.slot_fin && s < 30; s++) {
-          if (deficit[dia][s] > 0) cobertura++;
+          if (deficit[dia][s] > 0) cobertura += demanda[dia][s];
         }
         for (let s = b2.slot_inicio; s < b2.slot_fin && s < 30; s++) {
-          if (deficit[dia][s] > 0) cobertura++;
+          if (deficit[dia][s] > 0) cobertura += demanda[dia][s];
         }
         if (cobertura > mejorCobertura || (cobertura === mejorCobertura && b1.slot_inicio < mejorInicio)) {
           mejorCobertura = cobertura;
@@ -316,17 +319,13 @@ function elegirJornadaCortada(
   return mejorJornada;
 }
 
-function calcularScoreSemana(semana: Jornada[], deficit: number[][]): number {
-  // Score = cobertura marginal negativa (menor = mejor cobertura).
-  // Solo se contabilizan slots donde hay deficit real — evita que una jornada
-  // de manana que cubre slots ya saturados compita en igualdad con una jornada
-  // de tarde que cubre deficit real. Mayor cobertura marginal = menor score = preferido.
+function calcularScoreSemana(semana: Jornada[], deficit: number[][], demanda: number[][]): number {
   let cobertura_marginal = 0;
   for (const jornada of semana) {
     for (const bloque of jornada.bloques) {
       for (let s = bloque.slot_inicio; s < bloque.slot_fin && s < 30; s++) {
         if (s >= 0 && deficit[jornada.dia][s] > 0) {
-          cobertura_marginal++;
+          cobertura_marginal += demanda[jornada.dia][s];
         }
       }
     }
@@ -380,6 +379,7 @@ function* permutacionesUnicas(arr: number[]): Generator<number[]> {
 function buscarMejorSemanaPart(
   colab_id: string,
   deficit: number[][],
+  demanda: number[][],
   francos_por_dia: number[],
   excepciones: ExcepcionSemanal[],
   nombre_colaborador: string
@@ -402,7 +402,7 @@ function buscarMejorSemanaPart(
     }
     if (violaD1) continue;
 
-    const score = calcularScoreSemana(semana, deficit);
+    const score = calcularScoreSemana(semana, deficit, demanda);
     if (score < mejorScore) {
       mejorScore = score;
       mejor = semana;
