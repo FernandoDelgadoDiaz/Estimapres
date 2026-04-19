@@ -7,6 +7,7 @@ import type { InputAlgoritmo, Jornada, DiaSemana, ExcepcionSemanal } from "./typ
 import {
   CATALOGO_FULL_CORRIDAS,
   CATALOGO_FULL_CORTADAS,
+  CATALOGO_PART,
   generarParesCortada
 } from "./catalogos";
 import {
@@ -387,7 +388,7 @@ function buscarMejorSemanaPart(
   let mejor: Jornada[] | null = null;
   let mejorScore = Infinity;
 
-  for (const semana of generarSemanasPart(colab_id, francos_por_dia)) {
+  for (const semana of generarSemanasPart(colab_id, francos_por_dia, deficit, demanda)) {
     // Poda 0: filtrar por excepciones del colaborador
     if (semana.some(j => jornadaViolaExcepcion(j, excepciones, nombre_colaborador))) continue;
 
@@ -414,39 +415,71 @@ function buscarMejorSemanaPart(
 
 function* generarSemanasPart(
   colab_id: string,
-  francos_por_dia: number[]
+  francos_por_dia: number[],
+  deficit: number[][],
+  demanda: number[][]
 ): Generator<Jornada[]> {
-  // PART: 6 jornadas + 1 franco, ≤31h, corridas 4-6h, ≥2 mañanas
-  // Estrategia simple: para cada día de franco, asignar 6 jornadas de 5h (30h total)
-  //   con turno alternado para cumplir ≥2 mañanas
+  // 3 patrones de turno garantizan ≥2 mañanas y cubren combinaciones M/T/N
+  const patrones: Array<("mañana" | "tarde" | "noche")[]> = [
+    ["mañana", "mañana", "tarde",  "tarde",  "noche", "noche"],  // 2M, 2T, 2N
+    ["mañana", "mañana", "mañana", "tarde",  "tarde",  "noche"], // 3M, 2T, 1N
+    ["mañana", "mañana", "tarde",  "tarde",  "tarde",  "noche"], // 2M, 3T, 1N
+  ];
 
   for (let franco_dia = 0; franco_dia < 7; franco_dia++) {
     if (francos_por_dia[franco_dia] >= 2) continue;
 
     const dias_trabajados = DIAS.filter(d => d !== franco_dia);
 
-    // Configuración simple: 2 primeras mañanas, 2 siguientes tarde, 2 últimas noche
-    // Inicios: mañana=0 (08:00), tarde=10 (13:00), noche=18 (17:00)
-    const patrones = [
-      [0, 0, 10, 10, 18, 18],  // 2M, 2T, 2N
-      [0, 0, 0, 10, 10, 18],   // 3M, 2T, 1N
-      [0, 0, 10, 10, 10, 18],  // 2M, 3T, 1N
-    ];
-
-    for (const inicios of patrones) {
+    for (const patron of patrones) {
       const semana: Jornada[] = new Array(7);
       semana[franco_dia] = { colab_id, dia: franco_dia as DiaSemana, bloques: [] };
-      dias_trabajados.forEach((dia, idx) => {
-        const ini = inicios[idx];
-        semana[dia] = {
-          colab_id,
-          dia,
-          bloques: [{ slot_inicio: ini, slot_fin: ini + 10 }]  // 5h = 10 slots
-        };
-      });
-      yield semana;
+
+      let factible = true;
+      for (let idx = 0; idx < dias_trabajados.length; idx++) {
+        const dia = dias_trabajados[idx];
+        const turno = patron[idx];
+        const jornada = elegirJornadaPart(colab_id, dia, 10, turno, deficit, demanda);
+        if (!jornada) { factible = false; break; }
+        semana[dia] = jornada;
+      }
+
+      if (factible) yield semana;
     }
   }
+}
+
+function elegirJornadaPart(
+  colab_id: string,
+  dia: DiaSemana,
+  duracion_slots: number,
+  turno: "mañana" | "tarde" | "noche",
+  deficit: number[][],
+  demanda: number[][]
+): Jornada | null {
+  const candidatas = CATALOGO_PART.filter(j => j.duracion_slots === duracion_slots && j.turno === turno);
+
+  let mejorCobertura = -1;
+  let mejorInicio = Infinity;
+  let mejorJornada: Jornada | null = null;
+
+  for (const jv of candidatas) {
+    for (let inicio = jv.slot_inicio_min; inicio <= jv.slot_inicio_max; inicio++) {
+      const fin = inicio + duracion_slots;
+      if (fin > 30) continue;
+      let cobertura = 0;
+      for (let s = inicio; s < fin; s++) {
+        if (deficit[dia][s] > 0) cobertura += demanda[dia][s];
+      }
+      if (cobertura > mejorCobertura || (cobertura === mejorCobertura && inicio < mejorInicio)) {
+        mejorCobertura = cobertura;
+        mejorInicio = inicio;
+        mejorJornada = { colab_id, dia, bloques: [{ slot_inicio: inicio, slot_fin: fin }] };
+      }
+    }
+  }
+
+  return mejorJornada;
 }
 
 // Función legacy para compatibilidad con orquestador.ts
