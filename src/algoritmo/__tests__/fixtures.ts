@@ -27,7 +27,7 @@ export const ROSTER_REAL_PDF: Colaborador[] = [
   { id: "monica_enriquez", nombre: "Monica Enriquez", rol: "AUX" },
   { id: "natalia_martinez", nombre: "Natalia Martinez", rol: "AUX" },
   { id: "teresa_alanoca", nombre: "Teresa Alanoca", rol: "AUX" },
-  { id: "azucena_quiroga", nombre: "Azucena Quiroga", rol: "AUX" },
+  { id: "azucena_quiroga", nombre: "Azucena Quiroga", rol: "EVENTUAL" },
 ];
 
 // ==================== DEMANDA REAL PDF ====================
@@ -129,18 +129,6 @@ const HORARIOS_AUX_PDF: Record<string, RangoSlot[][]> = {
     [rango("08:00", "13:00")],
     [rango("08:00", "14:00"), rango("20:00", "22:30")],
   ],
-  // Azucena Quiroga: L 06-14 | M 06-14 | X franco | J 06-14 | V 06-14 | S 06-14 | D 06-14
-  // Nota: el PDF muestra 06:00-14:00 pero la operación arranca a las 08:00.
-  // Tratamos 06:00-14:00 como presente efectivo 08:00-14:00 (slots 0..12).
-  azucena_quiroga: [
-    [rango("08:00", "14:00")],
-    [rango("08:00", "14:00")],
-    [],
-    [rango("08:00", "14:00")],
-    [rango("08:00", "14:00")],
-    [rango("08:00", "14:00")],
-    [rango("08:00", "14:00")],
-  ],
 };
 
 function construirMatrizAux(rangosPorDia: RangoSlot[][]): MatrizPresencia {
@@ -163,5 +151,39 @@ for (const auxId of Object.keys(HORARIOS_AUX_PDF)) {
 }
 
 // ==================== DISPONIBILIDAD DE EVENTUAL ====================
-// No hay eventuales en el PDF de muestra.
+// Horarios tomados del PDF para colaboradores con rol EVENTUAL.
+// Formato: por dia, lista de bloques [slot_inicio, slot_fin). Franco = [].
+
+// Azucena Quiroga: L 06-14 | M 06-14 | X franco | J 06-14 | V 06-14 | S 06-14 | D 06-14
+// Nota: el PDF muestra 06:00-14:00 pero la operacion arranca a las 08:00.
+// Tratamos 06:00-14:00 como disponible efectivo 08:00-14:00 (slots 0..12).
+const HORARIOS_EVENTUAL_PDF: Record<string, RangoSlot[][]> = {
+  azucena_quiroga: [
+    [rango("08:00", "14:00")],
+    [rango("08:00", "14:00")],
+    [],
+    [rango("08:00", "14:00")],
+    [rango("08:00", "14:00")],
+    [rango("08:00", "14:00")],
+    [rango("08:00", "14:00")],
+  ],
+};
+
+function construirMatrizEventual(rangosPorDia: RangoSlot[][]): MatrizDisponibilidad {
+  const matriz: MatrizDisponibilidad = Array.from({ length: 7 }, () =>
+    Array(30).fill("NO_DISPONIBLE")
+  );
+  for (let dia = 0; dia < 7; dia++) {
+    for (const [inicio, fin] of rangosPorDia[dia]) {
+      for (let slot = inicio; slot < fin && slot < 30; slot++) {
+        if (slot >= 0) matriz[dia][slot] = "NO_USADO";
+      }
+    }
+  }
+  return matriz;
+}
+
 export const DISPONIBILIDAD_EV_REAL_PDF: Record<string, MatrizDisponibilidad> = {};
+for (const evId of Object.keys(HORARIOS_EVENTUAL_PDF)) {
+  DISPONIBILIDAD_EV_REAL_PDF[evId] = construirMatrizEventual(HORARIOS_EVENTUAL_PDF[evId]);
+}
