@@ -303,24 +303,21 @@ function elegirJornadaCortada(
 }
 
 function calcularScoreSemana(semana: Jornada[], deficit: number[][]): number {
-  // Score = déficit ponderado tras aplicar la semana
-  // Cada slot cubierto reduce déficit en 1
-  let score = 0;
-  const tmp: number[][] = deficit.map(f => [...f]);
+  // Score = cobertura marginal negativa (menor = mejor cobertura).
+  // Solo se contabilizan slots donde hay deficit real — evita que una jornada
+  // de manana que cubre slots ya saturados compita en igualdad con una jornada
+  // de tarde que cubre deficit real. Mayor cobertura marginal = menor score = preferido.
+  let cobertura_marginal = 0;
   for (const jornada of semana) {
-    for (const b of jornada.bloques) {
-      for (let s = b.slot_inicio; s < b.slot_fin; s++) {
-        if (tmp[jornada.dia][s] > 0) tmp[jornada.dia][s] -= 1;
+    for (const bloque of jornada.bloques) {
+      for (let s = bloque.slot_inicio; s < bloque.slot_fin && s < 30; s++) {
+        if (s >= 0 && deficit[jornada.dia][s] > 0) {
+          cobertura_marginal++;
+        }
       }
     }
   }
-  // Sumar déficit restante total (penalización)
-  for (let d = 0; d < 7; d++) {
-    for (let s = 0; s < 30; s++) {
-      score += tmp[d][s];
-    }
-  }
-  return score;
+  return -cobertura_marginal;
 }
 
 function aplicarJornadasADeficit(semana: Jornada[], deficit: number[][]): void {
