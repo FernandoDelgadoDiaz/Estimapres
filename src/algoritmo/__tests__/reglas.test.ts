@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import type { Jornada, AsignacionAux, MatrizPresencia } from "../types";
+import type { ExcepcionSemanal } from "../../types/index";
 import {
   validarSemanaFull,
   validarSemanaPart,
@@ -697,5 +698,107 @@ describe("Metricas finales del pipeline completo (reporte)", () => {
     }
 
     expect(true).toBe(true);
+  });
+});
+
+// ==================== TESTS EXCEPCIONES ====================
+
+describe("Excepciones en Pasada 1", () => {
+  function makeInputFull(excepciones: ExcepcionSemanal[]) {
+    return {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF.filter(c => c.rol === "FULL" || c.rol === "PART"),
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+      excepciones,
+    };
+  }
+
+  it("franco_dia fuerza franco en ese dia y no en otros", () => {
+    const exc: ExcepcionSemanal = {
+      id: "test_franco",
+      colaboradorNombre: "Carlos Paz",
+      tipo: "franco_dia",
+      valor: "3", // jueves
+      descripcion: "test",
+    };
+    const resultado = ejecutarPasada1(makeInputFull([exc]));
+    const jornadas = resultado.jornadas_full["carlos_paz"];
+
+    expect(jornadas).toBeDefined();
+    expect(jornadas.length).toBe(7);
+
+    // Dia 3 (jueves) debe ser franco
+    expect(jornadas[3].bloques.length).toBe(0);
+
+    // Todos los demas dias deben ser no-franco
+    for (let dia = 0; dia < 7; dia++) {
+      if (dia !== 3) {
+        expect(jornadas[dia].bloques.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("solo_matutino: ninguna jornada inicia despues de slot 4 (10:00)", () => {
+    const exc: ExcepcionSemanal = {
+      id: "test_matutino",
+      colaboradorNombre: "Carlos Paz",
+      tipo: "solo_matutino",
+      descripcion: "test",
+    };
+    const resultado = ejecutarPasada1(makeInputFull([exc]));
+    const jornadas = resultado.jornadas_full["carlos_paz"];
+
+    expect(jornadas).toBeDefined();
+    for (const j of jornadas) {
+      if (j.bloques.length > 0) {
+        expect(j.bloques[0].slot_inicio).toBeLessThanOrEqual(4);
+      }
+    }
+  });
+
+  it("no_antes_de 10:00: ninguna jornada inicia antes de slot 4", () => {
+    const exc: ExcepcionSemanal = {
+      id: "test_no_antes",
+      colaboradorNombre: "Carlos Paz",
+      tipo: "no_antes_de",
+      valor: "10:00",
+      descripcion: "test",
+    };
+    const resultado = ejecutarPasada1(makeInputFull([exc]));
+    const jornadas = resultado.jornadas_full["carlos_paz"];
+
+    // Con no_antes_de 10:00 y un generador FULL que arranca a las 08:00,
+    // carlos_paz queda infactible (jornadas = []). La asercion se verifica
+    // vacuosamente: ningun elemento viola la restriccion.
+    expect(jornadas).toBeDefined();
+    for (const j of jornadas) {
+      if (j.bloques.length > 0) {
+        expect(j.bloques[0].slot_inicio).toBeGreaterThanOrEqual(4);
+      }
+    }
+    // Verificar que la excepcion tuvo efecto: carlos_paz debe ser infactible
+    expect(resultado.infactibles).toContain("carlos_paz");
+  });
+
+  it("sin excepciones el algoritmo no cambia comportamiento", () => {
+    const inputBase = makeInputFull([]);
+    const inputSinCampo = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF.filter(c => c.rol === "FULL" || c.rol === "PART"),
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+      // sin campo excepciones
+    };
+
+    const r1 = ejecutarPasada1(inputBase);
+    const r2 = ejecutarPasada1(inputSinCampo);
+
+    // Mismos infactibles
+    expect(r1.infactibles.sort()).toEqual(r2.infactibles.sort());
+
+    // Mismos colaboradores asignados
+    expect(Object.keys(r1.jornadas_full).sort()).toEqual(Object.keys(r2.jornadas_full).sort());
+    expect(Object.keys(r1.jornadas_part).sort()).toEqual(Object.keys(r2.jornadas_part).sort());
   });
 });

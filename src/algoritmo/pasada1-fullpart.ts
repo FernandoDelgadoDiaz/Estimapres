@@ -3,7 +3,7 @@
 // Implementación greedy colaborador por colaborador con generadores y poda temprana.
 // Prompt 1.6 – reescritura completa para evitar OOM.
 
-import type { InputAlgoritmo, Jornada, DiaSemana } from "./types";
+import type { InputAlgoritmo, Jornada, DiaSemana, ExcepcionSemanal } from "./types";
 import {
   CATALOGO_FULL_CORRIDAS,
   CATALOGO_FULL_CORTADAS,
@@ -40,9 +40,11 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   // Contador de francos por día para H-FR1
   const francos_por_dia: number[] = [0, 0, 0, 0, 0, 0, 0];
 
+  const excepciones = input.excepciones ?? [];
+
   // Procesar FULLs primero (más restricciones), luego PARTs
   for (const colab of fulls) {
-    const mejor = buscarMejorSemanaFull(colab.id, deficit, francos_por_dia);
+    const mejor = buscarMejorSemanaFull(colab.id, deficit, francos_por_dia, excepciones, colab.nombre);
     if (!mejor) {
       infactibles.push(colab.id);
       jornadas_full[colab.id] = [];
@@ -54,7 +56,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   }
 
   for (const colab of parts) {
-    const mejor = buscarMejorSemanaPart(colab.id, deficit, francos_por_dia);
+    const mejor = buscarMejorSemanaPart(colab.id, deficit, francos_por_dia, excepciones, colab.nombre);
     if (!mejor) {
       infactibles.push(colab.id);
       jornadas_part[colab.id] = [];
@@ -73,18 +75,84 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   };
 }
 
+// ============== FILTRO DE EXCEPCIONES ==============
+
+function jornadaViolaExcepcion(
+  jornada: Jornada,
+  excepciones: ExcepcionSemanal[],
+  nombre_colaborador: string
+): boolean {
+  const exc = excepciones.filter(e => e.colaboradorNombre === nombre_colaborador);
+  if (exc.length === 0) return false;
+
+  const es_franco = jornada.bloques.length === 0;
+
+  for (const e of exc) {
+    switch (e.tipo) {
+      case "franco_dia": {
+        const dia_forzado = parseInt(e.valor ?? "-1");
+        if (jornada.dia === dia_forzado && !es_franco) return true;
+        if (jornada.dia !== dia_forzado && es_franco) return true;
+        break;
+      }
+      case "no_antes_de": {
+        if (!es_franco && e.valor) {
+          const [h, m] = e.valor.split(":").map(Number);
+          const slot_minimo = (h - 8) * 2 + Math.floor(m / 30);
+          if (jornada.bloques[0].slot_inicio < slot_minimo) return true;
+        }
+        break;
+      }
+      case "no_despues_de": {
+        if (!es_franco && e.valor) {
+          const [h, m] = e.valor.split(":").map(Number);
+          const slot_maximo = (h - 8) * 2 + Math.floor(m / 30);
+          const ultimo_bloque = jornada.bloques[jornada.bloques.length - 1];
+          if (ultimo_bloque.slot_fin > slot_maximo) return true;
+        }
+        break;
+      }
+      case "siempre_cierre": {
+        if (!es_franco) {
+          const ultimo_bloque = jornada.bloques[jornada.bloques.length - 1];
+          if (ultimo_bloque.slot_fin < 28) return true;
+        }
+        break;
+      }
+      case "solo_matutino": {
+        if (!es_franco) {
+          if (jornada.bloques[0].slot_inicio > 4) return true;
+        }
+        break;
+      }
+      case "solo_nocturno": {
+        if (!es_franco) {
+          if (jornada.bloques[0].slot_inicio < 18) return true;
+        }
+        break;
+      }
+    }
+  }
+  return false;
+}
+
 // ============== BÚSQUEDA FULL ==============
 
 function buscarMejorSemanaFull(
   colab_id: string,
   deficit: number[][],
-  francos_por_dia: number[]
+  francos_por_dia: number[],
+  excepciones: ExcepcionSemanal[],
+  nombre_colaborador: string
 ): Jornada[] | null {
   let mejor: Jornada[] | null = null;
   let mejorScore = Infinity;
 
   // Generar candidatos de semana FULL uno por uno
   for (const semana of generarSemanasFull(colab_id, francos_por_dia)) {
+    // Poda 0: filtrar por excepciones del colaborador (mas barato que H-F*)
+    if (semana.some(j => jornadaViolaExcepcion(j, excepciones, nombre_colaborador))) continue;
+
     // Poda 1: validación rápida de reglas duras H-F* (estructura)
     if (validarSemanaFull(colab_id, semana).length > 0) continue;
 
@@ -301,12 +369,17 @@ function* permutacionesUnicas(arr: number[]): Generator<number[]> {
 function buscarMejorSemanaPart(
   colab_id: string,
   deficit: number[][],
-  francos_por_dia: number[]
+  francos_por_dia: number[],
+  excepciones: ExcepcionSemanal[],
+  nombre_colaborador: string
 ): Jornada[] | null {
   let mejor: Jornada[] | null = null;
   let mejorScore = Infinity;
 
   for (const semana of generarSemanasPart(colab_id, francos_por_dia)) {
+    // Poda 0: filtrar por excepciones del colaborador
+    if (semana.some(j => jornadaViolaExcepcion(j, excepciones, nombre_colaborador))) continue;
+
     if (validarSemanaPart(colab_id, semana).length > 0) continue;
 
     let violaD1 = false;

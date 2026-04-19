@@ -2,6 +2,9 @@
 // Tipos compartidos del algoritmo de horarios v2.
 // Referencia: ai/architecture.md §3.
 
+import type { ExcepcionSemanal } from "../types/index";
+export type { ExcepcionSemanal };
+
 export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 // 0=LUN, 1=MAR, 2=MIE, 3=JUE, 4=VIE, 5=SAB, 6=DOM
 
@@ -44,6 +47,7 @@ export interface InputAlgoritmo {
   colaboradores: Colaborador[];
   presencia_aux: Record<string, MatrizPresencia>;        // key = colab_id con rol=AUX
   disponibilidad_eventual: Record<string, MatrizDisponibilidad>; // key = colab_id con rol=EVENTUAL
+  excepciones?: ExcepcionSemanal[];
 }
 
 // Outputs del algoritmo
