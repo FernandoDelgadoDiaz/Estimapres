@@ -17,6 +17,7 @@ import {
 } from "../reglas";
 import { ejecutarPasada1 } from "../pasada1-fullpart";
 import { ejecutarPasada2 } from "../pasada2-auxiliares";
+import { ejecutarPasada3 } from "../pasada3-eventuales";
 import {
   ROSTER_REAL_PDF,
   DEMANDA_REAL_PDF,
@@ -523,6 +524,178 @@ describe("Metricas Pasada 2 (reporte)", () => {
     console.log("Violaciones H-A* detectadas:", p2.violaciones_input.length);
 
     // No assertions, just metrics
+    expect(true).toBe(true);
+  });
+});
+
+// ==================== TESTS PASADA 3 ====================
+
+describe("Pasada 3 sobre PDF real (con Azucena como EVENTUAL)", () => {
+  function makeInput() {
+    return {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+  }
+
+  it("ejecutarPasada3 no toca slots NO_DISPONIBLE", () => {
+    const input = makeInput();
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    const p3 = ejecutarPasada3(input, p2);
+
+    for (const [evId, matrizOriginal] of Object.entries(input.disponibilidad_eventual)) {
+      const matrizResultado = p3.asignacion_eventual[evId];
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) {
+          if (matrizOriginal[dia][slot] === "NO_DISPONIBLE") {
+            expect(matrizResultado[dia][slot]).not.toBe("CAJA");
+          }
+        }
+      }
+    }
+  });
+
+  it("ejecutarPasada3 solo activa dentro de la disponibilidad del eventual", () => {
+    const input = makeInput();
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    const p3 = ejecutarPasada3(input, p2);
+
+    for (const [evId, matrizResultado] of Object.entries(p3.asignacion_eventual)) {
+      const matrizOriginal = input.disponibilidad_eventual[evId];
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) {
+          if (matrizResultado[dia][slot] === "CAJA") {
+            expect(matrizOriginal[dia][slot]).not.toBe("NO_DISPONIBLE");
+          }
+        }
+      }
+    }
+  });
+
+  it("Pasada 3 reduce el deficit de Pasada 2", () => {
+    const input = makeInput();
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    const p3 = ejecutarPasada3(input, p2);
+
+    let total_p2 = 0;
+    let total_p3 = 0;
+    for (let dia = 0; dia < 7; dia++) {
+      for (let slot = 0; slot < 30; slot++) {
+        total_p2 += p2.deficit_2[dia][slot];
+        total_p3 += p3.deficit_3[dia][slot];
+      }
+    }
+    expect(total_p3).toBeLessThanOrEqual(total_p2);
+  });
+
+  it("Cobertura final tras Pasada 3 es mayor que tras Pasada 2", () => {
+    const input = makeInput();
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    const p3 = ejecutarPasada3(input, p2);
+
+    let total_p2 = 0;
+    let total_p3 = 0;
+    for (let dia = 0; dia < 7; dia++) {
+      for (let slot = 0; slot < 30; slot++) {
+        total_p2 += p2.deficit_2[dia][slot];
+        total_p3 += p3.deficit_3[dia][slot];
+      }
+    }
+    // Azucena disponible L/M/J/V/S/D 08-14 debe cubrir parte del deficit de manana
+    expect(total_p3).toBeLessThan(total_p2);
+  });
+
+  it("horas_caja_por_eventual es coherente con asignacion_eventual", () => {
+    const input = makeInput();
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    const p3 = ejecutarPasada3(input, p2);
+
+    for (const [evId, matriz] of Object.entries(p3.asignacion_eventual)) {
+      let slots_caja = 0;
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) {
+          if (matriz[dia][slot] === "CAJA") slots_caja++;
+        }
+      }
+      expect(p3.horas_caja_por_eventual[evId]).toBe(slots_caja / 2);
+    }
+  });
+
+  it("Pasada 3 termina en <1 segundo", () => {
+    const input = makeInput();
+    const p1 = ejecutarPasada1(input);
+    const p2 = ejecutarPasada2(input, p1);
+    const t0 = Date.now();
+    ejecutarPasada3(input, p2);
+    const ms = Date.now() - t0;
+    expect(ms).toBeLessThan(1000);
+  });
+});
+
+describe("Metricas finales del pipeline completo (reporte)", () => {
+  it("calcula metricas cascada P1 -> P2 -> P3", () => {
+    const input = {
+      demanda: DEMANDA_REAL_PDF,
+      colaboradores: ROSTER_REAL_PDF,
+      presencia_aux: PRESENCIA_AUX_REAL_PDF,
+      disponibilidad_eventual: DISPONIBILIDAD_EV_REAL_PDF,
+    };
+
+    function sumarMatriz(m: number[][]): number {
+      let total = 0;
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) total += m[dia][slot];
+      }
+      return total;
+    }
+
+    const t0 = Date.now();
+    const p1 = ejecutarPasada1(input);
+    const t1 = Date.now();
+    const p2 = ejecutarPasada2(input, p1);
+    const t2 = Date.now();
+    const p3 = ejecutarPasada3(input, p2);
+    const t3 = Date.now();
+
+    const demanda_total = sumarMatriz(input.demanda);
+    const deficit_p1 = sumarMatriz(p1.deficit_1);
+    const deficit_p2 = sumarMatriz(p2.deficit_2);
+    const deficit_p3 = sumarMatriz(p3.deficit_3);
+
+    const cobertura_p1 = ((demanda_total - deficit_p1) / demanda_total) * 100;
+    const cobertura_p2 = ((demanda_total - deficit_p2) / demanda_total) * 100;
+    const cobertura_p3 = ((demanda_total - deficit_p3) / demanda_total) * 100;
+
+    console.log("=== METRICAS PIPELINE COMPLETO P1 -> P2 -> P3 ===");
+    console.log("Demanda total:          " + demanda_total + " slots (" + (demanda_total / 2) + "h)");
+    console.log("Deficit tras P1:        " + deficit_p1 + " slots (" + (deficit_p1 / 2) + "h)  | Cobertura: " + cobertura_p1.toFixed(1) + "%");
+    console.log("Deficit tras P2:        " + deficit_p2 + " slots (" + (deficit_p2 / 2) + "h)  | Cobertura: " + cobertura_p2.toFixed(1) + "%");
+    console.log("Deficit tras P3:        " + deficit_p3 + " slots (" + (deficit_p3 / 2) + "h)  | Cobertura: " + cobertura_p3.toFixed(1) + "%");
+    console.log("Tiempos:  P1=" + (t1 - t0) + "ms  P2=" + (t2 - t1) + "ms  P3=" + (t3 - t2) + "ms");
+
+    console.log("--- Horas-caja por eventual ---");
+    for (const [evId, horas] of Object.entries(p3.horas_caja_por_eventual)) {
+      console.log("  " + evId + ": " + horas + "h");
+    }
+
+    console.log("--- Horas-caja por AUX ---");
+    for (const [auxId, matriz] of Object.entries(p2.asignacion_aux)) {
+      let count = 0;
+      for (let dia = 0; dia < 7; dia++) {
+        for (let slot = 0; slot < 30; slot++) {
+          if (matriz[dia][slot] === "CAJA") count++;
+        }
+      }
+      console.log("  " + auxId + ": " + (count / 2) + "h");
+    }
+
     expect(true).toBe(true);
   });
 });
