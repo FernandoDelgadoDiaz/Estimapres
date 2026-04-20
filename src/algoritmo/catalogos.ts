@@ -43,7 +43,7 @@ for (let duracion = 8; duracion <= 12; duracion++) {
     tipo: `P${duracion}-M`,
     duracion_slots: duracion,
     slot_inicio_min: 0,
-    slot_inicio_max: 8,
+    slot_inicio_max: 6,
     turno: "mañana",
     rol: "PART",
   });

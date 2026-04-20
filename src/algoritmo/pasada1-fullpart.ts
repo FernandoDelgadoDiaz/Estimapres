@@ -40,12 +40,14 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
 
   // Contador de francos por día para H-FR1
   const francos_por_dia: number[] = [0, 0, 0, 0, 0, 0, 0];
+  const francos_full_por_dia: number[] = [0, 0, 0, 0, 0, 0, 0];
+  const francos_part_por_dia: number[] = [0, 0, 0, 0, 0, 0, 0];
 
   const excepciones = input.excepciones ?? [];
 
   // Procesar FULLs primero (más restricciones), luego PARTs
   for (const colab of fulls) {
-    const mejor = buscarMejorSemanaFull(colab.id, deficit, input.demanda, francos_por_dia, excepciones, colab.nombre);
+    const mejor = buscarMejorSemanaFull(colab.id, deficit, input.demanda, francos_por_dia, francos_full_por_dia, francos_part_por_dia, excepciones, colab.nombre);
     if (!mejor) {
       infactibles.push(colab.id);
       jornadas_full[colab.id] = [];
@@ -54,10 +56,12 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     jornadas_full[colab.id] = mejor;
     aplicarJornadasADeficit(mejor, deficit);
     actualizarFrancos(mejor, francos_por_dia);
+    const fd_full = mejor.findIndex(j => j.bloques.length === 0);
+    if (fd_full >= 0) francos_full_por_dia[fd_full]++;
   }
 
   for (const colab of parts) {
-    const mejor = buscarMejorSemanaPart(colab.id, deficit, input.demanda, francos_por_dia, excepciones, colab.nombre);
+    const mejor = buscarMejorSemanaPart(colab.id, deficit, input.demanda, francos_por_dia, francos_full_por_dia, francos_part_por_dia, excepciones, colab.nombre);
     if (!mejor) {
       infactibles.push(colab.id);
       jornadas_part[colab.id] = [];
@@ -66,6 +70,8 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     jornadas_part[colab.id] = mejor;
     aplicarJornadasADeficit(mejor, deficit);
     actualizarFrancos(mejor, francos_por_dia);
+    const fd_part = mejor.findIndex(j => j.bloques.length === 0);
+    if (fd_part >= 0) francos_part_por_dia[fd_part]++;
   }
 
   return {
@@ -144,6 +150,8 @@ function buscarMejorSemanaFull(
   deficit: number[][],
   demanda: number[][],
   francos_por_dia: number[],
+  francos_full_por_dia: number[],
+  francos_part_por_dia: number[],
   excepciones: ExcepcionSemanal[],
   nombre_colaborador: string
 ): Jornada[] | null {
@@ -169,9 +177,13 @@ function buscarMejorSemanaFull(
     if (violaD1) continue;
 
     const score = calcularScoreSemana(semana, deficit, demanda);
+    const fd = semana.findIndex(j => j.bloques.length === 0);
+    const penalizacion = fd >= 0
+      ? francos_full_por_dia[fd] * 1000 + francos_part_por_dia[fd] * 500
+      : 0;
 
-    if (score < mejorScore) {
-      mejorScore = score;
+    if (score + penalizacion < mejorScore) {
+      mejorScore = score + penalizacion;
       mejor = semana;
     }
   }
@@ -382,6 +394,8 @@ function buscarMejorSemanaPart(
   deficit: number[][],
   demanda: number[][],
   francos_por_dia: number[],
+  francos_full_por_dia: number[],
+  francos_part_por_dia: number[],
   excepciones: ExcepcionSemanal[],
   nombre_colaborador: string
 ): Jornada[] | null {
@@ -404,8 +418,13 @@ function buscarMejorSemanaPart(
     if (violaD1) continue;
 
     const score = calcularScoreSemana(semana, deficit, demanda);
-    if (score < mejorScore) {
-      mejorScore = score;
+    const fd = semana.findIndex(j => j.bloques.length === 0);
+    const penalizacion = fd >= 0
+      ? francos_full_por_dia[fd] * 1000 + francos_part_por_dia[fd] * 500
+      : 0;
+
+    if (score + penalizacion < mejorScore) {
+      mejorScore = score + penalizacion;
       mejor = semana;
     }
   }
