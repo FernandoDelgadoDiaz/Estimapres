@@ -231,9 +231,10 @@ function* generarSemanasFull(
           // Permutaciones de cómo asignar las duraciones a los 4 días corridos
           for (const perm of permutacionesUnicas(duraciones_corridas)) {
 
-            // Generar jornadas corridas: elegir inicio que maximice cobertura del déficit local
+            // Generar jornadas corridas: los 2 primeros días son mañana forzada, los otros libres
             const jornadas_corridas_candidatas: Array<Jornada | null> = dias_corridos.map((dia, idx) => {
-              return elegirJornadaCorrida(colab_id, dia, perm[idx], deficit, demanda);
+              const turno_forzado = idx < 2 ? "mañana" : null;
+              return elegirJornadaCorrida(colab_id, dia, perm[idx], deficit, demanda, turno_forzado);
             });
 
             if (jornadas_corridas_candidatas.some(j => j === null)) continue;
@@ -268,9 +269,13 @@ function elegirJornadaCorrida(
   dia: DiaSemana,
   duracion_slots: number,
   deficit: number[][],
-  demanda: number[][]
+  demanda: number[][],
+  turno_forzado: "mañana" | null = null
 ): Jornada | null {
-  const candidatas = CATALOGO_FULL_CORRIDAS.filter(j => j.duracion_slots === duracion_slots);
+  const candidatas = CATALOGO_FULL_CORRIDAS.filter(j =>
+    j.duracion_slots === duracion_slots &&
+    (turno_forzado === null || j.turno === turno_forzado)
+  );
 
   let mejorCobertura = -1;
   let mejorInicio = Infinity;
