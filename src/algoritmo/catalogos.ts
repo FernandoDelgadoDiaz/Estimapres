@@ -38,20 +38,20 @@ export const CATALOGO_FULL_CORRIDAS: JornadaValida[] = [
 export const CATALOGO_PART: JornadaValida[] = [];
 // Generar combinaciones
 for (let duracion = 8; duracion <= 12; duracion++) {
-  // P-M
+  // P-M: 09:00 (slot 2) a 11:00 (slot 6)
   CATALOGO_PART.push({
     tipo: `P${duracion}-M`,
     duracion_slots: duracion,
-    slot_inicio_min: 0,
+    slot_inicio_min: 2,
     slot_inicio_max: 6,
     turno: "mañana",
     rol: "PART",
   });
-  // P-T
+  // P-T: 14:00 (slot 12) en adelante
   CATALOGO_PART.push({
     tipo: `P${duracion}-T`,
     duracion_slots: duracion,
-    slot_inicio_min: 10,
+    slot_inicio_min: 12,
     slot_inicio_max: 18,
     turno: "tarde",
     rol: "PART",
