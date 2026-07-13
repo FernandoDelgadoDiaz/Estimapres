@@ -33,7 +33,7 @@ function slotAHora(slot: number): string {
 }
 
 /** Convierte nombre a id determinístico: "Carlos Paz" → "carlos_paz" */
-function normalizarId(nombre: string): string {
+export function normalizarId(nombre: string): string {
   return nombre
     .toLowerCase()
     .normalize('NFD')
@@ -96,12 +96,24 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
  * - auxiliares: aportan presencia_aux y rol AUX.
  * - eventuales: aportan disponibilidad_eventual y rol EVENTUAL.
  */
+/**
+ * Opciones de generación provenientes de las capacidades configurables:
+ * preferencias blandas (rotación + aprendizaje, keyed por NOMBRE), mínimos de
+ * cajeros por franja (reglas del local) y tope de francos por día.
+ */
+export interface OpcionesGeneracion {
+  preferenciasPorNombre?: Record<string, { manana?: number; tarde?: number; cierre?: number }>;
+  demandaMinima?: Array<{ dia: number; slotDesde: number; slotHasta: number; cantidad: number }>;
+  maxFrancosDia?: number;
+}
+
 export function convertirInputAV2(
   necesidad: Franja[],
   cajeros: ColaboradorUI[],
   auxiliares: Auxiliar[],
   eventuales: Eventual[],
-  excepciones: ExcepcionSemanal[]
+  excepciones: ExcepcionSemanal[],
+  opciones?: OpcionesGeneracion
 ): InputAlgoritmo {
   // 1. Demanda 7×30
   const demanda: number[][] = Array.from({ length: 7 }, () => Array(30).fill(0));
@@ -112,6 +124,17 @@ export function convertirInputAV2(
     if (slot < 0 || slot >= 30) continue;
     for (let dia = 0; dia < 7; dia++) {
       demanda[dia][slot] = franja.necesidad[dia] ?? 0;
+    }
+  }
+
+  // 1b. Reglas del local "mínimo N cajeros en franja": elevan la demanda
+  // efectiva; el algoritmo prioriza cubrirlas con la capacidad disponible.
+  for (const min of opciones?.demandaMinima ?? []) {
+    const dias = min.dia >= 0 ? [min.dia] : [0, 1, 2, 3, 4, 5, 6];
+    for (const dia of dias) {
+      for (let s = Math.max(0, min.slotDesde); s < Math.min(30, min.slotHasta); s++) {
+        demanda[dia][s] = Math.max(demanda[dia][s], min.cantidad);
+      }
     }
   }
 
@@ -141,7 +164,24 @@ export function convertirInputAV2(
     disponibilidad_eventual[evId] = construirMatrizEventual(ev.horarioSemanal);
   }
 
-  return { demanda, colaboradores, presencia_aux, disponibilidad_eventual, excepciones };
+  // 5. Preferencias blandas: nombre → id v2
+  let preferencias_turno: InputAlgoritmo['preferencias_turno'];
+  if (opciones?.preferenciasPorNombre) {
+    preferencias_turno = {};
+    for (const [nombre, sesgo] of Object.entries(opciones.preferenciasPorNombre)) {
+      preferencias_turno[normalizarId(nombre)] = sesgo;
+    }
+  }
+
+  return {
+    demanda,
+    colaboradores,
+    presencia_aux,
+    disponibilidad_eventual,
+    excepciones,
+    preferencias_turno,
+    max_francos_dia: opciones?.maxFrancosDia,
+  };
 }
 
 // ==================== OUTPUT: V2 → UI ====================

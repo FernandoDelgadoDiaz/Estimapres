@@ -1,16 +1,31 @@
-import { useState } from 'react'
-import { ExcepcionSemanal, DIAS_SEMANA } from '../types'
+import { useEffect, useMemo, useState } from 'react'
+import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import { useAsignacion } from '../hooks/useAsignacion'
+import { useReglas } from '../hooks/useReglas'
+import { useHistorial } from '../hooks/useHistorial'
+import { useCorrecciones } from '../hooks/useCorrecciones'
 import PDFUploader from '../components/semana/PDFUploader'
 import PreviewNecesidad from '../components/semana/PreviewNecesidad'
 import TablaCobertura from '../components/semana/TablaCobertura'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import PanelAlertas from '../components/semana/PanelAlertas'
 import { generarPDF } from '../utils/exportPDF'
+import {
+  reglasAExcepciones,
+  demandaMinimaDeReglas,
+  capFrancosDeReglas,
+  validarConflictosReglas,
+  calcularSesgoRotacion,
+  calcularSesgoAprendizaje,
+  derivarAprendizajes,
+  combinarSesgos,
+  explicarSesgos,
+  resumirTurnos,
+} from '../utils/preferencias'
 import { format, startOfWeek, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -19,10 +34,14 @@ type Paso = 'upload' | 'revisar' | 'resultado'
 export default function NuevaSemanaPage() {
   const [paso, setPaso] = useState<Paso>('upload')
   const { necesidad, loading: loadingPDF, error: errorPDF, parsearPDF, reset: resetPDF } = usePDFParser()
-  const { colaboradoresActivos } = useColaboradores()
+  const { colaboradores, colaboradoresActivos } = useColaboradores()
   const { auxiliaresActivos } = useAuxiliares()
   const { eventualesActivos } = useEventuales()
-  const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, reset: resetAsignacion } = useAsignacion()
+  const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, editarJornada, reset: resetAsignacion } = useAsignacion()
+  const { reglas, reglasActivas } = useReglas()
+  const { historial, agregarSemana, actualizarSemana } = useHistorial()
+  const { correcciones, agregarCorreccion } = useCorrecciones()
+  const [semanaGuardadaId, setSemanaGuardadaId] = useState<string | null>(null)
   const [semanaDesc, setSemanaDesc] = useState('')
   const [excepciones, setExcepciones] = useState<ExcepcionSemanal[]>([])
   const [mostrarExcepciones, setMostrarExcepciones] = useState(false)
@@ -87,6 +106,26 @@ export default function NuevaSemanaPage() {
     setExcepciones(excepciones.filter(e => e.id !== id))
   }
 
+  // Mapeo id UI → nombre (para historial y correcciones)
+  const nombrePorId = useMemo(
+    () => Object.fromEntries(colaboradoresActivos.map(c => [c.id, c.nombre])),
+    [colaboradoresActivos]
+  )
+
+  // Preferencias blandas: rotación (historial) + aprendizaje (correcciones)
+  const sesgosBlandos = useMemo(
+    () => combinarSesgos(
+      calcularSesgoRotacion(historial),
+      calcularSesgoAprendizaje(derivarAprendizajes(correcciones))
+    ),
+    [historial, correcciones]
+  )
+  const frasesPreferencias = useMemo(() => explicarSesgos(sesgosBlandos), [sesgosBlandos])
+  const conflictosReglas = useMemo(
+    () => validarConflictosReglas(reglas, colaboradores),
+    [reglas, colaboradores]
+  )
+
   const handleGenerarHorarios = async () => {
     // Calcular fechas de la semana actual (lunes a domingo)
     const hoy = new Date()
@@ -95,10 +134,61 @@ export default function NuevaSemanaPage() {
       const fecha = addDays(lunes, i)
       return format(fecha, 'yyyy-MM-dd')
     })
+    const fechaLunes = fechas[0]
     const cajerosActivos = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
-    await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepciones)
+
+    // Capacidad 1: reglas configuradas → excepciones + demanda mínima + tope de francos
+    const excepcionesTotales = [...excepciones, ...reglasAExcepciones(reglas, fechaLunes)]
+    const opciones = {
+      preferenciasPorNombre: sesgosBlandos, // Capacidades 2 y 3 (preferencia blanda)
+      demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
+      maxFrancosDia: capFrancosDeReglas(reglas, fechaLunes),
+    }
+
+    const res = await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepcionesTotales, opciones)
+
+    // Capacidad 2: guardar la semana en el historial para la rotación futura
+    if (res) {
+      const semana = agregarSemana({
+        fechaLunes,
+        descripcion: semanaDesc || `Semana del ${fechaLunes}`,
+        horarios: res.horarios,
+        resumenPorColaborador: resumirTurnos(res.horarios, nombrePorId),
+      })
+      setSemanaGuardadaId(semana.id)
+    }
     setPaso('resultado')
   }
+
+  // Capacidad 3: edición manual del resultado + registro de la corrección
+  const handleEditarJornada = (colaboradorId: string, dia: number, nueva: JornadaResumida) => {
+    if (!resultado) return
+    const horario = resultado.horarios.find(h => h.colaboradorId === colaboradorId)
+    const jornadaAnterior = horario?.jornadas.find(j => j.dia === dia)
+    if (!jornadaAnterior) return
+
+    agregarCorreccion({
+      semanaId: semanaGuardadaId ?? '',
+      colaboradorNombre: nombrePorId[colaboradorId] ?? colaboradorId,
+      dia,
+      antes: { esFranco: jornadaAnterior.esFranco, turnos: jornadaAnterior.turnos },
+      despues: nueva,
+    })
+    editarJornada(colaboradorId, dia, nueva)
+    if (semanaGuardadaId) actualizarSemana(semanaGuardadaId, { editadoManualmente: true })
+  }
+
+  // Mantener el historial sincronizado con las ediciones (la rotación debe
+  // basarse en lo que realmente quedó, no en lo que generó el algoritmo)
+  useEffect(() => {
+    if (resultado && semanaGuardadaId) {
+      actualizarSemana(semanaGuardadaId, {
+        horarios: resultado.horarios,
+        resumenPorColaborador: resumirTurnos(resultado.horarios, nombrePorId),
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultado])
 
   const handleExportarPDF = () => {
     if (!resultado) return
@@ -111,6 +201,7 @@ export default function NuevaSemanaPage() {
     resetAsignacion()
     setExcepciones([])
     setMostrarExcepciones(false)
+    setSemanaGuardadaId(null)
     setPaso('upload')
   }
 
@@ -447,6 +538,55 @@ export default function NuevaSemanaPage() {
                     : '⚠️ Puede haber faltantes de cobertura'}
                 </p>
               </div>
+            </div>
+
+            {/* Reglas y preferencias que se aplicarán en esta generación */}
+            <div style={{
+              marginTop: '32px',
+              padding: '24px',
+              border: '1px solid var(--border)',
+              borderRadius: '16px',
+              background: 'var(--card)',
+            }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                fontFamily: "'Syne', sans-serif",
+                color: 'white',
+                letterSpacing: '-0.5px',
+                marginBottom: '12px',
+              }}>
+                Reglas y preferencias que se aplicarán
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--text)' }}>
+                ⚙️ {reglasActivas.length === 0
+                  ? 'No hay reglas configuradas (podés crearlas en la pestaña "Reglas").'
+                  : `${reglasActivas.length} regla${reglasActivas.length === 1 ? '' : 's'} activa${reglasActivas.length === 1 ? '' : 's'} del local se aplicarán automáticamente.`}
+              </p>
+              {frasesPreferencias.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <p style={{ fontSize: '14px', color: 'var(--text)' }}>🔄 Rotación y preferencias aprendidas:</p>
+                  {frasesPreferencias.map((f, i) => (
+                    <p key={i} style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '20px', marginTop: '2px' }}>• {f}</p>
+                  ))}
+                </div>
+              )}
+              {conflictosReglas.length > 0 && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '12px 16px',
+                  border: '1px solid var(--accent)',
+                  borderRadius: '12px',
+                  background: 'var(--surface)',
+                }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)' }}>
+                    ⚠️ Conflictos con reglas laborales duras (se informan, nunca se violan):
+                  </p>
+                  {conflictosReglas.map((c, i) => (
+                    <p key={i} style={{ fontSize: '13px', color: 'var(--text)', marginTop: '4px' }}>• {c}</p>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sección de excepciones semanales */}
@@ -817,6 +957,8 @@ export default function NuevaSemanaPage() {
             colaboradores={colaboradoresActivos}
             auxiliares={auxiliaresActivos}
             eventuales={eventualesActivos}
+            editable
+            onEditarJornada={handleEditarJornada}
           />
         </div>
       )}

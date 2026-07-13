@@ -41,6 +41,16 @@ export type MatrizDemanda = number[][]; // 7 x 30
 export type MatrizPresencia = AsignacionAux[][]; // 7 x 30, por aux
 export type MatrizDisponibilidad = AsignacionEv[][]; // 7 x 30, por eventual
 
+// Sesgo blando por turno para un colaborador: puntos de utilidad que se suman
+// a cada jornada candidata según su clasificación. Positivo = preferir,
+// negativo = evitar. Magnitudes pequeñas (±12) frente a la utilidad de
+// demanda (~decenas-cientos por jornada): desempatan, no mandan.
+export interface SesgoTurno {
+  manana: number;
+  tarde: number;
+  cierre: number;
+}
+
 // Inputs completos al algoritmo
 export interface InputAlgoritmo {
   demanda: MatrizDemanda;
@@ -48,6 +58,11 @@ export interface InputAlgoritmo {
   presencia_aux: Record<string, MatrizPresencia>;        // key = colab_id con rol=AUX
   disponibilidad_eventual: Record<string, MatrizDisponibilidad>; // key = colab_id con rol=EVENTUAL
   excepciones?: ExcepcionSemanal[];
+  // Preferencias blandas por colab_id (rotación + aprendizaje de correcciones).
+  preferencias_turno?: Record<string, Partial<SesgoTurno>>;
+  // Regla configurable del local: máximo de francos FULL+PART por día.
+  // Nunca puede superar 2 (H-FR1 es dura); se clampea a [1, 2].
+  max_francos_dia?: number;
 }
 
 // Outputs del algoritmo

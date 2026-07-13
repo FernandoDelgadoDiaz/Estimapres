@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { Franja, Colaborador, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual } from '../types'
-import { convertirInputAV2, convertirOutputDeV2 } from '../algoritmo/adapter'
+import { convertirInputAV2, convertirOutputDeV2, type OpcionesGeneracion } from '../algoritmo/adapter'
 import { ejecutarAlgoritmo } from '../algoritmo/orquestador'
+import { normalizarExcepciones } from './preferencias'
 
 // API key configuration
 const DEV_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY || import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -65,10 +66,14 @@ export async function asignarHorariosConIA(
   auxiliares: Auxiliar[],
   eventuales: Eventual[],
   _fechas: string[],
-  excepciones: ExcepcionSemanal[] = []
+  excepciones: ExcepcionSemanal[] = [],
+  opciones?: OpcionesGeneracion
 ): Promise<ResultadoAsignacion> {
-  // 1. Ejecutar algoritmo v2
-  const inputV2 = convertirInputAV2(necesidad, cajeros, auxiliares, eventuales, excepciones)
+  // 1. Ejecutar algoritmo v2 (excepciones normalizadas: día textual → índice)
+  const inputV2 = convertirInputAV2(
+    necesidad, cajeros, auxiliares, eventuales,
+    normalizarExcepciones(excepciones), opciones
+  )
   const resultadoV2 = ejecutarAlgoritmo(inputV2)
   const resultado = convertirOutputDeV2(resultadoV2, cajeros, auxiliares, eventuales)
 

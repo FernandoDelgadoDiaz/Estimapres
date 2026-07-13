@@ -1,4 +1,5 @@
-import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA } from '../../types'
+import { useState } from 'react'
+import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, JornadaResumida, Turno } from '../../types'
 import { formatoTurno } from '../../utils/timeUtils'
 
 interface TablaHorariosProps {
@@ -6,9 +7,47 @@ interface TablaHorariosProps {
   colaboradores: Colaborador[]
   auxiliares?: Auxiliar[]
   eventuales?: Eventual[]
+  /** Habilita la edición manual de celdas (Capacidad 3: aprendizaje de correcciones). */
+  editable?: boolean
+  onEditarJornada?: (colaboradorId: string, dia: number, nueva: JornadaResumida) => void
 }
 
-export default function TablaHorarios({ horarios, colaboradores, auxiliares = [], eventuales = [] }: TablaHorariosProps) {
+interface CeldaEnEdicion {
+  colaboradorId: string
+  nombre: string
+  dia: number
+}
+
+function padHora(hora: string): string {
+  const [h, m] = hora.split(':')
+  return `${h.padStart(2, '0')}:${(m || '00').padStart(2, '0')}`
+}
+
+export default function TablaHorarios({ horarios, colaboradores, auxiliares = [], eventuales = [], editable = false, onEditarJornada }: TablaHorariosProps) {
+  const [editando, setEditando] = useState<CeldaEnEdicion | null>(null)
+  const [editEsFranco, setEditEsFranco] = useState(false)
+  const [editTurnos, setEditTurnos] = useState<Turno[]>([{ inicio: '09:00', fin: '17:00' }])
+
+  const abrirEditor = (colaboradorId: string, nombre: string, dia: number) => {
+    const horario = horarios.find(h => h.colaboradorId === colaboradorId)
+    const jornada = horario?.jornadas[dia]
+    setEditando({ colaboradorId, nombre, dia })
+    setEditEsFranco(jornada?.esFranco ?? false)
+    setEditTurnos(
+      jornada && jornada.turnos.length > 0
+        ? jornada.turnos.map(t => ({ inicio: padHora(t.inicio), fin: padHora(t.fin) }))
+        : [{ inicio: '09:00', fin: '17:00' }]
+    )
+  }
+
+  const guardarEdicion = () => {
+    if (!editando || !onEditarJornada) return
+    onEditarJornada(editando.colaboradorId, editando.dia, {
+      esFranco: editEsFranco,
+      turnos: editEsFranco ? [] : editTurnos,
+    })
+    setEditando(null)
+  }
 
   const tiposColor: Record<string, { background: string, color: string }> = {
     FULL: { background: 'var(--accent)', color: 'var(--accent-dark)' },
@@ -226,9 +265,12 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     const rol = jornada.rol || (jornada.esFranco ? 'franco' : 'cajero')
                     const bgColor = rolColor[rol] || 'var(--card)'
                     const isFrancoReal = jornada.esFranco || rol === 'franco'
+                    const enEdicion = editando?.colaboradorId === horario.colaboradorId && editando?.dia === diaIndex
                     return (
                       <td
                         key={diaIndex}
+                        onClick={editable ? () => abrirEditor(horario.colaboradorId, nombre, diaIndex) : undefined}
+                        title={editable ? 'Clic para editar esta jornada' : undefined}
                         style={{
                           padding: '8px',
                           whiteSpace: 'nowrap',
@@ -238,6 +280,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           color: isFrancoReal ? 'var(--text-muted)' : 'white',
                           fontStyle: isFrancoReal ? 'italic' : 'normal',
                           backgroundColor: bgColor,
+                          cursor: editable ? 'pointer' : 'default',
+                          outline: enEdicion ? '2px solid var(--accent)' : 'none',
+                          outlineOffset: '-2px',
                         }}
                       >
                         {isFrancoReal ? 'FRANCO' : formatoTurno(jornada.turnos)}
@@ -261,6 +306,88 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
           </tbody>
         </table>
       </div>
+
+      {/* Editor de jornada (Capacidad 3: correcciones manuales) */}
+      {editable && editando && (
+        <div style={{
+          padding: '20px 24px',
+          borderTop: '1px solid var(--accent)',
+          background: 'var(--surface)',
+        }}>
+          <h4 style={{
+            fontSize: '14px',
+            fontWeight: 800,
+            fontFamily: "'Syne', sans-serif",
+            color: 'white',
+            marginBottom: '12px',
+          }}>
+            ✏️ Editando: {editando.nombre} — {DIAS_SEMANA[editando.dia]}
+          </h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={editEsFranco}
+                onChange={(e) => setEditEsFranco(e.target.checked)}
+              />
+              Franco
+            </label>
+            {!editEsFranco && editTurnos.map((turno, idx) => (
+              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {editTurnos.length > 1 ? `Turno ${idx + 1}:` : 'Turno:'}
+                </span>
+                <input
+                  type="time"
+                  value={turno.inicio}
+                  onChange={(e) => setEditTurnos(prev => prev.map((t, i) => i === idx ? { ...t, inicio: e.target.value } : t))}
+                  style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
+                />
+                <span style={{ color: 'var(--text-muted)' }}>→</span>
+                <input
+                  type="time"
+                  value={turno.fin}
+                  onChange={(e) => setEditTurnos(prev => prev.map((t, i) => i === idx ? { ...t, fin: e.target.value } : t))}
+                  style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
+                />
+              </div>
+            ))}
+            {!editEsFranco && editTurnos.length < 2 && (
+              <button
+                onClick={() => setEditTurnos(prev => [...prev, { inicio: '17:00', fin: '22:30' }])}
+                style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: '8px', padding: '6px 12px', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}
+              >
+                + 2º turno (cortado)
+              </button>
+            )}
+            {!editEsFranco && editTurnos.length === 2 && (
+              <button
+                onClick={() => setEditTurnos(prev => prev.slice(0, 1))}
+                style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: '8px', padding: '6px 12px', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}
+              >
+                Quitar 2º turno
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
+              <button
+                onClick={() => setEditando(null)}
+                style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '100px', padding: '8px 16px', color: 'var(--text)', fontSize: '13px', cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarEdicion}
+                style={{ background: 'var(--accent)', border: 'none', borderRadius: '100px', padding: '8px 16px', color: 'var(--accent-dark)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Guardar cambio
+              </button>
+            </div>
+          </div>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>
+            El sistema registra tus correcciones y las usa como preferencia en las próximas generaciones.
+          </p>
+        </div>
+      )}
 
       {/* Leyenda de colores */}
       <div style={{

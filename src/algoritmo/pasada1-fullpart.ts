@@ -32,6 +32,7 @@ import type {
   ExcepcionSemanal,
   Bloque,
   Colaborador,
+  SesgoTurno,
 } from "./types";
 import {
   CATALOGO_FULL_CORRIDAS,
@@ -51,6 +52,29 @@ const PESO_SUPERAVIT = 0.5;   // cubrir de más cuesta la mitad de lo que rinde 
 const PENALIZACION_FRANCO = 30; // por franco ya existente ese día (reparto suave, H-FR1 es dura)
 const MAX_PASADAS = 8;
 const PRESUPUESTO_MS = 6000;
+const SESGO_MAX = 12; // tope del sesgo blando por jornada: desempata, no manda
+
+const SESGO_NEUTRO: SesgoTurno = { manana: 0, tarde: 0, cierre: 0 };
+
+function normalizarSesgo(s?: Partial<SesgoTurno>): SesgoTurno {
+  if (!s) return SESGO_NEUTRO;
+  const clamp = (v?: number) => Math.max(-SESGO_MAX, Math.min(SESGO_MAX, v ?? 0));
+  return { manana: clamp(s.manana), tarde: clamp(s.tarde), cierre: clamp(s.cierre) };
+}
+
+// Clasificación de una jornada para el sesgo blando:
+// - cierre: termina 22:00 o después (incluye cortadas que cierran y PART noche)
+// - mañana: corrida con inicio 09:00-11:00 (las cortadas no cuentan como mañana)
+// - tarde: el resto. Franco: sin sesgo.
+function sesgoDeJornada(bloques: Bloque[], sesgo: SesgoTurno): number {
+  if (bloques.length === 0) return 0;
+  const fin = bloques[bloques.length - 1].slot_fin;
+  if (fin >= 28) return sesgo.cierre;
+  if (bloques.length === 1 && bloques[0].slot_inicio >= 2 && bloques[0].slot_inicio <= 6) {
+    return sesgo.manana;
+  }
+  return sesgo.tarde;
+}
 
 // ============== FUNCIÓN PRINCIPAL ==============
 
@@ -59,6 +83,8 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   const parts = input.colaboradores.filter(c => c.rol === "PART");
   const excepciones = input.excepciones ?? [];
   const demanda = input.demanda;
+  // Regla configurable del local: nunca por encima de la dura H-FR1 (2).
+  const cap_francos = Math.min(2, Math.max(1, Math.round(input.max_francos_dia ?? 2)));
 
   const cobertura: number[][] = Array.from({ length: 7 }, () => new Array(30).fill(0));
   const francos_full: number[] = new Array(7).fill(0);
@@ -74,6 +100,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     for (const colab of orden) {
       if (pasada > 0 && Date.now() - t0 > PRESUPUESTO_MS) break;
       const es_full = colab.rol === "FULL";
+      const sesgo = normalizarSesgo(input.preferencias_turno?.[colab.id]);
       const previa = semanas.get(colab.id) ?? null;
 
       // Quitar la semana previa: el colaborador se re-optimiza contra
@@ -82,15 +109,15 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
 
       const pre = prefijosUtilidad(demanda, cobertura);
       const nueva = es_full
-        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones)
-        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones);
+        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos)
+        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos);
 
       let elegida: Jornada[] | null = previa;
       if (nueva) {
         if (
           !previa ||
-          utilidadSemana(nueva, pre, francos_full, francos_part) >
-            utilidadSemana(previa, pre, francos_full, francos_part) + 1e-6
+          utilidadSemana(nueva, pre, francos_full, francos_part, sesgo) >
+            utilidadSemana(previa, pre, francos_full, francos_part, sesgo) + 1e-6
         ) {
           elegida = nueva;
           cambios++;
@@ -151,7 +178,8 @@ function utilidadSemana(
   semana: Jornada[],
   pre: number[][],
   francos_full: number[],
-  francos_part: number[]
+  francos_part: number[],
+  sesgo: SesgoTurno
 ): number {
   let u = 0;
   for (const j of semana) {
@@ -160,6 +188,7 @@ function utilidadSemana(
       continue;
     }
     for (const b of j.bloques) u += pre[j.dia][b.slot_fin] - pre[j.dia][b.slot_inicio];
+    u += sesgoDeJornada(j.bloques, sesgo);
   }
   return u;
 }
@@ -239,8 +268,13 @@ function jornadaViolaExcepcion(
       }
       case "siempre_cierre": {
         if (!es_franco) {
+          // Las jornadas de mañana corridas quedan permitidas (H-F4/H-P3 exigen
+          // mínimo 2 mañanas, si no la regla sería siempre infactible).
+          // Todo lo demás (tardes y cortadas) debe terminar en el cierre.
           const ultimo_bloque = jornada.bloques[jornada.bloques.length - 1];
-          if (ultimo_bloque.slot_fin < 28) return true;
+          const es_manana_corrida =
+            jornada.bloques.length === 1 && jornada.bloques[0].slot_inicio <= 6;
+          if (!es_manana_corrida && ultimo_bloque.slot_fin < 28) return true;
         }
         break;
       }
@@ -285,7 +319,8 @@ function candidatosDiaFull(
   pre: number[][],
   excepciones: ExcepcionSemanal[],
   franco_permitido: boolean,
-  pen_franco: number
+  pen_franco: number,
+  sesgo: SesgoTurno
 ): Candidato[] {
   const cands: Candidato[] = [];
 
@@ -301,7 +336,7 @@ function candidatosDiaFull(
         bloques,
         inicio: ini,
         finB: bucketFin(fin),
-        util: pre[dia][fin] - pre[dia][ini],
+        util: pre[dia][fin] - pre[dia][ini] + sesgoDeJornada(bloques, sesgo),
         es_manana: jv.turno === "mañana",
         item,
       });
@@ -322,7 +357,8 @@ function candidatosDiaFull(
             finB: bucketFin(y.slot_fin),
             util:
               (pre[dia][x.slot_fin] - pre[dia][x.slot_inicio]) +
-              (pre[dia][y.slot_fin] - pre[dia][y.slot_inicio]),
+              (pre[dia][y.slot_fin] - pre[dia][y.slot_inicio]) +
+              sesgoDeJornada(bloques, sesgo),
             es_manana: false,
             item,
           });
@@ -344,7 +380,8 @@ function candidatosDiaPart(
   pre: number[][],
   excepciones: ExcepcionSemanal[],
   franco_permitido: boolean,
-  pen_franco: number
+  pen_franco: number,
+  sesgo: SesgoTurno
 ): Candidato[] {
   const cands: Candidato[] = [];
 
@@ -358,7 +395,7 @@ function candidatosDiaPart(
         bloques,
         inicio: ini,
         finB: bucketFin(fin),
-        util: pre[dia][fin] - pre[dia][ini],
+        util: pre[dia][fin] - pre[dia][ini] + sesgoDeJornada(bloques, sesgo),
         es_manana: jv.turno === "mañana",
         item: jv.duracion_slots,
       });
@@ -407,7 +444,9 @@ function optimizarSemanaFull(
   pre: number[][],
   francos_full: number[],
   francos_part: number[],
-  excepciones: ExcepcionSemanal[]
+  excepciones: ExcepcionSemanal[],
+  sesgo: SesgoTurno,
+  cap_francos: number
 ): Jornada[] | null {
   const cands_por_dia: Candidato[][] = [];
   for (let d = 0; d < 7; d++) {
@@ -417,8 +456,9 @@ function optimizarSemanaFull(
         d as DiaSemana,
         pre,
         excepciones,
-        francos_full[d] + francos_part[d] < 2,
-        PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d])
+        francos_full[d] + francos_part[d] < cap_francos,
+        PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
+        sesgo
       )
     );
   }
@@ -494,7 +534,9 @@ function optimizarSemanaPart(
   pre: number[][],
   francos_full: number[],
   francos_part: number[],
-  excepciones: ExcepcionSemanal[]
+  excepciones: ExcepcionSemanal[],
+  sesgo: SesgoTurno,
+  cap_francos: number
 ): Jornada[] | null {
   const cands_por_dia: Candidato[][] = [];
   for (let d = 0; d < 7; d++) {
@@ -504,8 +546,9 @@ function optimizarSemanaPart(
         d as DiaSemana,
         pre,
         excepciones,
-        francos_full[d] + francos_part[d] < 2,
-        PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d])
+        francos_full[d] + francos_part[d] < cap_francos,
+        PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
+        sesgo
       )
     );
   }

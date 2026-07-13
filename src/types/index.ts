@@ -76,6 +76,86 @@ export interface Eventual {
   activo: boolean
 }
 
+// ==================== REGLAS CONFIGURABLES (Capacidad 1) ====================
+
+export type TipoReglaColaborador =
+  | 'no_antes_de'      // no puede entrar antes de cierta hora
+  | 'no_despues_de'    // no puede salir después de cierta hora
+  | 'franco_fijo'      // franco siempre el mismo día
+  | 'siempre_cierre'   // siempre turno de cierre
+  | 'siempre_manana'   // siempre turno de mañana
+
+export type TipoReglaLocal =
+  | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
+  | 'max_francos_dia'    // máximo N francos el mismo día
+
+export interface ReglaConfigurable {
+  id: string
+  ambito: 'colaborador' | 'local'
+  tipo: TipoReglaColaborador | TipoReglaLocal
+  colaboradorNombre?: string // solo ámbito colaborador
+  dia?: number               // 0=Lun..6=Dom; -1 = todos los días (min_cajeros_franja / franco_fijo)
+  hora?: string              // HH:MM para no_antes_de / no_despues_de
+  horaDesde?: string         // HH:MM, franja para min_cajeros_franja
+  horaHasta?: string
+  cantidad?: number          // N para min_cajeros_franja / max_francos_dia
+  vigenciaDesde?: string     // YYYY-MM-DD (opcional: restricción temporal)
+  vigenciaHasta?: string
+  activa: boolean
+  descripcion: string
+  creadaEl: string           // ISO
+}
+
+// ==================== HISTORIAL Y ROTACIÓN (Capacidad 2) ====================
+
+export interface ResumenTurnos {
+  mananas: number
+  tardes: number
+  cierres: number
+  francos: number
+}
+
+export interface SemanaHistorial {
+  id: string
+  fechaLunes: string   // YYYY-MM-DD
+  descripcion: string
+  generadoEl: string   // ISO
+  resumenPorColaborador: Record<string, ResumenTurnos> // key = nombre del colaborador
+  horarios: HorarioColaborador[]
+  editadoManualmente: boolean
+}
+
+// ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================
+
+export interface JornadaResumida {
+  esFranco: boolean
+  turnos: Turno[]
+}
+
+export interface CorreccionManual {
+  id: string
+  fecha: string        // ISO
+  semanaId: string
+  colaboradorNombre: string
+  dia: number          // 0=Lun..6=Dom
+  antes: JornadaResumida
+  despues: JornadaResumida
+}
+
+export type DireccionAprendizaje =
+  | 'prefiere_manana'
+  | 'prefiere_tarde'
+  | 'prefiere_cierre'
+  | 'evita_cierre'
+
+export interface AprendizajeDerivado {
+  colaboradorNombre: string
+  direccion: DireccionAprendizaje
+  evidencias: number
+  correccionIds: string[]
+  descripcion: string
+}
+
 export const COLABORADORES_INICIALES: Colaborador[] = [
   { id: '1', nombre: 'Carlos Paz', tipo: 'FULL', horasSemanales: 48, activo: true },
   { id: '2', nombre: 'Gabriel Silva', tipo: 'FULL', horasSemanales: 48, activo: true },

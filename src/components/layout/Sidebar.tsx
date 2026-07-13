@@ -4,7 +4,8 @@ const navItems = [
   { path: '/', label: 'Inicio', icon: '🏠' },
   { path: '/colaboradores', label: 'Colaboradores', icon: '👥' },
   { path: '/nueva-semana', label: 'Nueva Semana', icon: '📅' },
-  // { path: '/historial', label: 'Historial', icon: '📋' },
+  { path: '/reglas', label: 'Reglas', icon: '⚙️' },
+  { path: '/historial', label: 'Historial', icon: '📋' },
 ]
 
 export default function Sidebar() {
