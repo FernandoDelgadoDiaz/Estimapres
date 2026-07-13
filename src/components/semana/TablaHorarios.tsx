@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, JornadaResumida, Turno } from '../../types'
 import { formatoTurno } from '../../utils/timeUtils'
+import { validarEdicionManual } from '../../utils/preferencias'
 
 interface TablaHorariosProps {
   horarios: HorarioColaborador[]
@@ -39,6 +40,22 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
         : [{ inicio: '09:00', fin: '17:00' }]
     )
   }
+
+  // Validación en tiempo real de la edición contra las reglas duras.
+  const avisosValidacion = useMemo(() => {
+    if (!editando) return []
+    const horario = horarios.find(h => h.colaboradorId === editando.colaboradorId)
+    if (!horario) return []
+    const tipo = colaboradores.find(c => c.id === editando.colaboradorId)?.tipo ?? 'FULL'
+    const semana: JornadaResumida[] = Array.from({ length: 7 }, (_, d) => {
+      const j = horario.jornadas.find(x => x.dia === d)
+      return { esFranco: j?.esFranco ?? false, turnos: j?.turnos ?? [] }
+    })
+    const jornadaEditada: JornadaResumida = { esFranco: editEsFranco, turnos: editEsFranco ? [] : editTurnos }
+    return validarEdicionManual(jornadaEditada, semana, editando.dia, tipo)
+  }, [editando, editEsFranco, editTurnos, horarios, colaboradores])
+
+  const hayErrores = avisosValidacion.some(a => a.severidad === 'error')
 
   const guardarEdicion = () => {
     if (!editando || !onEditarJornada) return
@@ -377,14 +394,40 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
               </button>
               <button
                 onClick={guardarEdicion}
-                style={{ background: 'var(--accent)', border: 'none', borderRadius: '100px', padding: '8px 16px', color: 'var(--accent-dark)', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                style={{
+                  background: hayErrores ? 'var(--surface)' : 'var(--accent)',
+                  border: hayErrores ? '1px solid var(--accent)' : 'none',
+                  borderRadius: '100px', padding: '8px 16px',
+                  color: hayErrores ? 'var(--accent)' : 'var(--accent-dark)',
+                  fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                }}
+                title={hayErrores ? 'El cambio rompe una regla dura; se guardará igual si confirmás' : undefined}
               >
-                Guardar cambio
+                {hayErrores ? 'Guardar de todos modos' : 'Guardar cambio'}
               </button>
             </div>
           </div>
+
+          {/* Validación en tiempo real contra reglas duras */}
+          {avisosValidacion.length > 0 && (
+            <div style={{
+              marginTop: '12px',
+              padding: '12px 16px',
+              borderRadius: '10px',
+              border: `1px solid ${hayErrores ? 'var(--accent)' : 'var(--border)'}`,
+              background: 'var(--card)',
+            }}>
+              {avisosValidacion.map((a, i) => (
+                <p key={i} style={{ fontSize: '12px', color: a.severidad === 'error' ? 'var(--accent)' : 'var(--text-muted)', marginTop: i === 0 ? 0 : '4px' }}>
+                  {a.severidad === 'error' ? '⛔' : '⚠️'} {a.mensaje}
+                </p>
+              ))}
+            </div>
+          )}
+
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>
             El sistema registra tus correcciones y las usa como preferencia en las próximas generaciones.
+            Las reglas duras se validan al instante: podés guardar igual, pero quedás avisado.
           </p>
         </div>
       )}

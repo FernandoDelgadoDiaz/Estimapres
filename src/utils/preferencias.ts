@@ -23,7 +23,15 @@ import { DIAS_SEMANA } from '../types'
 
 // Sesgo por turno, keyed por NOMBRE de colaborador (la UI trabaja con nombres;
 // el adapter los normaliza a ids del algoritmo v2).
-export type SesgosPorNombre = Record<string, { manana?: number; tarde?: number; cierre?: number }>
+// `porDia` es el aprendizaje/rotación fino: sesgos que sólo aplican a un día
+// concreto de la semana (0=Lun..6=Dom). `franco` empuja hacia franco ese día.
+export interface SesgoColaborador {
+  manana?: number
+  tarde?: number
+  cierre?: number
+  porDia?: Record<number, { manana?: number; tarde?: number; cierre?: number; franco?: number }>
+}
+export type SesgosPorNombre = Record<string, SesgoColaborador>
 
 export interface MinimoFranja {
   dia: number // -1 = todos los días
@@ -67,14 +75,19 @@ export function resumirTurnos(
   for (const h of horarios) {
     const nombre = nombrePorId[h.colaboradorId]
     if (!nombre) continue
-    const r: ResumenTurnos = { mananas: 0, tardes: 0, cierres: 0, francos: 0 }
+    const r: ResumenTurnos = { mananas: 0, tardes: 0, cierres: 0, francos: 0, francosDias: [], findeTrabajado: false }
+    let trabajoSab = false
+    let trabajoDom = false
     for (const j of h.jornadas) {
       const t = clasificarJornadaUI({ esFranco: j.esFranco, turnos: j.turnos })
-      if (t === 'franco') r.francos++
+      if (t === 'franco') { r.francos++; r.francosDias!.push(j.dia) }
       else if (t === 'manana') r.mananas++
       else if (t === 'cierre') r.cierres++
       else r.tardes++
+      if (t !== 'franco' && j.dia === 5) trabajoSab = true
+      if (t !== 'franco' && j.dia === 6) trabajoDom = true
     }
+    r.findeTrabajado = trabajoSab && trabajoDom
     resumen[nombre] = r
   }
   return resumen
@@ -83,34 +96,58 @@ export function resumirTurnos(
 const SEMANAS_ROTACION = 3   // cuántas semanas recientes pesan en la rotación
 const UMBRAL_ROTACION = 2    // desbalance mínimo (cierres vs mañanas) para actuar
 const SESGO_ROTACION_MAX = 6
+const UMBRAL_FINDE = 2       // fines de semana seguidos trabajados antes de empujar franco
 
 /**
- * Si un colaborador acumuló más cierres que mañanas en las últimas semanas,
- * se lo empuja suavemente hacia la mañana (y viceversa). Bidireccional.
+ * Rotación completa a partir del historial reciente:
+ *  - Balance cierre ↔ mañana: quien acumuló muchos cierres se empuja a la mañana.
+ *  - Fines de semana: quien trabajó los últimos findes seguidos recibe un empuje
+ *    suave a franco de fin de semana (día 5/6) vía preferencia de esos días.
+ *  - Preferencia por día concreto: se propaga a `porDia` para que la generación
+ *    ubique francos/turnos rotando también días específicos, no solo el genérico.
+ * Sólo usa la ÚLTIMA versión de cada lunes (versionado) para no contar doble.
  */
 export function calcularSesgoRotacion(historial: SemanaHistorial[]): SesgosPorNombre {
-  const recientes = [...historial]
+  const recientes = ultimasVersiones(historial)
     .sort((a, b) => b.fechaLunes.localeCompare(a.fechaLunes))
     .slice(0, SEMANAS_ROTACION)
 
-  const acumulado: Record<string, { mananas: number; cierres: number }> = {}
+  const acumulado: Record<string, { mananas: number; cierres: number; findes: number }> = {}
   for (const semana of recientes) {
     for (const [nombre, r] of Object.entries(semana.resumenPorColaborador)) {
-      const acc = (acumulado[nombre] ??= { mananas: 0, cierres: 0 })
+      const acc = (acumulado[nombre] ??= { mananas: 0, cierres: 0, findes: 0 })
       acc.mananas += r.mananas
       acc.cierres += r.cierres
+      if (r.findeTrabajado) acc.findes++
     }
   }
 
   const sesgos: SesgosPorNombre = {}
   for (const [nombre, acc] of Object.entries(acumulado)) {
+    const s: SesgosPorNombre[string] = {}
     const desbalance = acc.cierres - acc.mananas
-    if (Math.abs(desbalance) < UMBRAL_ROTACION) continue
-    const fuerza = Math.max(-SESGO_ROTACION_MAX, Math.min(SESGO_ROTACION_MAX, desbalance * 1.5))
-    // muchos cierres → fuerza > 0 → preferir mañana y evitar cierre
-    sesgos[nombre] = { manana: fuerza, cierre: -fuerza }
+    if (Math.abs(desbalance) >= UMBRAL_ROTACION) {
+      const fuerza = Math.max(-SESGO_ROTACION_MAX, Math.min(SESGO_ROTACION_MAX, desbalance * 1.5))
+      s.manana = fuerza      // muchos cierres → preferir mañana
+      s.cierre = -fuerza     //                → evitar cierre
+    }
+    if (acc.findes >= UMBRAL_FINDE) {
+      // trabajó varios findes seguidos → preferir franco fin de semana
+      s.porDia = { 5: { franco: 4 }, 6: { franco: 4 } }
+    }
+    if (Object.keys(s).length > 0) sesgos[nombre] = s
   }
   return sesgos
+}
+
+/** Conserva sólo la versión más alta de cada (lunes) — clave del versionado. */
+export function ultimasVersiones(historial: SemanaHistorial[]): SemanaHistorial[] {
+  const porLunes = new Map<string, SemanaHistorial>()
+  for (const s of historial) {
+    const prev = porLunes.get(s.fechaLunes)
+    if (!prev || s.version > prev.version) porLunes.set(s.fechaLunes, s)
+  }
+  return [...porLunes.values()]
 }
 
 // ==================== CAPACIDAD 3: APRENDIZAJE DE CORRECCIONES ====================
@@ -130,23 +167,51 @@ const DESCRIPCION_DIRECCION: Record<DireccionAprendizaje, string> = {
   prefiere_tarde: 'prefiere turnos de tarde',
   prefiere_cierre: 'prefiere turnos de cierre',
   evita_cierre: 'evita turnos de cierre',
+  hora_preferida: 'entra a una hora preferida',
 }
 
 const EVIDENCIAS_MINIMAS = 2 // una corrección aislada no es un patrón
+const EVIDENCIAS_MINIMAS_FINO = 2 // patrón por día concreto
 
+/**
+ * Deriva aprendizajes en dos granularidades:
+ *  - GLOBAL: el colaborador prefiere/evita un tipo de turno en general.
+ *  - FINO por día: el mismo patrón repetido en un día concreto de la semana
+ *    (ej. "los sábados prefiere mañana") → aprendizaje con `dia`.
+ *  - HORA preferida: si mueve repetidamente su entrada a la misma hora, se
+ *    registra esa hora como preferida (`hora_preferida`).
+ */
 export function derivarAprendizajes(correcciones: CorreccionManual[]): AprendizajeDerivado[] {
-  const grupos = new Map<string, { nombre: string; direccion: DireccionAprendizaje; ids: string[] }>()
+  const globales = new Map<string, { nombre: string; direccion: DireccionAprendizaje; ids: string[] }>()
+  const porDia = new Map<string, { nombre: string; direccion: DireccionAprendizaje; dia: number; ids: string[] }>()
+  const horas = new Map<string, { nombre: string; dia: number; hora: string; ids: string[] }>()
+
   for (const c of correcciones) {
     const dir = direccionDeCorreccion(c)
-    if (!dir) continue
-    const clave = `${c.colaboradorNombre}::${dir}`
-    const grupo = grupos.get(clave) ?? { nombre: c.colaboradorNombre, direccion: dir, ids: [] }
-    grupo.ids.push(c.id)
-    grupos.set(clave, grupo)
+    if (dir) {
+      const cg = `${c.colaboradorNombre}::${dir}`
+      const g = globales.get(cg) ?? { nombre: c.colaboradorNombre, direccion: dir, ids: [] }
+      g.ids.push(c.id)
+      globales.set(cg, g)
+
+      const cd = `${c.colaboradorNombre}::${dir}::${c.dia}`
+      const d = porDia.get(cd) ?? { nombre: c.colaboradorNombre, direccion: dir, dia: c.dia, ids: [] }
+      d.ids.push(c.id)
+      porDia.set(cd, d)
+    }
+    // Hora preferida: entrada del turno corregido (si no es franco)
+    if (!c.despues.esFranco && c.despues.turnos.length > 0) {
+      const hora = c.despues.turnos[0].inicio
+      const ch = `${c.colaboradorNombre}::${c.dia}::${hora}`
+      const h = horas.get(ch) ?? { nombre: c.colaboradorNombre, dia: c.dia, hora, ids: [] }
+      h.ids.push(c.id)
+      horas.set(ch, h)
+    }
   }
 
   const aprendizajes: AprendizajeDerivado[] = []
-  for (const g of grupos.values()) {
+
+  for (const g of globales.values()) {
     if (g.ids.length < EVIDENCIAS_MINIMAS) continue
     aprendizajes.push({
       colaboradorNombre: g.nombre,
@@ -156,6 +221,32 @@ export function derivarAprendizajes(correcciones: CorreccionManual[]): Aprendiza
       descripcion: `${g.nombre} ${DESCRIPCION_DIRECCION[g.direccion]} (${g.ids.length} correcciones)`,
     })
   }
+
+  for (const d of porDia.values()) {
+    if (d.ids.length < EVIDENCIAS_MINIMAS_FINO) continue
+    aprendizajes.push({
+      colaboradorNombre: d.nombre,
+      direccion: d.direccion,
+      dia: d.dia,
+      evidencias: d.ids.length,
+      correccionIds: d.ids,
+      descripcion: `${d.nombre}, los ${DIAS_SEMANA[d.dia]}, ${DESCRIPCION_DIRECCION[d.direccion]} (${d.ids.length} correcciones)`,
+    })
+  }
+
+  for (const h of horas.values()) {
+    if (h.ids.length < EVIDENCIAS_MINIMAS_FINO) continue
+    aprendizajes.push({
+      colaboradorNombre: h.nombre,
+      direccion: 'hora_preferida',
+      dia: h.dia,
+      valor: h.hora,
+      evidencias: h.ids.length,
+      correccionIds: h.ids,
+      descripcion: `${h.nombre}, los ${DIAS_SEMANA[h.dia]}, prefiere entrar ${h.hora} (${h.ids.length} correcciones)`,
+    })
+  }
+
   return aprendizajes.sort((a, b) => b.evidencias - a.evidencias)
 }
 
@@ -164,24 +255,44 @@ export function calcularSesgoAprendizaje(aprendizajes: AprendizajeDerivado[]): S
   for (const a of aprendizajes) {
     const fuerza = Math.min(a.evidencias, 4) * 2.5 // 5..10
     const s = (sesgos[a.colaboradorNombre] ??= {})
-    switch (a.direccion) {
-      case 'prefiere_manana':
-        s.manana = (s.manana ?? 0) + fuerza
-        s.cierre = (s.cierre ?? 0) - fuerza / 2
-        break
-      case 'prefiere_cierre':
-        s.cierre = (s.cierre ?? 0) + fuerza
-        s.manana = (s.manana ?? 0) - fuerza / 2
-        break
-      case 'evita_cierre':
-        s.cierre = (s.cierre ?? 0) - fuerza
-        break
-      case 'prefiere_tarde':
-        s.tarde = (s.tarde ?? 0) + fuerza
-        break
+
+    if (a.dia !== undefined) {
+      // Aprendizaje fino: aplica sólo a ese día de la semana
+      s.porDia ??= {}
+      const d = (s.porDia[a.dia] ??= {})
+      aplicarDireccion(d, a.direccion, fuerza)
+    } else {
+      aplicarDireccion(s, a.direccion, fuerza)
     }
   }
   return sesgos
+}
+
+function aplicarDireccion(
+  destino: { manana?: number; tarde?: number; cierre?: number },
+  direccion: DireccionAprendizaje,
+  fuerza: number
+): void {
+  switch (direccion) {
+    case 'prefiere_manana':
+      destino.manana = (destino.manana ?? 0) + fuerza
+      destino.cierre = (destino.cierre ?? 0) - fuerza / 2
+      break
+    case 'prefiere_cierre':
+      destino.cierre = (destino.cierre ?? 0) + fuerza
+      destino.manana = (destino.manana ?? 0) - fuerza / 2
+      break
+    case 'evita_cierre':
+      destino.cierre = (destino.cierre ?? 0) - fuerza
+      break
+    case 'prefiere_tarde':
+      destino.tarde = (destino.tarde ?? 0) + fuerza
+      break
+    case 'hora_preferida':
+      // La hora preferida es una señal suave hacia la mañana si es temprana;
+      // el sesgo por turno la aproxima sin forzar el slot exacto.
+      break
+  }
 }
 
 export function combinarSesgos(...fuentes: SesgosPorNombre[]): SesgosPorNombre {
@@ -192,6 +303,17 @@ export function combinarSesgos(...fuentes: SesgosPorNombre[]): SesgosPorNombre {
       if (s.manana) acc.manana = (acc.manana ?? 0) + s.manana
       if (s.tarde) acc.tarde = (acc.tarde ?? 0) + s.tarde
       if (s.cierre) acc.cierre = (acc.cierre ?? 0) + s.cierre
+      if (s.porDia) {
+        acc.porDia ??= {}
+        for (const [diaStr, sd] of Object.entries(s.porDia)) {
+          const dia = Number(diaStr)
+          const accd = (acc.porDia[dia] ??= {})
+          if (sd.manana) accd.manana = (accd.manana ?? 0) + sd.manana
+          if (sd.tarde) accd.tarde = (accd.tarde ?? 0) + sd.tarde
+          if (sd.cierre) accd.cierre = (accd.cierre ?? 0) + sd.cierre
+          if (sd.franco) accd.franco = (accd.franco ?? 0) + sd.franco
+        }
+      }
     }
   }
   return total
@@ -207,6 +329,13 @@ export function explicarSesgos(sesgos: SesgosPorNombre): string[] {
     if ((s.cierre ?? 0) >= 3) partes.push('se preferirá cierre')
     if ((s.cierre ?? 0) <= -3) partes.push('se evitará cierre')
     if ((s.tarde ?? 0) >= 3) partes.push('se preferirá tarde')
+    for (const [diaStr, sd] of Object.entries(s.porDia ?? {})) {
+      const dia = DIAS_SEMANA[Number(diaStr)]
+      if ((sd.franco ?? 0) >= 3) partes.push(`franco tendencia ${dia}`)
+      if ((sd.manana ?? 0) >= 3) partes.push(`mañana los ${dia}`)
+      if ((sd.cierre ?? 0) >= 3) partes.push(`cierre los ${dia}`)
+      if ((sd.tarde ?? 0) >= 3) partes.push(`tarde los ${dia}`)
+    }
     if (partes.length > 0) frases.push(`${nombre}: ${partes.join(', ')}`)
   }
   return frases
@@ -387,4 +516,108 @@ export function validarConflictosReglas(
 
 export function turnosDesdeHoras(inicio: string, fin: string): Turno[] {
   return [{ inicio, fin }]
+}
+
+// ==================== VALIDACIÓN DE EDICIONES MANUALES (reglas duras) ====================
+
+export type Severidad = 'error' | 'aviso'
+export interface AvisoValidacion {
+  severidad: Severidad
+  mensaje: string
+}
+
+function horasDeJornadaUI(j: JornadaResumida): number {
+  if (j.esFranco) return 0
+  return j.turnos.reduce((sum, t) => sum + (horaAMinutos(t.fin) - horaAMinutos(t.inicio)) / 60, 0)
+}
+
+/**
+ * Valida en tiempo real una edición manual del horario contra las reglas
+ * laborales duras. NO bloquea (el supervisor manda), pero informa qué reglas
+ * duras rompería el cambio para que decida con contexto.
+ *
+ * @param jornadaEditada  la jornada nueva que el supervisor está por guardar
+ * @param jornadasSemana  las 7 jornadas actuales del colaborador (para totales y descansos)
+ * @param dia             día editado (0..6)
+ * @param tipo            'FULL' | 'PART' — define límites de horas
+ */
+export function validarEdicionManual(
+  jornadaEditada: JornadaResumida,
+  jornadasSemana: JornadaResumida[],
+  dia: number,
+  tipo: 'FULL' | 'PART' | string
+): AvisoValidacion[] {
+  const avisos: AvisoValidacion[] = []
+
+  // Simular la semana con la jornada editada aplicada
+  const semana = jornadasSemana.map((j, i) => (i === dia ? jornadaEditada : j))
+
+  // --- Franja de operación 08:00–22:30 ---
+  if (!jornadaEditada.esFranco) {
+    for (const t of jornadaEditada.turnos) {
+      if (horaAMinutos(t.inicio) < 8 * 60 || horaAMinutos(t.fin) > 22.5 * 60) {
+        avisos.push({ severidad: 'error', mensaje: `El turno ${t.inicio}-${t.fin} se sale del horario de operación (08:00–22:30).` })
+      }
+      if (horaAMinutos(t.fin) <= horaAMinutos(t.inicio)) {
+        avisos.push({ severidad: 'error', mensaje: `El turno ${t.inicio}-${t.fin} termina antes de empezar.` })
+      }
+    }
+    // Cortado: descanso mínimo 4h entre bloques (H-F7)
+    if (jornadaEditada.turnos.length === 2) {
+      const gap = horaAMinutos(jornadaEditada.turnos[1].inicio) - horaAMinutos(jornadaEditada.turnos[0].fin)
+      if (gap < 4 * 60) {
+        avisos.push({ severidad: 'error', mensaje: `Jornada cortada: el descanso entre bloques es de ${(gap / 60).toFixed(1)}h, mínimo 4h (H-F7).` })
+      }
+    }
+    if (jornadaEditada.turnos.length > 2) {
+      avisos.push({ severidad: 'error', mensaje: 'Una jornada no puede tener más de 2 bloques (corrida o cortada).' })
+    }
+  }
+
+  // --- Descanso 12h entre este día y los adyacentes (H-D1) ---
+  const chequeoDescanso = (previa: JornadaResumida | undefined, siguiente: JornadaResumida | undefined) => {
+    if (!previa || previa.esFranco || jornadaEditada.esFranco) return
+    if (siguiente) return
+    const finPrev = horaAMinutos(previa.turnos[previa.turnos.length - 1].fin)
+    const inicioHoy = horaAMinutos(jornadaEditada.turnos[0].inicio)
+    // descanso = resto del día previo + noche (hasta 08:00) + inicio de hoy
+    const descanso = (24 * 60 - finPrev) + inicioHoy
+    if (descanso < 12 * 60) {
+      avisos.push({ severidad: 'error', mensaje: `Descanso menor a 12h respecto al día anterior (${(descanso / 60).toFixed(1)}h, H-D1).` })
+    }
+  }
+  chequeoDescanso(semana[dia - 1], undefined)
+  // día siguiente
+  if (!jornadaEditada.esFranco && dia < 6 && semana[dia + 1] && !semana[dia + 1].esFranco) {
+    const finHoy = horaAMinutos(jornadaEditada.turnos[jornadaEditada.turnos.length - 1].fin)
+    const inicioSig = horaAMinutos(semana[dia + 1].turnos[0].inicio)
+    const descanso = (24 * 60 - finHoy) + inicioSig
+    if (descanso < 12 * 60) {
+      avisos.push({ severidad: 'error', mensaje: `Descanso menor a 12h respecto al día siguiente (${(descanso / 60).toFixed(1)}h, H-D1).` })
+    }
+  }
+
+  // --- Totales de horas semanales ---
+  const totalHoras = semana.reduce((sum, j) => sum + horasDeJornadaUI(j), 0)
+  const francos = semana.filter(j => j.esFranco).length
+  if (tipo === 'FULL') {
+    if (Math.abs(totalHoras - 48) > 0.01) {
+      avisos.push({ severidad: 'aviso', mensaje: `Total FULL = ${totalHoras.toFixed(1)}h; la regla dura pide exactamente 48h (H-F1).` })
+    }
+    if (francos !== 1) {
+      avisos.push({ severidad: 'aviso', mensaje: `FULL debe tener exactamente 1 franco; ahora tiene ${francos} (H-F3).` })
+    }
+  } else if (tipo === 'PART') {
+    if (totalHoras > 31.01) {
+      avisos.push({ severidad: 'aviso', mensaje: `Total PART = ${totalHoras.toFixed(1)}h; el máximo es 31h (H-P1).` })
+    }
+    if (!jornadaEditada.esFranco && horasDeJornadaUI(jornadaEditada) > 6.01) {
+      avisos.push({ severidad: 'error', mensaje: `Jornada PART de ${horasDeJornadaUI(jornadaEditada).toFixed(1)}h; el máximo por jornada es 6h (H-P5).` })
+    }
+    if (jornadaEditada.turnos.length === 2) {
+      avisos.push({ severidad: 'error', mensaje: 'Los PART no pueden tener jornadas cortadas (H-P4).' })
+    }
+  }
+
+  return avisos
 }

@@ -113,11 +113,14 @@ export interface ResumenTurnos {
   tardes: number
   cierres: number
   francos: number
+  francosDias?: number[]    // qué días de la semana fueron franco (0=Lun..6=Dom)
+  findeTrabajado?: boolean  // trabajó sábado y domingo
 }
 
 export interface SemanaHistorial {
   id: string
   fechaLunes: string   // YYYY-MM-DD
+  version: number      // versionado: regenerar la misma semana crea v2, v3...
   descripcion: string
   generadoEl: string   // ISO
   resumenPorColaborador: Record<string, ResumenTurnos> // key = nombre del colaborador
@@ -147,10 +150,13 @@ export type DireccionAprendizaje =
   | 'prefiere_tarde'
   | 'prefiere_cierre'
   | 'evita_cierre'
+  | 'hora_preferida'
 
 export interface AprendizajeDerivado {
   colaboradorNombre: string
   direccion: DireccionAprendizaje
+  dia?: number          // presente = aprendizaje fino de un día concreto (0=Lun..6=Dom)
+  valor?: string        // para hora_preferida: "HH:MM" de entrada preferida
   evidencias: number
   correccionIds: string[]
   descripcion: string

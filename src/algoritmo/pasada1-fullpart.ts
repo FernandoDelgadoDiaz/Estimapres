@@ -56,24 +56,46 @@ const SESGO_MAX = 12; // tope del sesgo blando por jornada: desempata, no manda
 
 const SESGO_NEUTRO: SesgoTurno = { manana: 0, tarde: 0, cierre: 0 };
 
+function clampSesgo(v?: number): number {
+  return Math.max(-SESGO_MAX, Math.min(SESGO_MAX, v ?? 0));
+}
+
 function normalizarSesgo(s?: Partial<SesgoTurno>): SesgoTurno {
   if (!s) return SESGO_NEUTRO;
-  const clamp = (v?: number) => Math.max(-SESGO_MAX, Math.min(SESGO_MAX, v ?? 0));
-  return { manana: clamp(s.manana), tarde: clamp(s.tarde), cierre: clamp(s.cierre) };
+  const norm: SesgoTurno = {
+    manana: clampSesgo(s.manana),
+    tarde: clampSesgo(s.tarde),
+    cierre: clampSesgo(s.cierre),
+  };
+  if (s.porDia) {
+    norm.porDia = {};
+    for (const [diaStr, sd] of Object.entries(s.porDia)) {
+      norm.porDia[Number(diaStr)] = {
+        manana: clampSesgo(sd.manana),
+        tarde: clampSesgo(sd.tarde),
+        cierre: clampSesgo(sd.cierre),
+        franco: clampSesgo(sd.franco),
+      };
+    }
+  }
+  return norm;
 }
 
 // Clasificación de una jornada para el sesgo blando:
 // - cierre: termina 22:00 o después (incluye cortadas que cierran y PART noche)
 // - mañana: corrida con inicio 09:00-11:00 (las cortadas no cuentan como mañana)
-// - tarde: el resto. Franco: sin sesgo.
-function sesgoDeJornada(bloques: Bloque[], sesgo: SesgoTurno): number {
-  if (bloques.length === 0) return 0;
+// - tarde: el resto. Franco: usa el sesgo `franco` del día si existe.
+// Cada jornada suma el sesgo GLOBAL del turno + el sesgo FINO de ese día.
+function sesgoDeJornada(bloques: Bloque[], sesgo: SesgoTurno, dia: number): number {
+  const sd = sesgo.porDia?.[dia];
+  if (bloques.length === 0) return sd?.franco ?? 0;
   const fin = bloques[bloques.length - 1].slot_fin;
-  if (fin >= 28) return sesgo.cierre;
-  if (bloques.length === 1 && bloques[0].slot_inicio >= 2 && bloques[0].slot_inicio <= 6) {
-    return sesgo.manana;
-  }
-  return sesgo.tarde;
+  const esManana = bloques.length === 1 && bloques[0].slot_inicio >= 2 && bloques[0].slot_inicio <= 6;
+  let s: number;
+  if (fin >= 28) s = sesgo.cierre + (sd?.cierre ?? 0);
+  else if (esManana) s = sesgo.manana + (sd?.manana ?? 0);
+  else s = sesgo.tarde + (sd?.tarde ?? 0);
+  return s;
 }
 
 // ============== FUNCIÓN PRINCIPAL ==============
@@ -185,10 +207,11 @@ function utilidadSemana(
   for (const j of semana) {
     if (j.bloques.length === 0) {
       u -= PENALIZACION_FRANCO * (2 * francos_full[j.dia] + francos_part[j.dia]);
+      u += sesgoDeJornada(j.bloques, sesgo, j.dia); // empuje a franco del día, si hay
       continue;
     }
     for (const b of j.bloques) u += pre[j.dia][b.slot_fin] - pre[j.dia][b.slot_inicio];
-    u += sesgoDeJornada(j.bloques, sesgo);
+    u += sesgoDeJornada(j.bloques, sesgo, j.dia);
   }
   return u;
 }
@@ -336,7 +359,7 @@ function candidatosDiaFull(
         bloques,
         inicio: ini,
         finB: bucketFin(fin),
-        util: pre[dia][fin] - pre[dia][ini] + sesgoDeJornada(bloques, sesgo),
+        util: pre[dia][fin] - pre[dia][ini] + sesgoDeJornada(bloques, sesgo, dia),
         es_manana: jv.turno === "mañana",
         item,
       });
@@ -358,7 +381,7 @@ function candidatosDiaFull(
             util:
               (pre[dia][x.slot_fin] - pre[dia][x.slot_inicio]) +
               (pre[dia][y.slot_fin] - pre[dia][y.slot_inicio]) +
-              sesgoDeJornada(bloques, sesgo),
+              sesgoDeJornada(bloques, sesgo, dia),
             es_manana: false,
             item,
           });
@@ -368,7 +391,7 @@ function candidatosDiaFull(
   }
 
   if (franco_permitido && !jornadaViolaExcepcion({ colab_id: colab.id, dia, bloques: [] }, excepciones, colab.nombre)) {
-    cands.push({ bloques: [], inicio: 0, finB: 0, util: -pen_franco, es_manana: false, item: -1 });
+    cands.push({ bloques: [], inicio: 0, finB: 0, util: -pen_franco + sesgoDeJornada([], sesgo, dia), es_manana: false, item: -1 });
   }
 
   return cands;
@@ -395,7 +418,7 @@ function candidatosDiaPart(
         bloques,
         inicio: ini,
         finB: bucketFin(fin),
-        util: pre[dia][fin] - pre[dia][ini] + sesgoDeJornada(bloques, sesgo),
+        util: pre[dia][fin] - pre[dia][ini] + sesgoDeJornada(bloques, sesgo, dia),
         es_manana: jv.turno === "mañana",
         item: jv.duracion_slots,
       });
@@ -403,7 +426,7 @@ function candidatosDiaPart(
   }
 
   if (franco_permitido && !jornadaViolaExcepcion({ colab_id: colab.id, dia, bloques: [] }, excepciones, colab.nombre)) {
-    cands.push({ bloques: [], inicio: 0, finB: 0, util: -pen_franco, es_manana: false, item: -1 });
+    cands.push({ bloques: [], inicio: 0, finB: 0, util: -pen_franco + sesgoDeJornada([], sesgo, dia), es_manana: false, item: -1 });
   }
 
   return cands;

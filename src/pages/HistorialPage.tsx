@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react'
 import { DIAS_SEMANA } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useCorrecciones } from '../hooks/useCorrecciones'
+import { useReglas } from '../hooks/useReglas'
 import { derivarAprendizajes, calcularSesgoRotacion, explicarSesgos, clasificarJornadaUI } from '../utils/preferencias'
+import BackupConfig from '../components/semana/BackupConfig'
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--card)',
@@ -19,6 +21,7 @@ function formatearJornada(j: { esFranco: boolean; turnos: Array<{ inicio: string
 export default function HistorialPage() {
   const { historial, eliminarSemana } = useHistorial()
   const { correcciones, eliminarCorreccion, eliminarCorrecciones } = useCorrecciones()
+  const { backend } = useReglas()
   const [semanaAbierta, setSemanaAbierta] = useState<string | null>(null)
 
   const aprendizajes = useMemo(() => derivarAprendizajes(correcciones), [correcciones])
@@ -37,7 +40,16 @@ export default function HistorialPage() {
         <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
           Semanas generadas, rotación de turnos y lo que el sistema aprendió de tus correcciones.
         </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
+          {backend === 'supabase'
+            ? '☁️ Datos sincronizados en Supabase (backend real).'
+            : backend === 'local'
+              ? '📴 Sin conexión a Supabase: usando almacenamiento local de este dispositivo.'
+              : '⏳ Conectando…'}
+        </p>
       </div>
+
+      <BackupConfig />
 
       {/* Rotación activa */}
       <div style={{ ...cardStyle, padding: '20px 24px' }}>

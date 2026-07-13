@@ -23,6 +23,7 @@ import type {
   Colaborador as ColaboradorV2,
   MatrizPresencia,
   MatrizDisponibilidad,
+  SesgoTurno,
 } from './types';
 
 // ==================== HELPERS ====================
@@ -102,7 +103,7 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
  * cajeros por franja (reglas del local) y tope de francos por día.
  */
 export interface OpcionesGeneracion {
-  preferenciasPorNombre?: Record<string, { manana?: number; tarde?: number; cierre?: number }>;
+  preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
   demandaMinima?: Array<{ dia: number; slotDesde: number; slotHasta: number; cantidad: number }>;
   maxFrancosDia?: number;
 }

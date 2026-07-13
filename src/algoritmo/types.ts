@@ -45,10 +45,19 @@ export type MatrizDisponibilidad = AsignacionEv[][]; // 7 x 30, por eventual
 // a cada jornada candidata según su clasificación. Positivo = preferir,
 // negativo = evitar. Magnitudes pequeñas (±12) frente a la utilidad de
 // demanda (~decenas-cientos por jornada): desempatan, no mandan.
+export interface SesgoDia {
+  manana?: number;
+  tarde?: number;
+  cierre?: number;
+  franco?: number; // empuje blando a franco ese día (rotación fin de semana)
+}
 export interface SesgoTurno {
   manana: number;
   tarde: number;
   cierre: number;
+  // Sesgos que sólo aplican a un día concreto (0=Lun..6=Dom): aprendizaje
+  // fino por día de semana y rotación de fines de semana.
+  porDia?: Record<number, SesgoDia>;
 }
 
 // Inputs completos al algoritmo
