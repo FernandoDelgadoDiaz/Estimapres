@@ -1,7 +1,16 @@
 // src/algoritmo/catalogos.ts
 // Catálogos de jornadas válidas para FULL y PART según reglas duras.
 // Referencia: ai/architecture.md §4.1 (FULL) y §4.2 (PART).
-// Implementado en Prompt 1.
+//
+// v3 — rangos alineados con las reglas de negocio:
+//   - Jornada "mañana" = inicio 09:00-11:00 (slots 2..6). La franja 08:00-09:00
+//     la cubre el AUX de apertura (H-A1), por eso los cajeros corridos no
+//     arrancan antes de las 09:00.
+//   - Jornadas "tarde" con inicio continuo desde 11:30 (slot 7) para poder
+//     seguir la demanda real del PDF sin huecos artificiales de catálogo.
+//   - Cortadas FULL: el bloque 1 cubre la apertura (inicio 08:00-09:30) y el
+//     bloque 2 el pico de cierre. Los cortados existen precisamente para
+//     cubrir ambos extremos del día con un solo colaborador.
 
 import type { Bloque, SlotIdx } from "./types";
 
@@ -16,29 +25,25 @@ export interface JornadaValida {
 
 // Catálogo de jornadas válidas para FULL (corridas)
 export const CATALOGO_FULL_CORRIDAS: JornadaValida[] = [
-  // F9-M: duración 18 slots, inicios 0..4, turno "mañana"
-  { tipo: "F9-M", duracion_slots: 18, slot_inicio_min: 0, slot_inicio_max: 4, turno: "mañana", rol: "FULL" },
-  // F9-T: duración 18 slots, inicios 10..12, turno "tarde"
-  { tipo: "F9-T", duracion_slots: 18, slot_inicio_min: 10, slot_inicio_max: 12, turno: "tarde", rol: "FULL" },
-  // F8-M: duración 16 slots, inicios 0..6, turno "mañana"
-  { tipo: "F8-M", duracion_slots: 16, slot_inicio_min: 0, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
-  // F8-T: duración 16 slots, inicios 12..14, turno "tarde"
-  { tipo: "F8-T", duracion_slots: 16, slot_inicio_min: 12, slot_inicio_max: 14, turno: "tarde", rol: "FULL" },
-  // F5-M: duración 10 slots, inicios 0..10, turno "mañana"
-  { tipo: "F5-M", duracion_slots: 10, slot_inicio_min: 0, slot_inicio_max: 10, turno: "mañana", rol: "FULL" },
-  // F5-T: duración 10 slots, inicios 10..20, turno "tarde"
-  { tipo: "F5-T", duracion_slots: 10, slot_inicio_min: 10, slot_inicio_max: 20, turno: "tarde", rol: "FULL" },
+  // F9-M: 9h, inicio 09:00-11:00
+  { tipo: "F9-M", duracion_slots: 18, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
+  // F9-T: 9h, inicio 11:30-14:00 (fin ≤ 22:30)
+  { tipo: "F9-T", duracion_slots: 18, slot_inicio_min: 7, slot_inicio_max: 12, turno: "tarde", rol: "FULL" },
+  // F8-M: 8h, inicio 09:00-11:00
+  { tipo: "F8-M", duracion_slots: 16, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
+  // F8-T: 8h, inicio 11:30-15:00 (fin ≤ 22:30)
+  { tipo: "F8-T", duracion_slots: 16, slot_inicio_min: 7, slot_inicio_max: 14, turno: "tarde", rol: "FULL" },
+  // F5-M: 5h, inicio 09:00-11:00
+  { tipo: "F5-M", duracion_slots: 10, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
+  // F5-T: 5h, inicio 11:30-18:00 (fin ≤ 22:30)
+  { tipo: "F5-T", duracion_slots: 10, slot_inicio_min: 7, slot_inicio_max: 20, turno: "tarde", rol: "FULL" },
 ];
 
-// Catálogo de jornadas válidas para PART
-// PART: duraciones 8, 9, 10, 11, 12 slots
-// P-M: inicios 0..8, turno "mañana"
-// P-T: inicios 10..18, turno "tarde"
-// P-N: inicios 18.., con slot_fin ≤ 30, turno "noche"
+// Catálogo de jornadas válidas para PART: corridas de 4-6h (8..12 slots).
+// P-M: inicio 09:00-11:00 (cuenta como mañana para H-P3).
+// P-T: inicio desde 11:30, continuo hasta donde permita el cierre (fin ≤ 22:30).
 export const CATALOGO_PART: JornadaValida[] = [];
-// Generar combinaciones
 for (let duracion = 8; duracion <= 12; duracion++) {
-  // P-M: 09:00 (slot 2) a 11:00 (slot 6)
   CATALOGO_PART.push({
     tipo: `P${duracion}-M`,
     duracion_slots: duracion,
@@ -47,32 +52,22 @@ for (let duracion = 8; duracion <= 12; duracion++) {
     turno: "mañana",
     rol: "PART",
   });
-  // P-T: 14:00 (slot 12) en adelante
   CATALOGO_PART.push({
     tipo: `P${duracion}-T`,
     duracion_slots: duracion,
-    slot_inicio_min: 12,
-    slot_inicio_max: 18,
+    slot_inicio_min: 7,
+    slot_inicio_max: 30 - duracion,
     turno: "tarde",
     rol: "PART",
   });
-  // P-N: slot_inicio_min = 18, slot_inicio_max = 30 - duracion (para que slot_fin <= 30)
-  const slot_inicio_max = 30 - duracion;
-  if (slot_inicio_max >= 18) {
-    CATALOGO_PART.push({
-      tipo: `P${duracion}-N`,
-      duracion_slots: duracion,
-      slot_inicio_min: 18,
-      slot_inicio_max: slot_inicio_max,
-      turno: "noche",
-      rol: "PART",
-    });
-  }
 }
 
 export interface CortadaFull {
   tipo: "F-CORT-9" | "F-CORT-8";
   duracion_total_slots: 18 | 16;
+  // El bloque 1 debe cubrir la apertura: inicio 08:00-09:30.
+  b1_inicio_min: number;
+  b1_inicio_max: number;
   composiciones: Array<{ slots_b1: number; slots_b2: number }>;
 }
 
@@ -80,6 +75,8 @@ export const CATALOGO_FULL_CORTADAS: CortadaFull[] = [
   {
     tipo: "F-CORT-9",
     duracion_total_slots: 18,
+    b1_inicio_min: 0,
+    b1_inicio_max: 3,
     composiciones: [
       { slots_b1: 8, slots_b2: 10 }, // 4h+5h
       { slots_b1: 10, slots_b2: 8 }, // 5h+4h
@@ -88,6 +85,8 @@ export const CATALOGO_FULL_CORTADAS: CortadaFull[] = [
   {
     tipo: "F-CORT-8",
     duracion_total_slots: 16,
+    b1_inicio_min: 0,
+    b1_inicio_max: 3,
     composiciones: [
       { slots_b1: 8, slots_b2: 8 }, // 4h+4h
     ],
