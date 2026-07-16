@@ -21,7 +21,7 @@ export default function Header() {
             fontSize: '20px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             margin: 0,
             letterSpacing: '-0.5px',
           }}>
@@ -41,7 +41,7 @@ export default function Header() {
               fontSize: '14px',
               fontWeight: 600,
               fontFamily: "'Space Grotesk', sans-serif",
-              color: 'white',
+              color: 'var(--text)',
               margin: 0,
             }}>
               Aliada Tech

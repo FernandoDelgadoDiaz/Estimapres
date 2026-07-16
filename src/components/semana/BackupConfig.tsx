@@ -58,8 +58,8 @@ export default function BackupConfig() {
   }
 
   return (
-    <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '20px 24px' }}>
-      <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white', marginBottom: '8px' }}>
+    <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', padding: '20px 24px' }}>
+      <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '8px' }}>
         💾 Backup de configuración
       </h3>
       <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
@@ -74,14 +74,14 @@ export default function BackupConfig() {
         </button>
         <button
           onClick={() => fileRef.current?.click()}
-          style={{ background: 'var(--surface)', color: 'var(--text)', padding: '10px 20px', borderRadius: '100px', border: '1px solid var(--border)', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+          style={{ background: 'var(--surface)', color: 'var(--text)', padding: '10px 20px', borderRadius: '100px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
         >
           ⬆ Importar JSON
         </button>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleArchivo} style={{ display: 'none' }} />
       </div>
       {mensaje && (
-        <p style={{ fontSize: '13px', marginTop: '12px', color: mensaje.tipo === 'ok' ? 'var(--accent)' : '#ff6b6b' }}>
+        <p style={{ fontSize: '13px', marginTop: '12px', color: mensaje.tipo === 'ok' ? 'var(--accent-strong)' : 'var(--danger)' }}>
           {mensaje.tipo === 'ok' ? '✅' : '❌'} {mensaje.texto}
         </p>
       )}

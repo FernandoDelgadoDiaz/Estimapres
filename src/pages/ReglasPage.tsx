@@ -6,7 +6,7 @@ import { validarConflictosReglas } from '../utils/preferencias'
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  border: '1px solid var(--border)',
+  border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
   borderRadius: '12px',
   padding: '10px 14px',
   background: 'var(--card)',
@@ -135,7 +135,7 @@ export default function ReglasPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white', margin: 0, letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>
           Reglas del local
         </h1>
         <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
@@ -145,8 +145,8 @@ export default function ReglasPage() {
 
       {/* Conflictos con reglas duras */}
       {conflictos.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)', marginBottom: '8px' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--accent-strong)', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-strong)', marginBottom: '8px' }}>
             ⚠️ Avisos: conflictos con las reglas laborales duras
           </h4>
           {conflictos.map((c, i) => (
@@ -159,8 +159,8 @@ export default function ReglasPage() {
       )}
 
       {/* Formulario */}
-      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '24px', marginBottom: '32px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white', marginBottom: '16px' }}>
+      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', padding: '24px', marginBottom: '32px' }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '16px' }}>
           Agregar regla
         </h3>
 
@@ -172,7 +172,7 @@ export default function ReglasPage() {
               style={{
                 padding: '8px 20px',
                 borderRadius: '100px',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                 background: ambito === a ? 'var(--accent)' : 'var(--surface)',
                 color: ambito === a ? 'var(--accent-dark)' : 'var(--text)',
                 fontFamily: "'Space Grotesk', sans-serif",
@@ -269,7 +269,7 @@ export default function ReglasPage() {
         </div>
 
         {errorForm && (
-          <p style={{ color: 'var(--accent)', fontSize: '13px', marginTop: '12px' }}>⚠️ {errorForm}</p>
+          <p style={{ color: 'var(--accent-strong)', fontSize: '13px', marginTop: '12px' }}>⚠️ {errorForm}</p>
         )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
@@ -286,9 +286,9 @@ export default function ReglasPage() {
       </div>
 
       {/* Listado */}
-      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
             Reglas configuradas ({reglas.length})
           </h3>
         </div>
@@ -308,14 +308,14 @@ export default function ReglasPage() {
                 }}>
                   {r.ambito === 'colaborador' ? 'COLABORADOR' : 'LOCAL'}
                 </span>
-                <span style={{ flex: 1, fontSize: '14px', color: 'white' }}>{r.descripcion}</span>
+                <span style={{ flex: 1, fontSize: '14px', color: 'var(--text)' }}>{r.descripcion}</span>
                 {(r.vigenciaDesde || r.vigenciaHasta) && (
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>⏳ temporal</span>
                 )}
                 <button
                   onClick={() => toggleActiva(r.id)}
                   style={{
-                    padding: '6px 14px', borderRadius: '100px', border: '1px solid var(--border)',
+                    padding: '6px 14px', borderRadius: '100px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                     background: r.activa ? 'var(--accent)' : 'var(--surface)',
                     color: r.activa ? 'var(--accent-dark)' : 'var(--text-muted)',
                     fontSize: '12px', fontWeight: 600, cursor: 'pointer',

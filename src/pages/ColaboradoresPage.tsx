@@ -107,7 +107,7 @@ export default function ColaboradoresPage() {
             fontSize: '36px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             margin: 0,
             letterSpacing: '-0.5px',
           }}>
@@ -222,11 +222,11 @@ export default function ColaboradoresPage() {
               style={{
                 padding: '8px 0',
                 borderBottom: '2px solid',
-                borderBottomColor: activeTab === tab ? 'var(--accent)' : 'transparent',
+                borderBottomColor: activeTab === tab ? 'var(--accent-strong)' : 'transparent',
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 500,
                 fontSize: '14px',
-                color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+                color: activeTab === tab ? 'var(--accent-strong)' : 'var(--text-muted)',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -251,13 +251,13 @@ export default function ColaboradoresPage() {
           background: 'var(--card)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{
             fontSize: '32px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             letterSpacing: '-0.5px',
           }}>
             {stats.cajerosTotal}
@@ -274,13 +274,13 @@ export default function ColaboradoresPage() {
           background: 'var(--card)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{
             fontSize: '32px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             letterSpacing: '-0.5px',
           }}>
             {stats.cajerosActivos}
@@ -297,13 +297,13 @@ export default function ColaboradoresPage() {
           background: 'var(--card)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{
             fontSize: '32px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             letterSpacing: '-0.5px',
           }}>
             {stats.auxiliaresTotal}
@@ -320,13 +320,13 @@ export default function ColaboradoresPage() {
           background: 'var(--card)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{
             fontSize: '32px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             letterSpacing: '-0.5px',
           }}>
             {stats.auxiliaresActivos}
@@ -343,13 +343,13 @@ export default function ColaboradoresPage() {
           background: 'var(--card)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{
             fontSize: '32px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             letterSpacing: '-0.5px',
           }}>
             {stats.eventualesTotal}
@@ -366,13 +366,13 @@ export default function ColaboradoresPage() {
           background: 'var(--card)',
           borderRadius: '12px',
           padding: '20px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{
             fontSize: '32px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             letterSpacing: '-0.5px',
           }}>
             {stats.eventualesActivos}
@@ -403,7 +403,7 @@ export default function ColaboradoresPage() {
               <span style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontSize: '14px',
-                color: 'white',
+                color: 'var(--text)',
               }}>
                 Todos los cajeros (FULL + PART)
               </span>
@@ -458,13 +458,13 @@ export default function ColaboradoresPage() {
         padding: '20px',
         background: 'var(--card)',
         borderRadius: '12px',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
       }}>
         <h4 style={{
           fontFamily: "'Space Grotesk', sans-serif",
           fontWeight: 700,
           fontSize: '16px',
-          color: 'var(--accent)',
+          color: 'var(--accent-strong)',
           marginBottom: '8px',
         }}>
           Notas importantes

@@ -40,7 +40,7 @@ export default function PDFUploader({ onFileSelect, loading, error }: PDFUploade
       <div
         className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
           dragOver
-            ? 'border-blue-500 bg-blue-50'
+            ? 'border-green-500 bg-green-50'
             : 'border-gray-300 hover:border-gray-400'
         }`}
         onDrop={handleDrop}
@@ -60,7 +60,7 @@ export default function PDFUploader({ onFileSelect, loading, error }: PDFUploade
         </p>
         <button
           type="button"
-          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 inline-flex items-center"
+          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 inline-flex items-center"
           disabled={loading}
         >
           {loading ? 'Procesando...' : 'Seleccionar PDF'}

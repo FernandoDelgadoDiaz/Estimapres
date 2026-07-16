@@ -24,7 +24,7 @@ export default function Sidebar() {
           fontSize: '24px',
           fontWeight: 800,
           fontFamily: "'Syne', sans-serif",
-          color: 'white',
+          color: 'var(--text)',
           margin: 0,
           letterSpacing: '-0.5px',
         }}>

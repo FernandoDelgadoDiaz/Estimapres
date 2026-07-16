@@ -64,7 +64,7 @@ export default function FormColaborador({
                   required
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                   placeholder="Ej: Carlos Paz"
                   autoFocus
                 />
@@ -84,7 +84,7 @@ export default function FormColaborador({
                       setHorasSemanales(tipoObj.defaultHours.toString())
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 >
                   {tipos.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -106,7 +106,7 @@ export default function FormColaborador({
                   step={1}
                   value={horasSemanales}
                   onChange={(e) => setHorasSemanales(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   FULL y AUX: 48h | PART: 30-32h
@@ -124,7 +124,7 @@ export default function FormColaborador({
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 {colaborador ? 'Guardar cambios' : 'Agregar'}
               </button>

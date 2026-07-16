@@ -2,19 +2,43 @@
 @import '@fontsource/syne';
 @import '@fontsource/space-grotesk';
 
-/* CSS Variables */
+/* ==========================================================================
+   Aliada Horarios — Light theme
+   Paleta: verde de marca (lima Aliada) como primario, grises neutros y blanco.
+   Referencia visual: dashboards limpios tipo Notion / Linear / Vercel.
+   ========================================================================== */
 :root {
-  --bg: #080808;
-  --surface: #0e0e0e;
-  --card: #111111;
-  --border: #1c1c1c;
-  --border-hover: #2a2a2a;
-  --accent: #B8FF47;
-  --accent-dark: #080808;
-  --purple: #c084fc;
-  --text: #ffffff;
-  --text-muted: #444444;
-  --text-dim: #2a2a2a;
+  /* Superficies (de la más al fondo a la más elevada) */
+  --bg: #fafbfc;          /* fondo del área de contenido */
+  --surface: #f3f4f6;     /* sidebar, headers de tabla, superficies secundarias */
+  --card: #ffffff;        /* tarjetas, barra superior, contenedores */
+  --border: #e5e7eb;      /* líneas hairline */
+  --border-hover: #d1d5db;
+
+  /* Marca (verde lima Aliada Tech) */
+  --accent: #b8ff47;        /* fondo de botones/badges primarios */
+  --accent-dark: #14210a;   /* texto/íconos sobre el lima */
+  --accent-strong: #4d7c0f; /* verde legible para texto, íconos, estados activos y bordes de énfasis sobre claro */
+
+  /* Acento secundario (PART / colaborador) */
+  --purple: #7c3aed;
+
+  /* Texto */
+  --text: #111827;        /* primario, casi negro */
+  --text-muted: #6b7280;  /* secundario */
+  --text-dim: #9ca3af;    /* terciario */
+
+  /* Estados (tonos suaves) */
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+
+  /* Sombras suaves */
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
 }
 
 /* Base styles */
@@ -31,15 +55,16 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
+  border: 2px solid var(--bg);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);

@@ -223,7 +223,7 @@ export default function NuevaSemanaPage() {
           fontSize: '36px',
           fontWeight: 800,
           fontFamily: "'Syne', sans-serif",
-          color: 'white',
+          color: 'var(--text)',
           margin: 0,
           letterSpacing: '-0.5px',
         }}>
@@ -247,7 +247,7 @@ export default function NuevaSemanaPage() {
         marginBottom: '32px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'upload' ? 'var(--accent)' : 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'upload' ? 'var(--accent-strong)' : 'var(--text-muted)' }}>
             <div style={{
               width: '32px',
               height: '32px',
@@ -271,7 +271,7 @@ export default function NuevaSemanaPage() {
             </span>
           </div>
           <div style={{ width: '48px', height: '2px', background: 'var(--border)' }}></div>
-          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'revisar' ? 'var(--accent)' : 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'revisar' ? 'var(--accent-strong)' : 'var(--text-muted)' }}>
             <div style={{
               width: '32px',
               height: '32px',
@@ -295,7 +295,7 @@ export default function NuevaSemanaPage() {
             </span>
           </div>
           <div style={{ width: '48px', height: '2px', background: 'var(--border)' }}></div>
-          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'resultado' ? 'var(--accent)' : 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', color: paso === 'resultado' ? 'var(--accent-strong)' : 'var(--text-muted)' }}>
             <div style={{
               width: '32px',
               height: '32px',
@@ -342,7 +342,7 @@ export default function NuevaSemanaPage() {
         <div style={{
           background: 'var(--card)',
           borderRadius: '16px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
           padding: '40px',
         }}>
           <PDFUploader
@@ -359,14 +359,14 @@ export default function NuevaSemanaPage() {
           <div style={{
             background: 'var(--card)',
             borderRadius: '16px',
-            border: '1px solid var(--border)',
+            border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
             padding: '32px',
           }}>
             <h3 style={{
               fontSize: '24px',
               fontWeight: 800,
               fontFamily: "'Syne', sans-serif",
-              color: 'white',
+              color: 'var(--text)',
               marginBottom: '16px',
               letterSpacing: '-0.5px',
             }}>
@@ -378,14 +378,14 @@ export default function NuevaSemanaPage() {
           <div style={{
             background: 'var(--card)',
             borderRadius: '16px',
-            border: '1px solid var(--border)',
+            border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
             padding: '32px',
           }}>
             <h3 style={{
               fontSize: '24px',
               fontWeight: 800,
               fontFamily: "'Syne', sans-serif",
-              color: 'white',
+              color: 'var(--text)',
               marginBottom: '16px',
               letterSpacing: '-0.5px',
             }}>
@@ -412,7 +412,7 @@ export default function NuevaSemanaPage() {
                 <tbody>
                   {colaboradoresActivos.map((col) => (
                     <tr key={col.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'white' }}>{col.nombre}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.nombre}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           display: 'inline-flex',
@@ -428,7 +428,7 @@ export default function NuevaSemanaPage() {
                           {col.tipo}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'white' }}>{col.horasSemanales}h</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.horasSemanales}h</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           display: 'inline-flex',
@@ -474,7 +474,7 @@ export default function NuevaSemanaPage() {
                     fontSize: '32px',
                     fontWeight: 800,
                     fontFamily: "'Syne', sans-serif",
-                    color: 'white',
+                    color: 'var(--text)',
                     letterSpacing: '-0.5px',
                   }}>
                     {horasNecesariasEstimadas.toFixed(1)}h
@@ -500,7 +500,7 @@ export default function NuevaSemanaPage() {
                     fontSize: '32px',
                     fontWeight: 800,
                     fontFamily: "'Syne', sans-serif",
-                    color: 'white',
+                    color: 'var(--text)',
                     letterSpacing: '-0.5px',
                   }}>
                     {horasDisponibles}h
@@ -544,7 +544,7 @@ export default function NuevaSemanaPage() {
             <div style={{
               marginTop: '32px',
               padding: '24px',
-              border: '1px solid var(--border)',
+              border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
               borderRadius: '16px',
               background: 'var(--card)',
             }}>
@@ -552,7 +552,7 @@ export default function NuevaSemanaPage() {
                 fontSize: '20px',
                 fontWeight: 800,
                 fontFamily: "'Syne', sans-serif",
-                color: 'white',
+                color: 'var(--text)',
                 letterSpacing: '-0.5px',
                 marginBottom: '12px',
               }}>
@@ -575,11 +575,11 @@ export default function NuevaSemanaPage() {
                 <div style={{
                   marginTop: '12px',
                   padding: '12px 16px',
-                  border: '1px solid var(--accent)',
+                  border: '1px solid var(--accent-strong)',
                   borderRadius: '12px',
                   background: 'var(--surface)',
                 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-strong)' }}>
                     ⚠️ Conflictos con reglas laborales duras (se informan, nunca se violan):
                   </p>
                   {conflictosReglas.map((c, i) => (
@@ -593,7 +593,7 @@ export default function NuevaSemanaPage() {
             <div style={{
               marginTop: '32px',
               padding: '24px',
-              border: '1px solid var(--border)',
+              border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
               borderRadius: '16px',
               background: 'var(--card)',
             }}>
@@ -602,7 +602,7 @@ export default function NuevaSemanaPage() {
                   fontSize: '20px',
                   fontWeight: 800,
                   fontFamily: "'Syne', sans-serif",
-                  color: 'white',
+                  color: 'var(--text)',
                   letterSpacing: '-0.5px',
                 }}>
                   Excepciones semanales (opcional)
@@ -610,7 +610,7 @@ export default function NuevaSemanaPage() {
                 <button
                   onClick={() => setMostrarExcepciones(!mostrarExcepciones)}
                   style={{
-                    color: 'var(--accent)',
+                    color: 'var(--accent-strong)',
                     background: 'none',
                     border: 'none',
                     fontFamily: "'Space Grotesk', sans-serif",
@@ -627,7 +627,7 @@ export default function NuevaSemanaPage() {
                 <div style={{
                   marginBottom: '24px',
                   padding: '20px',
-                  border: '1px solid var(--border)',
+                  border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                   borderRadius: '12px',
                   background: 'var(--surface)',
                 }}>
@@ -652,7 +652,7 @@ export default function NuevaSemanaPage() {
                         onChange={(e) => setColaboradorSeleccionado(e.target.value)}
                         style={{
                           width: '100%',
-                          border: '1px solid var(--border)',
+                          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                           borderRadius: '12px',
                           padding: '12px 16px',
                           background: 'var(--card)',
@@ -685,7 +685,7 @@ export default function NuevaSemanaPage() {
                         }}
                         style={{
                           width: '100%',
-                          border: '1px solid var(--border)',
+                          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                           borderRadius: '12px',
                           padding: '12px 16px',
                           background: 'var(--card)',
@@ -720,7 +720,7 @@ export default function NuevaSemanaPage() {
                               onChange={(e) => setValorInput(e.target.value)}
                               style={{
                                 width: '100%',
-                                border: '1px solid var(--border)',
+                                border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                                 borderRadius: '12px',
                                 padding: '12px 16px',
                                 background: 'var(--card)',
@@ -741,7 +741,7 @@ export default function NuevaSemanaPage() {
                               onChange={(e) => setValorInput(e.target.value)}
                               style={{
                                 width: '100%',
-                                border: '1px solid var(--border)',
+                                border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                                 borderRadius: '12px',
                                 padding: '12px 16px',
                                 background: 'var(--card)',
@@ -792,7 +792,7 @@ export default function NuevaSemanaPage() {
                           display: 'inline-flex',
                           alignItems: 'center',
                           background: 'var(--surface)',
-                          color: 'var(--accent)',
+                          color: 'var(--accent-strong)',
                           borderRadius: '100px',
                           padding: '8px 16px',
                           fontSize: '14px',
@@ -803,7 +803,7 @@ export default function NuevaSemanaPage() {
                           onClick={() => eliminarExcepcion(exc.id)}
                           style={{
                             marginLeft: '8px',
-                            color: 'var(--accent)',
+                            color: 'var(--accent-strong)',
                             background: 'none',
                             border: 'none',
                             fontSize: '18px',
@@ -873,7 +873,7 @@ export default function NuevaSemanaPage() {
                 fontSize: '32px',
                 fontWeight: 800,
                 fontFamily: "'Syne', sans-serif",
-                color: 'white',
+                color: 'var(--text)',
                 margin: 0,
                 letterSpacing: '-0.5px',
               }}>
@@ -893,7 +893,7 @@ export default function NuevaSemanaPage() {
                 onClick={handleNuevaSemana}
                 style={{
                   padding: '12px 24px',
-                  border: '1px solid var(--border)',
+                  border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                   borderRadius: '12px',
                   background: 'var(--card)',
                   color: 'var(--text)',
@@ -930,12 +930,12 @@ export default function NuevaSemanaPage() {
           {errorAsignacion && (
             <div style={{
               background: 'var(--surface)',
-              border: '1px solid var(--border)',
+              border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
               borderRadius: '12px',
               padding: '20px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ color: 'var(--accent)', marginRight: '8px' }}>❌</span>
+                <span style={{ color: 'var(--accent-strong)', marginRight: '8px' }}>❌</span>
                 <p style={{ color: 'var(--text)' }}>{errorAsignacion}</p>
               </div>
             </div>

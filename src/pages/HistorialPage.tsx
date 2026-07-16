@@ -9,7 +9,7 @@ import BackupConfig from '../components/semana/BackupConfig'
 const cardStyle: React.CSSProperties = {
   background: 'var(--card)',
   borderRadius: '16px',
-  border: '1px solid var(--border)',
+  border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
   overflow: 'hidden',
 }
 
@@ -34,7 +34,7 @@ export default function HistorialPage() {
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
       <div>
-        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white', margin: 0, letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>
           Historial y aprendizaje
         </h1>
         <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
@@ -53,7 +53,7 @@ export default function HistorialPage() {
 
       {/* Rotación activa */}
       <div style={{ ...cardStyle, padding: '20px 24px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white', marginBottom: '8px' }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '8px' }}>
           🔄 Rotación para la próxima semana
         </h3>
         {rotacionActiva.length === 0 ? (
@@ -74,7 +74,7 @@ export default function HistorialPage() {
       {/* Aprendizajes */}
       <div style={cardStyle}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
             🧠 Qué aprendió el sistema ({aprendizajes.length})
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -88,13 +88,13 @@ export default function HistorialPage() {
         ) : (
           aprendizajes.map(a => (
             <div key={`${a.colaboradorNombre}-${a.direccion}`} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 24px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ flex: 1, fontSize: '14px', color: 'white' }}>{a.descripcion}</span>
+              <span style={{ flex: 1, fontSize: '14px', color: 'var(--text)' }}>{a.descripcion}</span>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                 fuerza: {'●'.repeat(Math.min(a.evidencias, 4))}{'○'.repeat(Math.max(0, 4 - a.evidencias))}
               </span>
               <button
                 onClick={() => { if (confirm(`¿Olvidar "${a.descripcion}"? Se borran las ${a.evidencias} correcciones que lo sustentan.`)) eliminarCorrecciones(a.correccionIds) }}
-                style={{ padding: '6px 14px', borderRadius: '100px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12px', cursor: 'pointer' }}
+                style={{ padding: '6px 14px', borderRadius: '100px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', background: 'var(--surface)', color: 'var(--text)', fontSize: '12px', cursor: 'pointer' }}
               >
                 Olvidar
               </button>
@@ -106,7 +106,7 @@ export default function HistorialPage() {
       {/* Correcciones registradas */}
       <div style={cardStyle}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
             ✏️ Correcciones registradas ({correcciones.length})
           </h3>
         </div>
@@ -118,7 +118,7 @@ export default function HistorialPage() {
           [...correcciones].reverse().slice(0, 50).map(c => (
             <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 24px', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
               <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{c.fecha.slice(0, 10)}</span>
-              <span style={{ color: 'white', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.colaboradorNombre}</span>
+              <span style={{ color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.colaboradorNombre}</span>
               <span style={{ color: 'var(--text-muted)' }}>{DIAS_SEMANA[c.dia]}</span>
               <span style={{ flex: 1, color: 'var(--text)' }}>
                 {formatearJornada(c.antes)} → {formatearJornada(c.despues)}
@@ -141,7 +141,7 @@ export default function HistorialPage() {
       {/* Historial de semanas */}
       <div style={cardStyle}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'white' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
             📅 Semanas guardadas ({historial.length})
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -159,10 +159,10 @@ export default function HistorialPage() {
                 onClick={() => setSemanaAbierta(prev => (prev === s.id ? null : s.id))}
                 style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 24px', cursor: 'pointer' }}
               >
-                <span style={{ fontSize: '14px', color: 'white', fontWeight: 600 }}>{s.descripcion}</span>
+                <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 600 }}>{s.descripcion}</span>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>lunes {s.fechaLunes}</span>
                 {s.editadoManualmente && (
-                  <span style={{ fontSize: '11px', color: 'var(--accent)' }}>✏️ editada</span>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-strong)' }}>✏️ editada</span>
                 )}
                 <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>
                   {semanaAbierta === s.id ? '▲' : '▼'}
@@ -189,10 +189,10 @@ export default function HistorialPage() {
                     <tbody>
                       {Object.entries(s.resumenPorColaborador).map(([nombre, r]) => (
                         <tr key={nombre} style={{ color: 'var(--text)', borderTop: '1px solid var(--border)' }}>
-                          <td style={{ padding: '6px 8px', color: 'white' }}>{nombre}</td>
+                          <td style={{ padding: '6px 8px', color: 'var(--text)' }}>{nombre}</td>
                           <td style={{ padding: '6px 8px', textAlign: 'center' }}>{r.mananas}</td>
                           <td style={{ padding: '6px 8px', textAlign: 'center' }}>{r.tardes}</td>
-                          <td style={{ padding: '6px 8px', textAlign: 'center', color: r.cierres >= 4 ? 'var(--accent)' : undefined }}>{r.cierres}</td>
+                          <td style={{ padding: '6px 8px', textAlign: 'center', color: r.cierres >= 4 ? 'var(--accent-strong)' : undefined }}>{r.cierres}</td>
                           <td style={{ padding: '6px 8px', textAlign: 'center' }}>{r.francos}</td>
                         </tr>
                       ))}

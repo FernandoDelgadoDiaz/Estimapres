@@ -8,7 +8,7 @@ export default function InicioPage() {
           fontSize: '48px',
           fontWeight: 800,
           fontFamily: "'Syne', sans-serif",
-          color: 'white',
+          color: 'var(--text)',
           marginBottom: '16px',
           letterSpacing: '-1px',
         }}>
@@ -33,14 +33,14 @@ export default function InicioPage() {
           background: 'var(--card)',
           borderRadius: '16px',
           padding: '32px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>👥</div>
           <h3 style={{
             fontSize: '24px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             marginBottom: '8px',
             letterSpacing: '-0.5px',
           }}>
@@ -77,14 +77,14 @@ export default function InicioPage() {
           background: 'var(--card)',
           borderRadius: '16px',
           padding: '32px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
           <h3 style={{
             fontSize: '24px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             marginBottom: '8px',
             letterSpacing: '-0.5px',
           }}>
@@ -121,14 +121,14 @@ export default function InicioPage() {
           background: 'var(--card)',
           borderRadius: '16px',
           padding: '32px',
-          border: '1px solid var(--border)',
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
           <h3 style={{
             fontSize: '24px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             marginBottom: '8px',
             letterSpacing: '-0.5px',
           }}>
@@ -167,13 +167,13 @@ export default function InicioPage() {
         background: 'var(--card)',
         borderRadius: '16px',
         padding: '40px',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
       }}>
         <h2 style={{
           fontSize: '32px',
           fontWeight: 800,
           fontFamily: "'Syne', sans-serif",
-          color: 'white',
+          color: 'var(--text)',
           marginBottom: '32px',
           letterSpacing: '-0.5px',
         }}>
@@ -200,7 +200,7 @@ export default function InicioPage() {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 fontSize: '18px',
-                color: 'white',
+                color: 'var(--text)',
                 marginBottom: '4px',
               }}>
                 Sube el PDF semanal
@@ -234,7 +234,7 @@ export default function InicioPage() {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 fontSize: '18px',
-                color: 'white',
+                color: 'var(--text)',
                 marginBottom: '4px',
               }}>
                 Revisa los colaboradores activos
@@ -268,7 +268,7 @@ export default function InicioPage() {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 fontSize: '18px',
-                color: 'white',
+                color: 'var(--text)',
                 marginBottom: '4px',
               }}>
                 Genera los horarios
@@ -302,7 +302,7 @@ export default function InicioPage() {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700,
                 fontSize: '18px',
-                color: 'white',
+                color: 'var(--text)',
                 marginBottom: '4px',
               }}>
                 Exporta el resultado

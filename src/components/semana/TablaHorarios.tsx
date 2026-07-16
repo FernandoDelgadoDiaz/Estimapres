@@ -68,19 +68,20 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
 
   const tiposColor: Record<string, { background: string, color: string }> = {
     FULL: { background: 'var(--accent)', color: 'var(--accent-dark)' },
-    PART: { background: 'var(--purple)', color: 'var(--bg)' },
-    AUX: { background: 'var(--surface)', color: 'var(--accent)' },
-    EVENTUAL: { background: 'var(--card)', color: 'var(--text)' },
-    cajero: { background: 'var(--surface)', color: 'var(--text)' },
+    PART: { background: '#ede9fe', color: '#6d28d9' },
+    AUX: { background: '#e0f2fe', color: '#0369a1' },
+    EVENTUAL: { background: '#fef3c7', color: '#92400e' },
+    cajero: { background: '#f1f5f9', color: '#475569' },
   }
 
+  // Tinte muy suave por rol para las celdas de cada día (mantiene el texto legible).
   const rolColor: Record<string, string> = {
     cajero: 'var(--card)',
-    aux_supervisor: 'var(--surface)',
-    aux_eventual: 'var(--card)',
-    eventual_sector: 'var(--surface)',
-    franco: 'var(--bg)',
-    franco_medio: 'var(--card)',
+    aux_supervisor: '#f0f9ff',
+    aux_eventual: '#fffbeb',
+    eventual_sector: '#faf5ff',
+    franco: '#f8fafc',
+    franco_medio: '#f1f5f9',
   }
 
   if (horarios.length === 0) {
@@ -88,7 +89,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
       <div style={{
         background: 'var(--card)',
         borderRadius: '16px',
-        border: '1px solid var(--border)',
+        border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
         padding: '40px',
         textAlign: 'center',
       }}>
@@ -97,7 +98,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
           fontSize: '24px',
           fontWeight: 800,
           fontFamily: "'Syne', sans-serif",
-          color: 'white',
+          color: 'var(--text)',
           marginBottom: '8px',
           letterSpacing: '-0.5px',
         }}>
@@ -118,7 +119,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
     <div style={{
       background: 'var(--card)',
       borderRadius: '16px',
-      border: '1px solid var(--border)',
+      border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
       overflow: 'hidden',
     }}>
       <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
@@ -126,7 +127,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
           fontSize: '24px',
           fontWeight: 800,
           fontFamily: "'Syne', sans-serif",
-          color: 'white',
+          color: 'var(--text)',
           letterSpacing: '-0.5px',
         }}>
           Horarios asignados por colaborador
@@ -245,7 +246,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     whiteSpace: 'nowrap',
                     fontSize: '10px',
                     fontWeight: 600,
-                    color: 'white',
+                    color: 'var(--text)',
                     position: 'sticky',
                     left: 0,
                     background: 'var(--card)',
@@ -271,7 +272,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     padding: '8px',
                     whiteSpace: 'nowrap',
                     fontSize: '10px',
-                    color: 'white',
+                    color: 'var(--text)',
                     width: '48px',
                     textAlign: 'center',
                   }}>
@@ -298,7 +299,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           fontStyle: isFrancoReal ? 'italic' : 'normal',
                           backgroundColor: bgColor,
                           cursor: editable ? 'pointer' : 'default',
-                          outline: enEdicion ? '2px solid var(--accent)' : 'none',
+                          outline: enEdicion ? '2px solid var(--accent-strong)' : 'none',
                           outlineOffset: '-2px',
                         }}
                       >
@@ -308,13 +309,13 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   })}
                   <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '96px' }}>
                     {horario.errores.length > 0 ? (
-                      <div style={{ fontSize: '10px', color: 'var(--accent)' }}>
+                      <div style={{ fontSize: '10px', color: 'var(--danger)' }}>
                         {horario.errores.map((err, idx) => (
                           <div key={idx}>• {err}</div>
                         ))}
                       </div>
                     ) : (
-                      <span style={{ fontSize: '10px', color: 'var(--accent)' }}>✅ OK</span>
+                      <span style={{ fontSize: '10px', color: 'var(--accent-strong)' }}>✅ OK</span>
                     )}
                   </td>
                 </tr>
@@ -328,14 +329,14 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
       {editable && editando && (
         <div style={{
           padding: '20px 24px',
-          borderTop: '1px solid var(--accent)',
+          borderTop: '1px solid var(--border)',
           background: 'var(--surface)',
         }}>
           <h4 style={{
             fontSize: '14px',
             fontWeight: 800,
             fontFamily: "'Syne', sans-serif",
-            color: 'white',
+            color: 'var(--text)',
             marginBottom: '12px',
           }}>
             ✏️ Editando: {editando.nombre} — {DIAS_SEMANA[editando.dia]}
@@ -358,14 +359,14 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   type="time"
                   value={turno.inicio}
                   onChange={(e) => setEditTurnos(prev => prev.map((t, i) => i === idx ? { ...t, inicio: e.target.value } : t))}
-                  style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
+                  style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
                 <span style={{ color: 'var(--text-muted)' }}>→</span>
                 <input
                   type="time"
                   value={turno.fin}
                   onChange={(e) => setEditTurnos(prev => prev.map((t, i) => i === idx ? { ...t, fin: e.target.value } : t))}
-                  style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
+                  style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
             ))}
@@ -388,17 +389,17 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
             <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
               <button
                 onClick={() => setEditando(null)}
-                style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '100px', padding: '8px 16px', color: 'var(--text)', fontSize: '13px', cursor: 'pointer' }}
+                style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', borderRadius: '100px', padding: '8px 16px', color: 'var(--text)', fontSize: '13px', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={guardarEdicion}
                 style={{
-                  background: hayErrores ? 'var(--surface)' : 'var(--accent)',
-                  border: hayErrores ? '1px solid var(--accent)' : 'none',
+                  background: hayErrores ? 'var(--warning-bg)' : 'var(--accent)',
+                  border: hayErrores ? '1px solid var(--warning)' : 'none',
                   borderRadius: '100px', padding: '8px 16px',
-                  color: hayErrores ? 'var(--accent)' : 'var(--accent-dark)',
+                  color: hayErrores ? 'var(--warning)' : 'var(--accent-dark)',
                   fontSize: '13px', fontWeight: 700, cursor: 'pointer',
                 }}
                 title={hayErrores ? 'El cambio rompe una regla dura; se guardará igual si confirmás' : undefined}
@@ -414,11 +415,11 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
               marginTop: '12px',
               padding: '12px 16px',
               borderRadius: '10px',
-              border: `1px solid ${hayErrores ? 'var(--accent)' : 'var(--border)'}`,
-              background: 'var(--card)',
+              border: `1px solid ${hayErrores ? 'var(--warning)' : 'var(--border)'}`,
+              background: hayErrores ? 'var(--warning-bg)' : 'var(--card)',
             }}>
               {avisosValidacion.map((a, i) => (
-                <p key={i} style={{ fontSize: '12px', color: a.severidad === 'error' ? 'var(--accent)' : 'var(--text-muted)', marginTop: i === 0 ? 0 : '4px' }}>
+                <p key={i} style={{ fontSize: '12px', color: a.severidad === 'error' ? 'var(--danger)' : 'var(--text-muted)', marginTop: i === 0 ? 0 : '4px' }}>
                   {a.severidad === 'error' ? '⛔' : '⚠️'} {a.mensaje}
                 </p>
               ))}
@@ -449,7 +450,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                 height: '16px',
                 borderRadius: '4px',
                 marginRight: '8px',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
                 backgroundColor: color,
               }}></div>
               <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{rol}</span>
