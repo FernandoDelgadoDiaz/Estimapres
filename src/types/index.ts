@@ -32,12 +32,27 @@ export interface HorarioColaborador {
   rolGeneral: 'cajero' | 'aux_supervisor' | 'aux_eventual' | 'eventual_sector'
 }
 
+/**
+ * Horario de CAJA de un AUX o EVENTUAL: por cada día (0=Lun..6=Dom) una fila de
+ * 30 slots de 30 min (slot 0 = 08:00) marcada true cuando el colaborador debe
+ * estar sentado en CAJA ese slot. Deriva de asignacion_aux / asignacion_eventual
+ * del algoritmo v2 (Pasadas 2 y 3).
+ */
+export interface AsignacionCajaColaborador {
+  colaboradorId: string
+  nombre: string
+  slotsCajaPorDia: boolean[][]  // [dia][slot] = true si está en CAJA
+}
+
 export interface ResultadoAsignacion {
   horarios: HorarioColaborador[]
   coberturaFranjas: number[][]  // [franja][dia] = cajeros asignados
   faltantesFranjas: number[][]  // [franja][dia] = diferencia (negativo = falta)
   alertas: string[]
   porcentajeCobertura: number
+  // Horarios en CAJA de supervisores (AUX) y eventuales, para el PDF.
+  cajaAux?: AsignacionCajaColaborador[]
+  cajaEventual?: AsignacionCajaColaborador[]
 }
 
 export type DiaSemana = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom'

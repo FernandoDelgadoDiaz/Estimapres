@@ -1,7 +1,85 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
+import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, AsignacionCajaColaborador, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
 import { formatoTurno } from './timeUtils'
+
+/** Convierte un índice de slot (0 = 08:00, cada slot = 30 min) a "HH:MM". */
+function slotAHoraLegible(slot: number): string {
+  const horas = 8 + Math.floor(slot / 2)
+  const mins = (slot % 2) * 30
+  return `${String(horas).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+/**
+ * Convierte la fila de slots de CAJA de un día (30 booleanos) en un texto legible.
+ * Bloques contiguos de CAJA se muestran como "HH:MM-HH:MM"; bloques discontinuos
+ * del mismo día se separan con " | ". Si no hay ningún slot en CAJA, devuelve
+ * `textoSinCaja` (p. ej. "PARADO" para AUX o "-" para eventuales).
+ * Un bloque de slot 2 a slot 7 inclusive = "09:00-11:30".
+ */
+function formatearCajaDia(slotsCaja: boolean[], textoSinCaja: string): string {
+  const bloques: string[] = []
+  let inicio = -1
+  for (let s = 0; s < slotsCaja.length; s++) {
+    if (slotsCaja[s]) {
+      if (inicio === -1) inicio = s
+    } else if (inicio !== -1) {
+      bloques.push(`${slotAHoraLegible(inicio)}-${slotAHoraLegible(s - 1)}`)
+      inicio = -1
+    }
+  }
+  if (inicio !== -1) {
+    bloques.push(`${slotAHoraLegible(inicio)}-${slotAHoraLegible(slotsCaja.length - 1)}`)
+  }
+  return bloques.length > 0 ? bloques.join(' | ') : textoSinCaja
+}
+
+/**
+ * Dibuja una sección de horarios de CAJA (SUPERVISORES o EVENTUALES) con las
+ * mismas columnas que la tabla de cajeros: Colaborador, Tipo, Lun..Dom.
+ * Devuelve la coordenada Y final para encadenar la siguiente sección.
+ */
+function dibujarSeccionCaja(
+  doc: jsPDF,
+  titulo: string,
+  tipoLabel: string,
+  asignaciones: AsignacionCajaColaborador[],
+  textoSinCaja: string,
+  startY: number
+): number {
+  doc.setFontSize(12)
+  doc.setTextColor(0, 0, 0)
+  doc.text(titulo, 14, startY)
+
+  const body = asignaciones.map(a => [
+    a.nombre,
+    tipoLabel,
+    ...DIAS_SEMANA.map((_, dia) => formatearCajaDia(a.slotsCajaPorDia[dia] ?? [], textoSinCaja)),
+  ])
+
+  autoTable(doc, {
+    head: [['Colaborador', 'Tipo', ...DIAS_SEMANA]],
+    body,
+    startY: startY + 4,
+    theme: 'grid',
+    headStyles: { fillColor: [124, 58, 237], textColor: [255, 255, 255], fontStyle: 'bold' },
+    bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { halign: 'left' },
+      1: { halign: 'center' },
+      ...Object.fromEntries(
+        Array.from({ length: 7 }, (_, i) => [2 + i, { halign: 'center' }])
+      ),
+    },
+    margin: { left: 14 },
+    rowPageBreak: 'avoid',
+    styles: { cellPadding: 3, fontSize: 7 },
+    showHead: 'everyPage',
+  })
+
+  return (doc as any).lastAutoTable?.finalY || startY
+}
 
 function sanitizarTexto(texto: string): string {
   // Eliminar caracteres no imprimibles (ASCII < 32 excepto \n, \t, \r)
@@ -111,10 +189,27 @@ export function generarPDF(
     showHead: 'everyPage', // Repite encabezado en cada página
   })
 
-  // Si la tabla ocupa mucho, agregar nueva página
-  const finalY = (doc as any).lastAutoTable?.finalY || 100
-  if (finalY > 180) {
-    doc.addPage()
+  // Secciones adicionales: SUPERVISORES (AUX) y EVENTUALES en CAJA.
+  // Muestran, por día, los bloques horarios en que cada uno debe estar en CAJA.
+  const finalYCajeros = (doc as any).lastAutoTable?.finalY || 100
+  let yCaja = finalYCajeros + 12
+
+  const cajaAux = resultado.cajaAux ?? []
+  if (cajaAux.length > 0) {
+    if (yCaja > 170) {
+      doc.addPage()
+      yCaja = 20
+    }
+    yCaja = dibujarSeccionCaja(doc, 'Supervisores (AUX) - Horarios en CAJA', 'AUX', cajaAux, 'PARADO', yCaja) + 12
+  }
+
+  const cajaEventual = resultado.cajaEventual ?? []
+  if (cajaEventual.length > 0) {
+    if (yCaja > 170) {
+      doc.addPage()
+      yCaja = 20
+    }
+    yCaja = dibujarSeccionCaja(doc, 'Eventuales - Horarios en CAJA', 'EVENTUAL', cajaEventual, '-', yCaja)
   }
 
   // Página 2: Cobertura por franja

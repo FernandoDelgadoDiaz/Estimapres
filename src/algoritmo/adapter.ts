@@ -11,6 +11,7 @@ import type {
   ResultadoAsignacion,
   HorarioColaborador,
   JornadaAsignada,
+  AsignacionCajaColaborador,
 } from '../types';
 import { HORAS_FRANJAS } from '../types';
 
@@ -287,6 +288,29 @@ export function convertirOutputDeV2(
     }
   }
 
+  // Horarios de CAJA de AUX y EVENTUAL (Pasadas 2 y 3) para el PDF.
+  // Mapa v2Id → nombre legible.
+  const nombreMap: Record<string, string> = {};
+  for (const c of cajeros) nombreMap[normalizarId(c.nombre)] = c.nombre;
+  for (const a of auxiliares) nombreMap[normalizarId(a.nombre)] = a.nombre;
+  for (const e of eventuales) nombreMap[normalizarId(e.nombre)] = e.nombre;
+
+  const cajaAux: AsignacionCajaColaborador[] = Object.entries(resultado.asignacion_aux)
+    .map(([v2Id, matriz]) => ({
+      colaboradorId: idMap[v2Id] ?? v2Id,
+      nombre: nombreMap[v2Id] ?? v2Id,
+      slotsCajaPorDia: matriz.map(fila => fila.map(estado => estado === 'CAJA')),
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const cajaEventual: AsignacionCajaColaborador[] = Object.entries(resultado.asignacion_eventual)
+    .map(([v2Id, matriz]) => ({
+      colaboradorId: idMap[v2Id] ?? v2Id,
+      nombre: nombreMap[v2Id] ?? v2Id,
+      slotsCajaPorDia: matriz.map(fila => fila.map(estado => estado === 'CAJA')),
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
   // Alertas desde el reporte de reglas
   const alertas: string[] = [
     ...resultado.reporte_reglas.advertencias,
@@ -301,5 +325,7 @@ export function convertirOutputDeV2(
     faltantesFranjas,
     alertas,
     porcentajeCobertura: resultado.metricas.cobertura_total_pct,
+    cajaAux,
+    cajaEventual,
   };
 }
