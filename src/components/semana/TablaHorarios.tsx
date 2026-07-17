@@ -295,7 +295,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           fontSize: '10px',
                           width: '80px',
                           textAlign: 'center',
-                          color: isFrancoReal ? 'var(--text-muted)' : 'white',
+                          color: isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
                           fontStyle: isFrancoReal ? 'italic' : 'normal',
                           backgroundColor: bgColor,
                           cursor: editable ? 'pointer' : 'default',
