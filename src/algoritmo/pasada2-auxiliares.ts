@@ -108,7 +108,20 @@ export function ejecutarPasada2(
 
       const n_activar = Math.min(deficit_slot, max_activables);
 
+      // Anti-fragmentacion: priorizar auxes que YA estan en CAJA en un slot
+      // adyacente de este dia (extienden un bloque continuo en vez de abrir
+      // uno nuevo de 30 min). Desempate: menos horas-caja acumuladas.
+      const esContinuo = (auxId: string): number => {
+        const fila = asignacion_aux[auxId][dia];
+        const izq = slot > 0 && fila[slot - 1] === "CAJA";
+        const der = slot < SLOTS_POR_DIA - 1 && fila[slot + 1] === "CAJA";
+        return izq || der ? 1 : 0;
+      };
+
       presentes.sort((a, b) => {
+        const cA = esContinuo(a);
+        const cB = esContinuo(b);
+        if (cA !== cB) return cB - cA; // continuos primero
         const hA = contarHorasCaja(asignacion_aux[a]);
         const hB = contarHorasCaja(asignacion_aux[b]);
         if (hA !== hB) return hA - hB;
@@ -123,12 +136,103 @@ export function ejecutarPasada2(
     }
   }
 
+  // === PASO 5: Agrupacion minima anti-fragmentacion ===
+  // Un aux sentado en caja debe estarlo en bloques continuos de al menos
+  // 2 slots (1 hora), no en slots de 30 min salteados. Dos operaciones,
+  // ambas respetando H-A2 (>=1 PARADO por slot) y H-A3 (nunca slots 28-29):
+  //   a) rellenar huecos de 1 slot entre dos bloques CAJA del mismo aux
+  //   b) extender bloques aislados de 1 slot hacia un vecino PARADO
+  //      (preferir el lado con deficit; si ninguno tiene, extender igual
+  //      para alcanzar el minimo de 1 hora)
+  agruparBloquesCaja(asignacion_aux, deficit_actual);
+
   return {
     asignacion_aux,
     deficit_2: deficit_actual,
     auxes_activados_08_09,
     violaciones_input: [],
   };
+}
+
+/**
+ * Convierte un slot PARADO en CAJA respetando H-A2: solo si en ese slot
+ * queda al menos otro aux PARADO despues de la conversion.
+ */
+function activarSiRespetaHA2(
+  asignacion_aux: Record<string, AsignacionAux[][]>,
+  deficit_actual: number[][],
+  auxId: string,
+  dia: DiaSemana,
+  slot: SlotIdx
+): boolean {
+  if (slot < 2 || slot > 27) return false; // H-A1 (0-1) y H-A3 (28-29)
+  if (asignacion_aux[auxId][dia][slot] !== "PARADO") return false;
+  let parados = 0;
+  for (const matriz of Object.values(asignacion_aux)) {
+    if (matriz[dia][slot] === "PARADO") parados++;
+  }
+  if (parados < 2) return false; // quedaria 0 PARADO → violaria H-A2
+  asignacion_aux[auxId][dia][slot] = "CAJA";
+  deficit_actual[dia][slot] = Math.max(0, deficit_actual[dia][slot] - 1);
+  return true;
+}
+
+/**
+ * Post-proceso de agrupacion: elimina la fragmentacion de bloques CAJA por
+ * aux/dia. Itera hasta estabilidad (rellenar un hueco puede crear un bloque
+ * que a su vez absorbe a otro aislado).
+ */
+function agruparBloquesCaja(
+  asignacion_aux: Record<string, AsignacionAux[][]>,
+  deficit_actual: number[][]
+): void {
+  const MAX_ITERACIONES = SLOTS_POR_DIA;
+  for (let iter = 0; iter < MAX_ITERACIONES; iter++) {
+    let cambios = false;
+
+    for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
+      for (const dia of DIAS) {
+        const fila = matriz[dia];
+
+        // a) Rellenar huecos de 1 slot: CAJA - PARADO - CAJA → CAJA continuo
+        for (let slot = 3; slot <= 26; slot++) {
+          if (
+            fila[slot] === "PARADO" &&
+            fila[slot - 1] === "CAJA" &&
+            fila[slot + 1] === "CAJA"
+          ) {
+            if (activarSiRespetaHA2(asignacion_aux, deficit_actual, auxId, dia, slot)) {
+              cambios = true;
+            }
+          }
+        }
+
+        // b) Extender bloques aislados de 1 slot al vecino PARADO
+        for (let slot = 2; slot <= 27; slot++) {
+          if (fila[slot] !== "CAJA") continue;
+          const solo =
+            (slot === 0 || fila[slot - 1] !== "CAJA") &&
+            (slot === SLOTS_POR_DIA - 1 || fila[slot + 1] !== "CAJA");
+          if (!solo) continue;
+
+          // Candidatos adyacentes donde este aux esta PARADO, con preferencia
+          // por el lado que ademas cubre deficit real.
+          const vecinos: SlotIdx[] = [slot - 1, slot + 1]
+            .filter(v => v >= 2 && v <= 27 && fila[v] === "PARADO")
+            .sort((a, b) => deficit_actual[dia][b] - deficit_actual[dia][a]);
+
+          for (const vecino of vecinos) {
+            if (activarSiRespetaHA2(asignacion_aux, deficit_actual, auxId, dia, vecino)) {
+              cambios = true;
+              break; // con 2 slots (1 hora) alcanza el minimo
+            }
+          }
+        }
+      }
+    }
+
+    if (!cambios) break;
+  }
 }
 
 // ============== HELPERS ==============

@@ -104,19 +104,6 @@ function sanitizarTexto(texto: string): string {
   return resultado
 }
 
-function limpiarValorCelda(valor: string): string {
-  // Si contiene salto de línea, tomar la primera línea no vacía
-  const lineas = valor.split('\n').map(l => l.trim()).filter(l => l.length > 0)
-  if (lineas.length === 0) return ''
-  // Si todas las líneas son iguales, devolver solo una
-  const primera = lineas[0]
-  if (lineas.every(l => l === primera)) {
-    return primera
-  }
-  // Si hay diferencias, unir con espacio (no debería ocurrir)
-  return lineas.join(' ')
-}
-
 export function generarPDF(
   resultado: ResultadoAsignacion,
   colaboradores: Colaborador[],
@@ -263,23 +250,21 @@ export function generarPDF(
     margin: { left: 14 },
     rowPageBreak: 'avoid',
     styles: { cellPadding: 3, fontSize: 8 },
-    didDrawCell: (data) => {
-      if (data.row.index === undefined || data.column.index === 0) return
-      let cellValue = limpiarValorCelda(data.cell.raw as string)
-      if (!cellValue) return
+    // Colorear el texto ANTES de que autoTable lo dibuje (didParseCell).
+    // Nota: no usar didDrawCell + doc.text() para esto — dibujaría el valor
+    // una segunda vez encima del que autoTable ya renderizó en negro.
+    didParseCell: (data) => {
+      if (data.section !== 'body' || data.column.index === 0) return
+      const cellValue = String(data.cell.raw ?? '')
       const [asignados, necesarios] = cellValue.split('/').map(Number)
+      if (isNaN(asignados) || isNaN(necesarios)) return
       if (asignados < necesarios) {
-        // Rojo para faltante
-        doc.setTextColor(220, 38, 38)
+        data.cell.styles.textColor = [220, 38, 38]   // rojo: faltante
       } else if (asignados > necesarios) {
-        // Amarillo para sobrante
-        doc.setTextColor(202, 138, 4)
+        data.cell.styles.textColor = [202, 138, 4]   // amarillo: sobrante
       } else {
-        // Verde para exacto
-        doc.setTextColor(22, 163, 74)
+        data.cell.styles.textColor = [22, 163, 74]   // verde: exacto
       }
-      doc.text(cellValue, data.cell.x + 2, data.cell.y + 8)
-      doc.setTextColor(0, 0, 0)
     },
   })
 
