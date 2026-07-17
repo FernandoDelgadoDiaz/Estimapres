@@ -12,26 +12,31 @@ function slotAHoraLegible(slot: number): string {
 
 /**
  * Convierte la fila de slots de CAJA de un día (30 booleanos) en un texto legible.
- * Bloques contiguos de CAJA se muestran como "HH:MM-HH:MM"; bloques discontinuos
- * del mismo día se separan con " | ". Si no hay ningún slot en CAJA, devuelve
- * `textoSinCaja` (p. ej. "PARADO" para AUX o "-" para eventuales).
- * Un bloque de slot 2 a slot 7 inclusive = "09:00-11:30".
+ * Bloques contiguos de CAJA se muestran como "HH:MM-HH:MM" con fin EXCLUSIVO
+ * (cada slot dura 30 min): un slot individual en 19:00 se muestra "19:00-19:30",
+ * nunca "19:00-19:00". Bloques discontinuos del mismo día (separados por al
+ * menos un slot PARADO/no-CAJA) se cierran por separado y se unen con " | ".
+ * Si no hay ningún slot en CAJA, devuelve `textoSinCaja` (p. ej. "PARADO"
+ * para AUX o "-" para eventuales).
  */
 function formatearCajaDia(slotsCaja: boolean[], textoSinCaja: string): string {
-  const bloques: string[] = []
+  // 1. Detectar bloques contiguos como pares [inicio, fin) con fin exclusivo.
+  const bloques: Array<[number, number]> = []
   let inicio = -1
-  for (let s = 0; s < slotsCaja.length; s++) {
-    if (slotsCaja[s]) {
-      if (inicio === -1) inicio = s
-    } else if (inicio !== -1) {
-      bloques.push(`${slotAHoraLegible(inicio)}-${slotAHoraLegible(s - 1)}`)
+  for (let s = 0; s <= slotsCaja.length; s++) {
+    const enCaja = s < slotsCaja.length && slotsCaja[s]
+    if (enCaja && inicio === -1) {
+      inicio = s
+    } else if (!enCaja && inicio !== -1) {
+      bloques.push([inicio, s]) // el slot s (no-CAJA o fin de día) cierra el bloque
       inicio = -1
     }
   }
-  if (inicio !== -1) {
-    bloques.push(`${slotAHoraLegible(inicio)}-${slotAHoraLegible(slotsCaja.length - 1)}`)
-  }
-  return bloques.length > 0 ? bloques.join(' | ') : textoSinCaja
+  // 2. Filtrar cualquier bloque degenerado (duración 0) y formatear.
+  const legibles = bloques
+    .filter(([ini, fin]) => fin > ini)
+    .map(([ini, fin]) => `${slotAHoraLegible(ini)}-${slotAHoraLegible(fin)}`)
+  return legibles.length > 0 ? legibles.join(' | ') : textoSinCaja
 }
 
 /**

@@ -281,15 +281,16 @@ export async function cargarHistorial(): Promise<SemanaHistorial[]> {
 }
 
 export async function guardarSemana(semana: SemanaHistorial): Promise<void> {
+  // Siempre respaldar en localStorage (aunque Supabase esté activo): así el
+  // último horario generado sobrevive sin conexión y al cerrar la pantalla.
+  const todas = leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).map(normalizarSemana)
+  const idx = todas.findIndex(s => s.id === semana.id)
+  if (idx >= 0) todas[idx] = semana
+  else todas.push(semana)
+  guardarAlmacen(CLAVES_ALMACEN.historial, todas.slice(-LIMITE_HISTORIAL_SEMANAS))
+
   const uid = await backendUid()
-  if (!uid || !supabase) {
-    const todas = leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).map(normalizarSemana)
-    const idx = todas.findIndex(s => s.id === semana.id)
-    if (idx >= 0) todas[idx] = semana
-    else todas.push(semana)
-    guardarAlmacen(CLAVES_ALMACEN.historial, todas.slice(-LIMITE_HISTORIAL_SEMANAS))
-    return
-  }
+  if (!uid || !supabase) return
   const { error } = await supabase.from('semanas_historial').upsert(semanaAFila(semana))
   if (error) console.error('Error guardando semana en Supabase:', error.message)
 }

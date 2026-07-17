@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout'
 import InicioPage from './pages/InicioPage'
 import ColaboradoresPage from './pages/ColaboradoresPage'
 import NuevaSemanaPage from './pages/NuevaSemanaPage'
+import UltimoHorarioPage from './pages/UltimoHorarioPage'
 import ReglasPage from './pages/ReglasPage'
 import HistorialPage from './pages/HistorialPage'
 
@@ -15,6 +16,7 @@ function App() {
             <Route path="/" element={<InicioPage />} />
             <Route path="/colaboradores" element={<ColaboradoresPage />} />
             <Route path="/nueva-semana" element={<NuevaSemanaPage />} />
+            <Route path="/ultimo-horario" element={<UltimoHorarioPage />} />
             <Route path="/reglas" element={<ReglasPage />} />
             <Route path="/historial" element={<HistorialPage />} />
           </Routes>

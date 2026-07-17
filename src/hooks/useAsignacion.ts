@@ -1,7 +1,46 @@
 import { useState } from 'react'
-import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual, JornadaResumida } from '../types'
+import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual, JornadaResumida, HorarioColaborador } from '../types'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
+
+/**
+ * Aplica una edición manual de jornada sobre una lista de horarios y devuelve
+ * la lista nueva con las horas recalculadas. Función pura: la usan tanto la
+ * pantalla de generación (useAsignacion) como "Último horario" (edición sobre
+ * la semana guardada en el historial).
+ */
+export function aplicarEdicionJornada(
+  horarios: HorarioColaborador[],
+  colaboradorId: string,
+  dia: number,
+  nueva: JornadaResumida
+): HorarioColaborador[] {
+  return horarios.map(h => {
+    if (h.colaboradorId !== colaboradorId) return h
+    const jornadas = h.jornadas.map(j => {
+      if (j.dia !== dia) return j
+      const horas = nueva.esFranco
+        ? 0
+        : nueva.turnos.reduce((sum, t) => {
+            const [hi, mi] = t.inicio.split(':').map(Number)
+            const [hf, mf] = t.fin.split(':').map(Number)
+            return sum + (hf * 60 + (mf || 0) - hi * 60 - (mi || 0)) / 60
+          }, 0)
+      return {
+        ...j,
+        esFranco: nueva.esFranco,
+        turnos: nueva.esFranco ? [] : nueva.turnos,
+        horas,
+        rol: nueva.esFranco ? ('franco' as const) : ('cajero' as const),
+      }
+    })
+    return {
+      ...h,
+      jornadas,
+      totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
+    }
+  })
+}
 
 export function useAsignacion() {
   const [resultado, setResultado] = useState<ResultadoAsignacion | null>(null)
@@ -67,32 +106,7 @@ export function useAsignacion() {
   const editarJornada = (colaboradorId: string, dia: number, nueva: JornadaResumida) => {
     setResultado(prev => {
       if (!prev) return prev
-      const horarios = prev.horarios.map(h => {
-        if (h.colaboradorId !== colaboradorId) return h
-        const jornadas = h.jornadas.map(j => {
-          if (j.dia !== dia) return j
-          const horas = nueva.esFranco
-            ? 0
-            : nueva.turnos.reduce((sum, t) => {
-                const [hi, mi] = t.inicio.split(':').map(Number)
-                const [hf, mf] = t.fin.split(':').map(Number)
-                return sum + (hf * 60 + (mf || 0) - hi * 60 - (mi || 0)) / 60
-              }, 0)
-          return {
-            ...j,
-            esFranco: nueva.esFranco,
-            turnos: nueva.esFranco ? [] : nueva.turnos,
-            horas,
-            rol: nueva.esFranco ? ('franco' as const) : ('cajero' as const),
-          }
-        })
-        return {
-          ...h,
-          jornadas,
-          totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
-        }
-      })
-      return { ...prev, horarios }
+      return { ...prev, horarios: aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva) }
     })
   }
 
