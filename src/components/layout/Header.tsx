@@ -1,22 +1,23 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cerrarSesion } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function Header() {
   const hoy = new Date()
   const semanaActual = `Semana ${format(hoy, 'w', { locale: es })} - ${format(hoy, 'yyyy', { locale: es })}`
+  const { usuario } = useAuth()
 
   const handleCerrarSesion = () => {
     const ok = confirm(
-      'Vas a cerrar la sesión de este dispositivo.\n\n' +
-      'IMPORTANTE: la sesión actual es anónima. Al cerrarla, los datos ' +
-      'guardados en la nube quedan desvinculados de este navegador (los datos ' +
-      'locales se conservan). Si no tenés un backup exportado, considerá ' +
-      'exportarlo antes desde Historial → Backup de configuración.\n\n' +
-      '¿Cerrar sesión igualmente?'
+      '¿Cerrar sesión en este dispositivo?\n\n' +
+      'Tus datos quedan guardados en tu cuenta: al iniciar sesión de nuevo ' +
+      '(acá o en otro dispositivo) los vas a recuperar.'
     )
     if (ok) void cerrarSesion()
   }
+
+  const inicial = (usuario?.email ?? 'S').charAt(0).toUpperCase()
 
   return (
     <header style={{
@@ -64,7 +65,7 @@ export default function Header() {
               color: 'var(--text-muted)',
               marginTop: '2px',
             }}>
-              Sucursal Central
+              {usuario?.email ?? 'Sucursal Central'}
             </p>
           </div>
           <div style={{
@@ -80,7 +81,7 @@ export default function Header() {
             fontWeight: 800,
             fontSize: '16px',
           }}>
-            SC
+            {inicial}
           </div>
           <button
             onClick={handleCerrarSesion}

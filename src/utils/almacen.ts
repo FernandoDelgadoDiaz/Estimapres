@@ -2,10 +2,11 @@
 // Capa de persistencia de las capacidades configurables.
 //
 // Backend principal: Supabase (tablas reglas_configurables, semanas_historial,
-// correcciones_manuales, aprendizajes_derivados, con RLS local_id = auth.uid()).
-// Fallback degradado: localStorage, solo cuando Supabase no está configurado o
-// no responde (sin envs, sin conexión, proyecto pausado). Al recuperar Supabase,
-// los datos locales existentes se migran automáticamente una única vez.
+// correcciones_manuales, aprendizajes_derivados, con RLS local_id = auth.uid()
+// y usuario autenticado NO anónimo). Fallback degradado: localStorage, cuando
+// Supabase no está configurado, no responde o no hay sesión. Al iniciar sesión,
+// los datos locales existentes se OFRECEN para migrar a la cuenta (una vez por
+// cuenta, solo hacia tablas vacías) — ver migrarDatosLocalesACuenta().
 //
 // Los hooks consumen esta API async y mantienen su interfaz síncrona con
 // estado optimista: la UI nunca espera a la red.
@@ -53,20 +54,25 @@ export function guardarAlmacen<T>(clave: string, valor: T): void {
 
 let inicioPromise: Promise<string | null> | null = null
 
-/** uid del usuario (sesión anónima incluida) o null → fallback localStorage. */
+/**
+ * uid del usuario autenticado o null → fallback localStorage.
+ * Un null no se memoiza: tras iniciar sesión, la próxima operación de datos
+ * vuelve a resolver el backend y encuentra la cuenta.
+ */
 async function backendUid(): Promise<string | null> {
-  inicioPromise ??= (async () => {
-    const uid = await asegurarSesion()
-    if (uid && supabase) {
-      try {
-        await migrarLocalASupabase()
-      } catch (error) {
-        console.error('Migración inicial a Supabase falló:', error)
-      }
-    }
+  if (!inicioPromise) {
+    const p = asegurarSesion()
+    inicioPromise = p
+    const uid = await p
+    if (!uid) inicioPromise = null
     return uid
-  })()
+  }
   return inicioPromise
+}
+
+/** Invalida el cache de backend (llamar tras login/logout). */
+export function invalidarCacheBackend(): void {
+  inicioPromise = null
 }
 
 export async function backendActivo(): Promise<'supabase' | 'local'> {
@@ -497,39 +503,69 @@ export async function sincronizarAprendizajes(aprendizajes: AprendizajeDerivado[
   if (error) console.error('Error guardando aprendizajes en Supabase:', error.message)
 }
 
-// ==================== MIGRACIÓN INICIAL localStorage → Supabase ====================
+// ==================== MIGRACIÓN localStorage → CUENTA ====================
+// Al iniciar sesión, si el dispositivo tiene datos locales (de una sesión
+// anónima anterior o de trabajar sin conexión) la app OFRECE migrarlos a la
+// cuenta. La migración es por cuenta (flag por uid) y solo hacia tablas
+// vacías, para no pisar datos que la cuenta ya tenga de otro dispositivo.
 
-async function migrarLocalASupabase(): Promise<void> {
-  if (!supabase) return
-  if (localStorage.getItem(CLAVES_ALMACEN.migrado)) return
+export interface ResumenDatosLocales {
+  reglas: number
+  semanas: number
+  correcciones: number
+}
+
+export function resumenDatosLocales(): ResumenDatosLocales {
+  return {
+    reglas: leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, []).length,
+    semanas: leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).length,
+    correcciones: leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, []).length,
+  }
+}
+
+export type ResultadoMigracion = 'migrado' | 'sin_datos' | 'ya_migrado' | 'cuenta_con_datos' | 'sin_conexion'
+
+export async function migrarDatosLocalesACuenta(): Promise<ResultadoMigracion> {
+  invalidarCacheBackend()
+  const uid = await backendUid()
+  if (!uid || !supabase) return 'sin_conexion'
+
+  const flag = `${CLAVES_ALMACEN.migrado}::${uid}`
+  if (localStorage.getItem(flag)) return 'ya_migrado'
 
   const reglas = leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
   const historial = leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).map(normalizarSemana)
   const correcciones = leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
 
   if (reglas.length === 0 && historial.length === 0 && correcciones.length === 0) {
-    localStorage.setItem(CLAVES_ALMACEN.migrado, new Date().toISOString())
-    return
+    localStorage.setItem(flag, new Date().toISOString())
+    return 'sin_datos'
   }
 
-  // Solo migrar hacia tablas vacías (no pisar datos remotos existentes)
-  const { count } = await supabase
+  // Solo migrar hacia una cuenta sin datos (no pisar lo que ya tenga)
+  const { count: countReglas } = await supabase
     .from('reglas_configurables')
     .select('id', { count: 'exact', head: true })
   const { count: countSemanas } = await supabase
     .from('semanas_historial')
     .select('id', { count: 'exact', head: true })
 
-  if ((count ?? 0) === 0 && reglas.length > 0) {
+  if ((countReglas ?? 0) > 0 || (countSemanas ?? 0) > 0) {
+    localStorage.setItem(flag, new Date().toISOString())
+    return 'cuenta_con_datos'
+  }
+
+  if (reglas.length > 0) {
     await supabase.from('reglas_configurables').insert(reglas.map(reglaAFila))
   }
-  if ((countSemanas ?? 0) === 0 && historial.length > 0) {
+  if (historial.length > 0) {
     await supabase.from('semanas_historial').insert(historial.map(semanaAFila))
-    if (correcciones.length > 0) {
-      await supabase.from('correcciones_manuales').insert(correcciones.map(correccionAFila))
-    }
   }
-  localStorage.setItem(CLAVES_ALMACEN.migrado, new Date().toISOString())
+  if (correcciones.length > 0) {
+    await supabase.from('correcciones_manuales').insert(correcciones.map(correccionAFila))
+  }
+  localStorage.setItem(flag, new Date().toISOString())
+  return 'migrado'
 }
 
 // ==================== EXPORT / IMPORT ====================

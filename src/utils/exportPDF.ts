@@ -127,7 +127,15 @@ export function generarPDF(
   auxiliares.forEach(a => colaboradoresMap.set(a.id, { nombre: a.nombre, tipo: 'AUX' }))
   eventuales.forEach(e => colaboradoresMap.set(e.id, { nombre: e.nombre, tipo: 'EVENTUAL' }))
 
-  const tableData = resultado.horarios.map(horario => {
+  // La página 1 muestra SOLO cajeros FULL/PART: los AUX y EVENTUALES tienen
+  // sus propias secciones de horarios en CAJA más abajo.
+  const horariosCajeros = resultado.horarios.filter(horario => {
+    const col = colaboradoresMap.get(horario.colaboradorId)
+    if (col) return col.tipo === 'FULL' || col.tipo === 'PART'
+    return horario.rolGeneral === 'cajero'
+  })
+
+  const tableData = horariosCajeros.map(horario => {
     const col = colaboradoresMap.get(horario.colaboradorId)
     if (!col) {
       console.warn(`Colaborador no encontrado en map: ${horario.colaboradorId}`)
