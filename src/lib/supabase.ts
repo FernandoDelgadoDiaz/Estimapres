@@ -20,6 +20,24 @@ let sesionPromise: Promise<string | null> | null = null
  * si Supabase no está configurado o no responde. Con null, la capa de
  * persistencia cae a localStorage (modo degradado, solo este dispositivo).
  */
+/**
+ * Cierra la sesión de Supabase y recarga la app. OJO: con sesión anónima,
+ * cerrar sesión desvincula los datos guardados en la nube (el próximo inicio
+ * crea un usuario anónimo NUEVO). Los datos locales de este dispositivo se
+ * conservan. El caller debe confirmar con el usuario antes de llamar.
+ */
+export async function cerrarSesion(): Promise<void> {
+  if (supabase) {
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.warn('Error al cerrar sesión en Supabase:', error)
+    }
+  }
+  sesionPromise = null
+  window.location.reload()
+}
+
 export function asegurarSesion(): Promise<string | null> {
   if (!supabase) return Promise.resolve(null)
   sesionPromise ??= (async () => {

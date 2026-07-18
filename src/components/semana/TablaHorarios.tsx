@@ -46,14 +46,20 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
     if (!editando) return []
     const horario = horarios.find(h => h.colaboradorId === editando.colaboradorId)
     if (!horario) return []
-    const tipo = colaboradores.find(c => c.id === editando.colaboradorId)?.tipo ?? 'FULL'
+    // Tipo real del colaborador: cajero (FULL/PART), AUX o EVENTUAL. Para
+    // AUX/EVENTUAL no aplican los totales de horas de cajeros, solo las
+    // validaciones genéricas (franja de operación, cortes, descansos).
+    const tipo =
+      colaboradores.find(c => c.id === editando.colaboradorId)?.tipo ??
+      (auxiliares.some(a => a.id === editando.colaboradorId) ? 'AUX' :
+        eventuales.some(e => e.id === editando.colaboradorId) ? 'EVENTUAL' : 'FULL')
     const semana: JornadaResumida[] = Array.from({ length: 7 }, (_, d) => {
       const j = horario.jornadas.find(x => x.dia === d)
       return { esFranco: j?.esFranco ?? false, turnos: j?.turnos ?? [] }
     })
     const jornadaEditada: JornadaResumida = { esFranco: editEsFranco, turnos: editEsFranco ? [] : editTurnos }
     return validarEdicionManual(jornadaEditada, semana, editando.dia, tipo)
-  }, [editando, editEsFranco, editTurnos, horarios, colaboradores])
+  }, [editando, editEsFranco, editTurnos, horarios, colaboradores, auxiliares, eventuales])
 
   const hayErrores = avisosValidacion.some(a => a.severidad === 'error')
 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { JornadaResumida } from '../types'
+import { JornadaResumida, ResultadoAsignacion } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
@@ -8,6 +8,7 @@ import { useEventuales } from '../hooks/useEventuales'
 import { useCorrecciones } from '../hooks/useCorrecciones'
 import { aplicarEdicionJornada } from '../hooks/useAsignacion'
 import { resumirTurnos } from '../utils/preferencias'
+import { generarPDF } from '../utils/exportPDF'
 import TablaHorarios from '../components/semana/TablaHorarios'
 
 /**
@@ -30,10 +31,32 @@ export default function UltimoHorarioPage() {
     return [...historial].sort((a, b) => b.generadoEl.localeCompare(a.generadoEl))[0]
   }, [historial])
 
+  // Incluye AUX y eventuales: sus filas también se muestran y editan acá.
   const nombrePorId = useMemo(
-    () => Object.fromEntries(colaboradoresActivos.map(c => [c.id, c.nombre])),
-    [colaboradoresActivos]
+    () => Object.fromEntries([
+      ...colaboradoresActivos.map(c => [c.id, c.nombre] as const),
+      ...auxiliaresActivos.map(a => [a.id, a.nombre] as const),
+      ...eventualesActivos.map(e => [e.id, e.nombre] as const),
+    ]),
+    [colaboradoresActivos, auxiliaresActivos, eventualesActivos]
   )
+
+  // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el
+  // snapshot de cobertura/CAJA guardado al generar (si existe).
+  const handleExportarPDF = () => {
+    if (!ultimaSemana) return
+    const resultado: ResultadoAsignacion = {
+      horarios: ultimaSemana.horarios,
+      coberturaFranjas: ultimaSemana.coberturaFranjas ?? [],
+      faltantesFranjas: ultimaSemana.faltantesFranjas ?? [],
+      alertas: [],
+      porcentajeCobertura: ultimaSemana.porcentajeCobertura ?? 0,
+      cajaAux: ultimaSemana.cajaAux,
+      cajaEventual: ultimaSemana.cajaEventual,
+    }
+    const pdf = generarPDF(resultado, colaboradoresActivos, ultimaSemana.descripcion, auxiliaresActivos, eventualesActivos)
+    pdf.save(`horarios-${ultimaSemana.descripcion.toLowerCase().replace(/ /g, '-')}.pdf`)
+  }
 
   const handleEditarJornada = (colaboradorId: string, dia: number, nueva: JornadaResumida) => {
     if (!ultimaSemana) return
@@ -115,7 +138,8 @@ export default function UltimoHorarioPage() {
                 {ultimaSemana.descripcion}
               </h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Semana del lunes {ultimaSemana.fechaLunes} · versión {ultimaSemana.version} · generado el {ultimaSemana.generadoEl.slice(0, 10)}
+                Semana del lunes {ultimaSemana.fechaLunes} · versión {ultimaSemana.version} · generado {formatearFechaHora(ultimaSemana.generadoEl)}
+                {ultimaSemana.modificadoEl && ` · última modificación ${formatearFechaHora(ultimaSemana.modificadoEl)}`}
               </p>
             </div>
             {ultimaSemana.editadoManualmente && (
@@ -136,6 +160,17 @@ export default function UltimoHorarioPage() {
             >
               Ver historial completo
             </Link>
+            <button
+              onClick={handleExportarPDF}
+              style={{
+                background: 'var(--accent)', color: 'var(--accent-dark)',
+                padding: '10px 20px', borderRadius: '100px', border: 'none',
+                fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '13px',
+                letterSpacing: '-0.2px', cursor: 'pointer',
+              }}
+            >
+              📄 Exportar PDF
+            </button>
           </div>
 
           <TablaHorarios
@@ -150,4 +185,10 @@ export default function UltimoHorarioPage() {
       )}
     </div>
   )
+}
+
+function formatearFechaHora(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }

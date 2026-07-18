@@ -162,80 +162,97 @@ function direccionDeCorreccion(c: CorreccionManual): DireccionAprendizaje | null
   return 'prefiere_tarde'
 }
 
+// Redacción de PATRÓN (hecho observado), no de preferencia personal: una
+// corrección puede deberse a necesidades de cobertura, no a gustos.
 const DESCRIPCION_DIRECCION: Record<DireccionAprendizaje, string> = {
-  prefiere_manana: 'prefiere turnos de mañana',
-  prefiere_tarde: 'prefiere turnos de tarde',
-  prefiere_cierre: 'prefiere turnos de cierre',
-  evita_cierre: 'evita turnos de cierre',
-  hora_preferida: 'entra a una hora preferida',
+  prefiere_manana: 'fue movido/a a turnos de mañana',
+  prefiere_tarde: 'fue movido/a a turnos de tarde',
+  prefiere_cierre: 'fue movido/a a turnos de cierre',
+  evita_cierre: 'fue sacado/a de turnos de cierre',
+  hora_preferida: 'fue movido/a a entrar a la misma hora',
 }
 
-const EVIDENCIAS_MINIMAS = 2 // una corrección aislada no es un patrón
-const EVIDENCIAS_MINIMAS_FINO = 2 // patrón por día concreto
+// Un patrón exige repetición REAL: 3+ correcciones en la misma dirección y en
+// SEMANAS DISTINTAS. Correcciones múltiples de la misma semana suelen ser
+// ajustes de cobertura puntuales, no un patrón del colaborador.
+const EVIDENCIAS_MINIMAS = 3
+const SEMANAS_DISTINTAS_MINIMAS = 3
+
+/** Clave de semana para agrupar evidencias: semanaId, o la fecha si falta. */
+function claveSemana(c: CorreccionManual): string {
+  return c.semanaId || c.fecha.slice(0, 10)
+}
 
 /**
- * Deriva aprendizajes en dos granularidades:
- *  - GLOBAL: el colaborador prefiere/evita un tipo de turno en general.
- *  - FINO por día: el mismo patrón repetido en un día concreto de la semana
- *    (ej. "los sábados prefiere mañana") → aprendizaje con `dia`.
- *  - HORA preferida: si mueve repetidamente su entrada a la misma hora, se
- *    registra esa hora como preferida (`hora_preferida`).
+ * Deriva PATRONES de las correcciones manuales en tres granularidades:
+ *  - GLOBAL: el colaborador fue movido repetidamente hacia/desde un tipo de turno.
+ *  - FINO por día: el mismo patrón repetido en un día concreto de la semana.
+ *  - HORA: fue movido repetidamente a entrar a la misma hora un día dado.
+ * Solo se reporta un patrón con 3+ correcciones en 3+ semanas distintas.
  */
 export function derivarAprendizajes(correcciones: CorreccionManual[]): AprendizajeDerivado[] {
-  const globales = new Map<string, { nombre: string; direccion: DireccionAprendizaje; ids: string[] }>()
-  const porDia = new Map<string, { nombre: string; direccion: DireccionAprendizaje; dia: number; ids: string[] }>()
-  const horas = new Map<string, { nombre: string; dia: number; hora: string; ids: string[] }>()
+  interface Bucket { nombre: string; direccion: DireccionAprendizaje; dia?: number; hora?: string; ids: string[]; semanas: Set<string> }
+  const globales = new Map<string, Bucket>()
+  const porDia = new Map<string, Bucket>()
+  const horas = new Map<string, Bucket>()
 
   for (const c of correcciones) {
+    const semana = claveSemana(c)
     const dir = direccionDeCorreccion(c)
     if (dir) {
       const cg = `${c.colaboradorNombre}::${dir}`
-      const g = globales.get(cg) ?? { nombre: c.colaboradorNombre, direccion: dir, ids: [] }
+      const g = globales.get(cg) ?? { nombre: c.colaboradorNombre, direccion: dir, ids: [], semanas: new Set<string>() }
       g.ids.push(c.id)
+      g.semanas.add(semana)
       globales.set(cg, g)
 
       const cd = `${c.colaboradorNombre}::${dir}::${c.dia}`
-      const d = porDia.get(cd) ?? { nombre: c.colaboradorNombre, direccion: dir, dia: c.dia, ids: [] }
+      const d = porDia.get(cd) ?? { nombre: c.colaboradorNombre, direccion: dir, dia: c.dia, ids: [], semanas: new Set<string>() }
       d.ids.push(c.id)
+      d.semanas.add(semana)
       porDia.set(cd, d)
     }
-    // Hora preferida: entrada del turno corregido (si no es franco)
+    // Hora repetida: entrada del turno corregido (si no es franco)
     if (!c.despues.esFranco && c.despues.turnos.length > 0) {
       const hora = c.despues.turnos[0].inicio
       const ch = `${c.colaboradorNombre}::${c.dia}::${hora}`
-      const h = horas.get(ch) ?? { nombre: c.colaboradorNombre, dia: c.dia, hora, ids: [] }
+      const h = horas.get(ch) ?? { nombre: c.colaboradorNombre, direccion: 'hora_preferida' as const, dia: c.dia, hora, ids: [], semanas: new Set<string>() }
       h.ids.push(c.id)
+      h.semanas.add(semana)
       horas.set(ch, h)
     }
   }
 
+  const esPatron = (b: Bucket) =>
+    b.ids.length >= EVIDENCIAS_MINIMAS && b.semanas.size >= SEMANAS_DISTINTAS_MINIMAS
+
   const aprendizajes: AprendizajeDerivado[] = []
 
   for (const g of globales.values()) {
-    if (g.ids.length < EVIDENCIAS_MINIMAS) continue
+    if (!esPatron(g)) continue
     aprendizajes.push({
       colaboradorNombre: g.nombre,
       direccion: g.direccion,
       evidencias: g.ids.length,
       correccionIds: g.ids,
-      descripcion: `${g.nombre} ${DESCRIPCION_DIRECCION[g.direccion]} (${g.ids.length} correcciones)`,
+      descripcion: `Patrón detectado: ${g.nombre} ${DESCRIPCION_DIRECCION[g.direccion]} en ${g.semanas.size} semanas distintas (${g.ids.length} correcciones)`,
     })
   }
 
   for (const d of porDia.values()) {
-    if (d.ids.length < EVIDENCIAS_MINIMAS_FINO) continue
+    if (!esPatron(d)) continue
     aprendizajes.push({
       colaboradorNombre: d.nombre,
       direccion: d.direccion,
       dia: d.dia,
       evidencias: d.ids.length,
       correccionIds: d.ids,
-      descripcion: `${d.nombre}, los ${DIAS_SEMANA[d.dia]}, ${DESCRIPCION_DIRECCION[d.direccion]} (${d.ids.length} correcciones)`,
+      descripcion: `Patrón detectado: ${d.nombre}, los ${DIAS_SEMANA[d.dia!]}, ${DESCRIPCION_DIRECCION[d.direccion]} en ${d.semanas.size} semanas distintas (${d.ids.length} correcciones)`,
     })
   }
 
   for (const h of horas.values()) {
-    if (h.ids.length < EVIDENCIAS_MINIMAS_FINO) continue
+    if (!esPatron(h)) continue
     aprendizajes.push({
       colaboradorNombre: h.nombre,
       direccion: 'hora_preferida',
@@ -243,7 +260,7 @@ export function derivarAprendizajes(correcciones: CorreccionManual[]): Aprendiza
       valor: h.hora,
       evidencias: h.ids.length,
       correccionIds: h.ids,
-      descripcion: `${h.nombre}, los ${DIAS_SEMANA[h.dia]}, prefiere entrar ${h.hora} (${h.ids.length} correcciones)`,
+      descripcion: `Patrón detectado: ${h.nombre}, los ${DIAS_SEMANA[h.dia!]}, fue movido/a a entrar ${h.hora} en ${h.semanas.size} semanas distintas (${h.ids.length} correcciones)`,
     })
   }
 

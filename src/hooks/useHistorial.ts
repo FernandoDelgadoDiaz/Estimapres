@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { SemanaHistorial, HorarioColaborador, ResumenTurnos } from '../types'
+import { SemanaHistorial } from '../types'
 import { cargarHistorial, guardarSemana, eliminarSemanaRemota, reemplazarHistorial } from '../utils/almacen'
 
 /**
@@ -23,12 +23,9 @@ export function useHistorial() {
    * Guarda una nueva versión de la semana. Regenerar el mismo lunes NO pisa la
    * versión anterior: crea version = max(previa) + 1 (versionado real).
    */
-  const agregarSemana = (datos: {
-    fechaLunes: string
-    descripcion: string
-    horarios: HorarioColaborador[]
-    resumenPorColaborador: Record<string, ResumenTurnos>
-  }): SemanaHistorial => {
+  const agregarSemana = (
+    datos: Omit<SemanaHistorial, 'id' | 'version' | 'generadoEl' | 'editadoManualmente' | 'modificadoEl'>
+  ): SemanaHistorial => {
     const versionesPrevias = historial.filter(s => s.fechaLunes === datos.fechaLunes)
     const version = versionesPrevias.reduce((max, s) => Math.max(max, s.version), 0) + 1
     const semana: SemanaHistorial = {
@@ -44,13 +41,18 @@ export function useHistorial() {
   }
 
   const actualizarSemana = (id: string, cambios: Partial<SemanaHistorial>) => {
-    let actualizada: SemanaHistorial | undefined
-    setHistorial(prev => prev.map(s => {
-      if (s.id !== id) return s
-      actualizada = { ...s, ...cambios }
-      return actualizada
-    }))
-    if (actualizada) void guardarSemana(actualizada)
+    // IMPORTANTE: no capturar la semana dentro del updater de setState — React
+    // puede diferir su ejecución y la persistencia no se dispararía nunca
+    // (la edición se veía en pantalla pero se perdía al recargar).
+    const actual = historial.find(s => s.id === id)
+    if (!actual) return
+    const actualizada: SemanaHistorial = {
+      ...actual,
+      ...cambios,
+      modificadoEl: new Date().toISOString(),
+    }
+    setHistorial(prev => prev.map(s => (s.id === id ? actualizada : s)))
+    void guardarSemana(actualizada)
   }
 
   const eliminarSemana = (id: string) => {

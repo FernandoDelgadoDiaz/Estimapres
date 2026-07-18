@@ -138,9 +138,17 @@ export interface SemanaHistorial {
   version: number      // versionado: regenerar la misma semana crea v2, v3...
   descripcion: string
   generadoEl: string   // ISO
+  modificadoEl?: string // ISO de la última edición manual (si hubo)
   resumenPorColaborador: Record<string, ResumenTurnos> // key = nombre del colaborador
   horarios: HorarioColaborador[]
   editadoManualmente: boolean
+  // Snapshot opcional del resto del resultado, para poder re-exportar el PDF
+  // completo desde "Último horario" (con las ediciones aplicadas).
+  cajaAux?: AsignacionCajaColaborador[]
+  cajaEventual?: AsignacionCajaColaborador[]
+  coberturaFranjas?: number[][]
+  faltantesFranjas?: number[][]
+  porcentajeCobertura?: number
 }
 
 // ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================

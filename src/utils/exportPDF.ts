@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, AsignacionCajaColaborador, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
+import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, AsignacionCajaColaborador, SemanaHistorial, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
 import { formatoTurno } from './timeUtils'
 
 /** Convierte un índice de slot (0 = 08:00, cada slot = 30 min) a "HH:MM". */
@@ -204,7 +204,9 @@ export function generarPDF(
     yCaja = dibujarSeccionCaja(doc, 'Eventuales - Horarios en CAJA', 'EVENTUAL', cajaEventual, '-', yCaja)
   }
 
-  // Página 2: Cobertura por franja
+  // Página 2: Cobertura por franja (solo si hay datos de cobertura — un PDF
+  // regenerado desde "Último horario" sin snapshot de cobertura la omite)
+  if (resultado.coberturaFranjas.length > 0) {
   doc.addPage()
   doc.setFontSize(16)
   doc.text(`Cobertura por Franja - ${semanaDesc}`, 14, 15)
@@ -267,6 +269,7 @@ export function generarPDF(
       }
     },
   })
+  } // fin página cobertura
 
   // Página 3: Alertas y métricas (si hay)
   if (resultado.alertas.length > 0) {
@@ -317,4 +320,73 @@ export function generarPDF(
   }
 
   return doc
+}
+/**
+ * PDF del historial de semanas guardadas: por cada semana (más reciente
+ * primero) una tabla con el resumen por colaborador (M/T/C/F) y sus
+ * horarios por día. Pensado para imprimir desde la página Historial.
+ */
+export function exportarHistorialPDF(semanas: SemanaHistorial[]): jsPDF {
+  const doc = new jsPDF('landscape')
+  const fecha = new Date().toLocaleDateString('es-AR')
+
+  doc.setFontSize(16)
+  doc.text('Historial de semanas generadas', 14, 15)
+  doc.setFontSize(10)
+  doc.text(`Exportado: ${fecha} - ${semanas.length} semana${semanas.length === 1 ? '' : 's'}`, 14, 22)
+
+  const ordenadas = [...semanas].sort((a, b) => {
+    if (a.fechaLunes !== b.fechaLunes) return b.fechaLunes.localeCompare(a.fechaLunes)
+    return b.version - a.version
+  })
+
+  let y = 30
+  for (const s of ordenadas) {
+    if (y > 160) {
+      doc.addPage()
+      y = 20
+    }
+    doc.setFontSize(12)
+    doc.setTextColor(0, 0, 0)
+    const modif = s.modificadoEl ? ` - modificado ${formatearFechaHora(s.modificadoEl)}` : ''
+    const editada = s.editadoManualmente ? ' [editada]' : ''
+    doc.text(
+      `${s.descripcion} (lunes ${s.fechaLunes}, v${s.version}) - generado ${formatearFechaHora(s.generadoEl)}${modif}${editada}`,
+      14, y
+    )
+
+    const filas = Object.entries(s.resumenPorColaborador).map(([nombre, r]) => [
+      nombre,
+      String(r.mananas),
+      String(r.tardes),
+      String(r.cierres),
+      String(r.francos),
+    ])
+
+    autoTable(doc, {
+      head: [['Colaborador', 'Mananas', 'Tardes', 'Cierres', 'Francos']],
+      body: filas.length > 0 ? filas : [['(sin resumen)', '-', '-', '-', '-']],
+      startY: y + 4,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+      bodyStyles: { textColor: [0, 0, 0] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { halign: 'left' },
+        ...Object.fromEntries(Array.from({ length: 4 }, (_, i) => [1 + i, { halign: 'center' }])),
+      },
+      margin: { left: 14 },
+      styles: { cellPadding: 2, fontSize: 8 },
+      rowPageBreak: 'avoid',
+    })
+    y = ((doc as any).lastAutoTable?.finalY || y) + 12
+  }
+
+  return doc
+}
+
+function formatearFechaHora(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }

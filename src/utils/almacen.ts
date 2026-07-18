@@ -73,6 +73,55 @@ export async function backendActivo(): Promise<'supabase' | 'local'> {
   return (await backendUid()) ? 'supabase' : 'local'
 }
 
+// ==================== COLA DE SINCRONIZACIÓN (reintentos) ====================
+// Cuando una escritura a Supabase falla, el dato YA quedó en localStorage:
+// no se pierde nada. La operación se encola y se reintenta automáticamente
+// cada 30s hasta lograrlo. La UI puede mostrar "guardado localmente,
+// sincronizando…" escuchando el evento 'aliada-sync'.
+
+interface OpPendiente {
+  clave: string // dedup: la misma entidad reemplaza su reintento anterior
+  ejecutar: () => Promise<boolean> // true = sincronizado
+}
+
+const colaSync: OpPendiente[] = []
+let timerSync: ReturnType<typeof setInterval> | null = null
+const INTERVALO_REINTENTO_MS = 30_000
+
+export function pendientesSincronizacion(): number {
+  return colaSync.length
+}
+
+function emitirEstadoSync(): void {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('aliada-sync', { detail: { pendientes: colaSync.length } }))
+}
+
+function encolarReintento(clave: string, ejecutar: () => Promise<boolean>): void {
+  const idx = colaSync.findIndex(op => op.clave === clave)
+  if (idx >= 0) colaSync[idx] = { clave, ejecutar }
+  else colaSync.push({ clave, ejecutar })
+  emitirEstadoSync()
+  if (!timerSync && typeof window !== 'undefined') {
+    timerSync = setInterval(() => { void procesarColaSync() }, INTERVALO_REINTENTO_MS)
+  }
+}
+
+async function procesarColaSync(): Promise<void> {
+  for (let i = colaSync.length - 1; i >= 0; i--) {
+    try {
+      if (await colaSync[i].ejecutar()) colaSync.splice(i, 1)
+    } catch {
+      // sigue pendiente, se reintenta en el próximo ciclo
+    }
+  }
+  emitirEstadoSync()
+  if (colaSync.length === 0 && timerSync) {
+    clearInterval(timerSync)
+    timerSync = null
+  }
+}
+
 // ==================== MAPEOS FILA ↔ TIPO ====================
 
 interface FilaRegla {
@@ -144,10 +193,18 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
     horario_completo: {
       descripcion: s.descripcion,
       generadoEl: s.generadoEl,
+      modificadoEl: s.modificadoEl,
       horarios: s.horarios,
       editadoManualmente: s.editadoManualmente,
+      cajaAux: s.cajaAux,
+      cajaEventual: s.cajaEventual,
     },
-    metricas: { resumenPorColaborador: s.resumenPorColaborador },
+    metricas: {
+      resumenPorColaborador: s.resumenPorColaborador,
+      coberturaFranjas: s.coberturaFranjas,
+      faltantesFranjas: s.faltantesFranjas,
+      porcentajeCobertura: s.porcentajeCobertura,
+    },
   }
 }
 
@@ -160,9 +217,15 @@ function filaASemana(f: FilaSemana): SemanaHistorial {
     version: f.version ?? 1,
     descripcion: (h.descripcion as string) ?? `Semana del ${f.lunes_fecha}`,
     generadoEl: (h.generadoEl as string) ?? f.created_at,
+    modificadoEl: h.modificadoEl as string | undefined,
     horarios: (h.horarios as SemanaHistorial['horarios']) ?? [],
     editadoManualmente: (h.editadoManualmente as boolean) ?? false,
+    cajaAux: h.cajaAux as SemanaHistorial['cajaAux'],
+    cajaEventual: h.cajaEventual as SemanaHistorial['cajaEventual'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
+    coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
+    faltantesFranjas: m.faltantesFranjas as number[][] | undefined,
+    porcentajeCobertura: m.porcentajeCobertura as number | undefined,
   }
 }
 
@@ -232,7 +295,19 @@ export async function guardarRegla(regla: ReglaConfigurable): Promise<void> {
     return
   }
   const { error } = await supabase.from('reglas_configurables').upsert(reglaAFila(regla))
-  if (error) console.error('Error guardando regla en Supabase:', error.message)
+  if (error) {
+    console.warn('Regla guardada localmente; reintentando sync con Supabase:', error.message)
+    const todas = leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
+    const idx = todas.findIndex(r => r.id === regla.id)
+    if (idx >= 0) todas[idx] = regla
+    else todas.push(regla)
+    guardarAlmacen(CLAVES_ALMACEN.reglas, todas)
+    encolarReintento(`regla:${regla.id}`, async () => {
+      if (!supabase) return false
+      const { error: err } = await supabase.from('reglas_configurables').upsert(reglaAFila(regla))
+      return !err
+    })
+  }
 }
 
 export async function eliminarReglaRemota(id: string): Promise<void> {
@@ -292,7 +367,14 @@ export async function guardarSemana(semana: SemanaHistorial): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) return
   const { error } = await supabase.from('semanas_historial').upsert(semanaAFila(semana))
-  if (error) console.error('Error guardando semana en Supabase:', error.message)
+  if (error) {
+    console.warn('Semana guardada localmente; reintentando sync con Supabase:', error.message)
+    encolarReintento(`semana:${semana.id}`, async () => {
+      if (!supabase) return false
+      const { error: err } = await supabase.from('semanas_historial').upsert(semanaAFila(semana))
+      return !err
+    })
+  }
 }
 
 export async function eliminarSemanaRemota(id: string): Promise<void> {
@@ -346,7 +428,20 @@ export async function guardarCorreccion(c: CorreccionManual): Promise<void> {
     return
   }
   const { error } = await supabase.from('correcciones_manuales').upsert(correccionAFila(c))
-  if (error) console.error('Error guardando corrección en Supabase:', error.message)
+  if (error) {
+    console.warn('Corrección guardada localmente; reintentando sync con Supabase:', error.message)
+    // Asegurar copia local (el camino Supabase no la escribía)
+    const todas = leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
+    if (!todas.some(x => x.id === c.id)) {
+      todas.push(c)
+      guardarAlmacen(CLAVES_ALMACEN.correcciones, todas.slice(-LIMITE_CORRECCIONES))
+    }
+    encolarReintento(`correccion:${c.id}`, async () => {
+      if (!supabase) return false
+      const { error: err } = await supabase.from('correcciones_manuales').upsert(correccionAFila(c))
+      return !err
+    })
+  }
 }
 
 export async function eliminarCorreccionesRemotas(ids: string[]): Promise<void> {

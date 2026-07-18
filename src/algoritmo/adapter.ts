@@ -243,6 +243,56 @@ export function convertirOutputDeV2(
     }
   }
 
+  // Filas AUX y EVENTUAL en horarios[]: permiten verlas y EDITARLAS en la UI
+  // (Último horario / resultado) igual que a los cajeros.
+  //  - AUX: su jornada es toda la presencia (PARADO y CAJA son trabajo).
+  //  - EVENTUAL: su jornada son los bloques en CAJA (el resto trabaja en su sector).
+  const jornadasDesdeMatriz = (
+    matriz: string[][],
+    esTrabajo: (estado: string) => boolean,
+    rolTrabajo: JornadaAsignada['rol']
+  ): JornadaAsignada[] =>
+    Array.from({ length: 7 }, (_, dia) => {
+      const turnos: { inicio: string; fin: string }[] = [];
+      let inicio = -1;
+      for (let s = 0; s <= 30; s++) {
+        const activo = s < 30 && esTrabajo(matriz[dia][s]);
+        if (activo && inicio === -1) inicio = s;
+        else if (!activo && inicio !== -1) {
+          turnos.push({ inicio: slotAHora(inicio), fin: slotAHora(s) });
+          inicio = -1;
+        }
+      }
+      const horas = turnos.reduce((sum, t) => {
+        const [hi, mi] = t.inicio.split(':').map(Number);
+        const [hf, mf] = t.fin.split(':').map(Number);
+        return sum + (hf * 60 + mf - hi * 60 - mi) / 60;
+      }, 0);
+      const esFranco = turnos.length === 0;
+      return { dia, turnos, horas, esFranco, rol: esFranco ? ('franco' as const) : rolTrabajo };
+    });
+
+  for (const [v2Id, matriz] of Object.entries(resultado.asignacion_aux)) {
+    const jornadas = jornadasDesdeMatriz(matriz, e => e !== 'NO_PRESENTE', 'aux_supervisor');
+    horarios.push({
+      colaboradorId: idMap[v2Id] ?? v2Id,
+      jornadas,
+      totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
+      errores: [],
+      rolGeneral: 'aux_supervisor',
+    });
+  }
+  for (const [v2Id, matriz] of Object.entries(resultado.asignacion_eventual)) {
+    const jornadas = jornadasDesdeMatriz(matriz, e => e === 'CAJA', 'eventual_sector');
+    horarios.push({
+      colaboradorId: idMap[v2Id] ?? v2Id,
+      jornadas,
+      totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
+      errores: [],
+      rolGeneral: 'eventual_sector',
+    });
+  }
+
   // Cobertura real por slot [dia][slot]
   const coberturaSlot: number[][] = Array.from({ length: 7 }, () => Array(30).fill(0));
 

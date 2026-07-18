@@ -106,10 +106,15 @@ export default function NuevaSemanaPage() {
     setExcepciones(excepciones.filter(e => e.id !== id))
   }
 
-  // Mapeo id UI → nombre (para historial y correcciones)
+  // Mapeo id UI → nombre (para historial y correcciones), incluyendo AUX y
+  // eventuales: sus filas también aparecen en el resultado y son editables.
   const nombrePorId = useMemo(
-    () => Object.fromEntries(colaboradoresActivos.map(c => [c.id, c.nombre])),
-    [colaboradoresActivos]
+    () => Object.fromEntries([
+      ...colaboradoresActivos.map(c => [c.id, c.nombre] as const),
+      ...auxiliaresActivos.map(a => [a.id, a.nombre] as const),
+      ...eventualesActivos.map(e => [e.id, e.nombre] as const),
+    ]),
+    [colaboradoresActivos, auxiliaresActivos, eventualesActivos]
   )
 
   // Preferencias blandas: rotación (historial) + aprendizaje (correcciones)
@@ -154,6 +159,12 @@ export default function NuevaSemanaPage() {
         descripcion: semanaDesc || `Semana del ${fechaLunes}`,
         horarios: res.horarios,
         resumenPorColaborador: resumirTurnos(res.horarios, nombrePorId),
+        // Snapshot para re-exportar el PDF completo desde "Último horario"
+        cajaAux: res.cajaAux,
+        cajaEventual: res.cajaEventual,
+        coberturaFranjas: res.coberturaFranjas,
+        faltantesFranjas: res.faltantesFranjas,
+        porcentajeCobertura: res.porcentajeCobertura,
       })
       setSemanaGuardadaId(semana.id)
     }

@@ -1,10 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DIAS_SEMANA } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useCorrecciones } from '../hooks/useCorrecciones'
 import { useReglas } from '../hooks/useReglas'
 import { derivarAprendizajes, calcularSesgoRotacion, explicarSesgos, clasificarJornadaUI } from '../utils/preferencias'
+import { pendientesSincronizacion } from '../utils/almacen'
+import { exportarHistorialPDF } from '../utils/exportPDF'
 import BackupConfig from '../components/semana/BackupConfig'
+
+function formatearFechaHora(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
 const cardStyle: React.CSSProperties = {
   background: 'var(--card)',
@@ -23,6 +31,15 @@ export default function HistorialPage() {
   const { correcciones, eliminarCorreccion, eliminarCorrecciones } = useCorrecciones()
   const { backend } = useReglas()
   const [semanaAbierta, setSemanaAbierta] = useState<string | null>(null)
+  const [filtroColab, setFiltroColab] = useState<string>('todas')
+  const [pendientesSync, setPendientesSync] = useState<number>(pendientesSincronizacion())
+
+  // Estado de sincronización con la nube (ver cola de reintentos en almacen.ts)
+  useEffect(() => {
+    const handler = (e: Event) => setPendientesSync((e as CustomEvent).detail?.pendientes ?? 0)
+    window.addEventListener('aliada-sync', handler)
+    return () => window.removeEventListener('aliada-sync', handler)
+  }, [])
 
   const aprendizajes = useMemo(() => derivarAprendizajes(correcciones), [correcciones])
   const rotacionActiva = useMemo(() => explicarSesgos(calcularSesgoRotacion(historial)), [historial])
@@ -31,22 +48,54 @@ export default function HistorialPage() {
     [historial]
   )
 
+  // Pestañas de correcciones por colaborador
+  const nombresConCorrecciones = useMemo(
+    () => [...new Set(correcciones.map(c => c.colaboradorNombre))].sort(),
+    [correcciones]
+  )
+  const correccionesFiltradas = useMemo(
+    () => (filtroColab === 'todas' ? correcciones : correcciones.filter(c => c.colaboradorNombre === filtroColab)),
+    [correcciones, filtroColab]
+  )
+
+  const handleExportarHistorialPDF = () => {
+    const pdf = exportarHistorialPDF(historial)
+    pdf.save(`historial-semanas-${new Date().toISOString().slice(0, 10)}.pdf`)
+  }
+
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <div>
-        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>
-          Historial y aprendizaje
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
-          Semanas generadas, rotación de turnos y lo que el sistema aprendió de tus correcciones.
-        </p>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>
-          {backend === 'supabase'
-            ? '☁️ Datos sincronizados en Supabase (backend real).'
-            : backend === 'local'
-              ? '📴 Sin conexión a Supabase: usando almacenamiento local de este dispositivo.'
-              : '⏳ Conectando…'}
-        </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '16px' }}>
+        <div style={{ flex: 1, minWidth: '260px' }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>
+            Historial y aprendizaje
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
+            Semanas generadas, rotación de turnos y patrones detectados en tus correcciones.
+          </p>
+          <p style={{ fontSize: '12px', color: pendientesSync > 0 ? 'var(--warning)' : 'var(--text-muted)', marginTop: '6px' }}>
+            {pendientesSync > 0
+              ? `💾 Guardado localmente · sincronizando ${pendientesSync} cambio${pendientesSync === 1 ? '' : 's'} con la nube…`
+              : backend === 'supabase'
+                ? '☁️ Datos guardados en este dispositivo y sincronizados con la nube.'
+                : backend === 'local'
+                  ? '💾 Datos guardados en este dispositivo. Se sincronizarán con la nube cuando haya conexión.'
+                  : '⏳ Conectando…'}
+          </p>
+        </div>
+        <button
+          onClick={handleExportarHistorialPDF}
+          disabled={historial.length === 0}
+          style={{
+            background: 'var(--accent)', color: 'var(--accent-dark)',
+            padding: '10px 20px', borderRadius: '100px', border: 'none',
+            fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '13px',
+            letterSpacing: '-0.2px', cursor: historial.length === 0 ? 'not-allowed' : 'pointer',
+            opacity: historial.length === 0 ? 0.5 : 1,
+          }}
+        >
+          📄 Exportar PDF
+        </button>
       </div>
 
       <BackupConfig />
@@ -75,15 +124,16 @@ export default function HistorialPage() {
       <div style={cardStyle}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
           <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
-            🧠 Qué aprendió el sistema ({aprendizajes.length})
+            🧠 Patrones detectados ({aprendizajes.length})
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Patrones detectados en tus correcciones manuales (mínimo 2 correcciones en la misma dirección).
+            Solo se reporta un patrón cuando la misma corrección se repitió 3+ veces en semanas distintas.
+            Una corrección aislada puede ser por necesidad de cobertura, no por preferencia del colaborador.
           </p>
         </div>
         {aprendizajes.length === 0 ? (
           <p style={{ padding: '24px', color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center' }}>
-            Todavía no hay patrones. Editá horarios generados (clic en una celda del resultado) y el sistema va a empezar a aprender.
+            Todavía no hay patrones: se necesitan 3+ correcciones en la misma dirección, en semanas distintas.
           </p>
         ) : (
           aprendizajes.map(a => (
@@ -109,13 +159,36 @@ export default function HistorialPage() {
           <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
             ✏️ Correcciones registradas ({correcciones.length})
           </h3>
+          {/* Pestañas por colaborador para navegar la lista */}
+          {nombresConCorrecciones.length > 1 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+              {['todas', ...nombresConCorrecciones].map(nombre => (
+                <button
+                  key={nombre}
+                  onClick={() => setFiltroColab(nombre)}
+                  style={{
+                    padding: '6px 14px', borderRadius: '100px',
+                    border: '1px solid var(--border)',
+                    background: filtroColab === nombre ? 'var(--accent)' : 'var(--surface)',
+                    color: filtroColab === nombre ? 'var(--accent-dark)' : 'var(--text-muted)',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 600, fontSize: '12px', cursor: 'pointer',
+                  }}
+                >
+                  {nombre === 'todas'
+                    ? `Todas (${correcciones.length})`
+                    : `${nombre} (${correcciones.filter(c => c.colaboradorNombre === nombre).length})`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        {correcciones.length === 0 ? (
+        {correccionesFiltradas.length === 0 ? (
           <p style={{ padding: '24px', color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center' }}>
             Sin correcciones registradas.
           </p>
         ) : (
-          [...correcciones].reverse().slice(0, 50).map(c => (
+          [...correccionesFiltradas].reverse().slice(0, 50).map(c => (
             <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 24px', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
               <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{c.fecha.slice(0, 10)}</span>
               <span style={{ color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.colaboradorNombre}</span>
@@ -160,7 +233,11 @@ export default function HistorialPage() {
                 style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 24px', cursor: 'pointer' }}
               >
                 <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 600 }}>{s.descripcion}</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>lunes {s.fechaLunes}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>lunes {s.fechaLunes} · v{s.version}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  generado {formatearFechaHora(s.generadoEl)}
+                  {s.modificadoEl && ` · modif. ${formatearFechaHora(s.modificadoEl)}`}
+                </span>
                 {s.editadoManualmente && (
                   <span style={{ fontSize: '11px', color: 'var(--accent-strong)' }}>✏️ editada</span>
                 )}
