@@ -9,6 +9,27 @@ import { ejecutarPasada2 } from './pasada2-auxiliares';
 import { ejecutarPasada3 } from './pasada3-eventuales';
 import { calcularMetricasCobertura } from './validador';
 
+/**
+ * CASCADA DE PRIORIDAD (estricta) para cubrir la demanda del PDF:
+ *
+ *  1. CAJEROS FULL/PART (Pasada 1). Aca se aplican TODAS las reglas del
+ *     supervisor en el orden correcto:
+ *       - reglas laborales duras: por construccion de la optimizacion
+ *       - reglas por colaborador (franco fijo, no antes/despues, siempre
+ *         manana/cierre): llegan como excepciones y se filtran DENTRO de
+ *         la generacion de jornadas candidatas (nunca despues)
+ *       - reglas de sucursal: min_cajeros_franja eleva la demanda ANTES de
+ *         esta pasada (los cajeros la cubren primero); max_francos_dia
+ *         clampa francos aca
+ *       - preferencias blandas (rotacion/aprendizaje) y pesos de franja
+ *         (criterios de cobertura): solo sesgan el score, nunca las duras
+ *  2. AUX (Pasada 2): SOLO sobre el deficit residual de la Pasada 1, dentro
+ *     de sus horarios predefinidos, siempre con >=1 AUX PARADO por slot
+ *     (H-A2) y nunca en 22:00+ (H-A3).
+ *  3. EVENTUALES (Pasada 3): SOLO sobre el deficit residual tras AUX,
+ *     dentro de su disponibilidad, con distribucion equitativa (menos
+ *     horas-caja acumuladas primero).
+ */
 export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
   // Pasada 1: FULL + PART
   const p1 = ejecutarPasada1(input);

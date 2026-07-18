@@ -267,6 +267,152 @@ export function derivarAprendizajes(correcciones: CorreccionManual[]): Aprendiza
   return aprendizajes.sort((a, b) => b.evidencias - a.evidencias)
 }
 
+// ==================== CRITERIOS DE COBERTURA (aprendizaje de planificación) ====================
+// A diferencia de los patrones por persona, esto aprende QUÉ FRANJAS HORARIAS
+// prioriza el supervisor cuando corrige un horario: si sus ediciones suman
+// cobertura en una banda (aunque resignen otra) en semanas distintas, es un
+// criterio de planificación. Detectado en 1 semana = "en observación";
+// en 2+ semanas = "activo" → la próxima generación (la tercera semana) ya
+// pondera esas franjas en el score de cobertura (pesos_franja).
+
+export type BandaHoraria = 'apertura' | 'mediodia' | 'tarde' | 'cierre'
+
+export const BANDAS_HORARIAS: Record<BandaHoraria, { desde: number; hasta: number; etiqueta: string }> = {
+  apertura: { desde: 0, hasta: 6, etiqueta: 'apertura (08:00-11:00)' },
+  mediodia: { desde: 6, hasta: 12, etiqueta: 'mediodía (11:00-14:00)' },
+  tarde: { desde: 12, hasta: 22, etiqueta: 'tarde (14:00-19:00)' },
+  cierre: { desde: 22, hasta: 30, etiqueta: 'cierre (19:00-23:00)' },
+}
+
+export interface CriterioCobertura {
+  banda: BandaHoraria
+  /** Banda que el supervisor resigna con más frecuencia al priorizar `banda` */
+  bandaResignada?: BandaHoraria
+  semanas: number
+  evidencias: number
+  estado: 'activo' | 'observacion'
+  descripcion: string
+}
+
+/** Slots (0..29) cubiertos por una jornada en formato UI. */
+function slotsDeJornada(j: JornadaResumida): Set<number> {
+  const slots = new Set<number>()
+  if (j.esFranco) return slots
+  for (const t of j.turnos) {
+    const desde = Math.max(0, horaASlotUI(t.inicio))
+    const hasta = Math.min(30, horaASlotUI(t.fin))
+    for (let s = desde; s < hasta; s++) slots.add(s)
+  }
+  return slots
+}
+
+/** Delta de slots por banda que produjo una corrección (después − antes). */
+function deltaPorBanda(c: CorreccionManual): Record<BandaHoraria, number> {
+  const antes = slotsDeJornada(c.antes)
+  const despues = slotsDeJornada(c.despues)
+  const delta: Record<BandaHoraria, number> = { apertura: 0, mediodia: 0, tarde: 0, cierre: 0 }
+  for (const [banda, b] of Object.entries(BANDAS_HORARIAS) as Array<[BandaHoraria, { desde: number; hasta: number }]>) {
+    for (let s = b.desde; s < b.hasta; s++) {
+      if (despues.has(s) && !antes.has(s)) delta[banda]++
+      if (antes.has(s) && !despues.has(s)) delta[banda]--
+    }
+  }
+  return delta
+}
+
+function claveSemanaDeCorreccion(c: CorreccionManual): string {
+  return c.semanaId || c.fecha.slice(0, 10)
+}
+
+/**
+ * Deriva los criterios de cobertura del supervisor a partir de sus
+ * correcciones. Una banda es "señal" de una semana si las correcciones de esa
+ * semana le sumaron cobertura neta (> 0). El criterio se activa con señal en
+ * 2+ semanas distintas.
+ */
+export function derivarCriteriosCobertura(correcciones: CorreccionManual[]): CriterioCobertura[] {
+  // Acumular deltas por semana
+  const porSemana = new Map<string, { delta: Record<BandaHoraria, number>; correcciones: number }>()
+  for (const c of correcciones) {
+    const clave = claveSemanaDeCorreccion(c)
+    const acc = porSemana.get(clave) ?? {
+      delta: { apertura: 0, mediodia: 0, tarde: 0, cierre: 0 },
+      correcciones: 0,
+    }
+    const d = deltaPorBanda(c)
+    let toca = false
+    for (const banda of Object.keys(d) as BandaHoraria[]) {
+      acc.delta[banda] += d[banda]
+      if (d[banda] !== 0) toca = true
+    }
+    if (toca) acc.correcciones++
+    porSemana.set(clave, acc)
+  }
+
+  // Señales por banda a través de las semanas
+  const bandas = Object.keys(BANDAS_HORARIAS) as BandaHoraria[]
+  const señales = new Map<BandaHoraria, { semanas: number; evidencias: number; resignadas: BandaHoraria[] }>()
+  for (const { delta, correcciones: n } of porSemana.values()) {
+    for (const banda of bandas) {
+      if (delta[banda] <= 0) continue
+      const s = señales.get(banda) ?? { semanas: 0, evidencias: 0, resignadas: [] }
+      s.semanas++
+      s.evidencias += n
+      // ¿Qué banda resignó esa semana? La de delta más negativo (si hay)
+      let peor: BandaHoraria | null = null
+      for (const otra of bandas) {
+        if (delta[otra] < (peor ? delta[peor] : 0)) peor = otra
+      }
+      if (peor) s.resignadas.push(peor)
+      señales.set(banda, s)
+    }
+  }
+
+  const criterios: CriterioCobertura[] = []
+  for (const [banda, s] of señales) {
+    // Resignada más frecuente (si alguna)
+    let resignada: BandaHoraria | undefined
+    let maxCount = 0
+    for (const r of new Set(s.resignadas)) {
+      const count = s.resignadas.filter(x => x === r).length
+      if (count > maxCount) { maxCount = count; resignada = r }
+    }
+    const estado: CriterioCobertura['estado'] = s.semanas >= 2 ? 'activo' : 'observacion'
+    const etiqueta = BANDAS_HORARIAS[banda].etiqueta
+    const sufijo = resignada ? `, aun resignando ${BANDAS_HORARIAS[resignada].etiqueta}` : ''
+    criterios.push({
+      banda,
+      bandaResignada: resignada,
+      semanas: s.semanas,
+      evidencias: s.evidencias,
+      estado,
+      descripcion: estado === 'activo'
+        ? `Priorizás la cobertura de ${etiqueta}${sufijo} — visto en ${s.semanas} semanas. El algoritmo ya lo incorpora.`
+        : `Posible criterio: priorizar ${etiqueta}${sufijo} — visto en 1 semana. Se incorpora si se repite.`,
+    })
+  }
+
+  return criterios.sort((a, b) => b.semanas - a.semanas || b.evidencias - a.evidencias)
+}
+
+const PESO_CRITERIO_ACTIVO = 1.35
+
+/**
+ * Pesos por slot (30 valores) para el score de cobertura del algoritmo,
+ * derivados de los criterios ACTIVOS. undefined si no hay ninguno activo
+ * (comportamiento neutro, idéntico al de siempre).
+ */
+export function pesosFranjaDeCriterios(criterios: CriterioCobertura[]): number[] | undefined {
+  const activos = criterios.filter(c => c.estado === 'activo')
+  if (activos.length === 0) return undefined
+  const pesos = new Array<number>(30).fill(1)
+  for (const c of activos) {
+    const b = BANDAS_HORARIAS[c.banda]
+    for (let s = b.desde; s < b.hasta; s++) pesos[s] = Math.max(pesos[s], PESO_CRITERIO_ACTIVO)
+  }
+  return pesos
+}
+
 export function calcularSesgoAprendizaje(aprendizajes: AprendizajeDerivado[]): SesgosPorNombre {
   const sesgos: SesgosPorNombre = {}
   for (const a of aprendizajes) {

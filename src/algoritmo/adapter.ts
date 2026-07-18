@@ -107,6 +107,8 @@ export interface OpcionesGeneracion {
   preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
   demandaMinima?: Array<{ dia: number; slotDesde: number; slotHasta: number; cantidad: number }>;
   maxFrancosDia?: number;
+  // Criterios de cobertura aprendidos: peso por slot (30 valores, default 1).
+  pesosFranja?: number[];
 }
 
 export function convertirInputAV2(
@@ -183,6 +185,7 @@ export function convertirInputAV2(
     excepciones,
     preferencias_turno,
     max_francos_dia: opciones?.maxFrancosDia,
+    pesos_franja: opciones?.pesosFranja,
   };
 }
 

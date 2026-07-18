@@ -107,6 +107,8 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   const demanda = input.demanda;
   // Regla configurable del local: nunca por encima de la dura H-FR1 (2).
   const cap_francos = Math.min(2, Math.max(1, Math.round(input.max_francos_dia ?? 2)));
+  // Criterios de cobertura aprendidos: peso por slot (default 1 = neutro).
+  const pesos = input.pesos_franja;
 
   const cobertura: number[][] = Array.from({ length: 7 }, () => new Array(30).fill(0));
   const francos_full: number[] = new Array(7).fill(0);
@@ -129,7 +131,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
       // la demanda residual que dejan todos los demás.
       if (previa) quitarSemana(previa, cobertura, francos_full, francos_part, es_full);
 
-      const pre = prefijosUtilidad(demanda, cobertura);
+      const pre = prefijosUtilidad(demanda, cobertura, pesos);
       const nueva = es_full
         ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos)
         : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos);
@@ -181,14 +183,22 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
 
 // pre[d][s] = suma acumulada de gains de los slots 0..s-1 del día d.
 // La utilidad de un bloque [ini, fin) es pre[d][fin] - pre[d][ini] en O(1).
-function prefijosUtilidad(demanda: number[][], cobertura: number[][]): number[][] {
+// `pesos` (criterios de cobertura aprendidos) amplifica SOLO el gain de
+// cubrir déficit real (x >= 1): las franjas que el supervisor prioriza valen
+// más al armar jornadas, sin distorsionar la penalización de superávit.
+function prefijosUtilidad(
+  demanda: number[][],
+  cobertura: number[][],
+  pesos?: number[]
+): number[][] {
   const pre: number[][] = [];
   for (let d = 0; d < 7; d++) {
     const fila = new Array<number>(31);
     fila[0] = 0;
     for (let s = 0; s < 30; s++) {
       const x = demanda[d][s] - cobertura[d][s];
-      const g = x >= 1 ? 2 * x - 1 : PESO_SUPERAVIT * (2 * x - 1);
+      const peso = pesos?.[s] ?? 1;
+      const g = x >= 1 ? peso * (2 * x - 1) : PESO_SUPERAVIT * (2 * x - 1);
       fila[s + 1] = fila[s] + g;
     }
     pre.push(fila);

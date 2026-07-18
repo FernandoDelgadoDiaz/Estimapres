@@ -3,7 +3,7 @@ import { DIAS_SEMANA } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useCorrecciones } from '../hooks/useCorrecciones'
 import { useReglas } from '../hooks/useReglas'
-import { derivarAprendizajes, calcularSesgoRotacion, explicarSesgos, clasificarJornadaUI } from '../utils/preferencias'
+import { derivarAprendizajes, derivarCriteriosCobertura, calcularSesgoRotacion, explicarSesgos, clasificarJornadaUI } from '../utils/preferencias'
 import { pendientesSincronizacion } from '../utils/almacen'
 import { exportarHistorialPDF } from '../utils/exportPDF'
 import BackupConfig from '../components/semana/BackupConfig'
@@ -42,6 +42,9 @@ export default function HistorialPage() {
   }, [])
 
   const aprendizajes = useMemo(() => derivarAprendizajes(correcciones), [correcciones])
+  const criterios = useMemo(() => derivarCriteriosCobertura(correcciones), [correcciones])
+  const criteriosActivos = criterios.filter(c => c.estado === 'activo')
+  const criteriosObservacion = criterios.filter(c => c.estado === 'observacion')
   const rotacionActiva = useMemo(() => explicarSesgos(calcularSesgoRotacion(historial)), [historial])
   const semanasOrdenadas = useMemo(
     () => [...historial].sort((a, b) => b.fechaLunes.localeCompare(a.fechaLunes)),
@@ -118,6 +121,51 @@ export default function HistorialPage() {
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
           La rotación es una preferencia blanda: si la demanda del PDF necesita otra cosa, la demanda gana.
         </p>
+      </div>
+
+      {/* Criterios de planificación (cobertura por franjas) */}
+      <div style={cardStyle}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
+          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
+            🎯 Criterios de planificación ({criterios.length})
+          </h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            No es sobre personas: el sistema analiza qué franjas horarias mejorás (y cuáles resignás)
+            cuando corregís un horario. Detectado en 2+ semanas, la siguiente propuesta ya lo incorpora.
+          </p>
+        </div>
+        {criterios.length === 0 ? (
+          <p style={{ padding: '24px', color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center' }}>
+            Sin criterios detectados todavía. Cuando edites horarios, el sistema va a analizar qué franjas priorizás.
+          </p>
+        ) : (
+          <>
+            {criteriosActivos.length > 0 && (
+              <div style={{ padding: '14px 24px', borderBottom: criteriosObservacion.length > 0 ? '1px solid var(--border)' : 'none' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-strong)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  ✅ Criterios activos que el sistema ya incorpora
+                </p>
+                {criteriosActivos.map(c => (
+                  <p key={c.banda} style={{ fontSize: '14px', color: 'var(--text)', marginTop: '4px' }}>
+                    • {c.descripcion} <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>({c.evidencias} correcciones)</span>
+                  </p>
+                ))}
+              </div>
+            )}
+            {criteriosObservacion.length > 0 && (
+              <div style={{ padding: '14px 24px' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  👁 Criterios en observación (aún no aplicados)
+                </p>
+                {criteriosObservacion.map(c => (
+                  <p key={c.banda} style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    • {c.descripcion}
+                  </p>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Aprendizajes */}

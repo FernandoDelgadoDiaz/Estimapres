@@ -10,6 +10,7 @@ import { aplicarEdicionJornada } from '../hooks/useAsignacion'
 import { resumirTurnos } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
 import TablaHorarios from '../components/semana/TablaHorarios'
+import CoberturaLive from '../components/semana/CoberturaLive'
 
 /**
  * Muestra el último horario generado (la semana más reciente del historial,
@@ -40,6 +41,18 @@ export default function UltimoHorarioPage() {
     ]),
     [colaboradoresActivos, auxiliaresActivos, eventualesActivos]
   )
+
+  // Necesidad del PDF para el panel de cobertura en vivo. Semanas guardadas
+  // antes de esta versión no tienen necesidadFranjas: se aproxima con
+  // cobertura + faltantes del snapshot (subestima la sobrecobertura).
+  const necesidadFranjas = useMemo(() => {
+    if (!ultimaSemana) return null
+    if (ultimaSemana.necesidadFranjas) return ultimaSemana.necesidadFranjas
+    const cob = ultimaSemana.coberturaFranjas
+    const falt = ultimaSemana.faltantesFranjas
+    if (!cob || !falt) return null
+    return cob.map((fila, fi) => fila.map((x, dia) => x + (falt[fi]?.[dia] ?? 0)))
+  }, [ultimaSemana])
 
   // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el
   // snapshot de cobertura/CAJA guardado al generar (si existe).
@@ -172,6 +185,16 @@ export default function UltimoHorarioPage() {
               📄 Exportar PDF
             </button>
           </div>
+
+          {/* Cobertura en tiempo real: el supervisor ve al instante si su
+              edición mejora o empeora la cobertura vs. el PDF */}
+          {necesidadFranjas && (
+            <CoberturaLive
+              necesidadFranjas={necesidadFranjas}
+              horarios={ultimaSemana.horarios}
+              cajaAux={ultimaSemana.cajaAux}
+            />
+          )}
 
           <TablaHorarios
             horarios={ultimaSemana.horarios}

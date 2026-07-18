@@ -149,6 +149,9 @@ export interface SemanaHistorial {
   coberturaFranjas?: number[][]
   faltantesFranjas?: number[][]
   porcentajeCobertura?: number
+  // Necesidad de cajas del PDF original [franja][dia]: referencia para el
+  // panel de cobertura en tiempo real del editor.
+  necesidadFranjas?: number[][]
 }
 
 // ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================

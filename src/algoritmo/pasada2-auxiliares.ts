@@ -86,7 +86,10 @@ export function ejecutarPasada2(
         slots_con_deficit.push({ slot, deficit: deficit_actual[dia][slot] });
       }
     }
-    slots_con_deficit.sort((a, b) => b.deficit - a.deficit);
+    // Criterios de cobertura aprendidos: las franjas priorizadas por el
+    // supervisor se atienden primero (deficit ponderado por peso del slot).
+    const peso = (s: SlotIdx) => input.pesos_franja?.[s] ?? 1;
+    slots_con_deficit.sort((a, b) => b.deficit * peso(b.slot) - a.deficit * peso(a.slot));
 
     for (const { slot } of slots_con_deficit) {
       if (slot === 0 || slot === 1) continue; // ya resuelto por H-A1

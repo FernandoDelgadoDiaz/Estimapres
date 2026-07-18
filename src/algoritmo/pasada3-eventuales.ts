@@ -49,8 +49,10 @@ export function ejecutarPasada3(
         slots_con_deficit.push({ slot, deficit: deficit_actual[dia][slot] });
       }
     }
-    // Priorizar slots con mayor deficit
-    slots_con_deficit.sort((a, b) => b.deficit - a.deficit);
+    // Priorizar slots con mayor deficit, ponderado por los criterios de
+    // cobertura aprendidos del supervisor (pesos_franja).
+    const peso = (s: SlotIdx) => input.pesos_franja?.[s] ?? 1;
+    slots_con_deficit.sort((a, b) => b.deficit * peso(b.slot) - a.deficit * peso(a.slot));
 
     for (const { slot } of slots_con_deficit) {
       // Eventuales disponibles = aquellos con NO_USADO en este slot

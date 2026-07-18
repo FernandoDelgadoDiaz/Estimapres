@@ -22,6 +22,8 @@ import {
   calcularSesgoRotacion,
   calcularSesgoAprendizaje,
   derivarAprendizajes,
+  derivarCriteriosCobertura,
+  pesosFranjaDeCriterios,
   combinarSesgos,
   explicarSesgos,
   resumirTurnos,
@@ -130,6 +132,12 @@ export default function NuevaSemanaPage() {
     () => validarConflictosReglas(reglas, colaboradores),
     [reglas, colaboradores]
   )
+  // Criterios de cobertura del supervisor: los activos ponderan el score
+  const criteriosCobertura = useMemo(() => derivarCriteriosCobertura(correcciones), [correcciones])
+  const criteriosActivos = useMemo(
+    () => criteriosCobertura.filter(c => c.estado === 'activo'),
+    [criteriosCobertura]
+  )
 
   const handleGenerarHorarios = async () => {
     // Calcular fechas de la semana actual (lunes a domingo)
@@ -148,6 +156,8 @@ export default function NuevaSemanaPage() {
       preferenciasPorNombre: sesgosBlandos, // Capacidades 2 y 3 (preferencia blanda)
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
       maxFrancosDia: capFrancosDeReglas(reglas, fechaLunes),
+      // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
+      pesosFranja: pesosFranjaDeCriterios(criteriosCobertura),
     }
 
     const res = await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepcionesTotales, opciones)
@@ -165,6 +175,8 @@ export default function NuevaSemanaPage() {
         coberturaFranjas: res.coberturaFranjas,
         faltantesFranjas: res.faltantesFranjas,
         porcentajeCobertura: res.porcentajeCobertura,
+        // Necesidad del PDF: para el panel de cobertura en vivo del editor
+        necesidadFranjas: necesidad.map(f => [...f.necesidad]),
       })
       setSemanaGuardadaId(semana.id)
     }
@@ -579,6 +591,14 @@ export default function NuevaSemanaPage() {
                   <p style={{ fontSize: '14px', color: 'var(--text)' }}>🔄 Rotación y preferencias aprendidas:</p>
                   {frasesPreferencias.map((f, i) => (
                     <p key={i} style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '20px', marginTop: '2px' }}>• {f}</p>
+                  ))}
+                </div>
+              )}
+              {criteriosActivos.length > 0 && (
+                <div style={{ marginTop: '8px' }}>
+                  <p style={{ fontSize: '14px', color: 'var(--text)' }}>🎯 Criterios de cobertura que esta propuesta ya incorpora:</p>
+                  {criteriosActivos.map((c, i) => (
+                    <p key={i} style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '20px', marginTop: '2px' }}>• {c.descripcion}</p>
                   ))}
                 </div>
               )}

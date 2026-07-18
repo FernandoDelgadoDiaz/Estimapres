@@ -210,6 +210,7 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
       coberturaFranjas: s.coberturaFranjas,
       faltantesFranjas: s.faltantesFranjas,
       porcentajeCobertura: s.porcentajeCobertura,
+      necesidadFranjas: s.necesidadFranjas,
     },
   }
 }
@@ -232,6 +233,7 @@ function filaASemana(f: FilaSemana): SemanaHistorial {
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,
     porcentajeCobertura: m.porcentajeCobertura as number | undefined,
+    necesidadFranjas: m.necesidadFranjas as number[][] | undefined,
   }
 }
 

@@ -72,6 +72,11 @@ export interface InputAlgoritmo {
   // Regla configurable del local: máximo de francos FULL+PART por día.
   // Nunca puede superar 2 (H-FR1 es dura); se clampea a [1, 2].
   max_francos_dia?: number;
+  // Pesos por slot (30 valores, default 1) derivados de los CRITERIOS DE
+  // COBERTURA aprendidos del supervisor: un peso > 1 hace que cubrir déficit
+  // en ese slot valga más en el score (Pasada 1) y se priorice antes al
+  // activar AUX/eventuales (Pasadas 2 y 3). No altera reglas duras ni demanda.
+  pesos_franja?: number[];
 }
 
 // Outputs del algoritmo
