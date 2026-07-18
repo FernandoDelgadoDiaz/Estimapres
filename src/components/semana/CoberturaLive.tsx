@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { HorarioColaborador, AsignacionCajaColaborador, DIAS_SEMANA, HORAS_FRANJAS } from '../../types'
-import { horaASlotUI } from '../../utils/preferencias'
+import { calcularCoberturaHorarios } from '../../utils/efectividad'
 
 interface CoberturaLiveProps {
   /** Necesidad de cajas del PDF [franja HORAS_FRANJAS][dia] */
@@ -11,64 +11,18 @@ interface CoberturaLiveProps {
   cajaAux?: AsignacionCajaColaborador[]
 }
 
-function horaAMin(hora: string): number {
-  const [h, m] = hora.split(':').map(Number)
-  return h * 60 + (m || 0)
-}
-
 /**
  * Panel de cobertura EN TIEMPO REAL para el editor de "Último horario":
  * compara la necesidad del PDF con la cobertura actual (incluyendo las
  * ediciones del supervisor al instante). Cuentan como caja abierta los
  * cajeros FULL/PART y los bloques de eventuales; los AUX aportan sus bloques
- * en CAJA del snapshot de la generación.
+ * en CAJA del snapshot de la generación. El cálculo vive en
+ * utils/efectividad.ts (compartido con las métricas de efectividad).
  */
 export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = [] }: CoberturaLiveProps) {
   const { cobertura, pctCumplimiento } = useMemo(() => {
-    const numFranjas = HORAS_FRANJAS.length
-    const cob: number[][] = Array.from({ length: numFranjas }, () => Array(7).fill(0))
-
-    // Cajeros y eventuales: desde los horarios editables (en vivo)
-    const filasQueCubren = horarios.filter(
-      h => h.rolGeneral === 'cajero' || h.rolGeneral === 'eventual_sector'
-    )
-    for (let fi = 0; fi < numFranjas; fi++) {
-      const t = horaAMin(HORAS_FRANJAS[fi])
-      for (const h of filasQueCubren) {
-        for (const j of h.jornadas) {
-          if (j.esFranco) continue
-          const cubre = j.turnos.some(tu => horaAMin(tu.inicio) <= t && t < horaAMin(tu.fin))
-          if (cubre) cob[fi][j.dia]++
-        }
-      }
-    }
-
-    // AUX en CAJA: del snapshot de la generación (no editable en vivo)
-    for (let fi = 0; fi < numFranjas; fi++) {
-      const slot = horaASlotUI(HORAS_FRANJAS[fi])
-      if (slot < 0 || slot >= 30) continue
-      for (const a of cajaAux) {
-        for (let dia = 0; dia < 7; dia++) {
-          if (a.slotsCajaPorDia[dia]?.[slot]) cob[fi][dia]++
-        }
-      }
-    }
-
-    // % de cumplimiento: Σ min(X, Y) / Σ Y sobre las celdas con necesidad
-    let cubierto = 0
-    let necesario = 0
-    for (let fi = 0; fi < numFranjas; fi++) {
-      for (let dia = 0; dia < 7; dia++) {
-        const y = necesidadFranjas[fi]?.[dia] ?? 0
-        if (y <= 0) continue
-        necesario += y
-        cubierto += Math.min(cob[fi][dia], y)
-      }
-    }
-    return {
-      cobertura: cob,
-      pctCumplimiento: necesario > 0 ? (cubierto / necesario) * 100 : 100,
-    }
+    const r = calcularCoberturaHorarios(horarios, necesidadFranjas, cajaAux)
+    return { cobertura: r.cobertura, pctCumplimiento: r.pct }
   }, [necesidadFranjas, horarios, cajaAux])
 
   const estiloCelda = (x: number, y: number): React.CSSProperties => {

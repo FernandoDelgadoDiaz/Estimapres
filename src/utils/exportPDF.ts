@@ -2,6 +2,8 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, AsignacionCajaColaborador, SemanaHistorial, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
 import { formatoTurno } from './timeUtils'
+import type { MetricaSemana, IndicadoresEfectividad, PrediccionCorrecciones, MadurezBanda } from './efectividad'
+import type { CriterioCobertura } from './preferencias'
 
 /** Convierte un índice de slot (0 = 08:00, cada slot = 30 min) a "HH:MM". */
 function slotAHoraLegible(slot: number): string {
@@ -397,4 +399,120 @@ function formatearFechaHora(iso: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
   return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+// ==================== REPORTE DE EFECTIVIDAD ====================
+
+/**
+ * Reporte de efectividad para direccion: demuestra con datos que el sistema
+ * aprende (correcciones por semana en baja, cobertura del motor en alza).
+ */
+export function exportarEfectividadPDF(
+  metricas: MetricaSemana[],
+  indicadores: IndicadoresEfectividad,
+  prediccion: PrediccionCorrecciones | null,
+  criterios: CriterioCobertura[],
+  madurez: MadurezBanda[]
+): jsPDF {
+  const doc = new jsPDF('landscape')
+  const fecha = new Date().toLocaleDateString('es-AR')
+
+  doc.setFontSize(16)
+  doc.text('Reporte de efectividad - Aliada Horarios', 14, 15)
+  doc.setFontSize(10)
+  doc.text(`Exportado: ${fecha} - ${metricas.length} semana${metricas.length === 1 ? '' : 's'} analizada${metricas.length === 1 ? '' : 's'}`, 14, 22)
+
+  // Indicadores clave
+  let y = 32
+  doc.setFontSize(11)
+  const lineas: string[] = []
+  if (indicadores.correccionesUltimaSemana !== null && indicadores.promedioCorrecciones !== null) {
+    lineas.push(`Correcciones ultima semana: ${indicadores.correccionesUltimaSemana} (promedio historico: ${indicadores.promedioCorrecciones.toFixed(1)})`)
+  }
+  if (indicadores.pctMotorUltimaSemana !== null) {
+    lineas.push(`El motor cubre ${indicadores.pctMotorUltimaSemana.toFixed(1)}% sin intervencion humana (meta: >95%)`)
+  }
+  if (indicadores.tendenciaCorrecciones) {
+    const t = indicadores.tendenciaCorrecciones
+    lineas.push(`Tendencia de correcciones: ${t === 'mejorando' ? 'EN BAJA (el sistema aprende)' : t === 'estable' ? 'estable' : 'en alza (revisar)'}`)
+  }
+  if (prediccion) {
+    lineas.push(`Proyeccion: ~${prediccion.en4Semanas.toFixed(1)} correcciones/semana dentro de 4 semanas`)
+  }
+  for (const linea of lineas) {
+    doc.text(`- ${linea}`, 14, y)
+    y += 7
+  }
+
+  // Tabla semana a semana
+  autoTable(doc, {
+    head: [['Semana', 'Lunes', 'Correcciones', '% Motor', '% Final', 'Criterios activos al generar', 'Senales nuevas']],
+    body: metricas.map(m => [
+      m.descripcion,
+      m.fechaLunes,
+      String(m.correcciones),
+      m.pctMotor !== null ? `${m.pctMotor.toFixed(1)}%` : '-',
+      m.pctFinal !== null ? `${m.pctFinal.toFixed(1)}%` : '-',
+      m.criteriosActivosAlGenerar.join(', ') || '-',
+      m.criteriosNuevos.join(', ') || '-',
+    ]),
+    startY: y + 2,
+    theme: 'grid',
+    headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
+    bodyStyles: { textColor: [0, 0, 0] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14 },
+    styles: { cellPadding: 2, fontSize: 8 },
+    rowPageBreak: 'avoid',
+  })
+  y = ((doc as any).lastAutoTable?.finalY || y) + 12
+
+  // Criterios de planificacion
+  if (criterios.length > 0) {
+    if (y > 160) { doc.addPage(); y = 20 }
+    doc.setFontSize(12)
+    doc.text('Criterios de planificacion aprendidos', 14, y)
+    autoTable(doc, {
+      head: [['Franja', 'Estado', 'Tendencia', 'Semanas', 'Peso (score)', 'Primera senal', 'Ultima senal']],
+      body: criterios.map(c => [
+        c.banda,
+        c.estado === 'activo' ? 'ACTIVO' : 'observacion',
+        c.tendencia === 'estable' ? 'estable' : 'en declive',
+        String(c.semanas),
+        c.score.toFixed(2),
+        c.primeraSenal,
+        c.ultimaSenal,
+      ]),
+      startY: y + 4,
+      theme: 'grid',
+      headStyles: { fillColor: [124, 58, 237], textColor: [255, 255, 255], fontStyle: 'bold' },
+      bodyStyles: { textColor: [0, 0, 0] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 14 },
+      styles: { cellPadding: 2, fontSize: 8 },
+    })
+    y = ((doc as any).lastAutoTable?.finalY || y) + 12
+  }
+
+  // Madurez por franja
+  if (y > 160) { doc.addPage(); y = 20 }
+  doc.setFontSize(12)
+  doc.text('Madurez por franja horaria', 14, y)
+  autoTable(doc, {
+    head: [['Franja', 'Estado', 'Semanas sin correcciones']],
+    body: madurez.map(m => [
+      m.etiqueta,
+      m.estado === 'madura' ? 'MADURA (el motor la resuelve solo)' : m.estado === 'en_ajuste' ? 'Aun necesita ajuste' : 'Sin correcciones registradas',
+      m.semanasSinCorreccion !== null ? String(m.semanasSinCorreccion) : '-',
+    ]),
+    startY: y + 4,
+    theme: 'grid',
+    headStyles: { fillColor: [34, 197, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
+    bodyStyles: { textColor: [0, 0, 0] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    margin: { left: 14 },
+    styles: { cellPadding: 2, fontSize: 8 },
+  })
+
+  return doc
 }

@@ -7,6 +7,7 @@ const navItems = [
   { path: '/ultimo-horario', label: 'Último horario', icon: '🕒' },
   { path: '/reglas', label: 'Reglas', icon: '⚙️' },
   { path: '/historial', label: 'Historial', icon: '📋' },
+  { path: '/efectividad', label: 'Efectividad', icon: '📈' },
 ]
 
 export default function Sidebar() {

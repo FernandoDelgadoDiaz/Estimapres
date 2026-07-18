@@ -291,6 +291,18 @@ export interface CriterioCobertura {
   semanas: number
   evidencias: number
   estado: 'activo' | 'observacion'
+  /**
+   * Score acumulativo con decay temporal: cada semana con señal aporta
+   * 0.5^(edadSemanas/8) — reciente ≈ 1.0, hace 4 semanas ≈ 0.7, hace 8 ≈ 0.5.
+   * El sistema aprende de TODA la historia: las semanas viejas pesan menos
+   * pero nunca se olvidan de golpe.
+   */
+  score: number
+  /** estable = con señal en las últimas 4 semanas; declive = sin señal reciente (el peso baja gradualmente) */
+  tendencia: 'estable' | 'declive'
+  /** Fecha (YYYY-MM-DD) de la primera y última semana con señal */
+  primeraSenal: string
+  ultimaSenal: string
   descripcion: string
 }
 
@@ -307,7 +319,7 @@ function slotsDeJornada(j: JornadaResumida): Set<number> {
 }
 
 /** Delta de slots por banda que produjo una corrección (después − antes). */
-function deltaPorBanda(c: CorreccionManual): Record<BandaHoraria, number> {
+export function deltaPorBanda(c: CorreccionManual): Record<BandaHoraria, number> {
   const antes = slotsDeJornada(c.antes)
   const despues = slotsDeJornada(c.despues)
   const delta: Record<BandaHoraria, number> = { apertura: 0, mediodia: 0, tarde: 0, cierre: 0 }
@@ -324,18 +336,52 @@ function claveSemanaDeCorreccion(c: CorreccionManual): string {
   return c.semanaId || c.fecha.slice(0, 10)
 }
 
+// Score mínimo para que un criterio se active. Dos semanas recientes con
+// señal (~1.0 + ~0.9) lo superan; una sola nunca (≤ 1.0).
+const SCORE_ACTIVACION = 1.5
+// Ventana de "señal reciente" para la tendencia estable/declive (en semanas).
+const VENTANA_TENDENCIA_SEMANAS = 4
+const MS_POR_SEMANA = 7 * 24 * 60 * 60 * 1000
+
+/** Peso temporal de una señal: reciente = 1.0, 4 semanas = ~0.7, 8 = 0.5, 16 = 0.25. */
+export function pesoTemporal(edadSemanas: number): number {
+  return Math.pow(0.5, Math.max(0, edadSemanas) / 8)
+}
+
+export interface OpcionesCriterios {
+  /** Historial: permite fechar cada semana de corrección por su lunes real */
+  semanas?: SemanaHistorial[]
+  /** Inyectable para tests; default: hoy */
+  ahora?: Date
+}
+
 /**
- * Deriva los criterios de cobertura del supervisor a partir de sus
- * correcciones. Una banda es "señal" de una semana si las correcciones de esa
- * semana le sumaron cobertura neta (> 0). El criterio se activa con señal en
- * 2+ semanas distintas.
+ * Deriva los criterios de cobertura del supervisor a partir de TODAS sus
+ * correcciones históricas (aprendizaje acumulativo). Una banda es "señal" de
+ * una semana si las correcciones de esa semana le sumaron cobertura neta.
+ * Cada señal aporta un peso con decay temporal (semana reciente ≈ 1.0, hace
+ * 8 semanas 0.5): las semanas viejas pesan menos pero nunca se descartan, y
+ * un criterio que deja de confirmarse pierde peso GRADUALMENTE (declive), no
+ * de golpe. Activo cuando el score acumulado supera el umbral.
  */
-export function derivarCriteriosCobertura(correcciones: CorreccionManual[]): CriterioCobertura[] {
+export function derivarCriteriosCobertura(
+  correcciones: CorreccionManual[],
+  opciones?: OpcionesCriterios
+): CriterioCobertura[] {
+  const ahora = opciones?.ahora ?? new Date()
+  const fechaPorSemanaId = new Map<string, string>()
+  for (const s of opciones?.semanas ?? []) fechaPorSemanaId.set(s.id, s.fechaLunes)
+
+  // Fecha representativa (YYYY-MM-DD) de la clave de semana de una corrección
+  const fechaDeClave = (clave: string, c: CorreccionManual): string =>
+    fechaPorSemanaId.get(clave) ?? c.fecha.slice(0, 10)
+
   // Acumular deltas por semana
-  const porSemana = new Map<string, { delta: Record<BandaHoraria, number>; correcciones: number }>()
+  const porSemana = new Map<string, { fecha: string; delta: Record<BandaHoraria, number>; correcciones: number }>()
   for (const c of correcciones) {
     const clave = claveSemanaDeCorreccion(c)
     const acc = porSemana.get(clave) ?? {
+      fecha: fechaDeClave(clave, c),
       delta: { apertura: 0, mediodia: 0, tarde: 0, cierre: 0 },
       correcciones: 0,
     }
@@ -349,15 +395,24 @@ export function derivarCriteriosCobertura(correcciones: CorreccionManual[]): Cri
     porSemana.set(clave, acc)
   }
 
-  // Señales por banda a través de las semanas
+  const edadSemanasDe = (fecha: string): number =>
+    (ahora.getTime() - new Date(`${fecha}T00:00:00`).getTime()) / MS_POR_SEMANA
+
+  // Señales por banda a través de las semanas, con peso temporal
   const bandas = Object.keys(BANDAS_HORARIAS) as BandaHoraria[]
-  const señales = new Map<BandaHoraria, { semanas: number; evidencias: number; resignadas: BandaHoraria[] }>()
-  for (const { delta, correcciones: n } of porSemana.values()) {
+  const señales = new Map<BandaHoraria, {
+    semanas: number; evidencias: number; score: number
+    resignadas: BandaHoraria[]; fechas: string[]
+  }>()
+  for (const { fecha, delta, correcciones: n } of porSemana.values()) {
+    const peso = pesoTemporal(edadSemanasDe(fecha))
     for (const banda of bandas) {
       if (delta[banda] <= 0) continue
-      const s = señales.get(banda) ?? { semanas: 0, evidencias: 0, resignadas: [] }
+      const s = señales.get(banda) ?? { semanas: 0, evidencias: 0, score: 0, resignadas: [], fechas: [] }
       s.semanas++
       s.evidencias += n
+      s.score += peso
+      s.fechas.push(fecha)
       // ¿Qué banda resignó esa semana? La de delta más negativo (si hay)
       let peor: BandaHoraria | null = null
       for (const otra of bandas) {
@@ -377,7 +432,12 @@ export function derivarCriteriosCobertura(correcciones: CorreccionManual[]): Cri
       const count = s.resignadas.filter(x => x === r).length
       if (count > maxCount) { maxCount = count; resignada = r }
     }
-    const estado: CriterioCobertura['estado'] = s.semanas >= 2 ? 'activo' : 'observacion'
+    const fechasOrdenadas = [...s.fechas].sort()
+    const primeraSenal = fechasOrdenadas[0]
+    const ultimaSenal = fechasOrdenadas[fechasOrdenadas.length - 1]
+    const estado: CriterioCobertura['estado'] = s.score >= SCORE_ACTIVACION ? 'activo' : 'observacion'
+    const tendencia: CriterioCobertura['tendencia'] =
+      edadSemanasDe(ultimaSenal) <= VENTANA_TENDENCIA_SEMANAS ? 'estable' : 'declive'
     const etiqueta = BANDAS_HORARIAS[banda].etiqueta
     const sufijo = resignada ? `, aun resignando ${BANDAS_HORARIAS[resignada].etiqueta}` : ''
     criterios.push({
@@ -385,30 +445,40 @@ export function derivarCriteriosCobertura(correcciones: CorreccionManual[]): Cri
       bandaResignada: resignada,
       semanas: s.semanas,
       evidencias: s.evidencias,
+      score: s.score,
+      tendencia,
+      primeraSenal,
+      ultimaSenal,
       estado,
       descripcion: estado === 'activo'
-        ? `Priorizás la cobertura de ${etiqueta}${sufijo} — visto en ${s.semanas} semanas. El algoritmo ya lo incorpora.`
-        : `Posible criterio: priorizar ${etiqueta}${sufijo} — visto en 1 semana. Se incorpora si se repite.`,
+        ? `Priorizás la cobertura de ${etiqueta}${sufijo} — visto en ${s.semanas} semana${s.semanas === 1 ? '' : 's'}${tendencia === 'declive' ? ' (sin confirmarse últimamente: su peso baja gradualmente)' : ''}. El algoritmo ya lo incorpora.`
+        : `Posible criterio: priorizar ${etiqueta}${sufijo} — señal débil todavía. Se incorpora si se repite.`,
     })
   }
 
-  return criterios.sort((a, b) => b.semanas - a.semanas || b.evidencias - a.evidencias)
+  return criterios.sort((a, b) => b.score - a.score || b.evidencias - a.evidencias)
 }
 
-const PESO_CRITERIO_ACTIVO = 1.35
+// Boost proporcional al score (con tope): 2 semanas recientes ≈ ×1.29,
+// criterio consolidado de meses ≈ ×1.5. En declive baja solo, porque el
+// score decae con el tiempo.
+const BOOST_MAX = 0.5
+const BOOST_POR_SCORE = 0.15
 
 /**
  * Pesos por slot (30 valores) para el score de cobertura del algoritmo,
- * derivados de los criterios ACTIVOS. undefined si no hay ninguno activo
- * (comportamiento neutro, idéntico al de siempre).
+ * derivados de los criterios ACTIVOS (boost proporcional a su score con
+ * decay temporal). undefined si no hay ninguno activo (comportamiento
+ * neutro, idéntico al de siempre).
  */
 export function pesosFranjaDeCriterios(criterios: CriterioCobertura[]): number[] | undefined {
   const activos = criterios.filter(c => c.estado === 'activo')
   if (activos.length === 0) return undefined
   const pesos = new Array<number>(30).fill(1)
   for (const c of activos) {
+    const boost = 1 + Math.min(BOOST_MAX, BOOST_POR_SCORE * c.score)
     const b = BANDAS_HORARIAS[c.banda]
-    for (let s = b.desde; s < b.hasta; s++) pesos[s] = Math.max(pesos[s], PESO_CRITERIO_ACTIVO)
+    for (let s = b.desde; s < b.hasta; s++) pesos[s] = Math.max(pesos[s], boost)
   }
   return pesos
 }

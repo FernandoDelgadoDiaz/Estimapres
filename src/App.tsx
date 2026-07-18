@@ -6,6 +6,7 @@ import NuevaSemanaPage from './pages/NuevaSemanaPage'
 import UltimoHorarioPage from './pages/UltimoHorarioPage'
 import ReglasPage from './pages/ReglasPage'
 import HistorialPage from './pages/HistorialPage'
+import EfectividadPage from './pages/EfectividadPage'
 import LoginPage from './pages/LoginPage'
 import { useAuth } from './hooks/useAuth'
 
@@ -43,6 +44,7 @@ function App() {
             <Route path="/ultimo-horario" element={<UltimoHorarioPage />} />
             <Route path="/reglas" element={<ReglasPage />} />
             <Route path="/historial" element={<HistorialPage />} />
+            <Route path="/efectividad" element={<EfectividadPage />} />
           </Routes>
         </Layout>
       } />

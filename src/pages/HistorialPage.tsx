@@ -42,7 +42,10 @@ export default function HistorialPage() {
   }, [])
 
   const aprendizajes = useMemo(() => derivarAprendizajes(correcciones), [correcciones])
-  const criterios = useMemo(() => derivarCriteriosCobertura(correcciones), [correcciones])
+  const criterios = useMemo(
+    () => derivarCriteriosCobertura(correcciones, { semanas: historial }),
+    [correcciones, historial]
+  )
   const criteriosActivos = criterios.filter(c => c.estado === 'activo')
   const criteriosObservacion = criterios.filter(c => c.estado === 'observacion')
   const rotacionActiva = useMemo(() => explicarSesgos(calcularSesgoRotacion(historial)), [historial])

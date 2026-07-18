@@ -132,8 +132,12 @@ export default function NuevaSemanaPage() {
     () => validarConflictosReglas(reglas, colaboradores),
     [reglas, colaboradores]
   )
-  // Criterios de cobertura del supervisor: los activos ponderan el score
-  const criteriosCobertura = useMemo(() => derivarCriteriosCobertura(correcciones), [correcciones])
+  // Criterios de cobertura del supervisor: los activos ponderan el score.
+  // Se pasan las semanas para fechar cada señal por su lunes real (decay temporal).
+  const criteriosCobertura = useMemo(
+    () => derivarCriteriosCobertura(correcciones, { semanas: historial }),
+    [correcciones, historial]
+  )
   const criteriosActivos = useMemo(
     () => criteriosCobertura.filter(c => c.estado === 'activo'),
     [criteriosCobertura]
