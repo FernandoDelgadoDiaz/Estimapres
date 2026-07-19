@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Colaborador, COLABORADORES_INICIALES } from '../types'
+import { claveConSucursal, esSucursalPorDefecto } from '../utils/sucursal'
 
 const STORAGE_KEY = 'cajeros_colaboradores'
 
@@ -12,17 +13,18 @@ export function useColaboradores() {
   useEffect(() => {
     const loadColaboradores = () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY)
+        const stored = localStorage.getItem(claveConSucursal(STORAGE_KEY))
         if (stored) {
           setColaboradores(JSON.parse(stored))
         } else {
           // Primera vez: guardar datos iniciales
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(COLABORADORES_INICIALES))
-          setColaboradores(COLABORADORES_INICIALES)
+          const iniciales = esSucursalPorDefecto() ? COLABORADORES_INICIALES : []
+          localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(iniciales))
+          setColaboradores(iniciales)
         }
       } catch (error) {
         console.error('Error cargando colaboradores:', error)
-        setColaboradores(COLABORADORES_INICIALES)
+        setColaboradores(esSucursalPorDefecto() ? COLABORADORES_INICIALES : [])
       } finally {
         setLoading(false)
       }
@@ -33,7 +35,7 @@ export function useColaboradores() {
   // Guardar automáticamente cuando cambian los colaboradores
   useEffect(() => {
     if (!loading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(colaboradores))
+      localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(colaboradores))
     }
   }, [colaboradores, loading])
 

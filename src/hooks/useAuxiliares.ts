@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Auxiliar, AUXILIARES_INICIALES } from '../types'
+import { claveConSucursal, esSucursalPorDefecto } from '../utils/sucursal'
 
 const STORAGE_KEY = 'aliada_auxiliares'
 
@@ -12,18 +13,19 @@ export function useAuxiliares() {
   useEffect(() => {
     const loadAuxiliares = () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY)
+        const stored = localStorage.getItem(claveConSucursal(STORAGE_KEY))
         if (stored) {
           const parsed = JSON.parse(stored)
           setAuxiliares(parsed)
         } else {
           // Primera vez: guardar datos iniciales
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(AUXILIARES_INICIALES))
-          setAuxiliares(AUXILIARES_INICIALES)
+          const iniciales = esSucursalPorDefecto() ? AUXILIARES_INICIALES : []
+          localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(iniciales))
+          setAuxiliares(iniciales)
         }
       } catch (error) {
         console.error('Error cargando auxiliares:', error)
-        setAuxiliares(AUXILIARES_INICIALES)
+        setAuxiliares(esSucursalPorDefecto() ? AUXILIARES_INICIALES : [])
       } finally {
         setLoading(false)
       }
@@ -34,7 +36,7 @@ export function useAuxiliares() {
   // Guardar automáticamente cuando cambian los auxiliares
   useEffect(() => {
     if (!loading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(auxiliares))
+      localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(auxiliares))
     }
   }, [auxiliares, loading])
 
@@ -69,7 +71,7 @@ export function useAuxiliares() {
   }
 
   const resetAuxiliares = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(AUXILIARES_INICIALES))
+    localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(AUXILIARES_INICIALES))
     setAuxiliares(AUXILIARES_INICIALES)
   }
 

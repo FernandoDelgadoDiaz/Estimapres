@@ -12,6 +12,7 @@
 // estado optimista: la UI nunca espera a la red.
 
 import { supabase, asegurarSesion } from '../lib/supabase'
+import { getSucursalActual, claveConSucursal } from './sucursal'
 import type {
   ReglaConfigurable,
   SemanaHistorial,
@@ -136,6 +137,7 @@ interface FilaRegla {
   colaborador_nombre: string | null
   parametros: Record<string, unknown>
   activa: boolean
+  sucursal_id?: string
   fecha_desde: string | null
   fecha_hasta: string | null
   descripcion: string
@@ -156,6 +158,7 @@ function reglaAFila(r: ReglaConfigurable): Omit<FilaRegla, 'created_at'> {
       cantidad: r.cantidad,
     },
     activa: r.activa,
+    sucursal_id: getSucursalActual(),
     fecha_desde: r.vigenciaDesde ?? null,
     fecha_hasta: r.vigenciaHasta ?? null,
     descripcion: r.descripcion,
@@ -188,6 +191,7 @@ interface FilaSemana {
   version: number
   horario_completo: Record<string, unknown>
   metricas: Record<string, unknown>
+  sucursal_id?: string
   created_at: string
 }
 
@@ -212,6 +216,7 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
       porcentajeCobertura: s.porcentajeCobertura,
       necesidadFranjas: s.necesidadFranjas,
     },
+    sucursal_id: getSucursalActual(),
   }
 }
 
@@ -244,6 +249,7 @@ interface FilaCorreccion {
   dia: number
   antes: CorreccionManual['antes']
   despues: CorreccionManual['despues']
+  sucursal_id?: string
   created_at: string
 }
 
@@ -255,6 +261,7 @@ function correccionAFila(c: CorreccionManual): Omit<FilaCorreccion, 'created_at'
     dia: c.dia,
     antes: c.antes,
     despues: c.despues,
+    sucursal_id: getSucursalActual(),
   }
 }
 
@@ -280,14 +287,15 @@ function normalizarSemana(s: SemanaHistorial): SemanaHistorial {
 
 export async function cargarReglas(): Promise<ReglaConfigurable[]> {
   const uid = await backendUid()
-  if (!uid || !supabase) return leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
+  if (!uid || !supabase) return leerAlmacen<ReglaConfigurable[]>(claveConSucursal(CLAVES_ALMACEN.reglas), [])
   const { data, error } = await supabase
     .from('reglas_configurables')
     .select('*')
+    .eq('sucursal_id', getSucursalActual())
     .order('created_at', { ascending: true })
   if (error) {
     console.error('Error cargando reglas de Supabase:', error.message)
-    return leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
+    return leerAlmacen<ReglaConfigurable[]>(claveConSucursal(CLAVES_ALMACEN.reglas), [])
   }
   return (data as FilaRegla[]).map(filaARegla)
 }
@@ -295,21 +303,21 @@ export async function cargarReglas(): Promise<ReglaConfigurable[]> {
 export async function guardarRegla(regla: ReglaConfigurable): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    const todas = leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
+    const todas = leerAlmacen<ReglaConfigurable[]>(claveConSucursal(CLAVES_ALMACEN.reglas), [])
     const idx = todas.findIndex(r => r.id === regla.id)
     if (idx >= 0) todas[idx] = regla
     else todas.push(regla)
-    guardarAlmacen(CLAVES_ALMACEN.reglas, todas)
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.reglas), todas)
     return
   }
   const { error } = await supabase.from('reglas_configurables').upsert(reglaAFila(regla))
   if (error) {
     console.warn('Regla guardada localmente; reintentando sync con Supabase:', error.message)
-    const todas = leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
+    const todas = leerAlmacen<ReglaConfigurable[]>(claveConSucursal(CLAVES_ALMACEN.reglas), [])
     const idx = todas.findIndex(r => r.id === regla.id)
     if (idx >= 0) todas[idx] = regla
     else todas.push(regla)
-    guardarAlmacen(CLAVES_ALMACEN.reglas, todas)
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.reglas), todas)
     encolarReintento(`regla:${regla.id}`, async () => {
       if (!supabase) return false
       const { error: err } = await supabase.from('reglas_configurables').upsert(reglaAFila(regla))
@@ -321,8 +329,8 @@ export async function guardarRegla(regla: ReglaConfigurable): Promise<void> {
 export async function eliminarReglaRemota(id: string): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    const todas = leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, [])
-    guardarAlmacen(CLAVES_ALMACEN.reglas, todas.filter(r => r.id !== id))
+    const todas = leerAlmacen<ReglaConfigurable[]>(claveConSucursal(CLAVES_ALMACEN.reglas), [])
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.reglas), todas.filter(r => r.id !== id))
     return
   }
   const { error } = await supabase.from('reglas_configurables').delete().eq('id', id)
@@ -332,10 +340,10 @@ export async function eliminarReglaRemota(id: string): Promise<void> {
 export async function reemplazarReglas(reglas: ReglaConfigurable[]): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    guardarAlmacen(CLAVES_ALMACEN.reglas, reglas)
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.reglas), reglas)
     return
   }
-  const { error: errDel } = await supabase.from('reglas_configurables').delete().eq('local_id', uid)
+  const { error: errDel } = await supabase.from('reglas_configurables').delete().eq('local_id', uid).eq('sucursal_id', getSucursalActual())
   if (errDel) console.error('Error limpiando reglas en Supabase:', errDel.message)
   if (reglas.length > 0) {
     const { error } = await supabase.from('reglas_configurables').insert(reglas.map(reglaAFila))
@@ -348,17 +356,18 @@ export async function reemplazarReglas(reglas: ReglaConfigurable[]): Promise<voi
 export async function cargarHistorial(): Promise<SemanaHistorial[]> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    return leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).map(normalizarSemana)
+    return leerAlmacen<SemanaHistorial[]>(claveConSucursal(CLAVES_ALMACEN.historial), []).map(normalizarSemana)
   }
   const { data, error } = await supabase
     .from('semanas_historial')
     .select('*')
+    .eq('sucursal_id', getSucursalActual())
     .order('lunes_fecha', { ascending: true })
     .order('version', { ascending: true })
     .limit(LIMITE_HISTORIAL_SEMANAS)
   if (error) {
     console.error('Error cargando historial de Supabase:', error.message)
-    return leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).map(normalizarSemana)
+    return leerAlmacen<SemanaHistorial[]>(claveConSucursal(CLAVES_ALMACEN.historial), []).map(normalizarSemana)
   }
   return (data as FilaSemana[]).map(filaASemana)
 }
@@ -366,11 +375,11 @@ export async function cargarHistorial(): Promise<SemanaHistorial[]> {
 export async function guardarSemana(semana: SemanaHistorial): Promise<void> {
   // Siempre respaldar en localStorage (aunque Supabase esté activo): así el
   // último horario generado sobrevive sin conexión y al cerrar la pantalla.
-  const todas = leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).map(normalizarSemana)
+  const todas = leerAlmacen<SemanaHistorial[]>(claveConSucursal(CLAVES_ALMACEN.historial), []).map(normalizarSemana)
   const idx = todas.findIndex(s => s.id === semana.id)
   if (idx >= 0) todas[idx] = semana
   else todas.push(semana)
-  guardarAlmacen(CLAVES_ALMACEN.historial, todas.slice(-LIMITE_HISTORIAL_SEMANAS))
+  guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.historial), todas.slice(-LIMITE_HISTORIAL_SEMANAS))
 
   const uid = await backendUid()
   if (!uid || !supabase) return
@@ -388,8 +397,8 @@ export async function guardarSemana(semana: SemanaHistorial): Promise<void> {
 export async function eliminarSemanaRemota(id: string): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    const todas = leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, [])
-    guardarAlmacen(CLAVES_ALMACEN.historial, todas.filter(s => s.id !== id))
+    const todas = leerAlmacen<SemanaHistorial[]>(claveConSucursal(CLAVES_ALMACEN.historial), [])
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.historial), todas.filter(s => s.id !== id))
     return
   }
   const { error } = await supabase.from('semanas_historial').delete().eq('id', id)
@@ -399,10 +408,10 @@ export async function eliminarSemanaRemota(id: string): Promise<void> {
 export async function reemplazarHistorial(semanas: SemanaHistorial[]): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    guardarAlmacen(CLAVES_ALMACEN.historial, semanas)
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.historial), semanas)
     return
   }
-  const { error: errDel } = await supabase.from('semanas_historial').delete().eq('local_id', uid)
+  const { error: errDel } = await supabase.from('semanas_historial').delete().eq('local_id', uid).eq('sucursal_id', getSucursalActual())
   if (errDel) console.error('Error limpiando historial en Supabase:', errDel.message)
   if (semanas.length > 0) {
     const { error } = await supabase.from('semanas_historial').insert(semanas.map(semanaAFila))
@@ -414,15 +423,16 @@ export async function reemplazarHistorial(semanas: SemanaHistorial[]): Promise<v
 
 export async function cargarCorrecciones(): Promise<CorreccionManual[]> {
   const uid = await backendUid()
-  if (!uid || !supabase) return leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
+  if (!uid || !supabase) return leerAlmacen<CorreccionManual[]>(claveConSucursal(CLAVES_ALMACEN.correcciones), [])
   const { data, error } = await supabase
     .from('correcciones_manuales')
     .select('*')
+    .eq('sucursal_id', getSucursalActual())
     .order('created_at', { ascending: true })
     .limit(LIMITE_CORRECCIONES)
   if (error) {
     console.error('Error cargando correcciones de Supabase:', error.message)
-    return leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
+    return leerAlmacen<CorreccionManual[]>(claveConSucursal(CLAVES_ALMACEN.correcciones), [])
   }
   return (data as FilaCorreccion[]).map(filaACorreccion)
 }
@@ -430,19 +440,19 @@ export async function cargarCorrecciones(): Promise<CorreccionManual[]> {
 export async function guardarCorreccion(c: CorreccionManual): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    const todas = leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
+    const todas = leerAlmacen<CorreccionManual[]>(claveConSucursal(CLAVES_ALMACEN.correcciones), [])
     todas.push(c)
-    guardarAlmacen(CLAVES_ALMACEN.correcciones, todas.slice(-LIMITE_CORRECCIONES))
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.correcciones), todas.slice(-LIMITE_CORRECCIONES))
     return
   }
   const { error } = await supabase.from('correcciones_manuales').upsert(correccionAFila(c))
   if (error) {
     console.warn('Corrección guardada localmente; reintentando sync con Supabase:', error.message)
     // Asegurar copia local (el camino Supabase no la escribía)
-    const todas = leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
+    const todas = leerAlmacen<CorreccionManual[]>(claveConSucursal(CLAVES_ALMACEN.correcciones), [])
     if (!todas.some(x => x.id === c.id)) {
       todas.push(c)
-      guardarAlmacen(CLAVES_ALMACEN.correcciones, todas.slice(-LIMITE_CORRECCIONES))
+      guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.correcciones), todas.slice(-LIMITE_CORRECCIONES))
     }
     encolarReintento(`correccion:${c.id}`, async () => {
       if (!supabase) return false
@@ -457,8 +467,8 @@ export async function eliminarCorreccionesRemotas(ids: string[]): Promise<void> 
   const uid = await backendUid()
   if (!uid || !supabase) {
     const set = new Set(ids)
-    const todas = leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, [])
-    guardarAlmacen(CLAVES_ALMACEN.correcciones, todas.filter(c => !set.has(c.id)))
+    const todas = leerAlmacen<CorreccionManual[]>(claveConSucursal(CLAVES_ALMACEN.correcciones), [])
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.correcciones), todas.filter(c => !set.has(c.id)))
     return
   }
   const { error } = await supabase.from('correcciones_manuales').delete().in('id', ids)
@@ -468,10 +478,10 @@ export async function eliminarCorreccionesRemotas(ids: string[]): Promise<void> 
 export async function reemplazarCorrecciones(correcciones: CorreccionManual[]): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) {
-    guardarAlmacen(CLAVES_ALMACEN.correcciones, correcciones)
+    guardarAlmacen(claveConSucursal(CLAVES_ALMACEN.correcciones), correcciones)
     return
   }
-  const { error: errDel } = await supabase.from('correcciones_manuales').delete().eq('local_id', uid)
+  const { error: errDel } = await supabase.from('correcciones_manuales').delete().eq('local_id', uid).eq('sucursal_id', getSucursalActual())
   if (errDel) console.error('Error limpiando correcciones en Supabase:', errDel.message)
   if (correcciones.length > 0) {
     const { error } = await supabase.from('correcciones_manuales').insert(correcciones.map(correccionAFila))
@@ -489,7 +499,7 @@ export async function reemplazarCorrecciones(correcciones: CorreccionManual[]): 
 export async function sincronizarAprendizajes(aprendizajes: AprendizajeDerivado[]): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) return // en modo local se derivan al vuelo, no se materializan
-  const { error: errDel } = await supabase.from('aprendizajes_derivados').delete().eq('local_id', uid)
+  const { error: errDel } = await supabase.from('aprendizajes_derivados').delete().eq('local_id', uid).eq('sucursal_id', getSucursalActual())
   if (errDel) {
     console.error('Error limpiando aprendizajes en Supabase:', errDel.message)
     return
@@ -500,6 +510,7 @@ export async function sincronizarAprendizajes(aprendizajes: AprendizajeDerivado[
     tipo: a.direccion,
     parametros: { dia: a.dia, valor: a.valor, correccionIds: a.correccionIds, descripcion: a.descripcion },
     fuerza: a.evidencias,
+    sucursal_id: getSucursalActual(),
   }))
   const { error } = await supabase.from('aprendizajes_derivados').insert(filas)
   if (error) console.error('Error guardando aprendizajes en Supabase:', error.message)
@@ -548,9 +559,11 @@ export async function migrarDatosLocalesACuenta(): Promise<ResultadoMigracion> {
   const { count: countReglas } = await supabase
     .from('reglas_configurables')
     .select('id', { count: 'exact', head: true })
+    .eq('sucursal_id', getSucursalActual())
   const { count: countSemanas } = await supabase
     .from('semanas_historial')
     .select('id', { count: 'exact', head: true })
+    .eq('sucursal_id', getSucursalActual())
 
   if ((countReglas ?? 0) > 0 || (countSemanas ?? 0) > 0) {
     localStorage.setItem(flag, new Date().toISOString())

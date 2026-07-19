@@ -168,7 +168,7 @@ export async function extraerNecesidadDesdePDF(file: File): Promise<ResultadoPar
     return { hora, necesidad }
   })
 
-  // Calcular estadísticas (informativas solamente - no para validación)
+  // Calcular estadísticas
   let totalSlots = 0
   let totalDemanda = 0
   franjasAlineadas.forEach(f => {
@@ -177,6 +177,17 @@ export async function extraerNecesidadDesdePDF(file: File): Promise<ResultadoPar
       totalDemanda += v
     })
   })
+
+  // Validación final: nunca dejar avanzar con demanda total 0. Cubre el caso
+  // en que se parsean filas pero ninguna alinea con las franjas esperadas
+  // (p. ej. horas en otro formato) — sin esto se generarían horarios contra
+  // demanda vacía sin que el supervisor lo note.
+  if (totalDemanda === 0) {
+    throw new Error(
+      'No se encontró la tabla de necesidad de cajas en el PDF (todos los valores quedaron en 0). ' +
+      'Verificá que el archivo sea correcto.'
+    )
+  }
 
   return {
     franjas: franjasAlineadas,

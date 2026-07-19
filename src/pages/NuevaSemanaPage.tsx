@@ -52,7 +52,13 @@ export default function NuevaSemanaPage() {
   const [valorInput, setValorInput] = useState('')
 
   const handlePDFSelect = async (file: File) => {
-    await parsearPDF(file)
+    try {
+      await parsearPDF(file)
+    } catch {
+      // El error ya quedó en usePDFParser.error y lo muestra PDFUploader.
+      // NO avanzar al paso de revisión/generación con demanda inválida.
+      return
+    }
     // Generar descripción de la semana basada en fecha actual
     const hoy = new Date()
     setSemanaDesc(`Semana ${format(hoy, 'w', { locale: es })} - ${format(hoy, 'MMMM yyyy', { locale: es })}`)
@@ -862,10 +868,21 @@ export default function NuevaSemanaPage() {
               )}
             </div>
 
+            {/* Defensa en profundidad: nunca generar contra demanda vacía
+                (el parser ya lo bloquea, pero por si llega estado inválido) */}
+            {horasNecesariasEstimadas === 0 && (
+              <p style={{
+                marginTop: '24px', padding: '12px 16px', borderRadius: '12px',
+                background: 'var(--danger-bg)', color: 'var(--danger)',
+                fontSize: '14px', fontWeight: 600,
+              }}>
+                ⚠ No se encontró la tabla de necesidad de cajas en el PDF. Verificá que el archivo sea correcto.
+              </p>
+            )}
             <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleGenerarHorarios}
-                disabled={loadingAsignacion}
+                disabled={loadingAsignacion || horasNecesariasEstimadas === 0}
                 style={{
                   background: 'var(--accent)',
                   color: 'var(--accent-dark)',
@@ -878,8 +895,8 @@ export default function NuevaSemanaPage() {
                   letterSpacing: '-0.2px',
                   display: 'flex',
                   alignItems: 'center',
-                  cursor: loadingAsignacion ? 'not-allowed' : 'pointer',
-                  opacity: loadingAsignacion ? 0.5 : 1,
+                  cursor: (loadingAsignacion || horasNecesariasEstimadas === 0) ? 'not-allowed' : 'pointer',
+                  opacity: (loadingAsignacion || horasNecesariasEstimadas === 0) ? 0.5 : 1,
                 }}
               >
                 {loadingAsignacion ? (

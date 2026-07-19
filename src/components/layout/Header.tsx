@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cerrarSesion } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { getSucursalActual, setSucursalActual } from '../../utils/sucursal'
 
 export default function Header() {
   const hoy = new Date()
@@ -18,6 +19,22 @@ export default function Header() {
   }
 
   const inicial = (usuario?.email ?? 'S').charAt(0).toUpperCase()
+  const sucursal = getSucursalActual()
+
+  const handleCambiarSucursal = () => {
+    const nueva = prompt(
+      'Sucursal activa. Escribí el nombre de la sucursal con la que querés trabajar ' +
+      '(los horarios, reglas y aprendizajes se guardan por sucursal):',
+      sucursal
+    )
+    if (nueva === null) return
+    const limpia = nueva.trim()
+    if (!limpia || limpia === sucursal) return
+    if (confirm(`¿Cambiar a "${limpia}"? La app se recarga con los datos de esa sucursal.`)) {
+      setSucursalActual(limpia)
+      window.location.reload()
+    }
+  }
 
   return (
     <header style={{
@@ -65,9 +82,26 @@ export default function Header() {
               color: 'var(--text-muted)',
               marginTop: '2px',
             }}>
-              {usuario?.email ?? 'Sucursal Central'}
+              {usuario?.email ?? '—'}
             </p>
           </div>
+          <button
+            onClick={handleCambiarSucursal}
+            title="Cambiar de sucursal (los datos se separan por sucursal)"
+            style={{
+              padding: '8px 16px',
+              border: '1px solid var(--border)',
+              borderRadius: '100px',
+              background: 'var(--surface)',
+              color: 'var(--text)',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 600,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            🏬 {sucursal}
+          </button>
           <div style={{
             width: '40px',
             height: '40px',

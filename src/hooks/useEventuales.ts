@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Eventual, EVENTUALES_INICIALES } from '../types'
+import { claveConSucursal, esSucursalPorDefecto } from '../utils/sucursal'
 
 const STORAGE_KEY = 'aliada_eventuales'
 
@@ -12,17 +13,18 @@ export function useEventuales() {
   useEffect(() => {
     const loadEventuales = () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY)
+        const stored = localStorage.getItem(claveConSucursal(STORAGE_KEY))
         if (stored) {
           setEventuales(JSON.parse(stored))
         } else {
           // Primera vez: guardar datos iniciales (vacío)
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(EVENTUALES_INICIALES))
-          setEventuales(EVENTUALES_INICIALES)
+          const iniciales = esSucursalPorDefecto() ? EVENTUALES_INICIALES : []
+          localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(iniciales))
+          setEventuales(iniciales)
         }
       } catch (error) {
         console.error('Error cargando eventuales:', error)
-        setEventuales(EVENTUALES_INICIALES)
+        setEventuales(esSucursalPorDefecto() ? EVENTUALES_INICIALES : [])
       } finally {
         setLoading(false)
       }
@@ -33,7 +35,7 @@ export function useEventuales() {
   // Guardar automáticamente cuando cambian los eventuales
   useEffect(() => {
     if (!loading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(eventuales))
+      localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(eventuales))
     }
   }, [eventuales, loading])
 
