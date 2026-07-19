@@ -9,6 +9,7 @@ import { useCorrecciones } from '../hooks/useCorrecciones'
 import { aplicarEdicionJornada } from '../hooks/useAsignacion'
 import { resumirTurnos } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
+import { recalcularCajaAux } from '../utils/recalculoAux'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
 
@@ -89,8 +90,22 @@ export default function UltimoHorarioPage() {
 
     // Aplicar la edición y persistir la semana actualizada (Supabase + localStorage)
     const horarios = aplicarEdicionJornada(ultimaSemana.horarios, colaboradorId, dia, nueva)
+
+    // Si se editó la PRESENCIA de un AUX, el snapshot de sus bloques en CAJA
+    // queda obsoleto: re-ejecutar la lógica de Pasada 2 sobre el horario
+    // modificado. Si el recálculo no es posible (sin necesidad del PDF o la
+    // presencia editada rompe precondiciones duras), se conserva el previo.
+    const filaEditada = ultimaSemana.horarios.find(h => h.colaboradorId === colaboradorId)
+    let cajaAux = ultimaSemana.cajaAux
+    if (filaEditada?.rolGeneral === 'aux_supervisor' && necesidadFranjas) {
+      const recalculada = recalcularCajaAux(horarios, necesidadFranjas, nombrePorId)
+      if (recalculada) cajaAux = recalculada
+      else console.warn('No se pudo recalcular CAJA de AUX; se conserva el snapshot previo.')
+    }
+
     actualizarSemana(ultimaSemana.id, {
       horarios,
+      cajaAux,
       resumenPorColaborador: resumirTurnos(horarios, nombrePorId),
       editadoManualmente: true,
     })
@@ -193,6 +208,7 @@ export default function UltimoHorarioPage() {
               necesidadFranjas={necesidadFranjas}
               horarios={ultimaSemana.horarios}
               cajaAux={ultimaSemana.cajaAux}
+              aproximado={!ultimaSemana.necesidadFranjas}
             />
           )}
 

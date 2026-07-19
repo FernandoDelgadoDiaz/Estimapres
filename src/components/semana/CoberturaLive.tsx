@@ -9,6 +9,12 @@ interface CoberturaLiveProps {
   horarios: HorarioColaborador[]
   /** Bloques en CAJA de los AUX (snapshot de la generación) */
   cajaAux?: AsignacionCajaColaborador[]
+  /**
+   * true cuando la necesidad NO viene del PDF original (semana guardada antes
+   * de esa versión): se deriva de cobertura+faltantes y subestima la
+   * sobrecobertura. Muestra un aviso claro en vez de números sin contexto.
+   */
+  aproximado?: boolean
 }
 
 /**
@@ -19,7 +25,7 @@ interface CoberturaLiveProps {
  * en CAJA del snapshot de la generación. El cálculo vive en
  * utils/efectividad.ts (compartido con las métricas de efectividad).
  */
-export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = [] }: CoberturaLiveProps) {
+export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = [], aproximado = false }: CoberturaLiveProps) {
   const { cobertura, pctCumplimiento } = useMemo(() => {
     const r = calcularCoberturaHorarios(horarios, necesidadFranjas, cajaAux)
     return { cobertura: r.cobertura, pctCumplimiento: r.pct }
@@ -51,6 +57,15 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Asignados / necesarios por franja. Se actualiza al instante con cada edición.
           </p>
+          {aproximado && (
+            <span style={{
+              display: 'inline-block', marginTop: '8px',
+              fontSize: '12px', fontWeight: 600, padding: '4px 12px', borderRadius: '100px',
+              background: 'var(--warning-bg)', color: 'var(--warning)',
+            }}>
+              ⚠ Datos aproximados: esta semana se guardó sin la necesidad original del PDF
+            </span>
+          )}
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '32px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: colorPct, letterSpacing: '-0.5px' }}>
