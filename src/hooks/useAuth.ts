@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, invalidarCacheSesion } from '../lib/supabase'
-import { invalidarCacheBackend } from '../utils/almacen'
+import { invalidarCacheBackend, invalidarCacheRoster } from '../utils/almacen'
 
 export interface UsuarioAuth {
   id: string
@@ -42,6 +42,7 @@ export function useAuth(): EstadoAuth {
     const { data: sub } = supabase.auth.onAuthStateChange((_evento, session) => {
       invalidarCacheSesion()
       invalidarCacheBackend()
+      invalidarCacheRoster()
       if (!vivo) return
       setEstado({ configurado: true, cargando: false, usuario: aUsuario(session?.user) })
     })

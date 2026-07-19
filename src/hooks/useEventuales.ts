@@ -1,72 +1,57 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { Eventual, EVENTUALES_INICIALES } from '../types'
-import { claveConSucursal, esSucursalPorDefecto } from '../utils/sucursal'
+import { Eventual } from '../types'
+import { claveConSucursal } from '../utils/sucursal'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, CLAVES_ROSTER } from '../utils/almacen'
 
-const STORAGE_KEY = 'aliada_eventuales'
-
+/**
+ * Eventuales de otros sectores. Persisten en Supabase (tabla colaboradores,
+ * por sucursal); localStorage como backup offline. Estado optimista.
+ */
 export function useEventuales() {
   const [eventuales, setEventuales] = useState<Eventual[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Cargar eventuales del localStorage al inicio
   useEffect(() => {
-    const loadEventuales = () => {
-      try {
-        const stored = localStorage.getItem(claveConSucursal(STORAGE_KEY))
-        if (stored) {
-          setEventuales(JSON.parse(stored))
-        } else {
-          // Primera vez: guardar datos iniciales (vacío)
-          const iniciales = esSucursalPorDefecto() ? EVENTUALES_INICIALES : []
-          localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(iniciales))
-          setEventuales(iniciales)
-        }
-      } catch (error) {
-        console.error('Error cargando eventuales:', error)
-        setEventuales(esSucursalPorDefecto() ? EVENTUALES_INICIALES : [])
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadEventuales()
+    let vivo = true
+    cargarGrupoRoster<Eventual>('eventual')
+      .then(es => { if (vivo) setEventuales(es) })
+      .catch(error => console.error('Error cargando eventuales:', error))
+      .finally(() => { if (vivo) setLoading(false) })
+    return () => { vivo = false }
   }, [])
 
-  // Guardar automáticamente cuando cambian los eventuales
+  // Backup local automático (offline) de la lista completa por sucursal
   useEffect(() => {
     if (!loading) {
-      localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(eventuales))
+      localStorage.setItem(claveConSucursal(CLAVES_ROSTER.eventual), JSON.stringify(eventuales))
     }
   }, [eventuales, loading])
 
   const agregarEventual = (nuevo: Omit<Eventual, 'id' | 'activo'>) => {
-    const eventual: Eventual = {
-      ...nuevo,
-      id: uuidv4(),
-      activo: true,
-    }
+    const eventual: Eventual = { ...nuevo, id: uuidv4(), activo: true }
     setEventuales(prev => [...prev, eventual])
+    void guardarItemRoster('eventual', eventual)
     return eventual
   }
 
   const actualizarEventual = (id: string, cambios: Partial<Eventual>) => {
-    setEventuales(prev =>
-      prev.map(ev =>
-        ev.id === id ? { ...ev, ...cambios } : ev
-      )
-    )
+    const actual = eventuales.find(e => e.id === id)
+    if (!actual) return
+    const actualizado = { ...actual, ...cambios }
+    setEventuales(prev => prev.map(ev => (ev.id === id ? actualizado : ev)))
+    void guardarItemRoster('eventual', actualizado)
   }
 
   const eliminarEventual = (id: string) => {
     setEventuales(prev => prev.filter(ev => ev.id !== id))
+    void eliminarItemRoster(id)
   }
 
   const toggleActivo = (id: string) => {
-    setEventuales(prev =>
-      prev.map(ev =>
-        ev.id === id ? { ...ev, activo: !ev.activo } : ev
-      )
-    )
+    const actual = eventuales.find(e => e.id === id)
+    if (!actual) return
+    actualizarEventual(id, { activo: !actual.activo })
   }
 
   const eventualesActivos = eventuales.filter(ev => ev.activo)

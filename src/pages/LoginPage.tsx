@@ -43,8 +43,9 @@ export default function LoginPage() {
       'Este dispositivo tiene datos guardados de una sesión anterior:\n' +
       `· ${local.semanas} semana${local.semanas === 1 ? '' : 's'} de historial\n` +
       `· ${local.reglas} regla${local.reglas === 1 ? '' : 's'}\n` +
-      `· ${local.correcciones} correccion${local.correcciones === 1 ? '' : 'es'}\n\n` +
-      '¿Querés migrarlos a tu cuenta? (Solo se migran si tu cuenta todavía no tiene datos.)'
+      `· ${local.correcciones} correccion${local.correcciones === 1 ? '' : 'es'}\n` +
+      (local.roster > 0 ? `· ${local.roster} colaboradores del roster (se sincronizan solos al entrar)\n` : '') +
+      '\n¿Querés migrarlos a tu cuenta? (Solo se migran si tu cuenta todavía no tiene datos.)'
     )
     if (!ok) return
     const resultado = await migrarDatosLocalesACuenta()

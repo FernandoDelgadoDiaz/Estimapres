@@ -1,78 +1,63 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Auxiliar, AUXILIARES_INICIALES } from '../types'
-import { claveConSucursal, esSucursalPorDefecto } from '../utils/sucursal'
+import { claveConSucursal } from '../utils/sucursal'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, reemplazarGrupoRoster, CLAVES_ROSTER } from '../utils/almacen'
 
-const STORAGE_KEY = 'aliada_auxiliares'
-
+/**
+ * Auxiliares supervisores (AUX). Persisten en Supabase (tabla colaboradores,
+ * por sucursal); localStorage como backup offline. Estado optimista.
+ */
 export function useAuxiliares() {
   const [auxiliares, setAuxiliares] = useState<Auxiliar[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Cargar auxiliares del localStorage al inicio
   useEffect(() => {
-    const loadAuxiliares = () => {
-      try {
-        const stored = localStorage.getItem(claveConSucursal(STORAGE_KEY))
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          setAuxiliares(parsed)
-        } else {
-          // Primera vez: guardar datos iniciales
-          const iniciales = esSucursalPorDefecto() ? AUXILIARES_INICIALES : []
-          localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(iniciales))
-          setAuxiliares(iniciales)
-        }
-      } catch (error) {
-        console.error('Error cargando auxiliares:', error)
-        setAuxiliares(esSucursalPorDefecto() ? AUXILIARES_INICIALES : [])
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadAuxiliares()
+    let vivo = true
+    cargarGrupoRoster<Auxiliar>('auxiliar')
+      .then(as => { if (vivo) setAuxiliares(as) })
+      .catch(error => console.error('Error cargando auxiliares:', error))
+      .finally(() => { if (vivo) setLoading(false) })
+    return () => { vivo = false }
   }, [])
 
-  // Guardar automáticamente cuando cambian los auxiliares
+  // Backup local automático (offline) de la lista completa por sucursal
   useEffect(() => {
     if (!loading) {
-      localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(auxiliares))
+      localStorage.setItem(claveConSucursal(CLAVES_ROSTER.auxiliar), JSON.stringify(auxiliares))
     }
   }, [auxiliares, loading])
 
   const agregarAuxiliar = (nuevo: Omit<Auxiliar, 'id' | 'activo'>) => {
-    const auxiliar: Auxiliar = {
-      ...nuevo,
-      id: uuidv4(),
-      activo: true,
-    }
+    const auxiliar: Auxiliar = { ...nuevo, id: uuidv4(), activo: true }
     setAuxiliares(prev => [...prev, auxiliar])
+    void guardarItemRoster('auxiliar', auxiliar)
     return auxiliar
   }
 
   const actualizarAuxiliar = (id: string, cambios: Partial<Auxiliar>) => {
-    setAuxiliares(prev =>
-      prev.map(aux =>
-        aux.id === id ? { ...aux, ...cambios } : aux
-      )
-    )
+    const actual = auxiliares.find(a => a.id === id)
+    if (!actual) return
+    const actualizado = { ...actual, ...cambios }
+    setAuxiliares(prev => prev.map(aux => (aux.id === id ? actualizado : aux)))
+    void guardarItemRoster('auxiliar', actualizado)
   }
 
   const eliminarAuxiliar = (id: string) => {
     setAuxiliares(prev => prev.filter(aux => aux.id !== id))
+    void eliminarItemRoster(id)
   }
 
   const toggleActivo = (id: string) => {
-    setAuxiliares(prev =>
-      prev.map(aux =>
-        aux.id === id ? { ...aux, activo: !aux.activo } : aux
-      )
-    )
+    const actual = auxiliares.find(a => a.id === id)
+    if (!actual) return
+    actualizarAuxiliar(id, { activo: !actual.activo })
   }
 
   const resetAuxiliares = () => {
-    localStorage.setItem(claveConSucursal(STORAGE_KEY), JSON.stringify(AUXILIARES_INICIALES))
     setAuxiliares(AUXILIARES_INICIALES)
+    localStorage.setItem(claveConSucursal(CLAVES_ROSTER.auxiliar), JSON.stringify(AUXILIARES_INICIALES))
+    void reemplazarGrupoRoster('auxiliar', AUXILIARES_INICIALES)
   }
 
   const auxiliaresActivos = auxiliares.filter(aux => aux.activo)
