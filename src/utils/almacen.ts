@@ -12,7 +12,7 @@
 // estado optimista: la UI nunca espera a la red.
 
 import { supabase, asegurarSesion } from '../lib/supabase'
-import { getSucursalActual, claveConSucursal } from './sucursal'
+import { getSucursalActual, claveConSucursal, esSucursalPorDefecto } from './sucursal'
 import type {
   ReglaConfigurable,
   SemanaHistorial,
@@ -725,7 +725,7 @@ export async function cargarGrupoRoster<T extends ItemRoster>(grupo: GrupoRoster
   if (enCache) return enCache as Promise<T[]>
 
   const p = (async (): Promise<ItemRoster[]> => {
-    const esDefault = getSucursalActual() === 'Sucursal Central'
+    const esDefault = esSucursalPorDefecto()
     const uid = await backendUid()
     if (!uid || !supabase) return localRoster(grupo, esDefault)
 

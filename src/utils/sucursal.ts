@@ -4,7 +4,7 @@
 // roster local) se separan por sucursal_id. Cambiar de sucursal recarga la
 // app para que todas las capas relean con el nuevo contexto.
 
-export const SUCURSAL_POR_DEFECTO = 'Sucursal Central'
+export const SUCURSAL_POR_DEFECTO = '091'
 const CLAVE_SUCURSAL = 'aliada_sucursal_actual'
 
 export function getSucursalActual(): string {
