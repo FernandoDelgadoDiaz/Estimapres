@@ -1,7 +1,13 @@
 // Capa de aprendizaje: criterios de cobertura con decay temporal.
 import { describe, it, expect } from "vitest";
-import { derivarCriteriosCobertura, pesosFranjaDeCriterios, pesoTemporal } from "../preferencias";
-import type { CorreccionManual } from "../../types";
+import {
+  derivarCriteriosCobertura,
+  pesosFranjaDeCriterios,
+  pesoTemporal,
+  configOperativaDeReglas,
+  DEFAULTS_OPERATIVOS,
+} from "../preferencias";
+import type { CorreccionManual, ReglaConfigurable } from "../../types";
 
 const AHORA = new Date("2026-07-19T00:00:00");
 
@@ -90,3 +96,33 @@ describe("pesosFranjaDeCriterios", () => {
     expect(pesos[0]).toBe(1);                      // apertura neutra
   });
 });
+
+const reglaOp = (tipo: ReglaConfigurable['tipo'], activa: boolean): ReglaConfigurable => ({
+  id: `op-${tipo}`, ambito: 'local', tipo, activa,
+  descripcion: `${tipo}`, creadaEl: '2026-07-01T00:00:00Z',
+})
+
+describe("configOperativaDeReglas (defaults del negocio)", () => {
+  const LUNES = "2026-07-20"
+
+  it("sin reglas → usa los defaults (apertura/sinAux/franco ON, supervisor OFF)", () => {
+    const c = configOperativaDeReglas([], LUNES)
+    expect(c.aperturaSoloAux).toBe(true)
+    expect(c.sinAuxCierre).toBe(true)
+    expect(c.francoMedioCorridos).toBe(true)
+    expect(c.supervisorJornadaCompleta).toBe(false)
+    // coherente con DEFAULTS_OPERATIVOS
+    expect(c.aperturaSoloAux).toBe(DEFAULTS_OPERATIVOS.apertura_solo_aux)
+    expect(c.supervisorJornadaCompleta).toBe(DEFAULTS_OPERATIVOS.supervisor_jornada_completa)
+  })
+
+  it("una regla desactivada pisa el default ON", () => {
+    const c = configOperativaDeReglas([reglaOp('apertura_solo_aux', false)], LUNES)
+    expect(c.aperturaSoloAux).toBe(false)
+  })
+
+  it("una regla activada pisa el default OFF (supervisor jornada completa)", () => {
+    const c = configOperativaDeReglas([reglaOp('supervisor_jornada_completa', true)], LUNES)
+    expect(c.supervisorJornadaCompleta).toBe(true)
+  })
+})

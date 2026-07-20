@@ -69,14 +69,37 @@ export interface InputAlgoritmo {
   excepciones?: ExcepcionSemanal[];
   // Preferencias blandas por colab_id (rotación + aprendizaje de correcciones).
   preferencias_turno?: Record<string, Partial<SesgoTurno>>;
-  // Regla configurable del local: máximo de francos FULL+PART por día.
-  // Nunca puede superar 2 (H-FR1 es dura); se clampea a [1, 2].
+  // Regla operativa configurable: máximo de francos FULL+PART por día.
+  // Default 2; el supervisor puede subirlo/bajarlo según su dotación
+  // (no es ley laboral). Mínimo efectivo 1.
   max_francos_dia?: number;
   // Pesos por slot (30 valores, default 1) derivados de los CRITERIOS DE
   // COBERTURA aprendidos del supervisor: un peso > 1 hace que cubrir déficit
   // en ese slot valga más en el score (Pasada 1) y se priorice antes al
   // activar AUX/eventuales (Pasadas 2 y 3). No altera reglas duras ni demanda.
   pesos_franja?: number[];
+
+  // ===== REGLAS OPERATIVAS CONFIGURABLES (no son leyes laborales) =====
+  // Cuando el campo está ausente, el algoritmo usa el FALLBACK que reproduce
+  // el comportamiento histórico (para no cambiar los tests que llaman directo
+  // al motor). La app siempre pasa un valor explícito calculado desde las
+  // reglas de la sucursal, con los defaults del negocio.
+
+  // R1 "Apertura con supervisor": si true, ningún cajero cubre 08:00-09:00
+  // (las cortadas no arrancan antes de las 09:00; sólo el AUX de apertura).
+  // Fallback: false (hoy las cortadas pueden cubrir la apertura).
+  apertura_solo_aux?: boolean;
+  // R2 "Sin AUX en caja después de 22:00": si true (fallback), los AUX no se
+  // sientan en caja en 22:00-22:30 (slot 28); si false, sí pueden.
+  sin_aux_cierre?: boolean;
+  // R3 "Supervisor de jornada completa": si true, cuando hay 2+ AUX presentes
+  // a la vez en un día, el de mayor presencia queda PARADO todo el día (nunca
+  // se sienta en caja). Fallback: false.
+  supervisor_jornada_completa?: boolean;
+  // R4 "Franco y medio franco corridos": si true, el día de 5h (medio franco)
+  // de cada FULL debe ser adyacente a su franco completo (36h corridas de
+  // descanso). Fallback: false (el día de 5h puede caer cualquier día).
+  franco_medio_corridos?: boolean;
 }
 
 // Outputs del algoritmo

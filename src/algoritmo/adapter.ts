@@ -109,6 +109,11 @@ export interface OpcionesGeneracion {
   maxFrancosDia?: number;
   // Criterios de cobertura aprendidos: peso por slot (30 valores, default 1).
   pesosFranja?: number[];
+  // Reglas operativas configurables de la sucursal (toggles con default).
+  aperturaSoloAux?: boolean;
+  sinAuxCierre?: boolean;
+  supervisorJornadaCompleta?: boolean;
+  francoMedioCorridos?: boolean;
 }
 
 export function convertirInputAV2(
@@ -186,6 +191,10 @@ export function convertirInputAV2(
     preferencias_turno,
     max_francos_dia: opciones?.maxFrancosDia,
     pesos_franja: opciones?.pesosFranja,
+    apertura_solo_aux: opciones?.aperturaSoloAux,
+    sin_aux_cierre: opciones?.sinAuxCierre,
+    supervisor_jornada_completa: opciones?.supervisorJornadaCompleta,
+    franco_medio_corridos: opciones?.francoMedioCorridos,
   };
 }
 

@@ -2,7 +2,19 @@ import { useMemo, useState } from 'react'
 import { DIAS_SEMANA, ReglaConfigurable, TipoReglaColaborador, TipoReglaLocal } from '../types'
 import { useReglas } from '../hooks/useReglas'
 import { useColaboradores } from '../hooks/useColaboradores'
-import { validarConflictosReglas } from '../utils/preferencias'
+import {
+  validarConflictosReglas,
+  ETIQUETAS_OPERATIVAS,
+  DEFAULTS_OPERATIVOS,
+  type TipoReglaOperativa,
+} from '../utils/preferencias'
+
+const TIPOS_OPERATIVOS: TipoReglaOperativa[] = [
+  'apertura_solo_aux',
+  'sin_aux_cierre',
+  'supervisor_jornada_completa',
+  'franco_medio_corridos',
+]
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -37,8 +49,36 @@ const TIPOS_LOCAL: Array<{ valor: TipoReglaLocal; etiqueta: string }> = [
 ]
 
 export default function ReglasPage() {
-  const { reglas, agregarRegla, eliminarRegla, toggleActiva } = useReglas()
+  const { reglas, agregarRegla, actualizarRegla, eliminarRegla, toggleActiva } = useReglas()
   const { colaboradores } = useColaboradores()
+
+  // ===== Reglas operativas (toggles con default) =====
+  const estadoOperativa = (t: TipoReglaOperativa): boolean => {
+    const r = reglas.find(x => x.ambito === 'local' && x.tipo === t)
+    return r ? r.activa : DEFAULTS_OPERATIVOS[t]
+  }
+  const descOperativa = (t: TipoReglaOperativa, on: boolean) =>
+    `${ETIQUETAS_OPERATIVAS[t].titulo}: ${on ? 'activada' : 'desactivada'}`
+  const toggleOperativa = (t: TipoReglaOperativa) => {
+    const existente = reglas.find(x => x.ambito === 'local' && x.tipo === t)
+    const nuevo = !(existente ? existente.activa : DEFAULTS_OPERATIVOS[t])
+    if (existente) actualizarRegla(existente.id, { activa: nuevo, descripcion: descOperativa(t, nuevo) })
+    else agregarRegla({ ambito: 'local', tipo: t, activa: nuevo, descripcion: descOperativa(t, nuevo) })
+  }
+
+  // Regla 6 (máx francos por día): un único rule max_francos_dia editable
+  const reglaMaxFrancos = reglas.find(r => r.ambito === 'local' && r.tipo === 'max_francos_dia')
+  const maxFrancosActual = reglaMaxFrancos?.cantidad ?? 2
+  const setMaxFrancos = (n: number) => {
+    const val = Math.max(1, Math.min(6, Math.round(n)))
+    const desc = `Máximo ${val} franco${val === 1 ? '' : 's'} por día`
+    if (reglaMaxFrancos) actualizarRegla(reglaMaxFrancos.id, { cantidad: val, activa: true, descripcion: desc })
+    else agregarRegla({ ambito: 'local', tipo: 'max_francos_dia', cantidad: val, activa: true, descripcion: desc })
+  }
+
+  // Reglas gestionadas arriba (sección operativa): no se listan abajo para no duplicarlas.
+  const TIPOS_GESTIONADOS = new Set<string>([...TIPOS_OPERATIVOS, 'max_francos_dia'])
+  const reglasListadas = reglas.filter(r => !(r.ambito === 'local' && TIPOS_GESTIONADOS.has(r.tipo)))
 
   const [ambito, setAmbito] = useState<'colaborador' | 'local'>('colaborador')
   const [tipo, setTipo] = useState<string>('franco_fijo')
@@ -139,8 +179,65 @@ export default function ReglasPage() {
           Reglas del local
         </h1>
         <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
-          Restricciones que el algoritmo aplica en cada generación. Se guardan en este dispositivo y podés activarlas o pausarlas sin borrarlas.
+          Restricciones que el algoritmo aplica en cada generación. Se guardan por sucursal y podés activarlas o pausarlas sin borrarlas.
         </p>
+      </div>
+
+      {/* Reglas operativas de la sucursal (toggles con default) */}
+      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', padding: '24px', marginBottom: '24px' }}>
+        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '4px' }}>
+          Reglas operativas de la sucursal
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+          Cómo opera esta sucursal. No son leyes laborales (esas nunca se tocan): configuralas según tu operatoria.
+        </p>
+
+        {TIPOS_OPERATIVOS.map(t => {
+          const on = estadoOperativa(t)
+          return (
+            <div key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', padding: '14px 0', borderTop: '1px solid var(--border)' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+                  {ETIQUETAS_OPERATIVAS[t].titulo}
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '8px' }}>
+                    (default: {DEFAULTS_OPERATIVOS[t] ? 'activada' : 'desactivada'})
+                  </span>
+                </p>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{ETIQUETAS_OPERATIVAS[t].descripcion}</p>
+              </div>
+              <button
+                onClick={() => toggleOperativa(t)}
+                style={{
+                  flexShrink: 0, minWidth: '92px', padding: '8px 16px', borderRadius: '100px',
+                  border: '1px solid var(--border)',
+                  background: on ? 'var(--accent)' : 'var(--surface)',
+                  color: on ? 'var(--accent-dark)' : 'var(--text-muted)',
+                  fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+                }}
+              >
+                {on ? 'Activada' : 'Desactivada'}
+              </button>
+            </div>
+          )
+        })}
+
+        {/* Máximo de francos por día (regla 6) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 0', borderTop: '1px solid var(--border)' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+              Máximo de francos por día
+              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '8px' }}>(default: 2)</span>
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+              No más de N cajeros FULL+PART con franco el mismo día. Subilo o bajalo según tu dotación.
+            </p>
+          </div>
+          <input
+            type="number" min={1} max={6} value={maxFrancosActual}
+            onChange={e => setMaxFrancos(Number(e.target.value))}
+            style={{ ...inputStyle, width: '80px', textAlign: 'center' }}
+          />
+        </div>
       </div>
 
       {/* Conflictos con reglas duras */}
@@ -289,16 +386,16 @@ export default function ReglasPage() {
       <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
           <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
-            Reglas configuradas ({reglas.length})
+            Reglas configuradas ({reglasListadas.length})
           </h3>
         </div>
-        {reglas.length === 0 ? (
+        {reglasListadas.length === 0 ? (
           <p style={{ padding: '32px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '14px' }}>
-            Todavía no hay reglas. Las que agregues acá se aplican automáticamente en cada generación de horarios.
+            Todavía no hay reglas por colaborador ni mínimos de cajeros. Las que agregues acá se aplican automáticamente en cada generación de horarios.
           </p>
         ) : (
           <div>
-            {reglas.map(r => (
+            {reglasListadas.map(r => (
               <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 24px', borderBottom: '1px solid var(--border)', opacity: r.activa ? 1 : 0.5 }}>
                 <span style={{
                   fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '100px',

@@ -22,11 +22,11 @@ export function useReglas() {
     return () => { vivo = false }
   }, [])
 
-  const agregarRegla = (nueva: Omit<ReglaConfigurable, 'id' | 'activa' | 'creadaEl'>) => {
+  const agregarRegla = (nueva: Omit<ReglaConfigurable, 'id' | 'activa' | 'creadaEl'> & { activa?: boolean }) => {
     const regla: ReglaConfigurable = {
       ...nueva,
       id: uuidv4(),
-      activa: true,
+      activa: nueva.activa ?? true,
       creadaEl: new Date().toISOString(),
     }
     setReglas(prev => [...prev, regla])

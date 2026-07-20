@@ -50,12 +50,26 @@ export function ejecutarPasada2(
     asignacion_aux[auxId] = matriz.map(fila => fila.map(estado => estado));
   }
 
+  // Reglas operativas configurables (fallback = comportamiento histórico):
+  //   R2 sin_aux_cierre → hasta qué slot pueden sentarse los AUX en caja.
+  //   R3 supervisor_jornada_completa → un AUX queda parado toda la jornada.
+  const sinAuxCierre = input.sin_aux_cierre ?? true;
+  const slotMaxCaja = sinAuxCierre ? 27 : 28; // inclusivo (27 = 21:30-22:00)
+  const supervisorJornadaCompleta = input.supervisor_jornada_completa ?? false;
+  const designado: Record<number, string | null> = {};
+  for (const dia of DIAS) {
+    designado[dia] = supervisorJornadaCompleta
+      ? designarSupervisorJornadaCompleta(asignacion_aux, dia)
+      : null;
+  }
+
   // === PASO 3: Forzar H-A1 en slots 0 y 1 cada dia ===
   const auxes_activados_08_09: Record<number, string> = {};
 
   for (const dia of DIAS) {
     const candidatos: string[] = [];
     for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
+      if (auxId === designado[dia]) continue; // R3: el designado no se sienta en caja
       if (matriz[dia][0] !== "NO_PRESENTE" && matriz[dia][1] !== "NO_PRESENTE") {
         candidatos.push(auxId);
       }
@@ -92,12 +106,12 @@ export function ejecutarPasada2(
     slots_con_deficit.sort((a, b) => b.deficit * peso(b.slot) - a.deficit * peso(a.slot));
 
     for (const { slot } of slots_con_deficit) {
-      if (slot === 0 || slot === 1) continue; // ya resuelto por H-A1
-      if (slot >= 28) continue;                // H-A3: no activar 22:00+
-      if (slot < 2 || slot > 27) continue;     // solo aplicable 09-22
+      if (slot === 0 || slot === 1) continue;         // ya resuelto por H-A1
+      if (slot < 2 || slot > slotMaxCaja) continue;   // R2 + fin de operación
 
       const presentes: string[] = [];
       for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
+        if (auxId === designado[dia]) continue; // R3: el designado no se sienta
         if (matriz[dia][slot] === "PARADO") presentes.push(auxId);
       }
 
@@ -147,7 +161,7 @@ export function ejecutarPasada2(
   //   b) extender bloques aislados de 1 slot hacia un vecino PARADO
   //      (preferir el lado con deficit; si ninguno tiene, extender igual
   //      para alcanzar el minimo de 1 hora)
-  agruparBloquesCaja(asignacion_aux, deficit_actual);
+  agruparBloquesCaja(asignacion_aux, deficit_actual, slotMaxCaja);
 
   return {
     asignacion_aux,
@@ -155,6 +169,36 @@ export function ejecutarPasada2(
     auxes_activados_08_09,
     violaciones_input: [],
   };
+}
+
+/**
+ * R3 "supervisor de jornada completa": si en el día hay 2+ AUX presentes a la
+ * vez en algún slot, designa al de mayor presencia (desempate por id) para que
+ * quede PARADO toda la jornada. Devuelve su id, o null si no aplica.
+ */
+function designarSupervisorJornadaCompleta(
+  asignacion_aux: Record<string, AsignacionAux[][]>,
+  dia: DiaSemana
+): string | null {
+  const horasPresencia: Record<string, number> = {};
+  let maxSimultaneos = 0;
+  for (let slot = 0; slot < SLOTS_POR_DIA; slot++) {
+    let simultaneos = 0;
+    for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
+      if (matriz[dia][slot] !== "NO_PRESENTE") {
+        simultaneos++;
+        horasPresencia[auxId] = (horasPresencia[auxId] ?? 0) + 1;
+      }
+    }
+    if (simultaneos > maxSimultaneos) maxSimultaneos = simultaneos;
+  }
+  if (maxSimultaneos < 2) return null;
+  const presentes = Object.keys(horasPresencia);
+  presentes.sort((a, b) => {
+    if (horasPresencia[a] !== horasPresencia[b]) return horasPresencia[b] - horasPresencia[a];
+    return a.localeCompare(b);
+  });
+  return presentes[0] ?? null;
 }
 
 /**
@@ -166,9 +210,10 @@ function activarSiRespetaHA2(
   deficit_actual: number[][],
   auxId: string,
   dia: DiaSemana,
-  slot: SlotIdx
+  slot: SlotIdx,
+  slotMaxCaja: number
 ): boolean {
-  if (slot < 2 || slot > 27) return false; // H-A1 (0-1) y H-A3 (28-29)
+  if (slot < 2 || slot > slotMaxCaja) return false; // H-A1 (0-1) y R2/fin de operación
   if (asignacion_aux[auxId][dia][slot] !== "PARADO") return false;
   let parados = 0;
   for (const matriz of Object.values(asignacion_aux)) {
@@ -187,7 +232,8 @@ function activarSiRespetaHA2(
  */
 function agruparBloquesCaja(
   asignacion_aux: Record<string, AsignacionAux[][]>,
-  deficit_actual: number[][]
+  deficit_actual: number[][],
+  slotMaxCaja: number
 ): void {
   const MAX_ITERACIONES = SLOTS_POR_DIA;
   for (let iter = 0; iter < MAX_ITERACIONES; iter++) {
@@ -198,20 +244,20 @@ function agruparBloquesCaja(
         const fila = matriz[dia];
 
         // a) Rellenar huecos de 1 slot: CAJA - PARADO - CAJA → CAJA continuo
-        for (let slot = 3; slot <= 26; slot++) {
+        for (let slot = 3; slot <= slotMaxCaja - 1; slot++) {
           if (
             fila[slot] === "PARADO" &&
             fila[slot - 1] === "CAJA" &&
             fila[slot + 1] === "CAJA"
           ) {
-            if (activarSiRespetaHA2(asignacion_aux, deficit_actual, auxId, dia, slot)) {
+            if (activarSiRespetaHA2(asignacion_aux, deficit_actual, auxId, dia, slot, slotMaxCaja)) {
               cambios = true;
             }
           }
         }
 
         // b) Extender bloques aislados de 1 slot al vecino PARADO
-        for (let slot = 2; slot <= 27; slot++) {
+        for (let slot = 2; slot <= slotMaxCaja; slot++) {
           if (fila[slot] !== "CAJA") continue;
           const solo =
             (slot === 0 || fila[slot - 1] !== "CAJA") &&
@@ -221,11 +267,11 @@ function agruparBloquesCaja(
           // Candidatos adyacentes donde este aux esta PARADO, con preferencia
           // por el lado que ademas cubre deficit real.
           const vecinos: SlotIdx[] = [slot - 1, slot + 1]
-            .filter(v => v >= 2 && v <= 27 && fila[v] === "PARADO")
+            .filter(v => v >= 2 && v <= slotMaxCaja && fila[v] === "PARADO")
             .sort((a, b) => deficit_actual[dia][b] - deficit_actual[dia][a]);
 
           for (const vecino of vecinos) {
-            if (activarSiRespetaHA2(asignacion_aux, deficit_actual, auxId, dia, vecino)) {
+            if (activarSiRespetaHA2(asignacion_aux, deficit_actual, auxId, dia, vecino, slotMaxCaja)) {
               cambios = true;
               break; // con 2 slots (1 hora) alcanza el minimo
             }

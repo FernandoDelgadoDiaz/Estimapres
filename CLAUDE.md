@@ -20,18 +20,30 @@ Etapa actual: ver /ai/architecture.md
 
 La app usa una arquitectura de dos capas para generar horarios:
 
-CAPA 1 — ALGORITMO DETERMINÍSTICO (algoritmoAsignacion.ts)
+CAPA 1 — ALGORITMO DETERMINÍSTICO (src/algoritmo/, orquestador P1→P2→P3)
 Responsabilidad: generar el horario completo con precisión
-matemática garantizada. No usa IA. Garantiza:
-- Horas exactas por colaborador (48h FULL, 32h PART)
-- Distribución correcta de jornadas (3x9h + 2x8h + 1x5h + franco)
-- Francos respetando máximo 2 por día
-- Turno tarde/mañana fijo por colaborador PART
-- Descanso mínimo 12h entre jornadas
-- Jerarquía de cobertura: cajeros → AUX baches → eventuales
-- 1 AUX solo en franja 08:00-09:00
-- 2 AUX reservados para cierre 22:00-23:00
-- Cupo de cajeros a las 22:00 según necesidad real del PDF
+matemática garantizada. No usa IA.
+
+REGLAS LABORALES INVIOLABLES (por construcción del algoritmo, NUNCA
+configurables — convenio de comercio argentino):
+- FULL: 48h exactas, composición 3x9h + 2x8h + 1x5h con 2 cortados,
+  descanso mínimo 12h entre jornadas.
+- PART: máximo 31h, jornadas corridas de 4-6h, descanso mínimo 12h.
+
+REGLAS OPERATIVAS CONFIGURABLES (pantalla Reglas; NADA hardcodeado):
+cada sucursal ajusta su operatoria. Ver src/utils/preferencias.ts
+(configOperativaDeReglas / DEFAULTS_OPERATIVOS) y src/algoritmo/types.ts
+(InputAlgoritmo). Defaults del negocio:
+- apertura_solo_aux (ON): 08:00-09:00 sólo con AUX, sin cajeros.
+- sin_aux_cierre (ON): los AUX no se sientan en caja después de 22:00.
+- supervisor_jornada_completa (OFF): con 2+ AUX presentes, el de mayor
+  presencia queda parado toda la jornada.
+- franco_medio_corridos (ON): el día de 5h de cada FULL pegado a su franco.
+- min_cajeros_franja: mínimo N cajeros en una franja (sube la demanda).
+- max_francos_dia (2): tope de francos FULL+PART por día, subible/bajable.
+Jerarquía de cobertura (cascada): cajeros FULL/PART → AUX → eventuales.
+El fallback del algoritmo (config ausente) reproduce el comportamiento
+histórico, por eso los tests que llaman directo al motor no cambian.
 
 CAPA 2 — CLAUDE API (iaAsignacion.ts) — OPCIONAL
 Responsabilidad: revisar el horario ya generado y sugerir

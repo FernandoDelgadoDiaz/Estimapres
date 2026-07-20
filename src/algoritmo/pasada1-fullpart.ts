@@ -105,10 +105,15 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   const parts = input.colaboradores.filter(c => c.rol === "PART");
   const excepciones = input.excepciones ?? [];
   const demanda = input.demanda;
-  // Regla configurable del local: nunca por encima de la dura H-FR1 (2).
-  const cap_francos = Math.min(2, Math.max(1, Math.round(input.max_francos_dia ?? 2)));
+  // Regla operativa configurable: máximo de francos FULL+PART por día.
+  // Default 2 (comportamiento histórico); el supervisor puede subirlo/bajarlo
+  // según su dotación. No es una ley laboral, así que no se topa en 2.
+  const cap_francos = Math.max(1, Math.round(input.max_francos_dia ?? 2));
   // Criterios de cobertura aprendidos: peso por slot (default 1 = neutro).
   const pesos = input.pesos_franja;
+  // Reglas operativas configurables (fallback = comportamiento histórico).
+  const aperturaSoloAux = input.apertura_solo_aux ?? false;
+  const francoMedioCorridos = input.franco_medio_corridos ?? false;
 
   const cobertura: number[][] = Array.from({ length: 7 }, () => new Array(30).fill(0));
   const francos_full: number[] = new Array(7).fill(0);
@@ -133,7 +138,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
 
       const pre = prefijosUtilidad(demanda, cobertura, pesos);
       const nueva = es_full
-        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos)
+        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos)
         : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos);
 
       let elegida: Jornada[] | null = previa;
@@ -353,7 +358,8 @@ function candidatosDiaFull(
   excepciones: ExcepcionSemanal[],
   franco_permitido: boolean,
   pen_franco: number,
-  sesgo: SesgoTurno
+  sesgo: SesgoTurno,
+  aperturaSoloAux: boolean
 ): Candidato[] {
   const cands: Candidato[] = [];
 
@@ -377,10 +383,13 @@ function candidatosDiaFull(
   }
 
   // Cortadas: ítems 3=CORT-9h, 4=CORT-8h. No cuentan como mañana.
+  // R1 "apertura con supervisor": si está activa, el bloque 1 no arranca
+  // antes de las 09:00 (slot 2) → ningún cajero cubre la franja 08:00-09:00.
+  const b1Min = aperturaSoloAux ? Math.max(2, 0) : 0;
   for (const cort of CATALOGO_FULL_CORTADAS) {
     const item = cort.tipo === "F-CORT-9" ? 3 : 4;
     for (let ci = 0; ci < cort.composiciones.length; ci++) {
-      for (let b1 = cort.b1_inicio_min; b1 <= cort.b1_inicio_max; b1++) {
+      for (let b1 = Math.max(cort.b1_inicio_min, b1Min); b1 <= cort.b1_inicio_max; b1++) {
         for (const [x, y] of generarParesCortada(cort, b1, ci)) {
           const bloques: Bloque[] = [x, y];
           if (jornadaViolaExcepcion({ colab_id: colab.id, dia, bloques }, excepciones, colab.nombre)) continue;
@@ -479,7 +488,9 @@ function optimizarSemanaFull(
   francos_part: number[],
   excepciones: ExcepcionSemanal[],
   sesgo: SesgoTurno,
-  cap_francos: number
+  cap_francos: number,
+  aperturaSoloAux: boolean,
+  francoMedioCorridos: boolean
 ): Jornada[] | null {
   const cands_por_dia: Candidato[][] = [];
   for (let d = 0; d < 7; d++) {
@@ -491,14 +502,25 @@ function optimizarSemanaFull(
         excepciones,
         francos_full[d] + francos_part[d] < cap_francos,
         PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
-        sesgo
+        sesgo,
+        aperturaSoloAux
       )
     );
   }
 
-  const S = NUM_ESTADOS_FULL;
+  // R4 "franco y medio franco corridos": dimensión extra de "obligación de
+  // adyacencia" que exige que el día de 5h (medio franco, item 2) sea
+  // contiguo al franco. Con la regla OFF, nOblig=1 y el estado colapsa
+  // exactamente al DP histórico (mismos resultados, mismos tiempos).
+  //   oblig 0 = sin obligación pendiente
+  //   oblig 1 = FORCE_MEDIO (ayer se puso el franco → hoy debe ir el 5h)
+  //   oblig 2 = FORCE_FRANCO (ayer se puso el 5h → hoy debe ir el franco)
+  const nOblig = francoMedioCorridos ? 3 : 1;
+  const SB = NUM_ESTADOS_FULL;   // estados base (sin oblig)
+  const S = SB * nOblig;
+
   let cur = new Float64Array(S).fill(-Infinity);
-  for (const cnt of COMPOSICIONES_FULL) cur[cnt] = 0; // finB=0, franco=0, mañanas=0
+  for (const cnt of COMPOSICIONES_FULL) cur[cnt] = 0; // oblig=0, finB=0, franco=0, mañanas=0
 
   const eleccion = new Int32Array(7 * S).fill(-1);
   const previo = new Int32Array(7 * S);
@@ -507,30 +529,48 @@ function optimizarSemanaFull(
     const next = new Float64Array(S).fill(-Infinity);
     const cands = cands_por_dia[d];
     const base = d * S;
-    for (let finB = 0; finB < 7; finB++) {
-      for (let fu = 0; fu < 2; fu++) {
-        for (let man = 0; man < 3; man++) {
-          const pref = ((finB * 2 + fu) * 3 + man) * CNT_FULL;
-          for (let cnt = 0; cnt < CNT_FULL; cnt++) {
-            const u = cur[pref + cnt];
-            if (u === -Infinity) continue;
-            for (let ci = 0; ci < cands.length; ci++) {
-              const c = cands[ci];
-              let ns: number;
-              if (c.item === -1) {
-                if (fu === 1) continue;
-                ns = (3 + man) * CNT_FULL + cnt; // finB=0, fu=1
-              } else {
-                if (finB !== 0 && c.inicio < finB - 1) continue; // H-D1
-                if (!TIENE_ITEM[c.item][cnt]) continue;
-                const man2 = c.es_manana && man < 2 ? man + 1 : man;
-                ns = ((c.finB * 2 + fu) * 3 + man2) * CNT_FULL + (cnt - PASO_ITEM[c.item]);
-              }
-              const v = u + c.util;
-              if (v > next[ns]) {
-                next[ns] = v;
-                eleccion[base + ns] = ci;
-                previo[base + ns] = pref + cnt;
+    for (let oblig = 0; oblig < nOblig; oblig++) {
+      for (let finB = 0; finB < 7; finB++) {
+        for (let fu = 0; fu < 2; fu++) {
+          for (let man = 0; man < 3; man++) {
+            const pref = oblig * SB + ((finB * 2 + fu) * 3 + man) * CNT_FULL;
+            for (let cnt = 0; cnt < CNT_FULL; cnt++) {
+              const u = cur[pref + cnt];
+              if (u === -Infinity) continue;
+              for (let ci = 0; ci < cands.length; ci++) {
+                const c = cands[ci];
+
+                // Adyacencia franco↔medio (sólo si la regla está activa).
+                let obligNuevo = 0;
+                if (nOblig > 1) {
+                  const tipoPar = c.item === -1 ? 2 : c.item === 2 ? 1 : 0; // 2=franco, 1=medio, 0=otro
+                  if (oblig === 1) {          // se debe poner el 5h HOY
+                    if (tipoPar !== 1) continue;
+                  } else if (oblig === 2) {   // se debe poner el franco HOY
+                    if (tipoPar !== 2) continue;
+                  } else {                    // sin obligación
+                    if (tipoPar === 2) obligNuevo = 1;       // franco hoy → 5h mañana
+                    else if (tipoPar === 1) obligNuevo = 2;  // 5h hoy → franco mañana
+                  }
+                }
+
+                let nsBase: number;
+                if (c.item === -1) {
+                  if (fu === 1) continue;
+                  nsBase = (3 + man) * CNT_FULL + cnt; // finB=0, fu=1
+                } else {
+                  if (finB !== 0 && c.inicio < finB - 1) continue; // H-D1
+                  if (!TIENE_ITEM[c.item][cnt]) continue;
+                  const man2 = c.es_manana && man < 2 ? man + 1 : man;
+                  nsBase = ((c.finB * 2 + fu) * 3 + man2) * CNT_FULL + (cnt - PASO_ITEM[c.item]);
+                }
+                const ns = obligNuevo * SB + nsBase;
+                const v = u + c.util;
+                if (v > next[ns]) {
+                  next[ns] = v;
+                  eleccion[base + ns] = ci;
+                  previo[base + ns] = pref + cnt;
+                }
               }
             }
           }
@@ -540,11 +580,12 @@ function optimizarSemanaFull(
     cur = next;
   }
 
-  // Estados finales: composición agotada (cnt=0), 1 franco, ≥2 mañanas corridas
+  // Estados finales: composición agotada (cnt=0), 1 franco, ≥2 mañanas
+  // corridas y SIN obligación de adyacencia pendiente (oblig=0).
   let mejor_s = -1;
   let mejor_u = -Infinity;
   for (let finB = 0; finB < 7; finB++) {
-    const s = ((finB * 2 + 1) * 3 + 2) * CNT_FULL;
+    const s = ((finB * 2 + 1) * 3 + 2) * CNT_FULL; // oblig=0 implícito (0*SB)
     if (cur[s] > mejor_u) {
       mejor_u = cur[s];
       mejor_s = s;

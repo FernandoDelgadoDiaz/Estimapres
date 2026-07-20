@@ -103,6 +103,13 @@ export type TipoReglaColaborador =
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
   | 'max_francos_dia'    // máximo N francos el mismo día
+  // Reglas operativas booleanas (toggles). El campo `activa` de la regla
+  // guarda el estado del toggle. Si NO existe una regla de ese tipo, se usa
+  // el default del negocio (ver DEFAULTS_OPERATIVOS / configOperativaDeReglas).
+  | 'apertura_solo_aux'          // R1 default ON: 08:00-09:00 sólo con AUX
+  | 'sin_aux_cierre'             // R2 default ON: AUX no en caja después 22:00
+  | 'supervisor_jornada_completa'// R3 default OFF: un AUX parado toda la jornada
+  | 'franco_medio_corridos'      // R4 default ON: medio franco pegado al franco
 
 export interface ReglaConfigurable {
   id: string

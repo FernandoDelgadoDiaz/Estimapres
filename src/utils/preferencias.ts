@@ -654,7 +654,11 @@ export function demandaMinimaDeReglas(
   return minimos
 }
 
-/** Tope de francos por día según reglas del local. Nunca supera 2 (H-FR1 dura). */
+/**
+ * Tope de francos por día según reglas del local (default 2 en el algoritmo si
+ * no hay regla). Es una regla operativa, no laboral: el supervisor puede
+ * subirla o bajarla según su dotación. Si hay varias, gana la más restrictiva.
+ */
 export function capFrancosDeReglas(
   reglas: ReglaConfigurable[],
   fechaLunes: string
@@ -663,10 +667,79 @@ export function capFrancosDeReglas(
   for (const r of reglas) {
     if (r.tipo !== 'max_francos_dia' || !reglaVigenteEnSemana(r, fechaLunes)) continue
     if (r.cantidad === undefined) continue
-    const valor = Math.min(2, Math.max(1, r.cantidad))
+    const valor = Math.max(1, r.cantidad)
     cap = cap === undefined ? valor : Math.min(cap, valor)
   }
   return cap
+}
+
+// ==================== REGLAS OPERATIVAS (toggles) ====================
+// Son reglas del negocio de la sucursal, NO leyes laborales. Cada una es un
+// booleano con un default; el supervisor las activa/desactiva desde Reglas.
+// El default se aplica cuando NO existe una regla de ese tipo.
+
+export type TipoReglaOperativa =
+  | 'apertura_solo_aux'
+  | 'sin_aux_cierre'
+  | 'supervisor_jornada_completa'
+  | 'franco_medio_corridos'
+
+export const DEFAULTS_OPERATIVOS: Record<TipoReglaOperativa, boolean> = {
+  apertura_solo_aux: true,
+  sin_aux_cierre: true,
+  supervisor_jornada_completa: false,
+  franco_medio_corridos: true,
+}
+
+export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; descripcion: string }> = {
+  apertura_solo_aux: {
+    titulo: 'Apertura con supervisor',
+    descripcion: 'De 08:00 a 09:00 no se asignan cajeros: la apertura la cubre sólo el supervisor (AUX).',
+  },
+  sin_aux_cierre: {
+    titulo: 'Sin supervisor en caja después de las 22:00',
+    descripcion: 'Los supervisores no se sientan en caja en la última media hora (22:00-22:30).',
+  },
+  supervisor_jornada_completa: {
+    titulo: 'Supervisor de jornada completa',
+    descripcion: 'Si hay 2 o más supervisores presentes a la vez, el de mayor presencia queda parado toda la jornada, sin sentarse en caja.',
+  },
+  franco_medio_corridos: {
+    titulo: 'Franco y medio franco corridos',
+    descripcion: 'El día de medio franco (5h) de cada FULL cae pegado a su franco completo, formando 36h de descanso corridas.',
+  },
+}
+
+export interface ConfigOperativa {
+  aperturaSoloAux: boolean
+  sinAuxCierre: boolean
+  supervisorJornadaCompleta: boolean
+  francoMedioCorridos: boolean
+}
+
+/** Estado efectivo de un toggle operativo: la regla si existe (y está vigente), o su default. */
+export function valorReglaOperativa(
+  reglas: ReglaConfigurable[],
+  tipo: TipoReglaOperativa,
+  fechaLunes: string
+): boolean {
+  const regla = reglas.find(r => r.ambito === 'local' && r.tipo === tipo)
+  if (!regla) return DEFAULTS_OPERATIVOS[tipo]
+  // Vigencia temporal opcional: fuera de vigencia, vuelve al default.
+  if ((regla.vigenciaDesde || regla.vigenciaHasta) && !reglaVigenteEnSemana({ ...regla, activa: true }, fechaLunes)) {
+    return DEFAULTS_OPERATIVOS[tipo]
+  }
+  return regla.activa
+}
+
+/** Configuración operativa efectiva para pasar al algoritmo. */
+export function configOperativaDeReglas(reglas: ReglaConfigurable[], fechaLunes: string): ConfigOperativa {
+  return {
+    aperturaSoloAux: valorReglaOperativa(reglas, 'apertura_solo_aux', fechaLunes),
+    sinAuxCierre: valorReglaOperativa(reglas, 'sin_aux_cierre', fechaLunes),
+    supervisorJornadaCompleta: valorReglaOperativa(reglas, 'supervisor_jornada_completa', fechaLunes),
+    francoMedioCorridos: valorReglaOperativa(reglas, 'franco_medio_corridos', fechaLunes),
+  }
 }
 
 /**
@@ -685,12 +758,7 @@ export function validarConflictosReglas(
 
   for (const r of activas) {
     if (r.tipo === 'max_francos_dia' && r.cantidad !== undefined) {
-      if (r.cantidad > 2) {
-        avisos.push(
-          `"${r.descripcion}": la regla laboral dura permite máximo 2 francos por día. Se aplicará 2.`
-        )
-      }
-      const cap = Math.min(2, Math.max(1, r.cantidad))
+      const cap = Math.max(1, r.cantidad)
       if (cap * 7 < cajeros.length) {
         avisos.push(
           `"${r.descripcion}": con ${cajeros.length} cajeros que necesitan franco semanal, un tope de ${cap} por día no alcanza (máximo ${cap * 7} francos/semana). Algunos quedarán sin asignar.`

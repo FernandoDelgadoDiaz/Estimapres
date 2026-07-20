@@ -18,6 +18,7 @@ import {
   reglasAExcepciones,
   demandaMinimaDeReglas,
   capFrancosDeReglas,
+  configOperativaDeReglas,
   validarConflictosReglas,
   calcularSesgoRotacion,
   calcularSesgoAprendizaje,
@@ -162,12 +163,18 @@ export default function NuevaSemanaPage() {
 
     // Capacidad 1: reglas configuradas → excepciones + demanda mínima + tope de francos
     const excepcionesTotales = [...excepciones, ...reglasAExcepciones(reglas, fechaLunes)]
+    const operativa = configOperativaDeReglas(reglas, fechaLunes)
     const opciones = {
       preferenciasPorNombre: sesgosBlandos, // Capacidades 2 y 3 (preferencia blanda)
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
       maxFrancosDia: capFrancosDeReglas(reglas, fechaLunes),
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
       pesosFranja: pesosFranjaDeCriterios(criteriosCobertura),
+      // Reglas operativas de la sucursal (con defaults del negocio)
+      aperturaSoloAux: operativa.aperturaSoloAux,
+      sinAuxCierre: operativa.sinAuxCierre,
+      supervisorJornadaCompleta: operativa.supervisorJornadaCompleta,
+      francoMedioCorridos: operativa.francoMedioCorridos,
     }
 
     const res = await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepcionesTotales, opciones)
