@@ -52,7 +52,9 @@ export function ejecutarPasada2(
 
   // Reglas operativas configurables (fallback = comportamiento histórico):
   //   R2 sin_aux_cierre → hasta qué slot pueden sentarse los AUX en caja.
-  //   R3 supervisor_jornada_completa → un AUX queda parado toda la jornada.
+  //   R3 supervisor_jornada_completa → si hay 2+ AUX presentes a la vez, uno
+  //      (el de mayor presencia) queda SENTADO EN CAJA de forma continua toda
+  //      su jornada, sin rotar a PARADO.
   const sinAuxCierre = input.sin_aux_cierre ?? true;
   const slotMaxCaja = sinAuxCierre ? 27 : 28; // inclusivo (27 = 21:30-22:00)
   const supervisorJornadaCompleta = input.supervisor_jornada_completa ?? false;
@@ -69,7 +71,6 @@ export function ejecutarPasada2(
   for (const dia of DIAS) {
     const candidatos: string[] = [];
     for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
-      if (auxId === designado[dia]) continue; // R3: el designado no se sienta en caja
       if (matriz[dia][0] !== "NO_PRESENTE" && matriz[dia][1] !== "NO_PRESENTE") {
         candidatos.push(auxId);
       }
@@ -77,14 +78,20 @@ export function ejecutarPasada2(
 
     if (candidatos.length === 0) continue;
 
-    candidatos.sort((a, b) => {
-      const hA = contarHorasCaja(asignacion_aux[a]);
-      const hB = contarHorasCaja(asignacion_aux[b]);
-      if (hA !== hB) return hA - hB;
-      return a.localeCompare(b);
-    });
-
-    const elegido = candidatos[0];
+    // R3: si el designado abre, se sienta desde la apertura (jornada continua).
+    let elegido: string;
+    const d = designado[dia];
+    if (d && candidatos.includes(d)) {
+      elegido = d;
+    } else {
+      candidatos.sort((a, b) => {
+        const hA = contarHorasCaja(asignacion_aux[a]);
+        const hB = contarHorasCaja(asignacion_aux[b]);
+        if (hA !== hB) return hA - hB;
+        return a.localeCompare(b);
+      });
+      elegido = candidatos[0];
+    }
     asignacion_aux[elegido][dia][0] = "CAJA";
     asignacion_aux[elegido][dia][1] = "CAJA";
     auxes_activados_08_09[dia] = elegido;
@@ -92,6 +99,28 @@ export function ejecutarPasada2(
 
   // === PASO 4: Activar auxes para cubrir deficit ===
   const deficit_actual: number[][] = resultado_pasada1.deficit_1.map(fila => [...fila]);
+
+  // === PASO 3b: R3 — el designado se sienta en caja de forma CONTINUA ===
+  // Todo su turno (slots 2..slotMaxCaja donde esté presente), siempre que haya
+  // al menos otro AUX presente para respetar H-A2 (≥1 parado por slot). No
+  // rota: queda en CAJA aunque no haya déficit (supervisor estacionado en caja).
+  if (supervisorJornadaCompleta) {
+    for (const dia of DIAS) {
+      const d = designado[dia];
+      if (!d) continue;
+      for (let slot = 2; slot <= slotMaxCaja; slot++) {
+        if (asignacion_aux[d][dia][slot] !== "PARADO") continue; // presente y aún no CAJA
+        let otroPresente = false;
+        for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
+          if (auxId === d) continue;
+          if (matriz[dia][slot] !== "NO_PRESENTE") { otroPresente = true; break; }
+        }
+        if (!otroPresente) continue; // H-A2: no puede sentarse si quedaría 0 parado
+        asignacion_aux[d][dia][slot] = "CAJA";
+        deficit_actual[dia][slot] = Math.max(0, deficit_actual[dia][slot] - 1);
+      }
+    }
+  }
 
   for (const dia of DIAS) {
     const slots_con_deficit: Array<{ slot: SlotIdx; deficit: number }> = [];
@@ -111,7 +140,8 @@ export function ejecutarPasada2(
 
       const presentes: string[] = [];
       for (const [auxId, matriz] of Object.entries(asignacion_aux)) {
-        if (auxId === designado[dia]) continue; // R3: el designado no se sienta
+        // El designado (R3) ya está en CAJA de forma continua; el resto cubre
+        // el déficit restante dejando ≥1 PARADO (H-A2).
         if (matriz[dia][slot] === "PARADO") presentes.push(auxId);
       }
 
@@ -174,7 +204,8 @@ export function ejecutarPasada2(
 /**
  * R3 "supervisor de jornada completa": si en el día hay 2+ AUX presentes a la
  * vez en algún slot, designa al de mayor presencia (desempate por id) para que
- * quede PARADO toda la jornada. Devuelve su id, o null si no aplica.
+ * quede SENTADO EN CAJA toda su jornada (continuo, sin rotar). Devuelve su id,
+ * o null si no aplica.
  */
 function designarSupervisorJornadaCompleta(
   asignacion_aux: Record<string, AsignacionAux[][]>,

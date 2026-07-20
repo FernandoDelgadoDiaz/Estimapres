@@ -702,11 +702,11 @@ export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; 
   },
   supervisor_jornada_completa: {
     titulo: 'Supervisor de jornada completa',
-    descripcion: 'Si hay 2 o más supervisores presentes a la vez, el de mayor presencia queda parado toda la jornada, sin sentarse en caja.',
+    descripcion: 'Si hay 2 o más supervisores presentes en el mismo turno, uno queda sentado en caja durante toda su jornada (de forma continua, sin rotar entre caja y parado).',
   },
   franco_medio_corridos: {
     titulo: 'Franco y medio franco corridos',
-    descripcion: 'El día de medio franco (5h) de cada FULL cae pegado a su franco completo, formando 36h de descanso corridas.',
+    descripcion: 'El día de medio franco (5h) de cada FULL cae pegado a su franco completo, en días consecutivos, formando 36h de descanso corridas. El orden es indistinto: franco y luego medio franco, o medio franco y luego franco.',
   },
 }
 

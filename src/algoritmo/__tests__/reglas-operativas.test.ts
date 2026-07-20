@@ -112,12 +112,30 @@ describe("R3 supervisor_jornada_completa", () => {
   });
   const cajaDelDia = (m: AsignacionAux[][], dia: number) => m[dia].filter(e => e === "CAJA").length;
 
-  it("ON: el designado (mayor presencia, desempate por id) queda PARADO toda la jornada", () => {
+  it("ON: el designado permanece SENTADO en caja toda su jornada, de forma continua", () => {
     const r = ejecutarPasada2({ ...input(), supervisor_jornada_completa: true }, p1Vacia(demanda()));
     // aux1 y aux2 tienen igual presencia → designado = aux1 (localeCompare)
     for (let dia = 0; dia < 7; dia++) {
-      expect(cajaDelDia(r.asignacion_aux.aux1, dia)).toBe(0);
-      expect(cajaDelDia(r.asignacion_aux.aux2, dia)).toBeGreaterThan(0);
+      // El designado (aux1) está en CAJA de forma continua en todo 09:00-22:00 (slots 2..27)
+      for (let slot = 2; slot <= 27; slot++) {
+        expect(r.asignacion_aux.aux1[dia][slot]).toBe("CAJA");
+      }
+      // El otro (aux2) queda parado/disponible, no se sienta
+      expect(cajaDelDia(r.asignacion_aux.aux2, dia)).toBe(0);
+    }
+  });
+
+  it("ON: no viola H-A2 (≥1 parado 09-22) ni H-A3 (nada de caja en 28-29)", () => {
+    const r = ejecutarPasada2({ ...input(), supervisor_jornada_completa: true }, p1Vacia(demanda()));
+    for (let dia = 0; dia < 7; dia++) {
+      for (let slot = 2; slot <= 27; slot++) {
+        const parados = Object.values(r.asignacion_aux).filter(m => m[dia][slot] === "PARADO").length;
+        expect(parados).toBeGreaterThanOrEqual(1);
+      }
+      for (const m of Object.values(r.asignacion_aux)) {
+        expect(m[dia][28]).not.toBe("CAJA");
+        expect(m[dia][29]).not.toBe("CAJA");
+      }
     }
   });
 
