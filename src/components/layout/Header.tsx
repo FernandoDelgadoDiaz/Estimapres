@@ -1,13 +1,11 @@
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cerrarSesion } from '../../lib/supabase'
-import { useAuth } from '../../hooks/useAuth'
 import { getSucursalActual, setSucursalActual } from '../../utils/sucursal'
 
 export default function Header() {
   const hoy = new Date()
   const semanaActual = `Semana ${format(hoy, 'w', { locale: es })} - ${format(hoy, 'yyyy', { locale: es })}`
-  const { usuario } = useAuth()
 
   const handleCerrarSesion = () => {
     const ok = confirm(
@@ -18,7 +16,7 @@ export default function Header() {
     if (ok) void cerrarSesion()
   }
 
-  const inicial = (usuario?.email ?? 'S').charAt(0).toUpperCase()
+  const inicial = 'A' // Aliada Tech — sin datos personales del usuario en la UI
   const sucursal = getSucursalActual()
 
   const handleCambiarSucursal = () => {
@@ -82,7 +80,7 @@ export default function Header() {
               color: 'var(--text-muted)',
               marginTop: '2px',
             }}>
-              {usuario?.email ?? '—'}
+              Sucursal {sucursal}
             </p>
           </div>
           <button
