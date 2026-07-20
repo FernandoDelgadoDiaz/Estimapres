@@ -23,8 +23,8 @@ export default function Header() {
 
   const handleCambiarSucursal = () => {
     const nueva = prompt(
-      'Sucursal activa. Escribí el nombre de la sucursal con la que querés trabajar ' +
-      '(los horarios, reglas y aprendizajes se guardan por sucursal):',
+      'Código de sucursal. Escribí el código de la sucursal con la que querés trabajar ' +
+      '(los horarios, reglas y aprendizajes se guardan por sucursal). Ej: 091, 033, 072',
       sucursal
     )
     if (nueva === null) return
