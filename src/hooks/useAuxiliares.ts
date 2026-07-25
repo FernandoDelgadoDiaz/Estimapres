@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Auxiliar, AUXILIARES_INICIALES } from '../types'
 import { claveConSucursal } from '../utils/sucursal'
-import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, reemplazarGrupoRoster, CLAVES_ROSTER } from '../utils/almacen'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, reemplazarGrupoRoster, actualizarCacheRoster, CLAVES_ROSTER } from '../utils/almacen'
 
 /**
  * Auxiliares supervisores (AUX). Persisten en Supabase (tabla colaboradores,
@@ -21,10 +21,12 @@ export function useAuxiliares() {
     return () => { vivo = false }
   }, [])
 
-  // Backup local automático (offline) de la lista completa por sucursal
+  // Backup local automático (offline) + sincronización del cache compartido:
+  // la generación de horarios debe ver los horarios de AUX recién editados.
   useEffect(() => {
     if (!loading) {
       localStorage.setItem(claveConSucursal(CLAVES_ROSTER.auxiliar), JSON.stringify(auxiliares))
+      actualizarCacheRoster('auxiliar', auxiliares)
     }
   }, [auxiliares, loading])
 

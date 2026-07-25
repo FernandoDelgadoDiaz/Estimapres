@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Colaborador } from '../types'
 import { claveConSucursal } from '../utils/sucursal'
-import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, CLAVES_ROSTER } from '../utils/almacen'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, actualizarCacheRoster, CLAVES_ROSTER } from '../utils/almacen'
 
 /**
  * Cajeros FULL/PART (y AUX contractuales). Persisten en Supabase (tabla
@@ -22,10 +22,13 @@ export function useColaboradores() {
     return () => { vivo = false }
   }, [])
 
-  // Backup local automático (offline) de la lista completa por sucursal
+  // Backup local automático (offline) + sincronización del cache compartido:
+  // así la próxima generación de horarios (Nueva Semana) lee esta lista fresca
+  // y no un snapshot anterior a los cambios (activo/horarios).
   useEffect(() => {
     if (!loading) {
       localStorage.setItem(claveConSucursal(CLAVES_ROSTER.cajero), JSON.stringify(colaboradores))
+      actualizarCacheRoster('cajero', colaboradores)
     }
   }, [colaboradores, loading])
 

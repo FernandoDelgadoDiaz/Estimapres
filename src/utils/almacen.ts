@@ -707,6 +707,22 @@ export function invalidarCacheRoster(): void {
   delete cacheRoster.eventual
 }
 
+/**
+ * Sincroniza el cache compartido con la lista vigente de un grupo. Lo llaman
+ * los hooks del roster en cada cambio (alta/baja/edición/activar-desactivar),
+ * de modo que cuando otra pantalla (p.ej. Nueva Semana) monta sus hooks y pide
+ * el roster, reciba los datos FRESCOS y no un snapshot anterior a las ediciones.
+ *
+ * Sin esto, el cache quedaba fijado en la primera carga: como la app es una SPA
+ * (no recarga al navegar), la generación de horarios leía el roster previo a los
+ * cambios recién hechos en Colaboradores (desactivados que reaparecían, horarios
+ * de AUX/eventuales sin actualizar). Se clona el array para no aliasear el estado
+ * del hook dentro del cache compartido.
+ */
+export function actualizarCacheRoster(grupo: GrupoRoster, items: ItemRoster[]): void {
+  cacheRoster[grupo] = Promise.resolve([...items])
+}
+
 function localRoster<T extends ItemRoster>(grupo: GrupoRoster, esDefault: boolean): T[] {
   const guardado = leerAlmacen<T[] | null>(claveConSucursal(CLAVES_ROSTER[grupo]), null)
   if (guardado) return guardado
