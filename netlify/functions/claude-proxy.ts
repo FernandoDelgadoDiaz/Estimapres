@@ -1,64 +1,49 @@
-// netlify/functions/claude-proxy.ts
-export async function handler(event: any) {
-  // CORS preflight
+/**
+ * SEC-01 / AH2 — Cierre temporal de la integración opcional con Claude.
+ *
+ * La versión anterior era un relé HTTP público que reenviaba cuerpos de
+ * terceros a Anthropic con la clave del servidor. Hasta que exista una
+ * integración autenticada, con cuota, validación y auditoría, este endpoint
+ * debe fallar de forma explícita y no ejecutar ninguna solicitud externa.
+ *
+ * NO activar ni extender esta función sin una nueva Issue, revisión de
+ * seguridad y autorización del propietario. El motor de horarios es
+ * determinístico y funciona sin Claude.
+ */
+type NetlifyEvent = { httpMethod?: string }
+
+const RESPONSE_HEADERS = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store',
+}
+
+export async function handler(event: NetlifyEvent) {
+  // No habilitar CORS para orígenes externos. El cliente ya no llama aquí.
   if (event.httpMethod === 'OPTIONS') {
     return {
-      statusCode: 200,
+      statusCode: 204,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST,OPTIONS',
+        Allow: 'POST, OPTIONS',
+        'Cache-Control': 'no-store',
       },
       body: '',
-    };
+    }
   }
 
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: RESPONSE_HEADERS,
       body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+    }
   }
 
-  try {
-    // @ts-ignore
-    const apiKey = process.env.CLAUDE_API_KEY;
-    if (!apiKey) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'CLAUDE_API_KEY missing in Netlify environment' }),
-      };
-    }
-
-    const requestBody = JSON.parse(event.body || '{}');
-    // Forward to Anthropic API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const data = await response.json();
-
-    return {
-      statusCode: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(data),
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Server error', detail: String(error) }),
-    };
+  return {
+    statusCode: 503,
+    headers: RESPONSE_HEADERS,
+    body: JSON.stringify({
+      error: 'AI suggestions are temporarily disabled',
+      code: 'AI_SUGGESTIONS_DISABLED',
+    }),
   }
 }
