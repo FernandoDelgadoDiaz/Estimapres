@@ -19,7 +19,9 @@ Todo merge a `main` dispara **despliegue de producción en dos sitios Netlify** 
 | #20 | #10 motor 12 h | `fix/ah2-descanso-12h` `18e7eef` | **#19** (apilado) | **Sí**: elimina descansos de 11,5 h; misma cobertura en el fixture | 98/98 | `CURRENT_WORK.md` |
 | #21 | #12 parcial | `feat/ah2-pub01-validacion-pdf` `574389d` | **#20** (apilado) | No (UI y PDF) | 104/104 | `NuevaSemanaPage.tsx` con #17; `CURRENT_WORK.md` |
 | #26 | — fallback SPA | `fix/ah2-spa-fallback` `e2dcb0e` | — | No (corrige 404 al recargar rutas en producción) | config Netlify; verificado en preview | `CURRENT_WORK.md` |
-| #22 | #11 RULES-01 | `feat/ah2-rules01-reglas-v2` `79c94c1` | — (formalmente #7/#9, ver PR) | No (módulo no conectado) | 98/98 | `CURRENT_WORK.md` |
+| #27 | #23 PII-01 | `fix/ah2-pii01-datos-sinteticos` `1d120e1` | — | No (salida del motor idéntica tras mapear nombres) | 80/80 | `CURRENT_WORK.md` |
+| #22 | #11 RULES-01 | `feat/ah2-rules01-reglas-v2` `de45c30` | — (formalmente #7/#9, ver PR) | No (módulo no conectado). Corregido: obligatorias incompatibles = conflicto siempre (AH2-012) | 105/105 | `CURRENT_WORK.md` |
+| #29 | #28 AUX-01 | `feat/ah2-aux01-disponibilidad-habitual` `8002e42` | — | No (módulo no conectado) | 89/89 | `CURRENT_WORK.md` |
 
 **Resolución de conflictos (verificada en el ensayo):**
 - `docs/CURRENT_WORK.md`: cada rama agrega su sección al inicio → conservar **todas** (unión). Tras el último lote, reemplazar por el estado vigente consolidado.
@@ -32,7 +34,7 @@ Todo merge a `main` dispara **despliegue de producción en dos sitios Netlify** 
 2. Quitar `CLAUDE_API_KEY` (y cualquier `VITE_*` de Anthropic) en **ambos** sitios.
 
 ### Lote 1 — seguridad y herramientas (riesgo bajo, sin cambio de horarios)
-Orden: **#16 → #15 → #26**.
+Orden: **#16 → #15 → #26 → #27**. #27 conviene pronto: el siguiente deploy deja de publicar nombres en el JS.
 - #16 primero: a partir de ahí CI corre en cada PR. Después, actualizar cada PR abierto con `main` («Update branch») para que CI los valide.
 - Verificación post-deploy: `scripts/sec01-verify-proxy.sh https://al-iada.netlify.app https://prestify.netlify.app` → `SEGURO OPTIONS=204 … GET=405`; tras el lote 0, también con `--post` → `POST=503`.
 - #26: tras el deploy, `curl -o /dev/null -w '%{http_code}' https://al-iada.netlify.app/nueva-semana` → 200 (hoy 404).
@@ -51,8 +53,11 @@ Orden: **#19 → #20 → #21**.
 - #21 tendrá el conflicto con #17 descrito arriba.
 - Verificación: generar → estado «VALIDADO/BORRADOR»; exportar PDF → encabezado con sucursal y fechas, anexo «Validación y faltantes».
 
-### Lote 4 — reglas v2 (sin efecto visible)
-**#22**. Puede ir en cualquier momento; el módulo no está conectado a la UI.
+### Lote 4 — reglas v2 y disponibilidad habitual (sin efecto visible)
+**#22 → #29**. Puede ir en cualquier momento; el módulo no está conectado a la UI.
+
+## 3 bis. Alternativa: rama de release
+`release/ah2-f1` (PR #30) combina todo lo anterior en este orden sobre `main`, con los conflictos ya resueltos y la regresión completa: 184 OK + 1 omitido, build OK, punta a punta OK y CI en el PR. El propietario puede integrar **PR por PR** (lotes de arriba) o con **un único merge** de la rama de release. En los dos casos, primero el lote 0. #24 sigue siendo solo demostración.
 
 ## 4. Pendientes que NO cubre ningún lote
 - Migraciones (no autorizadas): estados de publicación (#12), reglas v2 (#22, `docs/proposals/RULES01_reglas_v2.sql`), ids en reglas/correcciones (#18, `docs/proposals/ID01_colaborador_id.sql`).
