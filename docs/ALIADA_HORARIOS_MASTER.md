@@ -71,7 +71,7 @@ El producto debe soportar perfiles versionados por país, convenio colectivo, ca
 
 ### B. Reglas operativas obligatorias — configurables por empresa/sucursal/persona
 
-Ejemplos: «Carlos solo mañanas en la semana del 16/11», «Rosa tiene franco martes», «solo mañanas todo noviembre», máximo de francos simultáneos por día, mínimo de cajeros por franja, presencia de auxiliar de apertura, AUX fuera de caja en cierre. Admitir vigencias **semanal, fechas inicio/fin, mensual y permanente**, ámbito y autor de cada cambio. Aplicarlas **siempre** mientras estén vigentes; para relajarlas se exige decisión de un rol autorizado, historial de cambios y nueva optimización.
+Ejemplos: «la persona A solo mañanas en la semana del 16/11», «la persona B tiene franco martes», «solo mañanas todo noviembre», máximo de francos simultáneos por día, mínimo de cajeros por franja, presencia de auxiliar de apertura, AUX fuera de caja en cierre. Admitir vigencias **semanal, fechas inicio/fin, mensual y permanente**, ámbito y autor de cada cambio. Aplicarlas **siempre** mientras estén vigentes; para relajarlas se exige decisión de un rol autorizado, historial de cambios y nueva optimización.
 
 No degradar una regla obligatoria a «preferencia» sin consentimiento.
 

@@ -34,7 +34,7 @@ function slotAHora(slot: number): string {
   return `${8 + Math.floor(slot / 2)}:${slot % 2 === 0 ? '00' : '30'}`;
 }
 
-/** Convierte nombre a id determinístico: "Carlos Paz" → "carlos_paz" */
+/** Convierte nombre a id determinístico: "Full A" → "full_a" */
 export function normalizarId(nombre: string): string {
   return nombre
     .toLowerCase()
