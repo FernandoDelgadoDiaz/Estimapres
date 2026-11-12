@@ -18,8 +18,8 @@ function generar(cajeros: Colaborador[], auxiliares: Auxiliar[] = [], pref?: Rec
 
 describe('ID-01: asignarIdentidadesV2', () => {
   it('nombres únicos conservan normalizarId (no cambia el desempate del motor)', () => {
-    const r = asignarIdentidadesV2([{ id: 'u1', nombre: 'Carlos Paz' }, { id: 'u2', nombre: 'Ana' }])
-    expect(r.v2PorUi.get('u1')).toBe('carlos_paz')
+    const r = asignarIdentidadesV2([{ id: 'u1', nombre: 'Full A' }, { id: 'u2', nombre: 'Ana' }])
+    expect(r.v2PorUi.get('u1')).toBe('full_a')
     expect(r.v2PorUi.get('u2')).toBe(normalizarId('Ana'))
     expect(r.homonimos).toEqual([])
   })
@@ -51,8 +51,8 @@ describe('ID-01: pipeline completo', () => {
   })
 
   it('renombrar a un colaborador conserva su id y su horario', () => {
-    const antes = generar([full('u1', 'Carlos Paz'), full('u2', 'Bea Ruiz'), part('u3', 'Ana')]).out
-    const despues = generar([full('u1', 'Carlos A. Paz'), full('u2', 'Bea Ruiz'), part('u3', 'Ana')]).out
+    const antes = generar([full('u1', 'Full A'), full('u2', 'Bea Ruiz'), part('u3', 'Ana')]).out
+    const despues = generar([full('u1', 'Full A Renombrado'), full('u2', 'Bea Ruiz'), part('u3', 'Ana')]).out
     const h = (o: typeof antes, id: string) => o.horarios.find(x => x.colaboradorId === id)!
     for (const id of ['u1', 'u2', 'u3']) expect(h(despues, id).jornadas).toEqual(h(antes, id).jornadas)
   })
