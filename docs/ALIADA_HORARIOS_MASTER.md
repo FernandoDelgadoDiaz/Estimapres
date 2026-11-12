@@ -184,6 +184,7 @@ Agente (fase posterior): herramientas de lectura, simulación, explicación y bo
 | AH2-008 | Flujo supervisor POM → generar/revisar cronograma nominal → aprobar/exportar PDF profesional, sin carga manual rutinaria | **APROBADO / REQUISITO FUNCIONAL NO NEGOCIABLE** |
 | AH2-009 | Plan F1 en `docs/AH2_FASE1_PLAN.md` con Issues separadas por dependencia; la ejecución de cada Issue requiere autorización específica | **PROPUESTO** (Claude, 2026-11-12) |
 | AH2-010 | Modelo de reglas configurables v2: ámbito (empresa/sucursal/grupo/persona), vigencia, prioridad explícita, nivel (normativa/operativa/preferencia) y auditoría; compilado a restricciones para cualquier motor | **PROPUESTO** — esquema en plan F1, sin migración |
+| AH2-012 | Reglas obligatorias (normativas y operativas) vigentes se cumplen **simultáneamente**: si son incompatibles es conflicto explícito, sin importar la prioridad. La prioridad ordena solo preferencias. Una operativa solo se aparta mediante **excepción autorizada** con vigencia acotada, motivo, autor y auditoría. Ninguna normativa se desactiva por preferencia ni excepción | **APROBADO por el propietario** (instrucción del 2026-11-12, implementado en PR #22) |
 | AH2-011 | Benchmark motor actual vs CP-SAT fuera de producción (Python offline sobre fixtures sintéticos); no se elige despliegue de CP-SAT hasta tener resultados | **PROPUESTO** — amplía AH2-006 |
 
 **Cualquier decisión nueva se registra aquí y enlaza Issue/PR; no crear otros registros de decisiones independientes.**
