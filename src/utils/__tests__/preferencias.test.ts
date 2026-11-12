@@ -12,7 +12,7 @@ import type { CorreccionManual, ReglaConfigurable } from "../../types";
 const AHORA = new Date("2026-07-19T00:00:00");
 
 const corr = (id: string, semanaId: string, fecha: string): CorreccionManual => ({
-  id, fecha: `${fecha}T10:00:00Z`, semanaId, colaboradorNombre: "Rosa", dia: 2,
+  id, fecha: `${fecha}T10:00:00Z`, semanaId, colaboradorNombre: "Persona X", dia: 2,
   antes: { esFranco: false, turnos: [{ inicio: "10:00", fin: "16:00" }] },
   despues: { esFranco: false, turnos: [{ inicio: "16:00", fin: "22:00" }] }, // suma cierre, quita mediodía
 });

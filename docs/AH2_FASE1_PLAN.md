@@ -145,7 +145,7 @@ Exportador TS → JSON de la instancia; el motor actual se envuelve como `Solver
 - **Herramientas de lectura:** roster, disponibilidad, reglas vigentes, demanda, horario borrador, historial.
 - **Simulación:** `simular(cambios_propuestos)` ejecuta el solver sobre una **copia** y devuelve diff + métricas + violaciones.
 - **Diagnóstico y explicación:** traduce violaciones/núcleos INFEASIBLE del validador a lenguaje natural; explica por qué una persona tiene un turno usando datos del solver, no inventando motivos.
-- **Interpretación de instrucciones:** «Carlos solo mañanas todo noviembre» → borrador de `regla` tipada para confirmar; nunca escribe directamente.
+- **Interpretación de instrucciones:** «la persona A solo mañanas todo noviembre» → borrador de `regla` tipada para confirmar; nunca escribe directamente.
 - **Límites:** el agente no calcula legalidad ni cobertura (lo hacen solver y validador); no publica; toda escritura es un borrador que un humano aprueba; permisos por rol; auditoría de cada llamada; presupuesto y límite por usuario; activación por evento, no conversación permanente; el flujo AH2-008 funciona sin agente.
 - Requiere #4 cerrado (proxy seguro) y #10/#13 para tener herramientas fiables. Modelo/SDK sin seleccionar (MASTER §6).
 
