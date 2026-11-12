@@ -181,8 +181,8 @@ export function validarDescansoEntreDias(
   const primer_bloque_d2 = jornada_dia_siguiente.bloques[0];
   const slot_inicio_d2 = primer_bloque_d2.slot_inicio;
 
-  // Descanso total = slots libres día N + slots muertos nocturnos + slots libres día N+1
-  const descanso_slots = (30 - slot_fin_d1) + 19 + slot_inicio_d2;
+  // Descanso total = slots libres día N (hasta 23:00) + 23:00→08:00 (9 h = 18 slots) + slots libres día N+1
+  const descanso_slots = (30 - slot_fin_d1) + 18 + slot_inicio_d2;
 
   if (descanso_slots < 24) {
     return [{

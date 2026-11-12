@@ -338,17 +338,20 @@ function jornadaViolaExcepcion(
 interface Candidato {
   bloques: Bloque[];   // [] = franco
   inicio: number;      // slot_inicio del primer bloque (irrelevante para franco)
-  finB: number;        // bucket del fin: 0 = franco, 1 = fin ≤ 25, k = fin-24 para fin 26..30
+  finB: number;        // bucket del fin: 0 = franco, 1 = fin ≤ 24, k = fin-23 para fin 25..30
   util: number;
   es_manana: boolean;  // corrida con inicio 09:00-11:00
   item: number;        // FULL: índice de ítem; PART: duración en slots; -1 = franco
 }
 
-// H-D1: descanso = (30 - fin_prev) + 19 + inicio_sig ≥ 24  ⟺  inicio_sig ≥ fin_prev - 25.
-// Como fin_prev ≤ 30, solo importan los fines 26..30 → bucket finB = max(fin,25) - 24.
+// H-D1: el slot s empieza a las 08:00 + 30·s; de 23:00 (slot 30) a 08:00 hay 9 h = 18 slots.
+// descanso = (30 - fin_prev) + 18 + inicio_sig ≥ 24  ⟺  inicio_sig ≥ fin_prev - 24.
+// (Antes se contaban 19 slots nocturnos y se aceptaban descansos de 11,5 h: ver #10.)
+// Como fin_prev ≤ 30, solo importan los fines 25..30 → bucket finB = max(fin,24) - 23.
 // La transición es válida si finB_prev = 0 (franco) o inicio ≥ finB_prev - 1.
+const NUM_BUCKETS_FIN = 8; // 0 = franco, 1 = fin ≤ 24, 2..7 = fin 25..30
 function bucketFin(fin: number): number {
-  return fin <= 25 ? 1 : fin - 24;
+  return fin <= 24 ? 1 : fin - 23;
 }
 
 function candidatosDiaFull(
@@ -479,7 +482,7 @@ const COMPOSICIONES_FULL = [
 ].map(c => c.r9 * 54 + c.r8 * 18 + c.r5 * 9 + c.c9 * 3 + c.c8);
 
 // Estado FULL: s = ((finB·2 + francoUsado)·3 + mañanas)·216 + cnt
-const NUM_ESTADOS_FULL = 7 * 2 * 3 * CNT_FULL; // 9072
+const NUM_ESTADOS_FULL = NUM_BUCKETS_FIN * 2 * 3 * CNT_FULL; // 10368
 
 function optimizarSemanaFull(
   colab: Colaborador,
@@ -530,7 +533,7 @@ function optimizarSemanaFull(
     const cands = cands_por_dia[d];
     const base = d * S;
     for (let oblig = 0; oblig < nOblig; oblig++) {
-      for (let finB = 0; finB < 7; finB++) {
+      for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
         for (let fu = 0; fu < 2; fu++) {
           for (let man = 0; man < 3; man++) {
             const pref = oblig * SB + ((finB * 2 + fu) * 3 + man) * CNT_FULL;
@@ -584,7 +587,7 @@ function optimizarSemanaFull(
   // corridas y SIN obligación de adyacencia pendiente (oblig=0).
   let mejor_s = -1;
   let mejor_u = -Infinity;
-  for (let finB = 0; finB < 7; finB++) {
+  for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
     const s = ((finB * 2 + 1) * 3 + 2) * CNT_FULL; // oblig=0 implícito (0*SB)
     if (cur[s] > mejor_u) {
       mejor_u = cur[s];
@@ -601,7 +604,7 @@ function optimizarSemanaFull(
 // H-P1: slotsUsados ≤ 62 (31h). Las duraciones 8..12 garantizan H-P5.
 
 const MAX_SLOTS_PART = 62;
-const NUM_ESTADOS_PART = 7 * 2 * 3 * (MAX_SLOTS_PART + 1); // 2646
+const NUM_ESTADOS_PART = NUM_BUCKETS_FIN * 2 * 3 * (MAX_SLOTS_PART + 1); // 3024
 
 function optimizarSemanaPart(
   colab: Colaborador,
@@ -639,7 +642,7 @@ function optimizarSemanaPart(
     const next = new Float64Array(S).fill(-Infinity);
     const cands = cands_por_dia[d];
     const base = d * S;
-    for (let finB = 0; finB < 7; finB++) {
+    for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
       for (let fu = 0; fu < 2; fu++) {
         for (let man = 0; man < 3; man++) {
           const pref = ((finB * 2 + fu) * 3 + man) * USADOS;
@@ -676,7 +679,7 @@ function optimizarSemanaPart(
   // Estados finales: 1 franco, ≥2 mañanas, cualquier total de horas ≤ 31
   let mejor_s = -1;
   let mejor_u = -Infinity;
-  for (let finB = 0; finB < 7; finB++) {
+  for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
     for (let usados = 0; usados <= MAX_SLOTS_PART; usados++) {
       const s = ((finB * 2 + 1) * 3 + 2) * USADOS + usados;
       if (cur[s] > mejor_u) {
