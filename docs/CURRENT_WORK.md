@@ -5,7 +5,7 @@
 **Issue:** https://github.com/FernandoDelgadoDiaz/Estimapres/issues/1
 **Repositorio:** `FernandoDelgadoDiaz/Estimapres`
 **Rama de trabajo:** `docs/aliada-horarios-2-fase0` (creada desde `main` en `02ad9d9d46c3477022dbf1c084b5642c1e996c0c`).
-**PR:** pendiente de creación/verificación (completar enlace y SHA al finalizar).
+**PR:** https://github.com/FernandoDelgadoDiaz/Estimapres/pull/2 — **DRAFT**, base `main`, creado 2026-11-12. **HEAD antes de este último commit de relevo:** `f491dbf13ca033c5e452b82b0b85e70ec2affcd7`. Confirmar HEAD vigente en GitHub al retomar (ver comentario de cierre de Issue #1).
 **Autoridad de producto:** propietario. Ningún modelo tiene prioridad sobre otro.
 
 ## Estado confirmado previo a editar
@@ -19,12 +19,12 @@
 - [x] Inspeccionar `main`, archivos históricos y ramas/PR/Issues.
 - [x] Crear rama `docs/aliada-horarios-2-fase0`.
 - [x] Crear Issue #1 de continuidad.
-- [ ] Crear `docs/ALIADA_HORARIOS_MASTER.md` con decisiones y prioridades.
-- [ ] Crear `docs/CURRENT_WORK.md` con estado verificable de transferencia.
-- [ ] Crear `AGENTS.md` neutral para ambos modelos.
-- [ ] Reemplazar `CLAUDE.md` antiguo por enlace al mismo protocolo.
-- [ ] Abrir PR **draft**, revisar archivos y confirmar HEAD/SHAs.
-- [ ] Dejar constancia en Issue #1; no fusionar.
+- [x] Crear `docs/ALIADA_HORARIOS_MASTER.md` con decisiones y prioridades.
+- [x] Crear `docs/CURRENT_WORK.md` con estado verificable de transferencia.
+- [x] Crear `AGENTS.md` neutral para ambos modelos.
+- [x] Reemplazar `CLAUDE.md` antiguo por enlace al mismo protocolo.
+- [x] Abrir PR **draft** #2 y comparar cambios con `main`: 4 archivos, únicamente documentación. HEAD final del relevo: comentario de Issue #1.
+- [x] Dejar constancia de cierre documental en Issue #1; no fusionar.
 
 ## Alcance / no alcance
 **Permitido:** solo documentación y metadatos de GitHub de esta fase, en rama no productiva.
@@ -44,8 +44,19 @@
 5. Hasta julio hay dos semanas reales en `semanas_historial`; roster de noviembre no verificado; no publicar datos personales.
 
 ## Siguiente acción inequívoca para cualquier modelo
-**F0:** completar y verificar este PR en borrador; informar al propietario el enlace, SHA y validaciones. **Detenerse** a la espera de revisión/autorización de merge. No iniciar F1, migraciones ni despliegues.
+**F0 quedó preparado para revisión:** revisar PR #2, comparar con MASTER e Issue #1 y solicitar al propietario autorización **explícita** antes de fusionar. **Detenerse** a la espera de revisión/autorización de merge. No iniciar F1, migraciones ni despliegues.
 **Tras merge autorizado:** abrir Issue F1 por separado, comenzando por seguridad y contrato POM. Releer MASTER y CURRENT_WORK en la rama que corresponda.
+
+## Registro de relevo — 2026-11-12
+- Responsable/modelo: ChatGPT (Astra, rol documental).
+- Issue / PR: #1 / #2 draft.
+- Base main: `02ad9d9d46c3477022dbf1c084b5642c1e996c0c`.
+- Archivos cambiados: `docs/ALIADA_HORARIOS_MASTER.md`, `docs/CURRENT_WORK.md`, `AGENTS.md`, `CLAUDE.md`.
+- Validación: comparación GitHub main...rama, solo 4 archivos documentales; npm test/build NO ejecutados (sin cambio de código).
+- Supabase: consulta solo lectura para auditoría previa; migraciones NO, modificaciones NO.
+- Merge: NO; deploy: NO; gastos: NO.
+- Bloqueo: aprobación del propietario del PR #2 y posterior planificación de Issues de F1.
+- Acción siguiente: revisar PR #2, pedir decisión explícita de merge; no trabajar en motor antes de ese gate.
 
 ## Plantilla obligatoria al finalizar cada sesión
 - Fecha:
