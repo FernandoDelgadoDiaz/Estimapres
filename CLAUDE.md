@@ -1,57 +1,17 @@
----
-# REGLAS OBLIGATORIAS — LEER ANTES DE CUALQUIER ACCIÓN
+# CLAUDE / ASTRA — PUNTO DE ENTRADA A ALIADA HORARIOS 2.0
 
-Ver /ai/rules.md — OBLIGATORIO seguir estas reglas sin excepción.
+Este archivo aplica a **Claude**. Las mismas reglas están en **[AGENTS.md](AGENTS.md)** para Astra (ChatGPT) y otros desarrolladores: **no hay una jerarquía entre modelos**. La autoridad de producto y autorizaciones sensibles corresponde al propietario.
 
-ROLES:
-- Claude (claude.ai) = Arquitecto y validador final
-- DeepSeek (este modelo) = Implementador únicamente
-- ChatGPT = Auditor externo
+## Antes de tocar código o datos
+1. Verificar rama actual, SHA de HEAD, cambios abiertos y la Issue/PR.
+2. Leer **[docs/ALIADA_HORARIOS_MASTER.md](docs/ALIADA_HORARIOS_MASTER.md)** — única fuente de verdad normativa y decisiones aprobadas, tras su integración autorizada.
+3. Leer **[docs/CURRENT_WORK.md](docs/CURRENT_WORK.md)** **de esa misma rama** — tarea exacta, bloqueos, pruebas, próximo paso.
+4. Leer **[AGENTS.md](AGENTS.md)** — protocolo completo de ejecución y transferencia.
 
-PROHIBIDO:
-- Tomar decisiones de arquitectura
-- Modificar estructura sin aprobación de Claude
-- Generar código sin ARCHITECTURE LOCK definido
+**Prohibido sin autorización expresa del propietario:** merge, deploy, migraciones, cambios de producción, datos operativos, gastos y decisiones nuevas de arquitectura o interpretación normativa.
 
-Etapa actual: ver /ai/architecture.md
----
+**Transferencia obligatoria:** documentar resultados y SHA real en CURRENT_WORK, y registrar evidencia en la Issue/PR. Nunca depender de memoria del chat.
 
-## ARQUITECTURA DE GENERACIÓN DE HORARIOS - ALIADA HORARIOS
+Los archivos `ai/architecture.md`, `ai/rules.md` y `ai/decisions.md` se conservan como **historia del proyecto**: describen arquitecturas y roles de 2026 que pueden estar desactualizados. No prevalecen sobre la nueva especificación aprobada.
 
-La app usa una arquitectura de dos capas para generar horarios:
-
-CAPA 1 — ALGORITMO DETERMINÍSTICO (src/algoritmo/, orquestador P1→P2→P3)
-Responsabilidad: generar el horario completo con precisión
-matemática garantizada. No usa IA.
-
-REGLAS LABORALES INVIOLABLES (por construcción del algoritmo, NUNCA
-configurables — convenio de comercio argentino):
-- FULL: 48h exactas, composición 3x9h + 2x8h + 1x5h con 2 cortados,
-  descanso mínimo 12h entre jornadas.
-- PART: máximo 31h, jornadas corridas de 4-6h, descanso mínimo 12h.
-
-REGLAS OPERATIVAS CONFIGURABLES (pantalla Reglas; NADA hardcodeado):
-cada sucursal ajusta su operatoria. Ver src/utils/preferencias.ts
-(configOperativaDeReglas / DEFAULTS_OPERATIVOS) y src/algoritmo/types.ts
-(InputAlgoritmo). Defaults del negocio:
-- apertura_solo_aux (ON): 08:00-09:00 sólo con AUX, sin cajeros.
-- sin_aux_cierre (ON): los AUX no se sientan en caja después de 22:00.
-- supervisor_jornada_completa (OFF): con 2+ AUX presentes, el de mayor
-  presencia queda parado toda la jornada.
-- franco_medio_corridos (ON): el día de 5h de cada FULL pegado a su franco.
-- min_cajeros_franja: mínimo N cajeros en una franja (sube la demanda).
-- max_francos_dia (2): tope de francos FULL+PART por día, subible/bajable.
-Jerarquía de cobertura (cascada): cajeros FULL/PART → AUX → eventuales.
-El fallback del algoritmo (config ausente) reproduce el comportamiento
-histórico, por eso los tests que llaman directo al motor no cambian.
-
-CAPA 2 — CLAUDE API (iaAsignacion.ts) — OPCIONAL
-Responsabilidad: revisar el horario ya generado y sugerir
-hasta 3 mejoras humanamente razonables que el algoritmo
-no puede detectar. Ejemplos:
-- Jornadas consecutivas de alta carga para un colaborador
-- Desbalance de turnos duros concentrados en los mismos días
-- Oportunidades de rotar cargas entre colaboradores similares
-- Patrones de descanso subóptimos aunque matemáticamente válidos
-Claude NO genera horarios. Claude NO modifica la estructura.
-Si Claude falla, el resultado del algoritmo se muestra igual.
+> Este cambio existe por ahora solo en un PR de **Fase 0**. Hasta que el propietario autorice su merge, no afirmar que `main` ya adoptó el nuevo protocolo.
