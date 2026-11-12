@@ -18,6 +18,7 @@ Todo merge a `main` dispara **despliegue de producción en dos sitios Netlify** 
 | #19 | #10 VAL-01 | `feat/ah2-val01-validador` `ca0112e` | — | No (agrega validador, no conectado) | 96/96 | `CURRENT_WORK.md` |
 | #20 | #10 motor 12 h | `fix/ah2-descanso-12h` `18e7eef` | **#19** (apilado) | **Sí**: elimina descansos de 11,5 h; misma cobertura en el fixture | 98/98 | `CURRENT_WORK.md` |
 | #21 | #12 parcial | `feat/ah2-pub01-validacion-pdf` `574389d` | **#20** (apilado) | No (UI y PDF) | 104/104 | `NuevaSemanaPage.tsx` con #17; `CURRENT_WORK.md` |
+| #26 | — fallback SPA | `fix/ah2-spa-fallback` `e2dcb0e` | — | No (corrige 404 al recargar rutas en producción) | config Netlify; verificado en preview | `CURRENT_WORK.md` |
 | #22 | #11 RULES-01 | `feat/ah2-rules01-reglas-v2` `79c94c1` | — (formalmente #7/#9, ver PR) | No (módulo no conectado) | 98/98 | `CURRENT_WORK.md` |
 
 **Resolución de conflictos (verificada en el ensayo):**
@@ -31,9 +32,10 @@ Todo merge a `main` dispara **despliegue de producción en dos sitios Netlify** 
 2. Quitar `CLAUDE_API_KEY` (y cualquier `VITE_*` de Anthropic) en **ambos** sitios.
 
 ### Lote 1 — seguridad y herramientas (riesgo bajo, sin cambio de horarios)
-Orden: **#16 → #15**.
+Orden: **#16 → #15 → #26**.
 - #16 primero: a partir de ahí CI corre en cada PR. Después, actualizar cada PR abierto con `main` («Update branch») para que CI los valide.
 - Verificación post-deploy: `scripts/sec01-verify-proxy.sh https://al-iada.netlify.app https://prestify.netlify.app` → `SEGURO OPTIONS=204 … GET=405`; tras el lote 0, también con `--post` → `POST=503`.
+- #26: tras el deploy, `curl -o /dev/null -w '%{http_code}' https://al-iada.netlify.app/nueva-semana` → 200 (hoy 404).
 - Rollback: revertir el merge (la app vuelve a mostrar sugerencias IA, que con la clave revocada fallan en silencio).
 
 ### Lote 2 — entrada POM e identidad (sin cambio de horarios para rosters normales)

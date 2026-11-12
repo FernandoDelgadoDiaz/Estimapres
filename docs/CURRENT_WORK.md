@@ -19,6 +19,8 @@
 | #20 | #10 | motor: 12 h reales (apilado sobre #19) | listo; **cambia horarios** |
 | #21 | #12 (parcial) | estado de validación en UI y PDF (apilado sobre #20) | listo |
 | #22 | #11 | reglas v2 (módulo no conectado) | listo |
+| #26 | — | fallback SPA: recargar `/nueva-semana` daba 404 en producción | listo; verificado en preview |
+| #25 | — | este índice + plan de integración + informe del hito | listo |
 | #24 | — | ⛔ demo integrada para *deploy preview* | **no integrar** |
 
 **Bloqueos del propietario:** revocar clave Anthropic (lote 0); autorizar lotes de `INTEGRACION_F1.md` (cada merge despliega `al-iada` y `prestify`); D1–D3 (#7), D4 (cierre), D5 (#5); datos personales en el repo (#23); horarios de AUX/eventuales semanales (brecha AH2-008, ver hito); migraciones propuestas (#12, #18, #22).
