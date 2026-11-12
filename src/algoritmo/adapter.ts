@@ -61,7 +61,7 @@ function parsearRangos(horarioStr: string): Array<[number, number]> {
   });
 }
 
-function construirMatrizAux(horarioSemanal: string[]): MatrizPresencia {
+export function construirMatrizAux(horarioSemanal: string[]): MatrizPresencia {
   const matriz: MatrizPresencia = Array.from({ length: 7 }, () =>
     Array(30).fill('NO_PRESENTE' as AsignacionAux)
   );
