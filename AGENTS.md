@@ -22,4 +22,4 @@ Este archivo rige por igual para **Astra (ChatGPT)**, **Claude** y cualquier imp
 ## Cierre de turno / transferencia
 Dejar CURRENT_WORK actualizado y el estado en GitHub. El siguiente modelo debe poder continuar sin pedir contexto al usuario. Si no hubo cambios, explicar por qué en la Issue.
 
-**Nota:** en esta rama el contrato es un **PR propuesto**; la versión en `main` solo cambiará si el propietario autoriza el merge.
+**Vigencia:** este contrato está integrado en `main` desde `9909e87` (PR #2, autorizado por el propietario). El punto de retoma es la sección «PUNTO ÚNICO DE RETOMA» de `docs/CURRENT_WORK.md` en `main`.

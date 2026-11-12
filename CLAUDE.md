@@ -14,4 +14,4 @@ Este archivo aplica a **Claude**. Las mismas reglas están en **[AGENTS.md](AGEN
 
 Los archivos `ai/architecture.md`, `ai/rules.md` y `ai/decisions.md` se conservan como **historia del proyecto**: describen arquitecturas y roles de 2026 que pueden estar desactualizados. No prevalecen sobre la nueva especificación aprobada.
 
-> Este cambio existe por ahora solo en un PR de **Fase 0**. Hasta que el propietario autorice su merge, no afirmar que `main` ya adoptó el nuevo protocolo.
+> Protocolo vigente en `main` desde `9909e87` (PR #2). Empezar por «PUNTO ÚNICO DE RETOMA» en `docs/CURRENT_WORK.md`.

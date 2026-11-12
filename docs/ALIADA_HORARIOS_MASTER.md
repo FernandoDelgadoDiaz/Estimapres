@@ -110,6 +110,9 @@ Equidad de turnos, rotación de cierres/fin de semana, aprendizajes de correccio
 - La separación de 4 h entre bloques cortados está implementada para FULL (`H-F7`); PART solo admite jornadas corridas (`H-P4`).
 - `pdfParser.ts` no extrae fechas del encabezado; convierte valores negativos a 0 con solo un `console.warn`; si hay filas horarias duplicadas, la última sobrescribe sin error; acepta desde 10 filas y completa las faltantes con 0.
 - `README.md` declara «PART máximo 32h» mientras el código aplica 31 h (62 slots).
+- **Motor — descanso de 12 h (defecto, 2026-11-12):** `pasada1-fullpart.ts` y `reglas.ts` contaban 19 slots entre 23:00 y 08:00 (son 18) y aceptaban descansos de **11,5 h**; detectado por el validador independiente (7 casos en el fixture). Corrección propuesta en PR #20, no integrada.
+- **AUX y eventuales:** su presencia/disponibilidad es un patrón fijo cargado a mano en Colaboradores; el motor no la planifica. Si cambia cada semana, contradice AH2-008 (decisión pendiente, ver `docs/HITO_POM_PDF.md`).
+- **Datos personales en el repositorio público:** roster semilla (`src/types/index.ts`) y fixtures de tests con nombres y horarios que parecen reales (Issue #23).
 - `npm ci` falla: `package-lock.json` no está sincronizado con `package.json`. Con `npm install --no-save`: `vitest run` 80/80 OK y `npm run build` OK. No hay CI (`.github/` no existe).
 
 ## 5. Base de datos y seguridad — verificación de solo lectura 2026-11-12
