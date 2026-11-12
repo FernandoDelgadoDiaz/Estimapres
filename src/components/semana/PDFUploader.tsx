@@ -79,7 +79,7 @@ export default function PDFUploader({ onFileSelect, loading, error }: PDFUploade
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-center">
             <span className="text-red-500 mr-2">❌</span>
-            <p className="text-red-700">{error}</p>
+            <p className="text-red-700" style={{ whiteSpace: 'pre-line' }}>{error}</p>
           </div>
         </div>
       )}
