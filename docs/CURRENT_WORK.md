@@ -1,6 +1,27 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## ESTADO — TOOL-01 (#6) — rama `feat/ah2-tool01-ci` — Claude, 2026-11-12
+## ▶ PUNTO ÚNICO DE RETOMA (vigente) — entrega 1 — Claude, 2026-11-12
+
+**Leer primero esto.** Esta sección manda sobre las demás.
+
+- **Esta versión llega a `main` con la entrega 1** (seguridad, CI, rutas y privacidad): #16, #15, #26, #27, #25. Procedimiento de publicación, verificación y reversión: [`docs/PUBLICACION_ENTREGA1.md`](PUBLICACION_ENTREGA1.md).
+- **Pendiente para una entrega posterior:** el resto del release candidato **PR #30** (`release/ah2-f1`): #17, #18, #19, #20 (cambia los horarios generados), #21, #22, #29. El #30 desciende de esta entrega; se integra con «Create a merge commit» sin conflictos (verificado).
+- **#24** es solo demostración.
+- **Bloqueos del propietario:**
+  - lote 0 (revocar la clave de Anthropic);
+  - D1–D3 (#7), D4, D5 (#5);
+  - historial y visibilidad del repo (#23);
+  - AUX-D1 a AUX-D4 (#28);
+  - migraciones (#12, #18, #22, #28).
+- **Siguiente acción exacta:**
+  - si la entrega 1 está integrada: registrar en la épica #3 el SHA y los deploys, y luego pedir autorización para el #30;
+  - si no: esperar la autorización del §9 de `PUBLICACION_ENTREGA1.md`.
+  
+  No hacer merge, deploy, migraciones ni cambios de credenciales sin autorización.
+
+## Registro por tarea
+
+### ESTADO — TOOL-01 (#6) — rama `feat/ah2-tool01-ci` — Claude, 2026-11-12
 
 - **Issue:** [#6](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/6) · **PR:** draft (ver Issue #6) · base `main` `9909e87`.
 - **Cambios:** `package-lock.json` regenerado con `npm install --package-lock-only` (solo **agrega** las entradas faltantes `esbuild@0.28.2` y binarios `@esbuild/*` anidados bajo `vitest`; ninguna versión existente cambia); `.github/workflows/ci.yml` (Node 22: `npm ci` → `npm test` → `npm run build`, en PR y push a `main`, permisos `contents: read`).
@@ -8,7 +29,7 @@
 - **Fuera de alcance / deuda:** `npm run lint` falla porque el repo no tiene configuración ESLint (no se agrega aquí). `@anthropic-ai/sdk` se podrá quitar de `package.json` recién cuando PR #15 esté en `main` (hoy `main` todavía lo importa).
 - **Conflictos esperables:** cada rama de tarea agrega su sección al inicio de este archivo; al integrar, conservar todas las secciones.
 - **Siguiente:** revisión del propietario; merge despliega producción (ambos sitios Netlify) → requiere autorización. Continuar con #8 / #9.
-## ESTADO VIGENTE — 2026-11-12 — SEC-01 (F1) — revisado por Claude
+### ESTADO — SEC-01 (#4) — rama `fix/ah2-sec01-disable-claude-proxy` — Astra + Claude, 2026-11-12
 
 - **Trabajo actual:** Issue [#4](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/4) — mitigación temporal *fail closed* del proxy Anthropic (P0). PR [#15](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/15) **DRAFT**, base `main` `9909e87d8dd6215351a20d6907b4f40a0be75b77`.
 - **Rama:** `fix/ah2-sec01-disable-claude-proxy`. Commits: Astra `2bccb5a`…`74b3631` (mitigación + docs); Claude `569fe11e231ab1515ad3f19c07e5f79ca1d79055` (pruebas y endurecimiento) + commit documental que contiene este archivo (SHA final: comentario de Claude en PR #15 o `git log -1 origin/fix/ah2-sec01-disable-claude-proxy`).
@@ -28,50 +49,16 @@
 - **Fuera de alcance, registrado:** `@anthropic-ai/sdk` sigue en `package.json` sin uso (quitarlo toca el lockfile → Issue #6); `AGENTS.md` en `main` conserva la nota «en esta rama el contrato es un PR propuesto», ya obsoleta tras el merge de PR #2.
 - **Siguiente acción precisa:** propietario: (1) revocar la clave Anthropic usada por Netlify (o confirmar que no existe); (2) revisar PR #15 y autorizar merge + deploy de producción en **ambos** sitios; (3) tras el deploy, verificar `OPTIONS`/`POST` en producción (esperado 204/503 sin CORS). Issue #4 queda abierta para la solución definitiva autenticada (F3/#14). Después: #6.
 
-## HISTÓRICO — FASE 0 (previo al merge del PR #2)
-
-## ESTADO — Fallback SPA en Netlify — rama `fix/ah2-spa-fallback` — Claude, 2026-11-12
+### ESTADO — Fallback SPA en Netlify — rama `fix/ah2-spa-fallback` — Claude, 2026-11-12
 
 - **Defecto (verificado en producción, solo GET):** `al-iada.netlify.app/nueva-semana` y `/colaboradores` → **404** (igual en `prestify`); solo `/` responde 200. La app usa `BrowserRouter` y `netlify.toml` no tenía regla de fallback.
 - **Cambio:** `netlify.toml` agrega `[[redirects]] from="/*" to="/index.html" status=200` (sin `force`).
 - **Verificación:** en el deploy preview de este PR (ver comentario del PR): rutas profundas 200 y `/.netlify/functions/claude-proxy` sin cambios.
-## ESTADO — PII-01 (#23) — rama `fix/ah2-pii01-datos-sinteticos` — Claude, 2026-11-12
+### ESTADO — PII-01 (#23) — rama `fix/ah2-pii01-datos-sinteticos` — Claude, 2026-11-12
 
 - **Cambios:** 16 nombres de personas que parecían reales → nombres sintéticos por rol (`Full A–D`, `Part A–G`, `Aux A–D`, `Eventual A`), en roster semilla (`src/types/index.ts`), fixtures y tests, comentarios del adapter, placeholder del formulario y ejemplos del MASTER/plan. El orden alfabético dentro de cada rol se preservó a propósito: las pasadas 2/3 desempatan por id, así el motor produce exactamente lo mismo.
 - **Pruebas:** `npm test` 80/80 · `tsc` ✅ · build ✅. Salida completa del motor sobre el fixture (`ejecutarAlgoritmo` + `convertirOutputDeV2`) **idéntica** a `main` tras aplicar el mapeo de nombres (solo difiere la marca de tiempo de ejecución). `git grep` de los 16 nombres, apellidos y variantes: sin resultados.
 - **No hecho (requiere autorización):** reescritura del historial, cambio de visibilidad, datos de Supabase (el roster real vive allí y no se tocó). Riesgo residual evaluado en Issue #23.
-## ▶ PUNTO ÚNICO DE RETOMA (vigente) — actualizado por Claude, 2026-11-12
-
-**Leer primero esto.** El estado de cada rama de tarea está en su propio `CURRENT_WORK.md` (sección superior) y en su PR; **este** archivo, en `main`, es el índice que manda.
-
-- **`main`:** `9909e87` (merge de F0, PR #2). Ningún código de F1 está integrado ni desplegado.
-- **Épica:** [#3](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/3) — tabla de estado verificable por PR (último comentario).
-- **Plan de integración:** [`docs/INTEGRACION_F1.md`](INTEGRACION_F1.md) — lotes, dependencias, conflictos y efectos en Netlify.
-- **Próximo hito:** [`docs/HITO_POM_PDF.md`](HITO_POM_PDF.md) — qué falta para demostrar POM real → PDF.
-
-| PR (draft) | Issue | Qué | Estado |
-|---|---|---|---|
-| #16 | #6 | lockfile + CI | listo; CI verde |
-| #15 | #4 | proxy Anthropic bloqueado + runbook | listo; requiere lote 0 (revocar clave) |
-| #17 | #8 | contrato POM v2 (semana del PDF) | listo; validar PDF real en local antes |
-| #18 | #9 | identidad sin colisiones | listo |
-| #19 | #10 | validador independiente | listo |
-| #20 | #10 | motor: 12 h reales (apilado sobre #19) | listo; **cambia horarios** |
-| #21 | #12 (parcial) | estado de validación en UI y PDF (apilado sobre #20) | listo |
-| #22 | #11 | reglas v2 (módulo no conectado) | listo |
-| #26 | — | fallback SPA: recargar `/nueva-semana` daba 404 en producción | listo; verificado en preview |
-| #25 | — | este índice + plan de integración + informe del hito | listo |
-| #24 | — | ⛔ demo integrada para *deploy preview* | **no integrar** |
-
-**Bloqueos del propietario:** revocar clave Anthropic (lote 0); autorizar lotes de `INTEGRACION_F1.md` (cada merge despliega `al-iada` y `prestify`); D1–D3 (#7), D4 (cierre), D5 (#5); datos personales en el repo (#23); horarios de AUX/eventuales semanales (brecha AH2-008, ver hito); migraciones propuestas (#12, #18, #22).
-
-**Siguiente acción exacta para cualquier modelo:**
-1. Si el propietario autorizó un lote: integrar en el orden de `INTEGRACION_F1.md`, resolver conflictos como allí se indica, verificar y actualizar esta sección.
-2. Si no: tareas desbloqueadas sin decisiones → #23 parte de código (anonimizar con nombres sintéticos, sin tocar historial) solo si el propietario lo pide; prueba de PDF con roster grande (#12); conectar `reglasV2` a la UI queda para después de integrar #22.
-3. No merge, deploy, migraciones ni cambios de credenciales sin autorización expresa.
-
----
-
 ## HISTÓRICO — FASE 0 (cerrada: PR #2 integrado en `9909e87`)
 
 
