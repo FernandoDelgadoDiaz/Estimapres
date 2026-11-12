@@ -58,6 +58,14 @@
 - Bloqueo: aprobación del propietario del PR #2 y posterior planificación de Issues de F1.
 - Acción siguiente: revisar PR #2, pedir decisión explícita de merge; no trabajar en motor antes de ese gate.
 
+## Actualización de alcance funcional — 2026-11-12 (propietario)
+
+- Requisito **AH2-008 APROBADO** documentado en MASTER: flujo normal del supervisor = exportar PDF de POM → cargar en Aliada → obtener cronograma **nominal semanal**, revisar/aprobar → exportar **PDF profesional**. Sin reingreso de matriz, reprogramación manual rutinaria ni necesidad de usar chat con IA.
+- Test obligatorio de aceptación: PDF POM válido + dotación y reglas preconfiguradas deben producir cronograma completo legible y PDF exportable; excepciones y déficits se muestran sin violar restricciones.
+- El cambio fue **solo documental**, registrado en rama y PR #2; no habilita implementación anticipada de F1.
+- Evidencia: commit de MASTER `28d2827342baaf7dbcc2d05d47da4bc7e8ecef79`.
+- Próximo paso sin cambio: revisar y aprobar documentalmente PR #2 antes de merge y trabajo de F1.
+
 ## Plantilla obligatoria al finalizar cada sesión
 - Fecha:
 - Responsable/modelo:
