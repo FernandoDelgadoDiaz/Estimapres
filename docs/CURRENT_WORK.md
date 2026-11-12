@@ -12,6 +12,7 @@
   
   Evidencia de pruebas: en el PR de la rama de release y en la épica #3.
 - **#24** es solo demostración (*deploy preview*). **No es PR de integración.**
+- **Entrega 1 (seguridad, CI, rutas, privacidad):** rama `release/ah2-f1-entrega1`, que es prefijo de esta rama (#16, #15, #26, #27, #25 + procedimiento). Procedimiento: [`docs/PUBLICACION_ENTREGA1.md`](PUBLICACION_ENTREGA1.md). Después de la entrega 1, este PR (#30) se integra con «Create a merge commit»; lo que agrega es #17–#22 y #29.
 - **Cómo integrar** (requiere autorización del propietario; cada merge despliega `al-iada` y `prestify`):
   - **opción A:** PR por PR en el orden de arriba (`docs/INTEGRACION_F1.md`);
   - **opción B:** un único merge de la rama de release, que ya está probada en conjunto.

@@ -32,3 +32,6 @@ dist-ssr
 *.backup
 # Local Netlify folder
 .netlify
+
+# POM y otros PDF con datos laborales: nunca versionar (ver docs/PUBLICACION_ENTREGA1.md §8)
+*.pdf
