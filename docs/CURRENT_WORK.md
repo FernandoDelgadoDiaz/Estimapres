@@ -1,10 +1,38 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## ▶ PUNTO ÚNICO DE RETOMA (vigente) — rama de release `release/ah2-f1` — Claude, 2026-11-12
+## ▶ PUNTO ÚNICO DE RETOMA (vigente) — después de la ENTREGA 1 — Claude, 2026-11-12
 
-**Leer primero esto.** Esta sección manda sobre las demás. El detalle de cada tarea está en «Registro por tarea», más abajo.
+**Leer primero esto.** Esta sección manda sobre las demás.
 
-- **`main`:** `9909e87`. **Nada de F1 está integrado ni desplegado.**
+### Entrega 1 — EJECUTADA y verificada (2026-11-12, autorización: PR #31, comentario 6835443386)
+- **`main` = `8aa104db17f87250661d7e2348af1190e9806759`**: merge commit del PR #31 (padres `9909e87` y `acb2ba8`). Rama `release/ah2-f1-entrega1` conservada.
+- **Producción:**
+
+  | Sitio | Deploy | Commit |
+  |---|---|---|
+  | `al-iada` | `6af6266feb1a7e267dfa1aa8` | `8aa104d` |
+  | `prestify` | `6af6266f137817f4541290c9` | `8aa104d` |
+
+  Ambos en estado ready, con 1 regla de redirect procesada.
+- **Rollback disponible:**
+  - al-iada `6af5ff7184f60b0849ef3c79`
+  - prestify `6af5ff713eac55707eeb3c28`
+
+  Procedimiento: `docs/PUBLICACION_ENTREGA1.md` §6. **No hizo falta usarlo.**
+- **Verificado en producción:**
+  - proxy `SEGURO` en ambos sitios (OPTIONS 204 sin CORS, GET 405, POST 503);
+  - `/`, `/nueva-semana`, `/colaboradores`, `/reglas`, `/historial` → 200;
+  - bundle sin nombres anteriores, sin SDK de IA y sin patrón de clave;
+  - funciones de pago sin cambios (GET 405, igual que antes);
+  - UI carga en ambos sitios sin errores JS.
+- **Credenciales:** eliminadas de ambos sitios las variables `CLAUDE_API_KEY`, `VITE_CLAUDE_API_KEY`, `VITE_ANTHROPIC_API_KEY` y `ANTHROPIC_API_KEY`, antes del build. No se leyó ni registró ningún valor.
+- **⚠️ Riesgo residual (conflicto abierto):**
+  - La **revocación o rotación en Anthropic no se hizo**: no hay acceso a esa consola desde las herramientas de desarrollo, y desde Netlify no se puede saber si la clave se usa en otros sistemas.
+  - Los **permalinks de deploys anteriores** (por ejemplo `6af5ff71…--al-iada.netlify.app`) siguen sirviendo el proxy viejo, con la variable que tenían al desplegarse.
+  - Contención intentada: protección de deploys no productivos en Netlify. Respuesta 422: no disponible.
+  - **Acción del propietario:** en la consola de Anthropic, revisar el uso de la clave; si no la usa otro sistema, revocarla; si la usa, rotarla y actualizar ese sistema.
+
+### Release candidato (PR #30) — PENDIENTE de autorización propia
 - **Rama de release `release/ah2-f1`:** combina, sobre `main` y en este orden: #16 → #15 → #26 → #27 → #25 → #17 → #18 → #19 → #20 → #21 → #22 → #29. Conflictos resueltos:
   - `docs/CURRENT_WORK.md`: reordenado en este archivo;
   - `src/pages/NuevaSemanaPage.tsx` entre #17 y #21: se conservan los dos bloques de estado;
@@ -12,7 +40,7 @@
   
   Evidencia de pruebas: en el PR de la rama de release y en la épica #3.
 - **#24** es solo demostración (*deploy preview*). **No es PR de integración.**
-- **Entrega 1 (seguridad, CI, rutas, privacidad):** rama `release/ah2-f1-entrega1`, que es prefijo de esta rama (#16, #15, #26, #27, #25 + procedimiento). Procedimiento: [`docs/PUBLICACION_ENTREGA1.md`](PUBLICACION_ENTREGA1.md). Después de la entrega 1, este PR (#30) se integra con «Create a merge commit»; lo que agrega es #17–#22 y #29.
+- **Entrega 1:** ya integrada en `main` (ver arriba). Rama `release/ah2-f1-entrega1`, prefijo de esta rama (#16, #15, #26, #27, #25 + procedimiento). Procedimiento: [`docs/PUBLICACION_ENTREGA1.md`](PUBLICACION_ENTREGA1.md). Después de la entrega 1, este PR (#30) se integra con «Create a merge commit»; lo que agrega es #17–#22 y #29.
 - **Cómo integrar** (requiere autorización del propietario; cada merge despliega `al-iada` y `prestify`):
   - **opción A:** PR por PR en el orden de arriba (`docs/INTEGRACION_F1.md`);
   - **opción B:** un único merge de la rama de release, que ya está probada en conjunto.
