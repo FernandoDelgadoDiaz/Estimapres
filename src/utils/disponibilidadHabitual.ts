@@ -12,6 +12,7 @@
 // de supervisores por franja). Este módulo no decide ningún valor laboral.
 
 import type { Auxiliar, Eventual } from '../types'
+import { fechasDeSemana } from './pomContrato'
 import { construirMatrizAux } from '../algoritmo/adapter'
 import { validarCobertura0922, validarPresenciaAux0809 } from '../algoritmo/reglas'
 
@@ -36,21 +37,22 @@ export interface ResolucionDisponibilidad<T> {
   errores: string[]
 }
 
-const RANGO = /^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/
-const MS_DIA = 86_400_000
-const fechasSemana = (lunes: string) =>
-  Array.from({ length: 7 }, (_, i) => new Date(Date.parse(lunes + 'T00:00:00Z') + i * MS_DIA).toISOString().slice(0, 10))
+const RANGO = /^(\d{1,2}):([03]0)-(\d{1,2}):([03]0)$/
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
-const aMin = (h: string) => { const [a, b] = h.split(':').map(Number); return a * 60 + (b || 0) }
 
-/** Valida un horario de un día ("" es válido = no disponible). */
+/** Valida bloques representables en medias horas, ordenados y sin superposición. */
 export function horarioValido(h: string): boolean {
   if (h.trim() === '') return true
-  return h.split('|').every(r => {
-    const x = r.trim()
-    if (!RANGO.test(x)) return false
-    const [a, b] = x.split('-')
-    return aMin(a) < aMin(b)
+  let finAnterior = 0
+  return h.split('|').every(rango => {
+    const partes = RANGO.exec(rango.trim())
+    if (!partes) return false
+    const [, hi, mi, hf, mf] = partes.map(Number)
+    const inicio = hi * 60 + mi
+    const fin = hf * 60 + mf
+    if (hi > 23 || hf > 23 || inicio >= fin || inicio < finAnterior) return false
+    finAnterior = fin
+    return true
   })
 }
 
@@ -62,7 +64,7 @@ export function horarioValido(h: string): boolean {
 export function resolverDisponibilidadSemana<T extends { id: string; nombre: string; horarioSemanal: string[] }>(
   personas: T[], excepciones: ExcepcionDisponibilidad[], lunes: string,
 ): ResolucionDisponibilidad<T> {
-  const fechas = fechasSemana(lunes)
+  const fechas = fechasDeSemana(lunes)
   const errores: string[] = []
   const origen: Record<string, OrigenDia[]> = {}
   const ids = new Set(personas.map(p => p.id))
@@ -80,9 +82,6 @@ export function resolverDisponibilidadSemana<T extends { id: string; nombre: str
   const resueltas = personas.map(p => {
     const dias = [...p.horarioSemanal]
     origen[p.id] = Array(7).fill('habitual')
-    dias.forEach((h, d) => {
-      if (!horarioValido(h ?? '')) errores.push(`${p.nombre}: horario habitual del ${DIAS[d]} «${h}» inválido.`)
-    })
     fechas.forEach((f, d) => {
       const xs = porClave.get(`${p.id}|${f}`)
       if (!xs) return
@@ -92,6 +91,9 @@ export function resolverDisponibilidadSemana<T extends { id: string; nombre: str
       }
       dias[d] = xs[0].horario
       origen[p.id][d] = 'excepcion'
+    })
+    dias.forEach((h, d) => {
+      if (!horarioValido(h ?? '')) errores.push(`${p.nombre}: horario habitual del ${DIAS[d]} «${h}» inválido.`)
     })
     return { ...p, horarioSemanal: dias }
   })
@@ -115,7 +117,7 @@ const slotAHora = (s: number) => `${String(8 + Math.floor(s / 2)).padStart(2, '0
  * antes evita una semana generada sin supervisores en caja.
  */
 export function diagnosticarSupervision(auxiliares: Auxiliar[]): HuecoSupervision[] {
-  const presencia = Object.fromEntries(auxiliares.filter(a => a.activo).map(a => [a.id, construirMatrizAux(a.horarioSemanal)]))
+  const presencia = Object.fromEntries(auxiliares.filter(a => a.activo).map(a => [a.id, construirMatrizAux(a.horarioSemanal.map(h => horarioValido(h ?? '') ? h : ''))]))
   const huecos: HuecoSupervision[] = []
   for (const v of validarPresenciaAux0809(presencia)) {
     const d = v.dia ?? 0
@@ -147,8 +149,11 @@ export function diagnosticarSupervision(auxiliares: Auxiliar[]): HuecoSupervisio
 export function prepararDisponibilidadSemana(
   auxiliares: Auxiliar[], eventuales: Eventual[], excepciones: ExcepcionDisponibilidad[], lunes: string,
 ) {
-  const aux = resolverDisponibilidadSemana(auxiliares, excepciones, lunes)
-  const ev = resolverDisponibilidadSemana(eventuales, excepciones, lunes)
+  const auxIds = new Set(auxiliares.map(a => a.id))
+  const evIds = new Set(eventuales.map(e => e.id))
+  // El resolver informa ids desconocidos. Procesarlos una sola vez, con AUX.
+  const aux = resolverDisponibilidadSemana(auxiliares, excepciones.filter(x => !evIds.has(x.colaboradorId)), lunes)
+  const ev = resolverDisponibilidadSemana(eventuales, excepciones.filter(x => !auxIds.has(x.colaboradorId) && evIds.has(x.colaboradorId)), lunes)
   return {
     auxiliares: aux.personas, eventuales: ev.personas,
     origen: { ...aux.origen, ...ev.origen },

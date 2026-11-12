@@ -264,7 +264,7 @@ export function convertirInputAV2(
 
 /**
  * Convierte el ResultadoSemanal del v2 al ResultadoAsignacion que espera la UI.
- * Solo incluye FULL y PART en horarios[]; AUX y EVENTUAL impactan las métricas de franja.
+ * Incluye el horario nominal de FULL, PART, AUX y eventuales.
  */
 export function convertirOutputDeV2(
   resultado: ResultadoSemanal,
@@ -346,10 +346,13 @@ export function convertirOutputDeV2(
       return { dia, turnos, horas, esFranco, rol: esFranco ? ('franco' as const) : rolTrabajo };
     });
 
-  for (const [v2Id, matriz] of Object.entries(resultado.asignacion_aux)) {
+  for (const aux of auxiliares.filter(a => a.activo)) {
+    const v2Id = ident.v2PorUi.get(aux.id)!;
+    // Con huecos H-A1/H-A2, no hay asignación en caja, pero la presencia nominal sigue vigente.
+    const matriz = resultado.asignacion_aux[v2Id] ?? construirMatrizAux(aux.horarioSemanal);
     const jornadas = jornadasDesdeMatriz(matriz, e => e !== 'NO_PRESENTE', 'aux_supervisor');
     horarios.push({
-      colaboradorId: idMap[v2Id] ?? v2Id,
+      colaboradorId: aux.id,
       jornadas,
       totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
       errores: [],

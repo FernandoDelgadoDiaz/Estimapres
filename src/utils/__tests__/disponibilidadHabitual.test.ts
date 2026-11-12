@@ -1,7 +1,7 @@
 // AUX-01: patrón habitual + excepciones por fecha y diagnóstico de supervisión.
 import { describe, expect, it } from 'vitest'
 import { diagnosticarSupervision, horarioValido, prepararDisponibilidadSemana, resolverDisponibilidadSemana, type ExcepcionDisponibilidad } from '../disponibilidadHabitual'
-import { convertirInputAV2 } from '../../algoritmo/adapter'
+import { convertirInputAV2, convertirOutputDeV2 } from '../../algoritmo/adapter'
 import { ejecutarAlgoritmo } from '../../algoritmo/orquestador'
 import { HORAS_FRANJAS, type Auxiliar, type Eventual } from '../../types'
 
@@ -53,12 +53,42 @@ describe('AUX-01: patrón habitual + excepciones por fecha', () => {
     expect(r.personas[0].horarioSemanal[5]).toBe('10:00-14:00')
   })
 
+  it('resuelve en conjunto excepciones de AUX y eventuales y solo informa una vez el id desconocido', () => {
+    const { auxiliares, eventuales, errores, origen } = prepararDisponibilidadSemana([AUX_A, AUX_B], [ev], [
+      x({ horario: '09:00-16:00' }),
+      x({ colaboradorId: 'e', fecha: '2026-11-20' }),
+      x({ colaboradorId: 'inexistente' }),
+    ], LUNES)
+    expect(errores).toHaveLength(1)
+    expect(errores[0]).toContain('persona que no está en la lista')
+    expect(auxiliares[0].horarioSemanal[2]).toBe('09:00-16:00')
+    expect(eventuales[0].horarioSemanal[4]).toBe('')
+    expect(origen.a[2]).toBe('excepcion')
+    expect(origen.e[4]).toBe('excepcion')
+  })
+
+  it('informa un patrón inválido sin romper el diagnóstico y permite corregirlo por fecha', () => {
+    const mal = aux('mal', ['texto no convertible', ...AUX_A.horarioSemanal.slice(1)])
+    const original = prepararDisponibilidadSemana([mal, AUX_B], [], [], LUNES)
+    expect(original.errores).toHaveLength(1)
+    expect(original.huecosSupervision[0]).toMatchObject({ dia: 0, tipo: 'APERTURA' })
+    const corregido = prepararDisponibilidadSemana([mal, AUX_B], [], [
+      x({ colaboradorId: 'mal', fecha: LUNES, horario: '08:00-16:00' }),
+    ], LUNES)
+    expect(corregido.errores).toEqual([])
+    expect(corregido.huecosSupervision).toEqual([])
+  })
+
   it('horarioValido', () => {
     expect(horarioValido('')).toBe(true)
     expect(horarioValido('08:00-13:00|19:00-22:30')).toBe(true)
     expect(horarioValido('8:00-16:00')).toBe(true)
     expect(horarioValido('16:00-08:00')).toBe(false)
     expect(horarioValido('mañana')).toBe(false)
+    expect(horarioValido('08:15-10:00')).toBe(false)
+    expect(horarioValido('08:00-10:30|10:00-11:00')).toBe(false)
+    expect(horarioValido('22:00-28:30')).toBe(false)
+    expect(horarioValido('08:00-10:00|10:00-11:00')).toBe(true)
   })
 })
 
@@ -83,7 +113,13 @@ describe('AUX-01: diagnóstico de supervisión antes de generar', () => {
     }
     const conHueco = prepararDisponibilidadSemana([AUX_A, AUX_B], [], [x({ horario: '' })], LUNES)
     expect(conHueco.huecosSupervision.length).toBeGreaterThan(0)
-    expect(Object.keys(run(conHueco.auxiliares).asignacion_aux)).toEqual([])
+    const sinCaja = run(conHueco.auxiliares)
+    expect(Object.keys(sinCaja.asignacion_aux)).toEqual([])
+    const nominal = convertirOutputDeV2(sinCaja, [], conHueco.auxiliares, [])
+    const supervisor = nominal.horarios.find(h => h.colaboradorId === 'a')
+    expect(supervisor?.jornadas[2].esFranco).toBe(true)
+    expect(supervisor?.jornadas[1].turnos).toEqual([{ inicio: '8:00', fin: '16:00' }])
+    expect(nominal.cajaAux).toEqual([])
     const sinHueco = prepararDisponibilidadSemana([AUX_A, AUX_B], [], [], LUNES)
     expect(sinHueco.huecosSupervision).toEqual([])
     expect(Object.keys(run(sinHueco.auxiliares).asignacion_aux).sort()).toEqual(['aux_a', 'aux_b'])

@@ -426,21 +426,31 @@ export default function ColaboradoresPage() {
       )}
 
       {activeTab === 'auxiliares' && (
-        <TablaAuxiliares
-          auxiliares={auxiliares}
-          onEdit={actualizarAuxiliar}
-          onDelete={eliminarAuxiliar}
-          onToggleActivo={toggleActivoAux}
-        />
+        <>
+          <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <strong>Patrón habitual de presencia.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
+          </p>
+          <TablaAuxiliares
+            auxiliares={auxiliares}
+            onEdit={actualizarAuxiliar}
+            onDelete={eliminarAuxiliar}
+            onToggleActivo={toggleActivoAux}
+          />
+        </>
       )}
 
       {activeTab === 'eventuales' && (
-        <TablaEventuales
-          eventuales={eventuales}
-          onEdit={actualizarEventual}
-          onDelete={eliminarEventual}
-          onToggleActivo={toggleActivoEv}
-        />
+        <>
+          <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <strong>Patrón habitual de disponibilidad.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
+          </p>
+          <TablaEventuales
+            eventuales={eventuales}
+            onEdit={actualizarEventual}
+            onDelete={eliminarEventual}
+            onToggleActivo={toggleActivoEv}
+          />
+        </>
       )}
 
       {/* Formulario modal (solo para cajeros) */}
