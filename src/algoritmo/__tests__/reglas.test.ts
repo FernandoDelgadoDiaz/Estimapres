@@ -162,14 +162,28 @@ describe("Reglas PART", () => {
 
 describe("Regla H-D1 (descanso 12h)", () => {
   it("descanso exacto de 12h es válido", () => {
-    // Día N fin 22:30 (slot_fin=30), Día N+1 inicio 10:30 (slot_inicio=5)
+    // slot 0 = 08:00 → Día N fin 23:00 (slot_fin=30), Día N+1 inicio 11:00 (slot_inicio=6)
     const d1 = jornadaCorrida("t", 0, 20, 30);
-    const d2 = jornadaCorrida("t", 1, 5, 15);
+    const d2 = jornadaCorrida("t", 1, 6, 16);
     expect(validarDescansoEntreDias("t", d1, d2)).toEqual([]);
   });
 
+  it("descanso de 11,5h es violación (antes se aceptaba: 19 slots nocturnos en vez de 18, #10)", () => {
+    // Día N fin 23:00 (slot_fin=30), Día N+1 inicio 10:30 (slot_inicio=5)
+    const d1 = jornadaCorrida("t", 0, 20, 30);
+    const d2 = jornadaCorrida("t", 1, 5, 15);
+    expect(validarDescansoEntreDias("t", d1, d2).some(v => v.regla === "H-D1")).toBe(true);
+  });
+
+  it("descanso de 11,5h con fin 22:30 también es violación", () => {
+    // Día N fin 22:30 (slot_fin=29), Día N+1 inicio 10:00 (slot_inicio=4)
+    expect(validarDescansoEntreDias("t", jornadaCorrida("t", 0, 19, 29), jornadaCorrida("t", 1, 4, 14)).some(v => v.regla === "H-D1")).toBe(true);
+    // fin 22:30 → inicio 10:30 = 12h exactas: válido
+    expect(validarDescansoEntreDias("t", jornadaCorrida("t", 0, 19, 29), jornadaCorrida("t", 1, 5, 15))).toEqual([]);
+  });
+
   it("descanso de 11h es violación", () => {
-    // Día N fin 22:30 (slot_fin=30), Día N+1 inicio 09:30 (slot_inicio=3)
+    // Día N fin 23:00 (slot_fin=30), Día N+1 inicio 09:30 (slot_inicio=3)
     const d1 = jornadaCorrida("t", 0, 20, 30);
     const d2 = jornadaCorrida("t", 1, 3, 13);
     const violaciones = validarDescansoEntreDias("t", d1, d2);

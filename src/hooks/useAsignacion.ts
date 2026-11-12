@@ -61,12 +61,8 @@ export function useAsignacion() {
       return resultado
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error en asignación'
-      // Manejo especial de errores de API key
-      if (message.includes('API key')) {
-        setError('Configurá tu API key de Anthropic en el archivo .env')
-      } else if (message.includes('JSON inválido')) {
-        setError('Claude devolvió una respuesta inválida. Intentá de nuevo.')
-      } else if (message.includes('conexión') || message.includes('network')) {
+      // SEC-01: la generación no usa IA ni claves; no pedir API keys al usuario.
+      if (message.includes('conexión') || message.includes('network')) {
         setError('Error de conexión, intentá de nuevo.')
       } else {
         setError(message)
