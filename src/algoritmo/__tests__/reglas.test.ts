@@ -531,7 +531,7 @@ describe("Metricas Pasada 2 (reporte)", () => {
 
 // ==================== TESTS PASADA 3 ====================
 
-describe("Pasada 3 sobre PDF real (con Azucena como EVENTUAL)", () => {
+describe("Pasada 3 sobre PDF real (con Eventual A como EVENTUAL)", () => {
   function makeInput() {
     return {
       demanda: DEMANDA_REAL_PDF,
@@ -608,7 +608,7 @@ describe("Pasada 3 sobre PDF real (con Azucena como EVENTUAL)", () => {
         total_p3 += p3.deficit_3[dia][slot];
       }
     }
-    // Azucena disponible L/M/J/V/S/D 08-14 debe cubrir parte del deficit de manana
+    // Eventual A disponible L/M/J/V/S/D 08-14 debe cubrir parte del deficit de manana
     expect(total_p3).toBeLessThan(total_p2);
   });
 
@@ -717,13 +717,13 @@ describe("Excepciones en Pasada 1", () => {
   it("franco_dia fuerza franco en ese dia y no en otros", () => {
     const exc: ExcepcionSemanal = {
       id: "test_franco",
-      colaboradorNombre: "Carlos Paz",
+      colaboradorNombre: "Full A",
       tipo: "franco_dia",
       valor: "3", // jueves
       descripcion: "test",
     };
     const resultado = ejecutarPasada1(makeInputFull([exc]));
-    const jornadas = resultado.jornadas_full["carlos_paz"];
+    const jornadas = resultado.jornadas_full["full_a"];
 
     expect(jornadas).toBeDefined();
     expect(jornadas.length).toBe(7);
@@ -742,12 +742,12 @@ describe("Excepciones en Pasada 1", () => {
   it("solo_matutino: ninguna jornada inicia despues de slot 4 (10:00)", () => {
     const exc: ExcepcionSemanal = {
       id: "test_matutino",
-      colaboradorNombre: "Carlos Paz",
+      colaboradorNombre: "Full A",
       tipo: "solo_matutino",
       descripcion: "test",
     };
     const resultado = ejecutarPasada1(makeInputFull([exc]));
-    const jornadas = resultado.jornadas_full["carlos_paz"];
+    const jornadas = resultado.jornadas_full["full_a"];
 
     expect(jornadas).toBeDefined();
     for (const j of jornadas) {
@@ -760,16 +760,16 @@ describe("Excepciones en Pasada 1", () => {
   it("no_antes_de 10:00: ninguna jornada inicia antes de slot 4", () => {
     const exc: ExcepcionSemanal = {
       id: "test_no_antes",
-      colaboradorNombre: "Carlos Paz",
+      colaboradorNombre: "Full A",
       tipo: "no_antes_de",
       valor: "10:00",
       descripcion: "test",
     };
     const resultado = ejecutarPasada1(makeInputFull([exc]));
-    const jornadas = resultado.jornadas_full["carlos_paz"];
+    const jornadas = resultado.jornadas_full["full_a"];
 
     // Con no_antes_de 10:00 y un generador FULL que arranca a las 08:00,
-    // carlos_paz queda infactible (jornadas = []). La asercion se verifica
+    // full_a queda infactible (jornadas = []). La asercion se verifica
     // vacuosamente: ningun elemento viola la restriccion.
     expect(jornadas).toBeDefined();
     for (const j of jornadas) {
@@ -777,8 +777,8 @@ describe("Excepciones en Pasada 1", () => {
         expect(j.bloques[0].slot_inicio).toBeGreaterThanOrEqual(4);
       }
     }
-    // Verificar que la excepcion tuvo efecto: carlos_paz debe ser infactible
-    expect(resultado.infactibles).toContain("carlos_paz");
+    // Verificar que la excepcion tuvo efecto: full_a debe ser infactible
+    expect(resultado.infactibles).toContain("full_a");
   });
 
   it("sin excepciones el algoritmo no cambia comportamiento", () => {

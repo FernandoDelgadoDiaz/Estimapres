@@ -18,9 +18,9 @@ describe("cache de roster: los cambios en Colaboradores llegan a la generación"
   it("un colaborador desactivado NO entra al input del algoritmo", async () => {
     const roster: Colaborador[] = [
       { id: "1", nombre: "Activo", tipo: "FULL", horasSemanales: 48, activo: true },
-      { id: "2", nombre: "Carina Mansilla", tipo: "FULL", horasSemanales: 48, activo: false },
+      { id: "2", nombre: "Persona Inactiva", tipo: "FULL", horasSemanales: 48, activo: false },
     ];
-    // El supervisor desactivó a Carina → el hook sincroniza el cache
+    // El supervisor desactivó a la persona inactiva → el hook sincroniza el cache
     actualizarCacheRoster("cajero", roster);
 
     // La próxima pantalla (Nueva Semana) carga el roster y filtra los activos
@@ -28,13 +28,13 @@ describe("cache de roster: los cambios en Colaboradores llegan a la generación"
     const activos = cargado.filter((c) => c.activo);
 
     expect(activos.map((c) => c.nombre)).toEqual(["Activo"]);
-    expect(activos.some((c) => c.nombre === "Carina Mansilla")).toBe(false);
+    expect(activos.some((c) => c.nombre === "Persona Inactiva")).toBe(false);
   });
 
   it("un eventual desactivado NO entra al input del algoritmo", async () => {
     const eventuales: Eventual[] = [
       { id: "1", nombre: "Disponible", sector: "Perfumería", horarioSemanal: ["09:00-13:00", "", "", "", "", "", ""], activo: true },
-      { id: "2", nombre: "Monica Vazquez", sector: "Perfumería", horarioSemanal: ["09:00-13:00", "", "", "", "", "", ""], activo: false },
+      { id: "2", nombre: "Eventual Sector", sector: "Perfumería", horarioSemanal: ["09:00-13:00", "", "", "", "", "", ""], activo: false },
     ];
     actualizarCacheRoster("eventual", eventuales);
 

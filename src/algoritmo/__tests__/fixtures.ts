@@ -12,22 +12,22 @@ import type {
 // ==================== ROSTER REAL PDF ====================
 export const ROSTER_REAL_PDF: Colaborador[] = [
   // FULL cajeros
-  { id: "carlos_paz", nombre: "Carlos Paz", rol: "FULL" },
-  { id: "gabriel_silva", nombre: "Gabriel Silva", rol: "FULL" },
-  { id: "rosa_mansilla", nombre: "Rosa Mansilla", rol: "FULL" },
-  { id: "selena_oyarzo", nombre: "Selena Oyarzo", rol: "FULL" },
+  { id: "full_a", nombre: "Full A", rol: "FULL" },
+  { id: "full_b", nombre: "Full B", rol: "FULL" },
+  { id: "full_c", nombre: "Full C", rol: "FULL" },
+  { id: "full_d", nombre: "Full D", rol: "FULL" },
   // PART
-  { id: "claudia_altamirano", nombre: "Claudia Altamirano", rol: "PART" },
-  { id: "giuliana_ciarlante", nombre: "Giuliana Ciarlante", rol: "PART" },
-  { id: "jorgelina_nanez", nombre: "Jorgelina Nanez", rol: "PART" },
-  { id: "mariana_soruco", nombre: "Mariana Soruco", rol: "PART" },
-  { id: "martina_beron", nombre: "Martina Beron", rol: "PART" },
+  { id: "part_a", nombre: "Part A", rol: "PART" },
+  { id: "part_b", nombre: "Part B", rol: "PART" },
+  { id: "part_d", nombre: "Part D", rol: "PART" },
+  { id: "part_e", nombre: "Part E", rol: "PART" },
+  { id: "part_f", nombre: "Part F", rol: "PART" },
   // AUX (híbridos)
-  { id: "fernando_mendez", nombre: "Fernando Mendez", rol: "AUX" },
-  { id: "monica_enriquez", nombre: "Monica Enriquez", rol: "AUX" },
-  { id: "natalia_martinez", nombre: "Natalia Martinez", rol: "AUX" },
-  { id: "teresa_alanoca", nombre: "Teresa Alanoca", rol: "AUX" },
-  { id: "azucena_quiroga", nombre: "Azucena Quiroga", rol: "EVENTUAL" },
+  { id: "aux_a", nombre: "Aux A", rol: "AUX" },
+  { id: "aux_b", nombre: "Aux B", rol: "AUX" },
+  { id: "aux_c", nombre: "Aux C", rol: "AUX" },
+  { id: "aux_d", nombre: "Aux D", rol: "AUX" },
+  { id: "eventual_a", nombre: "Eventual A", rol: "EVENTUAL" },
 ];
 
 // ==================== DEMANDA REAL PDF ====================
@@ -89,8 +89,8 @@ function rango(inicioHora: string, finHora: string): RangoSlot {
 // Horarios reales del PDF por aux y día (L, M, X, J, V, S, D).
 // Si el día está de franco, el array es vacío [].
 const HORARIOS_AUX_PDF: Record<string, RangoSlot[][]> = {
-  // Fernando Mendez: L 11-19 | M franco | X 08-13 + 19-23 | J 11-19 | V 11-20 | S 14-23 | D 18-23
-  fernando_mendez: [
+  // Aux A: L 11-19 | M franco | X 08-13 + 19-23 | J 11-19 | V 11-20 | S 14-23 | D 18-23
+  aux_a: [
     [rango("11:00", "19:00")],
     [],
     [rango("08:00", "13:00"), rango("19:00", "22:30")],
@@ -99,8 +99,8 @@ const HORARIOS_AUX_PDF: Record<string, RangoSlot[][]> = {
     [rango("14:00", "22:30")],
     [rango("18:00", "22:30")],
   ],
-  // Monica Enriquez: L 08-16 | M 08-14 + 20-23 | X 11-19 | J franco | V 08-13 + 19-23 | S 14-23 | D 12-17
-  monica_enriquez: [
+  // Aux B: L 08-16 | M 08-14 + 20-23 | X 11-19 | J franco | V 08-13 + 19-23 | S 14-23 | D 12-17
+  aux_b: [
     [rango("08:00", "16:00")],
     [rango("08:00", "14:00"), rango("20:00", "22:30")],
     [rango("11:00", "19:00")],
@@ -109,8 +109,8 @@ const HORARIOS_AUX_PDF: Record<string, RangoSlot[][]> = {
     [rango("14:00", "22:30")],
     [rango("12:00", "17:00")],
   ],
-  // Natalia Martinez: L 14-23 | M 11-20 | X franco | J 08-14 + 20-23 | V 15-23 | S 11-16 | D 11-19
-  natalia_martinez: [
+  // Aux C: L 14-23 | M 11-20 | X franco | J 08-14 + 20-23 | V 15-23 | S 11-16 | D 11-19
+  aux_c: [
     [rango("14:00", "22:30")],
     [rango("11:00", "20:00")],
     [],
@@ -119,8 +119,8 @@ const HORARIOS_AUX_PDF: Record<string, RangoSlot[][]> = {
     [rango("11:00", "16:00")],
     [rango("11:00", "19:00")],
   ],
-  // Teresa Alanoca: L 15-23 | M 14-23 | X 15-23 | J 14-23 | V franco | S 08-13 | D 08-14 + 20-23
-  teresa_alanoca: [
+  // Aux D: L 15-23 | M 14-23 | X 15-23 | J 14-23 | V franco | S 08-13 | D 08-14 + 20-23
+  aux_d: [
     [rango("15:00", "22:30")],
     [rango("14:00", "22:30")],
     [rango("15:00", "22:30")],
@@ -154,11 +154,11 @@ for (const auxId of Object.keys(HORARIOS_AUX_PDF)) {
 // Horarios tomados del PDF para colaboradores con rol EVENTUAL.
 // Formato: por dia, lista de bloques [slot_inicio, slot_fin). Franco = [].
 
-// Azucena Quiroga: L 06-14 | M 06-14 | X franco | J 06-14 | V 06-14 | S 06-14 | D 06-14
+// Eventual A: L 06-14 | M 06-14 | X franco | J 06-14 | V 06-14 | S 06-14 | D 06-14
 // Nota: el PDF muestra 06:00-14:00 pero la operacion arranca a las 08:00.
 // Tratamos 06:00-14:00 como disponible efectivo 08:00-14:00 (slots 0..12).
 const HORARIOS_EVENTUAL_PDF: Record<string, RangoSlot[][]> = {
-  azucena_quiroga: [
+  eventual_a: [
     [rango("08:00", "14:00")],
     [rango("08:00", "14:00")],
     [],

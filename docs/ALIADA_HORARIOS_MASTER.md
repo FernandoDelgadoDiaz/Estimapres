@@ -71,7 +71,7 @@ El producto debe soportar perfiles versionados por país, convenio colectivo, ca
 
 ### B. Reglas operativas obligatorias — configurables por empresa/sucursal/persona
 
-Ejemplos: «Carlos solo mañanas en la semana del 16/11», «Rosa tiene franco martes», «solo mañanas todo noviembre», máximo de francos simultáneos por día, mínimo de cajeros por franja, presencia de auxiliar de apertura, AUX fuera de caja en cierre. Admitir vigencias **semanal, fechas inicio/fin, mensual y permanente**, ámbito y autor de cada cambio. Aplicarlas **siempre** mientras estén vigentes; para relajarlas se exige decisión de un rol autorizado, historial de cambios y nueva optimización.
+Ejemplos: «la persona A solo mañanas en la semana del 16/11», «la persona B tiene franco martes», «solo mañanas todo noviembre», máximo de francos simultáneos por día, mínimo de cajeros por franja, presencia de auxiliar de apertura, AUX fuera de caja en cierre. Admitir vigencias **semanal, fechas inicio/fin, mensual y permanente**, ámbito y autor de cada cambio. Aplicarlas **siempre** mientras estén vigentes; para relajarlas se exige decisión de un rol autorizado, historial de cambios y nueva optimización.
 
 No degradar una regla obligatoria a «preferencia» sin consentimiento.
 
@@ -110,6 +110,9 @@ Equidad de turnos, rotación de cierres/fin de semana, aprendizajes de correccio
 - La separación de 4 h entre bloques cortados está implementada para FULL (`H-F7`); PART solo admite jornadas corridas (`H-P4`).
 - `pdfParser.ts` no extrae fechas del encabezado; convierte valores negativos a 0 con solo un `console.warn`; si hay filas horarias duplicadas, la última sobrescribe sin error; acepta desde 10 filas y completa las faltantes con 0.
 - `README.md` declara «PART máximo 32h» mientras el código aplica 31 h (62 slots).
+- **Motor — descanso de 12 h (defecto, 2026-11-12):** `pasada1-fullpart.ts` y `reglas.ts` contaban 19 slots entre 23:00 y 08:00 (son 18) y aceptaban descansos de **11,5 h**; detectado por el validador independiente (7 casos en el fixture). Corrección propuesta en PR #20, no integrada.
+- **AUX y eventuales:** su presencia/disponibilidad es un patrón fijo cargado a mano en Colaboradores; el motor no la planifica. Si cambia cada semana, contradice AH2-008 (decisión pendiente, ver `docs/HITO_POM_PDF.md`).
+- **Datos personales en el repositorio público:** roster semilla (`src/types/index.ts`) y fixtures de tests con nombres y horarios que parecen reales (Issue #23).
 - `npm ci` falla: `package-lock.json` no está sincronizado con `package.json`. Con `npm install --no-save`: `vitest run` 80/80 OK y `npm run build` OK. No hay CI (`.github/` no existe).
 
 ## 5. Base de datos y seguridad — verificación de solo lectura 2026-11-12
@@ -119,6 +122,8 @@ Supabase proyecto **al-iada horarios**, estado `ACTIVE_HEALTHY` al momento de la
 - Cinco tablas pertinentes a horarios con RLS activado: `colaboradores`, `reglas_configurables`, `semanas_historial`, `correcciones_manuales`, `aprendizajes_derivados`.
 - Registros constatados (snapshot, no datos de prueba): 22 colaboradores, 13 reglas, 9 versiones de semana **para 2 lunes distintos**, 37 correcciones y 0 aprendizajes materializados. La dotación de julio **no se presume vigente** en noviembre.
 - **P0 de seguridad**: siete tablas públicas adicionales `al_*` y `ep_*` tienen **RLS deshabilitado**, y roles `anon`/ `authenticated` tienen privilegios de lectura/escritura. Hay algunos registros en tablas `al_*`. Requiere plan de aislamiento con evaluación de dependencias y respaldo; **no aplicar SQL ni borrar tablas sin autorización**.
+
+**SEC-01 — mitigación propuesta el 12/11/2026, NO desplegada:** Issue [#4](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/4). Como la sugerencia de Claude no participa en el cálculo de turnos, el enfoque más seguro es **desactivar temporalmente toda llamada a Anthropic**: endpoint devuelve 503 en POST sin llamar a proveedores; el cliente ya no utiliza SDK/clave en navegador ni el proxy. La integración opcional con IA volverá solo con autenticación, autorización por rol, validación de payload, límites de uso/costo y pruebas de seguridad. **Mientras no exista deploy autorizado, la versión que ya esté publicada puede conservar el relé inseguro:** no confundir corrección en PR con protección efectiva de producción. No realizar cambios de claves o configuración Netlify sin consentimiento.
 - Función `netlify/functions/claude-proxy.ts`: **relé abierto** verificado en código — sin autenticación, `Access-Control-Allow-Origin: *`, reenvía a Anthropic el cuerpo arbitrario recibido (modelo, `max_tokens` y prompt elegidos por el llamador) con `CLAUDE_API_KEY`. Netlify genera **deploy previews por PR** (sitios `prestify` y `al-iada` comentan en PR #2), por lo que la función también puede quedar expuesta en URLs de preview si la variable está disponible en ese contexto (no verificado).
 - **Proyecto Supabase compartido (INFERIDO):** `ai/architecture.md` y `ai/contracts.md` documentan que Estimapres (préstamos; contrato `Lender` con `dni`) usa el mismo proyecto con prefijo `ep_`. Las tablas sin RLS podrían contener datos personales de otro producto; el aislamiento debe coordinarse con ese producto y sus funciones de pago (`create-payment.js`, `webhook-mp.js`, este último valida un secreto por *query string*).
 - **Vigencia de este apartado:** el snapshot de base fue tomado por Astra; Claude **no pudo reverificarlo** el 2026-11-12 (MCP de Supabase sin permiso sobre `apbmsjjetejacwzkrlva`). Reverificar antes de actuar.
