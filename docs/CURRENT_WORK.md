@@ -1,16 +1,23 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## ESTADO VIGENTE — 2026-11-12 — SEC-01 (F1)
+## ESTADO VIGENTE — 2026-11-12 — SEC-01 (F1) — revisado por Claude
 
-- **Trabajo actual:** Issue [#4](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/4), mitigación temporal de proxy Anthropic público (P0). El propietario dijo «Sigamos» tras integrar F0. Solo se ha trabajado en rama y en pruebas; **sin merge ni deploy**.
-- **Rama:** `fix/ah2-sec01-disable-claude-proxy` creada desde `main` SHA `9909e87d8dd6215351a20d6907b4f40a0be75b77` (merge autorizado de PR #2).
-- **PR:** [#15](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/15) **DRAFT**, base `main`. HEAD previo a este cierre documental: `f6fadd54ce3eb74b3d5c643da0153a6091328502`; comprobar HEAD actual en GitHub (Issue #4 / PR #15) al retomar.
-- **Implementación:** `netlify/functions/claude-proxy.ts` responde 503 a POST (sin llamadas a la API); `src/utils/iaAsignacion.ts` conserva algoritmo determinístico pero elimina cliente Anthropic de navegador y solicitud proxy. Agregado test `src/utils/__tests__/claude-proxy-disabled.test.ts`.
-- **Validación efectivamente ejecutada:** `tsc` sobre copia aislada de proxy + smoke Node (POST=503, GET=405, OPTIONS=204, sin CORS permisivo y cero llamadas `fetch`): **OK**. **No** se ejecutó `npm test` ni `npm run build` del repositorio completo (entorno sin acceso a dependencias; lockfile con defecto conocido en Issue #6). Revisar tests por Claude con su entorno.
-- **Base y despliegue:** Supabase NO consultado ni modificado. SQL NO. Netlify NO desplegado; variables NO tocadas; merge NO; gastos NO.
-- **Importante:** la versión ya desplegada podría seguir exponiendo el relé con clave. Solo un deploy autorizado o la retirada de la clave en Netlify mitigarán la exposición real. No afirmar seguridad en producción mientras no se verifique.
-- **Siguiente acción precisa:** en Claude revisar PR #15 draft, ejecutar `npm install --no-save`, `npm test`, `npm run build` y pruebas de seguridad, documentar resultados en PR/Issue #4 y `CURRENT_WORK.md`. Identificar cualquier otra ruta expuesta, sin cambios fuera del alcance. No fusionar/desplegar hasta autorización explícita. Luego #6 y D1–D5.
-- **Comparación confirmada:** rama a 5 commits de `main`, 0 detrás; exactamente 5 archivos: proxy, cliente, test, MASTER y CURRENT_WORK.
+- **Trabajo actual:** Issue [#4](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/4) — mitigación temporal *fail closed* del proxy Anthropic (P0). PR [#15](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/15) **DRAFT**, base `main` `9909e87d8dd6215351a20d6907b4f40a0be75b77`.
+- **Rama:** `fix/ah2-sec01-disable-claude-proxy`. Commits: Astra `2bccb5a`…`74b3631` (mitigación + docs); Claude `569fe11e231ab1515ad3f19c07e5f79ca1d79055` (pruebas y endurecimiento) + commit documental que contiene este archivo (SHA final: comentario de Claude en PR #15 o `git log -1 origin/fix/ah2-sec01-disable-claude-proxy`).
+- **Archivos del PR (vs `main`):** `netlify/functions/claude-proxy.ts`, `src/utils/iaAsignacion.ts`, `src/hooks/useAsignacion.ts`, `.env.example`, `src/utils/__tests__/claude-proxy-disabled.test.ts`, `src/utils/__tests__/sec01-generacion-sin-ia.test.ts`, `docs/ALIADA_HORARIOS_MASTER.md`, `docs/CURRENT_WORK.md`.
+- **Qué hace la mitigación:** el proxy responde POST→503, otros métodos→405, OPTIONS→204 sin CORS; no lee `CLAUDE_API_KEY` ni hace `fetch`. El cliente ya no importa el SDK, no lee `VITE_*` de Anthropic ni llama al proxy. El motor determinístico no cambia.
+- **Pruebas ejecutadas por Claude (2026-11-12, entorno con dependencias):**
+  - `npm ci` → **FALLA** (lockfile desincronizado, Issue #6; no se tocó). Se usó `npm install --no-save` (341 paquetes; sin cambios en `package*.json`).
+  - `npx vitest run` → **99/99 OK** (8 archivos; 80 previos + 3 de Astra + 16 nuevos).
+  - `npx tsc --noEmit` (src) → OK; `tsc --strict` del proxy → OK; `npm run build` → OK. El bundle `dist/` no contiene SDK, `api.anthropic.com`, `dangerouslyAllowBrowser`, `claude-proxy` ni la palabra Anthropic.
+  - Prueba de mutación: restaurando proxy/cliente/`.env.example` de `main`, **11 tests SEC-01 fallan** → las pruebas detectan la versión vulnerable.
+  - Regresión del generador: salida de `asignarHorariosConIA` con el fixture de roster real (`fixtures.ts`) **byte a byte idéntica** entre `main` y la rama (18 869 bytes; 9 horarios, 189 alertas). Única diferencia esperada en producción: desaparece la alerta opcional «💡» de Claude.
+  - HTTP real contra deploy preview #15 (`al-iada` y `prestify`): POST maliciosa→503, GET→405, OPTIONS→204 sin `Access-Control-Allow-Origin`.
+  - `npm run lint` → falla por **falta de configuración ESLint en el repo** (preexistente en `main`, fuera de alcance).
+- **Riesgo vigente en producción (verificado 2026-11-12, solo GET/OPTIONS para no usar la clave):** `al-iada.netlify.app` y `prestify.netlify.app` (y el preview viejo `deploy-preview-2--*`) sirven la **versión vulnerable**: OPTIONS→200 con `Access-Control-Allow-Origin: *`. No se verificó si `CLAUDE_API_KEY` está cargada (requeriría un POST que usa la clave). Los *deploy permalinks* y previews anteriores de Netlify conservan su propio código de funciones, por lo que **desplegar este PR no cierra esas URLs antiguas**: el cierre efectivo requiere **revocar/rotar la clave en la consola de Anthropic** (acción del propietario) además del deploy autorizado.
+- **Base y despliegue:** Supabase NO consultado ni modificado. SQL NO. Netlify: NO deploy, NO variables tocadas. Merge NO. Gastos NO.
+- **Fuera de alcance, registrado:** `@anthropic-ai/sdk` sigue en `package.json` sin uso (quitarlo toca el lockfile → Issue #6); `AGENTS.md` en `main` conserva la nota «en esta rama el contrato es un PR propuesto», ya obsoleta tras el merge de PR #2.
+- **Siguiente acción precisa:** propietario: (1) revocar la clave Anthropic usada por Netlify (o confirmar que no existe); (2) revisar PR #15 y autorizar merge + deploy de producción en **ambos** sitios; (3) tras el deploy, verificar `OPTIONS`/`POST` en producción (esperado 204/503 sin CORS). Issue #4 queda abierta para la solución definitiva autenticada (F3/#14). Después: #6.
 
 ## HISTÓRICO — FASE 0 (previo al merge del PR #2)
 
