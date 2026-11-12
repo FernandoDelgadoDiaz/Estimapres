@@ -1,5 +1,19 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## ESTADO VIGENTE — 2026-11-12 — SEC-01 (F1)
+
+- **Trabajo actual:** Issue [#4](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/4), mitigación temporal de proxy Anthropic público (P0). El propietario dijo «Sigamos» tras integrar F0. Solo se ha trabajado en rama y en pruebas; **sin merge ni deploy**.
+- **Rama:** `fix/ah2-sec01-disable-claude-proxy` creada desde `main` SHA `9909e87d8dd6215351a20d6907b4f40a0be75b77` (merge autorizado de PR #2).
+- **PR:** pendiente de crear/verificar al completar la rama. Confirmar URL, HEAD y diff al retomar.
+- **Implementación:** `netlify/functions/claude-proxy.ts` responde 503 a POST (sin llamadas a la API); `src/utils/iaAsignacion.ts` conserva algoritmo determinístico pero elimina cliente Anthropic de navegador y solicitud proxy. Agregado test `src/utils/__tests__/claude-proxy-disabled.test.ts`.
+- **Validación efectivamente ejecutada:** `tsc` sobre copia aislada de proxy + smoke Node (POST=503, GET=405, OPTIONS=204, sin CORS permisivo y cero llamadas `fetch`): **OK**. **No** se ejecutó `npm test` ni `npm run build` del repositorio completo (entorno sin acceso a dependencias; lockfile con defecto conocido en Issue #6). Revisar tests por Claude con su entorno.
+- **Base y despliegue:** Supabase NO consultado ni modificado. SQL NO. Netlify NO desplegado; variables NO tocadas; merge NO; gastos NO.
+- **Importante:** la versión ya desplegada podría seguir exponiendo el relé con clave. Solo un deploy autorizado o la retirada de la clave en Netlify mitigarán la exposición real. No afirmar seguridad en producción mientras no se verifique.
+- **Siguiente acción precisa:** completar PR draft de #4, revisar diff/test, entregar a Claude para ejecución de suite y revisión de seguridad. No fusionar/desplegar hasta autorización explícita. Una vez ejecutada y resuelta #4, retomar #6 y D1–D5.
+
+## HISTÓRICO — FASE 0 (previo al merge del PR #2)
+
+
 **Última actualización:** 2026-11-12
 **Tarea en curso:** Fase 0 — documentación y protocolo de relevo Astra/Claude **(auditada por Claude, lista para revisión del propietario)** + plan de F1 propuesto (sin implementar).
 **Issue:** https://github.com/FernandoDelgadoDiaz/Estimapres/issues/1
