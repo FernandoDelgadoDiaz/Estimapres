@@ -11,3 +11,11 @@
 
 [functions."webhook-mp"]
   included_files = []
+
+# SPA fallback (React Router con BrowserRouter): sin esta regla, recargar o abrir
+# un enlace a /nueva-semana, /colaboradores, etc. devuelve 404 de Netlify.
+# Sin `force`, los archivos existentes (assets) y /.netlify/functions/* no se tapan.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
