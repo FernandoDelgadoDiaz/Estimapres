@@ -22,6 +22,43 @@ describe('SEC-01: Claude proxy is disabled until secure implementation', () => {
     expect(result.headers).not.toHaveProperty('Access-Control-Allow-Origin')
   })
 
+  it('malicious POSTs (arbitrary model/messages, forged auth, bad JSON, huge body) never reach Anthropic or leak the key', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubEnv('CLAUDE_API_KEY', 'sk-ant-TEST-SHOULD-NEVER-LEAK')
+    try {
+      const cuerpos = [
+        JSON.stringify({ model: 'claude-opus-4-5', max_tokens: 100000, messages: [{ role: 'user', content: 'x' }] }),
+        '{not json',
+        'x'.repeat(2_000_000),
+        undefined,
+      ]
+      for (const body of cuerpos) {
+        const result = await handler({
+          httpMethod: 'POST',
+          body,
+          headers: { origin: 'https://evil.example', authorization: 'Bearer forged' },
+        } as never)
+        expect(result.statusCode).toBe(503)
+        expect(result.body).not.toContain('sk-ant')
+        expect(JSON.stringify(result.headers)).not.toContain('sk-ant')
+        expect(result.headers).not.toHaveProperty('Access-Control-Allow-Origin')
+      }
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it.each(['GET', 'PUT', 'PATCH', 'DELETE', 'HEAD', undefined])('method %s → 405 without network call', async (httpMethod) => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const result = await handler({ httpMethod })
+    expect(result.statusCode).toBe(405)
+    expect(result.headers).not.toHaveProperty('Access-Control-Allow-Origin')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('preflight has no wildcard CORS and makes no network call', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
