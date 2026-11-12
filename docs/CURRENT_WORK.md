@@ -40,6 +40,40 @@
 - **Cambios:** 16 nombres de personas que parecían reales → nombres sintéticos por rol (`Full A–D`, `Part A–G`, `Aux A–D`, `Eventual A`), en roster semilla (`src/types/index.ts`), fixtures y tests, comentarios del adapter, placeholder del formulario y ejemplos del MASTER/plan. El orden alfabético dentro de cada rol se preservó a propósito: las pasadas 2/3 desempatan por id, así el motor produce exactamente lo mismo.
 - **Pruebas:** `npm test` 80/80 · `tsc` ✅ · build ✅. Salida completa del motor sobre el fixture (`ejecutarAlgoritmo` + `convertirOutputDeV2`) **idéntica** a `main` tras aplicar el mapeo de nombres (solo difiere la marca de tiempo de ejecución). `git grep` de los 16 nombres, apellidos y variantes: sin resultados.
 - **No hecho (requiere autorización):** reescritura del historial, cambio de visibilidad, datos de Supabase (el roster real vive allí y no se tocó). Riesgo residual evaluado en Issue #23.
+## ▶ PUNTO ÚNICO DE RETOMA (vigente) — actualizado por Claude, 2026-11-12
+
+**Leer primero esto.** El estado de cada rama de tarea está en su propio `CURRENT_WORK.md` (sección superior) y en su PR; **este** archivo, en `main`, es el índice que manda.
+
+- **`main`:** `9909e87` (merge de F0, PR #2). Ningún código de F1 está integrado ni desplegado.
+- **Épica:** [#3](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/3) — tabla de estado verificable por PR (último comentario).
+- **Plan de integración:** [`docs/INTEGRACION_F1.md`](INTEGRACION_F1.md) — lotes, dependencias, conflictos y efectos en Netlify.
+- **Próximo hito:** [`docs/HITO_POM_PDF.md`](HITO_POM_PDF.md) — qué falta para demostrar POM real → PDF.
+
+| PR (draft) | Issue | Qué | Estado |
+|---|---|---|---|
+| #16 | #6 | lockfile + CI | listo; CI verde |
+| #15 | #4 | proxy Anthropic bloqueado + runbook | listo; requiere lote 0 (revocar clave) |
+| #17 | #8 | contrato POM v2 (semana del PDF) | listo; validar PDF real en local antes |
+| #18 | #9 | identidad sin colisiones | listo |
+| #19 | #10 | validador independiente | listo |
+| #20 | #10 | motor: 12 h reales (apilado sobre #19) | listo; **cambia horarios** |
+| #21 | #12 (parcial) | estado de validación en UI y PDF (apilado sobre #20) | listo |
+| #22 | #11 | reglas v2 (módulo no conectado) | listo |
+| #26 | — | fallback SPA: recargar `/nueva-semana` daba 404 en producción | listo; verificado en preview |
+| #25 | — | este índice + plan de integración + informe del hito | listo |
+| #24 | — | ⛔ demo integrada para *deploy preview* | **no integrar** |
+
+**Bloqueos del propietario:** revocar clave Anthropic (lote 0); autorizar lotes de `INTEGRACION_F1.md` (cada merge despliega `al-iada` y `prestify`); D1–D3 (#7), D4 (cierre), D5 (#5); datos personales en el repo (#23); horarios de AUX/eventuales semanales (brecha AH2-008, ver hito); migraciones propuestas (#12, #18, #22).
+
+**Siguiente acción exacta para cualquier modelo:**
+1. Si el propietario autorizó un lote: integrar en el orden de `INTEGRACION_F1.md`, resolver conflictos como allí se indica, verificar y actualizar esta sección.
+2. Si no: tareas desbloqueadas sin decisiones → #23 parte de código (anonimizar con nombres sintéticos, sin tocar historial) solo si el propietario lo pide; prueba de PDF con roster grande (#12); conectar `reglasV2` a la UI queda para después de integrar #22.
+3. No merge, deploy, migraciones ni cambios de credenciales sin autorización expresa.
+
+---
+
+## HISTÓRICO — FASE 0 (cerrada: PR #2 integrado en `9909e87`)
+
 
 **Última actualización:** 2026-11-12
 **Tarea en curso:** Fase 0 — documentación y protocolo de relevo Astra/Claude **(auditada por Claude, lista para revisión del propietario)** + plan de F1 propuesto (sin implementar).
