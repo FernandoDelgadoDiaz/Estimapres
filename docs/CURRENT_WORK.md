@@ -1,5 +1,7 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+> **RAMA DE DEMOSTRACIÓN `integracion/ah2-f1-demo` — NO INTEGRAR.** Combina #16, #15, #17, #18, #19, #20, #21 y #22 (conflictos de `CURRENT_WORK.md` por unión y de `NuevaSemanaPage.tsx` conservando ambos bloques), solo para probar el recorrido completo en el *deploy preview* de Netlify. La integración real se hace PR por PR según `docs/INTEGRACION_F1.md` (PR documental). El estado vigente del proyecto está en el `CURRENT_WORK.md` de `main`.
+
 ## ESTADO — TOOL-01 (#6) — rama `feat/ah2-tool01-ci` — Claude, 2026-11-12
 
 - **Issue:** [#6](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/6) · **PR:** draft (ver Issue #6) · base `main` `9909e87`.
