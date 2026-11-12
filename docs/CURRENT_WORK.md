@@ -1,11 +1,13 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
 **Última actualización:** 2026-11-12
-**Tarea en curso:** Fase 0 — documentación y protocolo de relevo Astra/Claude.
+**Tarea en curso:** Fase 0 — documentación y protocolo de relevo Astra/Claude **(auditada por Claude, lista para revisión del propietario)** + plan de F1 propuesto (sin implementar).
 **Issue:** https://github.com/FernandoDelgadoDiaz/Estimapres/issues/1
 **Repositorio:** `FernandoDelgadoDiaz/Estimapres`
 **Rama de trabajo:** `docs/aliada-horarios-2-fase0` (creada desde `main` en `02ad9d9d46c3477022dbf1c084b5642c1e996c0c`).
-**PR:** https://github.com/FernandoDelgadoDiaz/Estimapres/pull/2 — **DRAFT**, base `main`, creado 2026-11-12. **HEAD antes de este último commit de relevo:** `f491dbf13ca033c5e452b82b0b85e70ec2affcd7`. Confirmar HEAD vigente en GitHub al retomar (ver comentario de cierre de Issue #1).
+**PR:** https://github.com/FernandoDelgadoDiaz/Estimapres/pull/2 — **DRAFT**, base `main`, creado 2026-11-12, sin merge.
+**HEAD:** ver «Registro de relevo — Claude» al final; el SHA del commit que contiene este archivo no puede escribirse dentro de él: confirmar siempre con `git log -1 origin/docs/aliada-horarios-2-fase0` y con el comentario de auditoría en PR #2.
+**Plan F1 (propuesto):** [`docs/AH2_FASE1_PLAN.md`](AH2_FASE1_PLAN.md) · Épica [#3](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/3) · sub-Issues #4–#14.
 **Autoridad de producto:** propietario. Ningún modelo tiene prioridad sobre otro.
 
 ## Estado confirmado previo a editar
@@ -23,7 +25,7 @@
 - [x] Crear `docs/CURRENT_WORK.md` con estado verificable de transferencia.
 - [x] Crear `AGENTS.md` neutral para ambos modelos.
 - [x] Reemplazar `CLAUDE.md` antiguo por enlace al mismo protocolo.
-- [x] Abrir PR **draft** #2 y comparar cambios con `main`: 4 archivos, únicamente documentación. HEAD final del relevo: comentario de Issue #1.
+- [x] Abrir PR **draft** #2 y comparar cambios con `main`: inicialmente 4 archivos; tras la auditoría de Claude, 10 archivos, todos documentación (`*.md`).
 - [x] Dejar constancia de cierre documental en Issue #1; no fusionar.
 
 ## Alcance / no alcance
@@ -44,8 +46,10 @@
 5. Hasta julio hay dos semanas reales en `semanas_historial`; roster de noviembre no verificado; no publicar datos personales.
 
 ## Siguiente acción inequívoca para cualquier modelo
-**F0 quedó preparado para revisión:** revisar PR #2, comparar con MASTER e Issue #1 y solicitar al propietario autorización **explícita** antes de fusionar. **Detenerse** a la espera de revisión/autorización de merge. No iniciar F1, migraciones ni despliegues.
-**Tras merge autorizado:** abrir Issue F1 por separado, comenzando por seguridad y contrato POM. Releer MASTER y CURRENT_WORK en la rama que corresponda.
+1. **Propietario:** revisar PR #2 (F0 + auditoría + plan F1 propuesto) y decidir merge; responder D1–D5 (plan §3, épica #3).
+2. **Tras autorización:** ejecutar **#6 TOOL-01** (lockfile + CI) en rama `feat/ah2-tool01-ci` desde `main` actualizado; es la primera tarea de código, de bajo riesgo y sin datos.
+3. En paralelo, si el propietario lo autoriza: #4 (proxy) y #5 (inventario Supabase, solo lectura y SQL propuesto).
+No iniciar implementación, migraciones ni despliegues sin esa autorización.
 
 ## Registro de relevo — 2026-11-12
 - Responsable/modelo: ChatGPT (Astra, rol documental).
@@ -65,6 +69,24 @@
 - El cambio fue **solo documental**, registrado en rama y PR #2; no habilita implementación anticipada de F1.
 - Evidencia: commit de MASTER `28d2827342baaf7dbcc2d05d47da4bc7e8ecef79`.
 - Próximo paso sin cambio: revisar y aprobar documentalmente PR #2 antes de merge y trabajo de F1.
+
+## Registro de relevo — Claude, 2026-11-12 (auditoría F0 + plan F1)
+- Responsable/modelo: Claude (Claude Code), a pedido del propietario.
+- Issue / PR: #1 / #2 draft; nuevas #3 (épica F1) y #4–#14.
+- Rama / base: `docs/aliada-horarios-2-fase0`, base `main` `02ad9d9d46c3477022dbf1c084b5642c1e996c0c`. HEAD encontrado al empezar: `40d04332499ca053c24c133f5586b0edb6deeaec` (no `15a7113`, que era el último SHA indicado en Issue #1: después hubo `28d2827` y `40d0433` de Astra).
+- Auditoría F0 — resultado:
+  - Diff `main...rama` = solo `*.md`; **sin cambios de código, datos ni producción** (verificado).
+  - Instrucciones de autoridad exclusiva de Claude: reemplazadas en `CLAUDE.md`; pero `ai/rules.md`, `ai/architecture.md` («AUTORIDAD: Claude») y `ai/decisions.md` seguían afirmándola sin aviso → **corregido** con encabezado «HISTÓRICO — NO VIGENTE» en los cuatro `ai/*.md`; nota equivalente en `README.md` (contradice el código: PART 32 vs 31).
+  - `AGENTS.md` decía «registrar decisiones solo tras aprobación», mientras MASTER §9 contiene entradas PROPUESTO → **aclarado**: todas en MASTER §9 con su estado; solo las APROBADAS son normativas.
+  - `CURRENT_WORK.md` remitía a un «comentario de cierre de Issue #1» inexistente y a un HEAD desactualizado → **corregido**.
+  - Clasificación de decisiones AH2-001…008: consistente (AH2-004 correctamente como requisito con validación jurídica pendiente). Añadidas AH2-009/010/011 como PROPUESTO.
+  - Afirmaciones técnicas del MASTER §4 verificadas en código; se agregaron hallazgos nuevos (validadores solo en tests, 12 h sin cruce de semanas, parser que tolera negativos/duplicados, relé abierto del proxy, lockfile, sin CI, Supabase compartido con Estimapres [INFERIDO]).
+- Pruebas: `npm ci` **falla** (lockfile); `npm install --no-save` + `npx vitest run` → **80/80 OK**; `npm run build` → **OK**. Sobre `40d0433` (código idéntico a `main`).
+- Supabase: **no consultado** — el MCP devolvió «sin permiso» para `apbmsjjetejacwzkrlva`. Migraciones NO, escrituras NO. Los datos de BD del MASTER §5 siguen siendo el snapshot de Astra.
+- Merge: NO · deploy: NO (Netlify genera deploy previews automáticos del PR; no son producción) · gastos: NO.
+- PDF POM original: no accedido; se usaron solo las características documentadas en MASTER §2.
+- Bloqueos: autorización de merge de PR #2; decisiones D1–D5.
+- Próxima acción exacta: ver «Siguiente acción inequívoca» arriba.
 
 ## Plantilla obligatoria al finalizar cada sesión
 - Fecha:

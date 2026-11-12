@@ -11,7 +11,7 @@ Este archivo rige por igual para **Astra (ChatGPT)**, **Claude** y cualquier imp
 
 ## Reglas para cada sesión
 - Trabajar en rama de tarea; **no escribir en main ni hacer merge, deploy, migraciones, escrituras/borrados de BD, altas de gastos o cambios de cuentas sin autorización expresa**.
-- Mantener una sola fuente normativa: MASTER. Registrar las decisiones nuevas **solo allí** tras aprobación; no duplicarlas en documentos de autoridad paralela.
+- Mantener una sola fuente normativa: MASTER. Registrar las decisiones nuevas **solo en MASTER §9**, con su estado (PROPUESTO / APROBADO / etc.); solo las APROBADAS por el propietario son normativas. No duplicarlas en documentos de autoridad paralela (los planes son propuestas y enlazan al registro).
 - Actualizar CURRENT_WORK con SHA **verificado**, archivos tocados, pruebas ejecutadas y resultados, bloqueos, PR/Issue, estado de BD y la próxima acción exacta.
 - «Ejecutado», «probado», «publicado» o «aprobado» requieren evidencia real; distinguir propuestas e hipótesis.
 - No subir secretos, POM original, nombres de empleados, datos de usuarios ni identificadores personales al repositorio público o a PR.

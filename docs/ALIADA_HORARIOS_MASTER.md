@@ -104,6 +104,14 @@ Equidad de turnos, rotación de cierres/fin de semana, aprendizajes de correccio
 
 **Diferencias verificadas respecto de requisitos:** PART 31 vs 32; FULL exactamente 48 vs máximo 48; fecha actual vs fecha POM; slot 22:30 artificial; IDs normalizados de nombres con riesgo de colisiones; edición manual permite «Guardar de todos modos»; semana generada se guarda sin flujo formal de borrador→validación→aprobación→publicación. Algunas descripciones históricas de `CLAUDE.md`, `README.md` y `ai/` difieren de la implementación actual; **no son fuente de verdad** para cambios nuevos.
 
+**Auditoría Claude 2026-11-12 (lectura de código en `40d0433`, idéntico a `main` en `src/`):** confirmadas las diferencias anteriores y además:
+- `validarSemanaFull`/`validarSemanaPart`/`validarDescanso12h` (`src/algoritmo/reglas.ts`) existen pero **solo se invocan desde tests**; ningún flujo de guardado/publicación las ejecuta.
+- El descanso de 12 h se controla **solo dentro de la semana** (lunes→domingo); no existe control domingo→lunes contra la semana anterior.
+- La separación de 4 h entre bloques cortados está implementada para FULL (`H-F7`); PART solo admite jornadas corridas (`H-P4`).
+- `pdfParser.ts` no extrae fechas del encabezado; convierte valores negativos a 0 con solo un `console.warn`; si hay filas horarias duplicadas, la última sobrescribe sin error; acepta desde 10 filas y completa las faltantes con 0.
+- `README.md` declara «PART máximo 32h» mientras el código aplica 31 h (62 slots).
+- `npm ci` falla: `package-lock.json` no está sincronizado con `package.json`. Con `npm install --no-save`: `vitest run` 80/80 OK y `npm run build` OK. No hay CI (`.github/` no existe).
+
 ## 5. Base de datos y seguridad — verificación de solo lectura 2026-11-12
 
 Supabase proyecto **al-iada horarios**, estado `ACTIVE_HEALTHY` al momento de la revisión.
@@ -111,7 +119,9 @@ Supabase proyecto **al-iada horarios**, estado `ACTIVE_HEALTHY` al momento de la
 - Cinco tablas pertinentes a horarios con RLS activado: `colaboradores`, `reglas_configurables`, `semanas_historial`, `correcciones_manuales`, `aprendizajes_derivados`.
 - Registros constatados (snapshot, no datos de prueba): 22 colaboradores, 13 reglas, 9 versiones de semana **para 2 lunes distintos**, 37 correcciones y 0 aprendizajes materializados. La dotación de julio **no se presume vigente** en noviembre.
 - **P0 de seguridad**: siete tablas públicas adicionales `al_*` y `ep_*` tienen **RLS deshabilitado**, y roles `anon`/ `authenticated` tienen privilegios de lectura/escritura. Hay algunos registros en tablas `al_*`. Requiere plan de aislamiento con evaluación de dependencias y respaldo; **no aplicar SQL ni borrar tablas sin autorización**.
-- Función `netlify/functions/claude-proxy.ts`: falta protección de autenticación/límites por usuario y presupuesto; potencial uso no autorizado de API si está desplegada con credenciales.
+- Función `netlify/functions/claude-proxy.ts`: **relé abierto** verificado en código — sin autenticación, `Access-Control-Allow-Origin: *`, reenvía a Anthropic el cuerpo arbitrario recibido (modelo, `max_tokens` y prompt elegidos por el llamador) con `CLAUDE_API_KEY`. Netlify genera **deploy previews por PR** (sitios `prestify` y `al-iada` comentan en PR #2), por lo que la función también puede quedar expuesta en URLs de preview si la variable está disponible en ese contexto (no verificado).
+- **Proyecto Supabase compartido (INFERIDO):** `ai/architecture.md` y `ai/contracts.md` documentan que Estimapres (préstamos; contrato `Lender` con `dni`) usa el mismo proyecto con prefijo `ep_`. Las tablas sin RLS podrían contener datos personales de otro producto; el aislamiento debe coordinarse con ese producto y sus funciones de pago (`create-payment.js`, `webhook-mp.js`, este último valida un secreto por *query string*).
+- **Vigencia de este apartado:** el snapshot de base fue tomado por Astra; Claude **no pudo reverificarlo** el 2026-11-12 (MCP de Supabase sin permiso sobre `apbmsjjetejacwzkrlva`). Reverificar antes de actuar.
 - Revisar además advertencia de linter `es_usuario_real` sin `search_path` fijado.
 - **Restricción estricta**: no mostrar/exportar PII de colaboradores a Issues/PR ni publicar PDF laboral; no introducir secretos en el repositorio público.
 
@@ -151,6 +161,8 @@ Agente (fase posterior): herramientas de lectura, simulación, explicación y bo
 - **F3 — Agente de planificación**: simulación/explicación, permisos, auditoría, aprobación.
 - **F4 — Piloto y producción**: pruebas de escenarios reales, trazabilidad, monitoreo, multiempresa/multisucursal y despliegue autorizado.
 
+**Plan técnico propuesto para F1 (y diseño previo de F2/F3):** [`docs/AH2_FASE1_PLAN.md`](AH2_FASE1_PLAN.md) — documento de **propuesta**, no normativo; las Issues de ejecución se enlazan desde allí y desde `CURRENT_WORK.md`.
+
 **Criterio de éxito:** con un POM válido, misma dotación y reglas, producir un horario reproducible sin violaciones de restricciones obligatorias; declarar déficits imposibles honestamente; registrar aprobación y medir cobertura y tiempo ahorrado vs programación de referencia. **F0 no constituye aprobación de F1–F4.**
 
 ## 9. Registro único de decisiones
@@ -165,5 +177,8 @@ Agente (fase posterior): herramientas de lectura, simulación, explicación y bo
 | AH2-006 | Evaluar CP-SAT, arquitectura híbrida y agente supervisado sin sustituir motor todavía | **PROPUESTO / benchmark pendiente** |
 | AH2-007 | Fase 0 solo documentación, sin merge/deploy/SQL y sin exposición de datos laborales | **APROBADO para ejecutar** |
 | AH2-008 | Flujo supervisor POM → generar/revisar cronograma nominal → aprobar/exportar PDF profesional, sin carga manual rutinaria | **APROBADO / REQUISITO FUNCIONAL NO NEGOCIABLE** |
+| AH2-009 | Plan F1 en `docs/AH2_FASE1_PLAN.md` con Issues separadas por dependencia; la ejecución de cada Issue requiere autorización específica | **PROPUESTO** (Claude, 2026-11-12) |
+| AH2-010 | Modelo de reglas configurables v2: ámbito (empresa/sucursal/grupo/persona), vigencia, prioridad explícita, nivel (normativa/operativa/preferencia) y auditoría; compilado a restricciones para cualquier motor | **PROPUESTO** — esquema en plan F1, sin migración |
+| AH2-011 | Benchmark motor actual vs CP-SAT fuera de producción (Python offline sobre fixtures sintéticos); no se elige despliegue de CP-SAT hasta tener resultados | **PROPUESTO** — amplía AH2-006 |
 
 **Cualquier decisión nueva se registra aquí y enlaza Issue/PR; no crear otros registros de decisiones independientes.**

@@ -1,3 +1,5 @@
+> **Nota (2026-11-12):** este README describe versiones anteriores y puede contradecir el código (p. ej. «PART máximo 32h» vs 31h implementadas). Para requisitos y decisiones vigentes ver [`docs/ALIADA_HORARIOS_MASTER.md`](docs/ALIADA_HORARIOS_MASTER.md) y [`AGENTS.md`](AGENTS.md).
+
 # Aliada Horarios - Asignador de Horarios de Cajeros
 
 Aplicación web para asignación automática de horarios semanales de cajeros en supermercados.
