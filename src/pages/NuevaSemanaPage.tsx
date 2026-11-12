@@ -8,6 +8,8 @@ import { useAsignacion } from '../hooks/useAsignacion'
 import { useReglas } from '../hooks/useReglas'
 import { useHistorial } from '../hooks/useHistorial'
 import { useCorrecciones } from '../hooks/useCorrecciones'
+import DisponibilidadSemana from '../components/semana/DisponibilidadSemana'
+import { prepararDisponibilidadSemana, type ExcepcionDisponibilidad } from '../utils/disponibilidadHabitual'
 import PDFUploader from '../components/semana/PDFUploader'
 import PreviewNecesidad from '../components/semana/PreviewNecesidad'
 import TablaCobertura from '../components/semana/TablaCobertura'
@@ -37,12 +39,12 @@ import { es } from 'date-fns/locale'
 
 type Paso = 'upload' | 'revisar' | 'resultado'
 
-export default function NuevaSemanaPage() {
+export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string }) {
   const [paso, setPaso] = useState<Paso>('upload')
   const { necesidad, loading: loadingPDF, error: errorPDF, parsearPDF, reset: resetPDF } = usePDFParser()
-  const { colaboradores, colaboradoresActivos } = useColaboradores()
-  const { auxiliaresActivos } = useAuxiliares()
-  const { eventualesActivos } = useEventuales()
+  const { colaboradores, colaboradoresActivos, loading: cargandoColaboradores } = useColaboradores()
+  const { auxiliaresActivos, loading: cargandoAuxiliares } = useAuxiliares()
+  const { eventualesActivos, loading: cargandoEventuales } = useEventuales()
   const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, editarJornada, reset: resetAsignacion } = useAsignacion()
   const { reglas, reglasActivas } = useReglas()
   const { historial, agregarSemana, actualizarSemana } = useHistorial()
@@ -55,7 +57,8 @@ export default function NuevaSemanaPage() {
   const [avisoSemana, setAvisoSemana] = useState<string | null>(null)
   const [avisosPOM, setAvisosPOM] = useState<string[]>([])
   // PUB-01 (#12): contexto con el que se generó la semana, para validarla (y revalidarla tras ediciones).
-  const [ctxValidacion, setCtxValidacion] = useState<(ContextoValidacionSemana & { fechas: string[] }) | null>(null)
+  const [ctxValidacion, setCtxValidacion] = useState<(ContextoValidacionSemana & { fechas: string[]; auxiliares: typeof auxiliaresActivos; eventuales: typeof eventualesActivos }) | null>(null)
+  const [excepcionesDisponibilidad, setExcepcionesDisponibilidad] = useState<ExcepcionDisponibilidad[]>([])
   const [excepciones, setExcepciones] = useState<ExcepcionSemanal[]>([])
   const [mostrarExcepciones, setMostrarExcepciones] = useState(false)
   const [colaboradorSeleccionado, setColaboradorSeleccionado] = useState('')
@@ -176,13 +179,25 @@ export default function NuevaSemanaPage() {
     [criteriosCobertura]
   )
 
+  const cargandoDotacion = cargandoColaboradores || cargandoAuxiliares || cargandoEventuales
+  const fechasSemana = useMemo(() => esLunesISO(lunesSemana) ? fechasDeSemana(lunesSemana) : [], [lunesSemana])
+  const disponibilidad = useMemo(
+    () => !cargandoDotacion && fechasSemana.length
+      ? prepararDisponibilidadSemana(auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana[0])
+      : null,
+    [auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana, cargandoDotacion]
+  )
+  const excepcionesDeLaSemana = excepcionesDisponibilidad.filter(x => fechasSemana.includes(x.fecha))
+  const generacionDeshabilitada = loadingAsignacion || !disponibilidad || disponibilidad.errores.length > 0
+
   const handleGenerarHorarios = async () => {
     // POM-01 (#8): fechas de la semana del PDF (o la confirmada por el supervisor), nunca del reloj.
     if (!esLunesISO(lunesSemana)) {
       setAvisoSemana('La fecha elegida no es un lunes. Corregila antes de generar.')
       return
     }
-    const fechas = fechasDeSemana(lunesSemana)
+    if (!disponibilidad || disponibilidad.errores.length || loadingAsignacion) return
+    const fechas = fechasSemana
     const fechaLunes = fechas[0]
     const cajerosActivos = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
 
@@ -202,7 +217,13 @@ export default function NuevaSemanaPage() {
       francoMedioCorridos: operativa.francoMedioCorridos,
     }
 
-    const res = await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepcionesTotales, opciones)
+    let res
+    try {
+      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones)
+    } catch {
+      // El hook expone el error en Revisar y permite reintentar.
+      return
+    }
 
     // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación
     const lunesPrevio = new Date(new Date(fechaLunes + 'T12:00:00').getTime() - 7 * 86_400_000).toISOString().slice(0, 10)
@@ -215,6 +236,9 @@ export default function NuevaSemanaPage() {
       maxFrancosDia: opciones.maxFrancosDia,
       minimosCajeros: opciones.demandaMinima,
       semanaAnterior: previa?.horarios,
+      auxiliares: disponibilidad.auxiliares,
+      eventuales: disponibilidad.eventuales,
+      huecosSupervision: disponibilidad.huecosSupervision,
     })
 
     // Capacidad 2: guardar la semana en el historial para la rotación futura
@@ -271,14 +295,14 @@ export default function NuevaSemanaPage() {
   // PUB-01: validación independiente del horario vigente (se recalcula tras cada edición manual)
   const validacion = useMemo(
     () => (resultado && ctxValidacion
-      ? validarResultadoSemana(resultado, colaboradoresActivos, auxiliaresActivos, eventualesActivos, ctxValidacion)
+      ? validarResultadoSemana(resultado, colaboradoresActivos, ctxValidacion.auxiliares, ctxValidacion.eventuales, ctxValidacion)
       : null),
-    [resultado, ctxValidacion, colaboradoresActivos, auxiliaresActivos, eventualesActivos]
+    [resultado, ctxValidacion, colaboradoresActivos]
   )
 
   const handleExportarPDF = () => {
     if (!resultado) return
-    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, auxiliaresActivos, eventualesActivos, {
+    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, ctxValidacion?.auxiliares ?? auxiliaresActivos, ctxValidacion?.eventuales ?? eventualesActivos, {
       sucursal: getSucursalActual(),
       fechas: ctxValidacion?.fechas,
       version: historial.find(s => s.id === semanaGuardadaId)?.version,
@@ -292,6 +316,8 @@ export default function NuevaSemanaPage() {
     resetPDF()
     resetAsignacion()
     setExcepciones([])
+    setExcepcionesDisponibilidad([])
+    setCtxValidacion(null)
     setMostrarExcepciones(false)
     setSemanaGuardadaId(null)
     setPaso('upload')
@@ -466,7 +492,7 @@ export default function NuevaSemanaPage() {
             </h3>
             <div data-testid="semana-pom" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', color: 'var(--text)' }}>
               <span style={{ fontWeight: 700 }}>
-                Semana: {lunesSemana && fechasDeSemana(lunesSemana)[0]} al {lunesSemana && fechasDeSemana(lunesSemana)[6]}
+                {fechasSemana.length > 0 ? `Semana: ${fechasSemana[0]} al ${fechasSemana[6]}` : 'Elegí un lunes válido'}
               </span>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                 {origenSemana === 'pdf' ? '(detectada en el PDF)' : '(elegida manualmente)'}
@@ -494,6 +520,25 @@ export default function NuevaSemanaPage() {
             )}
             <PreviewNecesidad necesidad={necesidad} />
           </div>
+
+          {cargandoDotacion && <p role="status">Cargando dotación…</p>}
+          {disponibilidad && (
+            <DisponibilidadSemana
+              key={fechasSemana[0]}
+              fechas={fechasSemana}
+              personas={[
+                ...disponibilidad.auxiliares.map(a => ({ ...a, tipo: 'AUX' as const })),
+                ...disponibilidad.eventuales.map(e => ({ ...e, tipo: 'EVENTUAL' as const })),
+              ]}
+              origen={disponibilidad.origen}
+              excepciones={excepcionesDeLaSemana}
+              huecos={disponibilidad.huecosSupervision}
+              errores={disponibilidad.errores}
+              autorSesion={autorSesion}
+              onAgregar={x => setExcepcionesDisponibilidad(prev => [...prev, x])}
+              onQuitar={(id, fecha) => setExcepcionesDisponibilidad(prev => prev.filter(x => x.colaboradorId !== id || x.fecha !== fecha))}
+            />
+          )}
 
           <div style={{
             background: 'var(--card)',
@@ -966,10 +1011,11 @@ export default function NuevaSemanaPage() {
                 ⚠ No se encontró la tabla de necesidad de cajas en el PDF. Verificá que el archivo sea correcto.
               </p>
             )}
+            {errorAsignacion && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAsignacion}</p>}
             <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleGenerarHorarios}
-                disabled={loadingAsignacion || horasNecesariasEstimadas === 0}
+                disabled={generacionDeshabilitada || horasNecesariasEstimadas === 0}
                 style={{
                   background: 'var(--accent)',
                   color: 'var(--accent-dark)',
@@ -982,8 +1028,8 @@ export default function NuevaSemanaPage() {
                   letterSpacing: '-0.2px',
                   display: 'flex',
                   alignItems: 'center',
-                  cursor: (loadingAsignacion || horasNecesariasEstimadas === 0) ? 'not-allowed' : 'pointer',
-                  opacity: (loadingAsignacion || horasNecesariasEstimadas === 0) ? 0.5 : 1,
+                  cursor: (generacionDeshabilitada || horasNecesariasEstimadas === 0) ? 'not-allowed' : 'pointer',
+                  opacity: (generacionDeshabilitada || horasNecesariasEstimadas === 0) ? 0.5 : 1,
                 }}
               >
                 {loadingAsignacion ? (

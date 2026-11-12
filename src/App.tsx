@@ -40,7 +40,7 @@ function App() {
           <Routes>
             <Route path="/" element={<InicioPage />} />
             <Route path="/colaboradores" element={<ColaboradoresPage />} />
-            <Route path="/nueva-semana" element={<NuevaSemanaPage />} />
+            <Route path="/nueva-semana" element={<NuevaSemanaPage autorSesion={auth.usuario?.id} />} />
             <Route path="/ultimo-horario" element={<UltimoHorarioPage />} />
             <Route path="/reglas" element={<ReglasPage />} />
             <Route path="/historial" element={<HistorialPage />} />
