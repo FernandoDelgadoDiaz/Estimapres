@@ -158,10 +158,7 @@ describe('VAL-01: sobre la salida real del motor (fixture de la sucursal de refe
     for (let i = 2; i < 31; i++) expect(res.metricas!.cobertura[i]).toEqual(out.coberturaFranjas[i])
   })
 
-  it('detecta el defecto conocido del motor: descansos de 11,5 h (19 slots nocturnos en vez de 18)', () => {
-    // Defecto documentado en #10; su corrección va en un PR separado. Cuando se integre,
-    // este test debe pasar a esperar cero violaciones.
-    expect(new Set(codigos(res))).toEqual(new Set(['NORM_DESCANSO']))
-    expect(res.violaciones.every(v => /11\.5 h de descanso/.test(v.detalle))).toBe(true)
+  it('el motor corregido no genera violaciones normativas ni operativas (12 h reales, #10)', () => {
+    expect(res.violaciones).toEqual([])
   })
 })
