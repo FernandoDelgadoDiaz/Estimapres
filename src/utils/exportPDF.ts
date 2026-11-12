@@ -1,7 +1,7 @@
 import type { ResultadoValidacion } from '../algoritmo/validadorIndependiente'
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
-import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, AsignacionCajaColaborador, SemanaHistorial, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
+import autoTable, { type UserOptions } from 'jspdf-autotable'
+import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, SemanaHistorial, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
 import { formatoTurno } from './timeUtils'
 import type { MetricaSemana, IndicadoresEfectividad, PrediccionCorrecciones, MadurezBanda } from './efectividad'
 import type { CriterioCobertura } from './preferencias'
@@ -42,81 +42,29 @@ function formatearCajaDia(slotsCaja: boolean[], textoSinCaja: string): string {
   return legibles.length > 0 ? legibles.join(' | ') : textoSinCaja
 }
 
-/**
- * Dibuja una sección de horarios de CAJA (SUPERVISORES o EVENTUALES) con las
- * mismas columnas que la tabla de cajeros: Colaborador, Tipo, Lun..Dom.
- * Devuelve la coordenada Y final para encadenar la siguiente sección.
- */
-function dibujarSeccionCaja(
-  doc: jsPDF,
-  titulo: string,
-  tipoLabel: string,
-  asignaciones: AsignacionCajaColaborador[],
-  textoSinCaja: string,
-  startY: number
-): number {
-  doc.setFontSize(12)
-  doc.setTextColor(0, 0, 0)
-  doc.text(titulo, 14, startY)
-
-  const body = asignaciones.map(a => [
-    a.nombre,
-    tipoLabel,
-    ...DIAS_SEMANA.map((_, dia) => formatearCajaDia(a.slotsCajaPorDia[dia] ?? [], textoSinCaja)),
-  ])
-
-  autoTable(doc, {
-    head: [['Colaborador', 'Tipo', ...DIAS_SEMANA]],
-    body,
-    startY: startY + 4,
-    theme: 'grid',
-    headStyles: { fillColor: [124, 58, 237], textColor: [255, 255, 255], fontStyle: 'bold' },
-    bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: {
-      0: { halign: 'left' },
-      1: { halign: 'center' },
-      ...Object.fromEntries(
-        Array.from({ length: 7 }, (_, i) => [2 + i, { halign: 'center' }])
-      ),
-    },
-    margin: { left: 14 },
-    rowPageBreak: 'avoid',
-    styles: { cellPadding: 3, fontSize: 7 },
-    showHead: 'everyPage',
-  })
-
-  return (doc as any).lastAutoTable?.finalY || startY
-}
-
 function sanitizarTexto(texto: string): string {
-  // Eliminar caracteres no imprimibles (ASCII < 32 excepto \n, \t, \r)
-  let limpio = texto.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-  // Eliminar caracteres no ASCII excepto letras latinas con tildes, ñ, ¡, ¿
-  // Permitir Latin-1 Supplement (U+00A0-00FF) y Latin Extended (U+0100-024F)
-  limpio = limpio.replace(/[^\x00-\x7F\u00A0-\u024F]/g, '')
-  // Eliminar markdown básico: **, ##, __, ~~, `, *, _, #
-  limpio = limpio.replace(/\*\*|##|__|~~|`|\*|_|#/g, '')
-  // Reemplazar múltiples espacios por uno solo
-  limpio = limpio.replace(/\s+/g, ' ')
-  const resultado = limpio.trim()
-  // Si el texto resultante tiene menos de 10 caracteres, reemplazar por mensaje
-  if (resultado.length < 10) {
-    return 'Sugerencia no disponible'
-  }
-  return resultado
+  return texto
+    .replace(/[^\x20-\x7E\u00A0-\u024F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
-/** PUB-01 (#12): datos de identificación y estado para el encabezado y el anexo. */
+/** Identificación del documento y resultado de la validación, si está disponible. */
 export interface MetaPDF {
   sucursal?: string
   /** 7 fechas yyyy-MM-dd (lunes→domingo). */
   fechas?: string[]
+  version?: number
   validacion?: ResultadoValidacion
   estado?: string
+  necesidadFranjas?: number[][]
 }
 
 const fechaAR = (iso: string) => iso.split('-').reverse().join('/')
+const MARGEN = 12
+const INICIO_TABLA = 37
+const TINTA = [29, 43, 55] as const
+const PETROLEO = [21, 74, 78] as const
 
 export function generarPDF(
   resultado: ResultadoAsignacion,
@@ -126,257 +74,184 @@ export function generarPDF(
   eventuales: Eventual[] = [],
   meta: MetaPDF = {}
 ): jsPDF {
-  const doc = new jsPDF('landscape')
-  const fecha = new Date().toLocaleDateString('es-AR')
-
-  // Título
-  doc.setFontSize(16)
-  doc.text(`Horarios Semanales - ${semanaDesc}`, 14, 15)
-  doc.setFontSize(10)
+  const doc = new jsPDF({ orientation: 'landscape', format: 'a4', unit: 'mm' })
+  const { width, height } = doc.internal.pageSize
+  const ancho = width - MARGEN * 2
+  const fechas = meta.fechas?.length === 7 ? meta.fechas : undefined
+  const dias = DIAS_SEMANA.map((dia, i) => fechas ? `${dia} ${fechaAR(fechas[i]).slice(0, 5)}` : dia)
   const ident = [
     meta.sucursal ? `Sucursal ${meta.sucursal}` : null,
-    meta.fechas?.length === 7 ? `Semana ${fechaAR(meta.fechas[0])} al ${fechaAR(meta.fechas[6])}` : null,
-    `Generado: ${fecha}`,
+    fechas ? `Semana ${fechaAR(fechas[0])} al ${fechaAR(fechas[6])}` : null,
+    meta.version !== undefined ? `Versión ${meta.version}` : null,
   ].filter(Boolean).join('  ·  ')
-  doc.text(ident, 14, 22)
-  if (meta.estado) {
-    doc.setTextColor(meta.validacion?.publicable ? 22 : 185, meta.validacion?.publicable ? 101 : 28, meta.validacion?.publicable ? 52 : 28)
-    doc.setFontSize(9)
-    doc.text(`Estado: ${meta.estado}`, 14, 27)
+  const estado = meta.estado ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
+
+  function encabezado(titulo: string, detalle?: string) {
+    doc.setFillColor(...PETROLEO)
+    doc.rect(MARGEN, 9, 13, 1, 'F')
+    doc.setTextColor(...TINTA)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(17)
+    doc.text(titulo, MARGEN, 18, { maxWidth: ancho })
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
-    doc.setTextColor(0, 0, 0)
+    if (ident) doc.text(ident, MARGEN, 24)
+    if (estado) {
+      doc.setFontSize(8.5)
+      doc.text(`Estado: ${estado}`, MARGEN, 29)
+    }
+    if (detalle) {
+      doc.setFontSize(8.5)
+      doc.text(detalle, MARGEN, 34)
+    }
   }
 
-  // Página 1: Horarios por colaborador
-  // Mapa combinado de todos los colaboradores (cajeros, auxiliares, eventuales)
-  const colaboradoresMap = new Map<string, { nombre: string, tipo: string }>()
-  colaboradores.forEach(c => colaboradoresMap.set(c.id, { nombre: c.nombre, tipo: c.tipo }))
-  auxiliares.forEach(a => colaboradoresMap.set(a.id, { nombre: a.nombre, tipo: 'AUX' }))
-  eventuales.forEach(e => colaboradoresMap.set(e.id, { nombre: e.nombre, tipo: 'EVENTUAL' }))
+  function tabla(titulo: string, opciones: UserOptions, detalle?: string) {
+    autoTable(doc, {
+      theme: 'grid',
+      showHead: 'everyPage',
+      rowPageBreak: 'avoid',
+      margin: { top: INICIO_TABLA, bottom: 15, left: MARGEN, right: MARGEN },
+      startY: INICIO_TABLA,
+      headStyles: { fillColor: [...PETROLEO], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [244, 248, 248] },
+      ...opciones,
+      styles: { cellPadding: 1.6, fontSize: 9, textColor: [...TINTA], overflow: 'linebreak', valign: 'middle', ...opciones.styles },
+      willDrawPage: () => encabezado(titulo, detalle),
+    })
+  }
 
-  // La página 1 muestra SOLO cajeros FULL/PART: los AUX y EVENTUALES tienen
-  // sus propias secciones de horarios en CAJA más abajo.
-  const horariosCajeros = resultado.horarios.filter(horario => {
-    const col = colaboradoresMap.get(horario.colaboradorId)
-    if (col) return col.tipo === 'FULL' || col.tipo === 'PART'
-    return horario.rolGeneral === 'cajero'
-  })
+  const nombres = new Map<string, { nombre: string; tipo: string }>()
+  for (const c of colaboradores) nombres.set(c.id, { nombre: c.nombre, tipo: c.tipo })
+  for (const a of auxiliares) nombres.set(a.id, { nombre: a.nombre, tipo: 'AUX' })
+  for (const e of eventuales) nombres.set(e.id, { nombre: e.nombre, tipo: 'EVENTUAL' })
+  const tipoPorRol = { cajero: 'CAJA', aux_supervisor: 'AUX', aux_eventual: 'AUX', eventual_sector: 'EVENTUAL' }
 
-  const tableData = horariosCajeros.map(horario => {
-    const col = colaboradoresMap.get(horario.colaboradorId)
-    if (!col) {
-      console.warn(`Colaborador no encontrado en map: ${horario.colaboradorId}`)
-      // Crear fila con datos mínimos para evitar fila vacía
-      return [
-        horario.colaboradorId,
-        'DESCONOCIDO',
-        `${horario.totalHoras}h`,
-        ...DIAS_SEMANA.map((_, diaIndex) => {
-          const jornada = horario.jornadas[diaIndex]
-          if (jornada.esFranco) return 'FRANCO'
-          return formatoTurno(jornada.turnos)
-        }),
-      ]
-    }
-
-    const row = [
-      col.nombre,
-      col.tipo,
-      `${horario.totalHoras}h`,
-      ...DIAS_SEMANA.map((_, diaIndex) => {
-        const jornada = horario.jornadas[diaIndex]
-        if (jornada.esFranco) return 'FRANCO'
-        return formatoTurno(jornada.turnos)
+  const nominal = resultado.horarios.map(h => {
+    const col = nombres.get(h.colaboradorId)
+    const tipo = col?.tipo ?? tipoPorRol[h.rolGeneral]
+    const porDia = new Map(h.jornadas.map(j => [j.dia, j]))
+    return [
+      col?.nombre ?? h.colaboradorId,
+      tipo,
+      `${String(h.totalHoras).replace('.', ',')} h`,
+      ...dias.map((_, d) => {
+        const jornada = porDia.get(d)
+        if (!jornada) return '-'
+        if (jornada.esFranco) return tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO'
+        const bloques = formatoTurno(jornada.turnos.map(t => ({ inicio: t.inicio.padStart(5, '0'), fin: t.fin.padStart(5, '0') }))).split(' | ').join('\n')
+        return jornada.rol === 'franco_medio' ? `${bloques}\nMedio franco` : bloques
       }),
     ]
-    return row
-  }).filter(row => row.length > 0) // Filtrar filas vacías por si acaso
+  })
 
-  autoTable(doc, {
-    head: [['Colaborador', 'Tipo', 'Hs', ...DIAS_SEMANA]],
-    body: tableData,
-    startY: meta.estado ? 31 : 30,
-    theme: 'grid',
-    headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
-    bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
+  const anchoDiaNominal = (ancho - 94) / 7
+  tabla(fechas ? 'Horarios Semanales' : `Horarios Semanales - ${semanaDesc}`, {
+    head: [['Colaborador', 'Tipo', 'Horas', ...dias]],
+    body: nominal,
+    styles: { halign: 'center' },
     columnStyles: {
-      0: { halign: 'left' },
-      1: { halign: 'center' },
-      2: { halign: 'center' },
-      // Columnas de días (3 a 9)
-      ...Object.fromEntries(
-        Array.from({ length: 7 }, (_, i) => [3 + i, { halign: 'center' }])
-      ),
+      0: { cellWidth: 58, halign: 'left' },
+      1: { cellWidth: 21 },
+      2: { cellWidth: 15 },
+      ...Object.fromEntries(dias.map((_, d) => [d + 3, { cellWidth: anchoDiaNominal }])),
     },
-    margin: { left: 14 },
-    rowPageBreak: 'avoid',
-    styles: { cellPadding: 3, fontSize: 8 },
-    tableWidth: 'auto',
-    showHead: 'everyPage', // Repite encabezado en cada página
-  })
-
-  // Secciones adicionales: SUPERVISORES (AUX) y EVENTUALES en CAJA.
-  // Muestran, por día, los bloques horarios en que cada uno debe estar en CAJA.
-  const finalYCajeros = (doc as any).lastAutoTable?.finalY || 100
-  let yCaja = finalYCajeros + 12
-
-  const cajaAux = resultado.cajaAux ?? []
-  if (cajaAux.length > 0) {
-    if (yCaja > 170) {
-      doc.addPage()
-      yCaja = 20
-    }
-    yCaja = dibujarSeccionCaja(doc, 'Supervisores (AUX) - Horarios en CAJA', 'AUX', cajaAux, 'PARADO', yCaja) + 12
-  }
-
-  const cajaEventual = resultado.cajaEventual ?? []
-  if (cajaEventual.length > 0) {
-    if (yCaja > 170) {
-      doc.addPage()
-      yCaja = 20
-    }
-    yCaja = dibujarSeccionCaja(doc, 'Eventuales - Horarios en CAJA', 'EVENTUAL', cajaEventual, '-', yCaja)
-  }
-
-  // Página 2: Cobertura por franja (solo si hay datos de cobertura — un PDF
-  // regenerado desde "Último horario" sin snapshot de cobertura la omite)
-  if (resultado.coberturaFranjas.length > 0) {
-  doc.addPage()
-  doc.setFontSize(16)
-  doc.text(`Cobertura por Franja - ${semanaDesc}`, 14, 15)
-  doc.setFontSize(10)
-  doc.text(`Generado: ${fecha}`, 14, 22)
-
-  const coberturaData = HORAS_FRANJAS.map((hora, idx) => {
-    const row = [hora]
-    for (let dia = 0; dia < 7; dia++) {
-      const asignados = resultado.coberturaFranjas[idx]?.[dia] || 0
-      const necesarios = resultado.faltantesFranjas[idx]?.[dia] !== undefined
-        ? asignados + resultado.faltantesFranjas[idx][dia]
-        : 0
-      row.push(`${asignados}/${necesarios}`)
-    }
-    return row
-  })
-
-  // Eliminar posibles filas duplicadas (bug #4)
-  const horasVistas = new Set<string>()
-  const coberturaDataUnica = coberturaData.filter(row => {
-    const hora = row[0]
-    if (horasVistas.has(hora)) return false
-    horasVistas.add(hora)
-    return true
-  })
-
-  autoTable(doc, {
-    head: [['Horario', ...DIAS_SEMANA]],
-    body: coberturaDataUnica,
-    startY: 30,
-    theme: 'grid',
-    headStyles: { fillColor: [34, 197, 94], textColor: [255, 255, 255], fontStyle: 'bold' },
-    bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: {
-      0: { halign: 'left' },
-      // Columnas de días (1 a 7)
-      ...Object.fromEntries(
-        Array.from({ length: 7 }, (_, i) => [1 + i, { halign: 'center' }])
-      ),
-    },
-    margin: { left: 14 },
-    rowPageBreak: 'avoid',
-    styles: { cellPadding: 3, fontSize: 8 },
-    // Colorear el texto ANTES de que autoTable lo dibuje (didParseCell).
-    // Nota: no usar didDrawCell + doc.text() para esto — dibujaría el valor
-    // una segunda vez encima del que autoTable ya renderizó en negro.
-    didParseCell: (data) => {
-      if (data.section !== 'body' || data.column.index === 0) return
-      const cellValue = String(data.cell.raw ?? '')
-      const [asignados, necesarios] = cellValue.split('/').map(Number)
-      if (isNaN(asignados) || isNaN(necesarios)) return
-      if (asignados < necesarios) {
-        data.cell.styles.textColor = [220, 38, 38]   // rojo: faltante
-      } else if (asignados > necesarios) {
-        data.cell.styles.textColor = [202, 138, 4]   // amarillo: sobrante
-      } else {
-        data.cell.styles.textColor = [22, 163, 74]   // verde: exacto
+    didParseCell: ({ cell, column, section }) => {
+      if (section === 'body' && column.index >= 3 && cell.raw === 'FRANCO') {
+        cell.styles.fillColor = [232, 238, 240]
+        cell.styles.fontStyle = 'bold'
       }
     },
-  })
-  } // fin página cobertura
+  }, 'AUX: jornada de presencia. Eventuales: turnos y horas asignados en caja.')
 
-  // Página 3: Alertas y métricas (si hay)
-  if (resultado.alertas.length > 0) {
+  const asignaciones = [
+    ...(resultado.cajaAux ?? []).map(a => ({ ...a, tipo: 'AUX' })),
+    ...(resultado.cajaEventual ?? []).map(a => ({ ...a, tipo: 'EVENTUAL' })),
+  ]
+  if (asignaciones.length > 0) {
     doc.addPage()
-    doc.setFontSize(16)
-    doc.text(`Alertas y Métricas`, 14, 15)
+    tabla('Asignaciones en caja', {
+      head: [['Colaborador', 'Tipo', ...dias]],
+      body: asignaciones.map(a => [
+        a.nombre, a.tipo, ...dias.map((_, d) => formatearCajaDia(a.slotsCajaPorDia[d] ?? [], '-').split(' | ').join('\n')),
+      ]),
+      styles: { halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: 58, halign: 'left' },
+        1: { cellWidth: 21 },
+        ...Object.fromEntries(dias.map((_, d) => [d + 2, { cellWidth: (ancho - 79) / 7 }])),
+      },
+    }, 'Bloques en caja de AUX y eventuales. Un guion indica que no hay asignación.')
+  }
 
-    let y = 30
-    doc.setFontSize(12)
-    doc.text(`Porcentaje de cobertura: ${resultado.porcentajeCobertura.toFixed(1)}%`, 14, y)
-    y += 10
+  const metricas = meta.validacion?.metricas
+  const cobertura = metricas?.cobertura ?? resultado.coberturaFranjas
+  if (cobertura.length > 0) {
+    doc.addPage()
+    const demandaConocida = !!(metricas || meta.necesidadFranjas)
+    tabla('Cobertura por franja', {
+      head: [['Horario', ...dias]],
+      body: HORAS_FRANJAS.map((hora, f) => [hora, ...dias.map((_, d) => {
+        const asignadas = cobertura[f]?.[d] ?? 0
+        const requeridas = metricas
+          ? asignadas + (metricas.faltantes[f]?.[d] ?? 0) - (metricas.sobrantes[f]?.[d] ?? 0)
+          : meta.necesidadFranjas?.[f]?.[d] ?? asignadas + (resultado.faltantesFranjas[f]?.[d] ?? 0)
+        return `${asignadas}/${requeridas}`
+      })]),
+      styles: { cellPadding: 0.7, fontSize: 8, halign: 'center' },
+      didParseCell: ({ cell, column, section }) => {
+        if (section !== 'body' || column.index === 0) return
+        const [asignadas, requeridas] = String(cell.raw).split('/').map(Number)
+        if (asignadas < requeridas) {
+          cell.styles.textColor = [146, 32, 28]
+          cell.styles.fontStyle = 'bold'
+        } else if (asignadas > requeridas) {
+          cell.styles.textColor = [121, 84, 14]
+        }
+      },
+    }, demandaConocida ? 'Cajas asignadas / necesarias por media hora.' : 'Cajas asignadas / referencia calculada a partir de los faltantes guardados.')
+  }
 
-    if (resultado.alertas.length > 0) {
-      doc.text('Alertas:', 14, y)
-      y += 8
+  if (meta.validacion) {
+    doc.addPage()
+    const { violaciones } = meta.validacion
+    const titulo = 'Validación y faltantes'
+    const detalle = metricas
+      ? `Horas-caja faltantes: ${metricas.horasCajaFaltantes}  ·  sobrantes: ${metricas.horasCajaSobrantes}`
+      : undefined
+    if (violaciones.length > 0) {
+      tabla(titulo, {
+        head: [['Nivel', 'Código', 'Día', 'Detalle']],
+        body: violaciones.map(x => [x.nivel, x.codigo, x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', x.detalle]),
+        columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 59, fontSize: 8 }, 2: { cellWidth: 14 }, 3: { cellWidth: ancho - 103 } },
+      }, detalle)
+    } else {
+      encabezado(titulo, detalle)
       doc.setFontSize(10)
-      resultado.alertas.forEach((alerta, idx) => {
-        if (y > 270) {
-          doc.addPage()
-          y = 20
-        }
-        const alertaLimpia = sanitizarTexto(alerta)
-        // Separar sugerencias numeradas (1. texto 2. texto 3. texto)
-        const sugerencias = alertaLimpia.split(/\d+\.\s/).filter(s => s.trim().length > 0)
-        // Si no se detectó patrón numérico, tratar como una sola sugerencia
-        if (sugerencias.length === 0) {
-          sugerencias.push(alertaLimpia)
-        }
-        // Para cada sugerencia, escribir en línea separada con posible wrap
-        const anchoMax = doc.internal.pageSize.width - 40 // margen izquierdo + derecho
-        sugerencias.forEach((texto, sugIdx) => {
-          const prefijo = sugIdx === 0 ? `${idx + 1}. ` : '   '
-          const textoCompleto = prefijo + texto.trim()
-          const lineas = doc.splitTextToSize(textoCompleto, anchoMax)
-          lineas.forEach((linea: string) => {
-            if (y > 270) {
-              doc.addPage()
-              y = 20
-            }
-            doc.text(linea, 20, y)
-            y += 8
-          })
-        })
-        // Agregar espacio extra entre alertas
-        y += 2
-      })
+      doc.text('Sin violaciones de reglas normativas ni operativas.', MARGEN, INICIO_TABLA + 6)
     }
   }
 
-  // PUB-01 (#12): anexo de validación independiente y faltantes
-  if (meta.validacion) {
-    const v = meta.validacion
+  if (resultado.alertas.length > 0) {
     doc.addPage()
-    doc.setFontSize(16)
-    doc.text('Validación y faltantes', 14, 15)
-    doc.setFontSize(11)
-    let y = 26
-    doc.text(`Estado: ${meta.estado ?? (v.publicable ? 'VALIDADO' : 'BORRADOR')}`, 14, y); y += 7
-    if (v.metricas) {
-      doc.text(`Horas-caja faltantes: ${v.metricas.horasCajaFaltantes}  ·  sobrantes: ${v.metricas.horasCajaSobrantes}`, 14, y); y += 9
-    }
-    if (v.violaciones.length === 0) {
-      doc.text('Sin violaciones de reglas normativas ni operativas.', 14, y)
-    } else {
-      autoTable(doc, {
-        startY: y,
-        head: [['Nivel', 'Código', 'Día', 'Detalle']],
-        body: v.violaciones.map(x => [x.nivel, x.codigo, x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', x.detalle]),
-        styles: { fontSize: 8 },
-        columnStyles: { 3: { cellWidth: 170 } },
-      })
-    }
+    tabla('Alertas de generación', {
+      head: [['N.º', 'Detalle']],
+      body: resultado.alertas.map((alerta, i) => [i + 1, sanitizarTexto(alerta)]),
+      columnStyles: { 0: { cellWidth: 14 }, 1: { cellWidth: ancho - 14 } },
+    }, `Cobertura al generar: ${resultado.porcentajeCobertura.toFixed(1)} %`)
+  }
+
+  const paginas = doc.getNumberOfPages()
+  const generado = new Date().toLocaleDateString('es-AR')
+  for (let pagina = 1; pagina <= paginas; pagina++) {
+    doc.setPage(pagina)
+    doc.setDrawColor(189, 202, 204)
+    doc.line(MARGEN, height - 12, width - MARGEN, height - 12)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(...TINTA)
+    doc.text(`Aliada Horarios  ·  Generado el ${generado}`, MARGEN, height - 7)
+    doc.text(`Página ${pagina} de ${paginas}`, width - MARGEN, height - 7, { align: 'right' })
   }
 
   return doc

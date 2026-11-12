@@ -281,6 +281,7 @@ export default function NuevaSemanaPage() {
     const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, auxiliaresActivos, eventualesActivos, {
       sucursal: getSucursalActual(),
       fechas: ctxValidacion?.fechas,
+      version: historial.find(s => s.id === semanaGuardadaId)?.version,
       validacion: validacion ?? undefined,
       estado: validacion ? estadoValidacion(validacion) : undefined,
     })
