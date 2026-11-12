@@ -1,3 +1,4 @@
+import type { ResultadoValidacion } from '../algoritmo/validadorIndependiente'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, AsignacionCajaColaborador, SemanaHistorial, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
@@ -106,12 +107,24 @@ function sanitizarTexto(texto: string): string {
   return resultado
 }
 
+/** PUB-01 (#12): datos de identificación y estado para el encabezado y el anexo. */
+export interface MetaPDF {
+  sucursal?: string
+  /** 7 fechas yyyy-MM-dd (lunes→domingo). */
+  fechas?: string[]
+  validacion?: ResultadoValidacion
+  estado?: string
+}
+
+const fechaAR = (iso: string) => iso.split('-').reverse().join('/')
+
 export function generarPDF(
   resultado: ResultadoAsignacion,
   colaboradores: Colaborador[],
   semanaDesc: string,
   auxiliares: Auxiliar[] = [],
-  eventuales: Eventual[] = []
+  eventuales: Eventual[] = [],
+  meta: MetaPDF = {}
 ): jsPDF {
   const doc = new jsPDF('landscape')
   const fecha = new Date().toLocaleDateString('es-AR')
@@ -120,7 +133,19 @@ export function generarPDF(
   doc.setFontSize(16)
   doc.text(`Horarios Semanales - ${semanaDesc}`, 14, 15)
   doc.setFontSize(10)
-  doc.text(`Generado: ${fecha}`, 14, 22)
+  const ident = [
+    meta.sucursal ? `Sucursal ${meta.sucursal}` : null,
+    meta.fechas?.length === 7 ? `Semana ${fechaAR(meta.fechas[0])} al ${fechaAR(meta.fechas[6])}` : null,
+    `Generado: ${fecha}`,
+  ].filter(Boolean).join('  ·  ')
+  doc.text(ident, 14, 22)
+  if (meta.estado) {
+    doc.setTextColor(meta.validacion?.publicable ? 22 : 185, meta.validacion?.publicable ? 101 : 28, meta.validacion?.publicable ? 52 : 28)
+    doc.setFontSize(9)
+    doc.text(`Estado: ${meta.estado}`, 14, 27)
+    doc.setFontSize(10)
+    doc.setTextColor(0, 0, 0)
+  }
 
   // Página 1: Horarios por colaborador
   // Mapa combinado de todos los colaboradores (cajeros, auxiliares, eventuales)
@@ -170,7 +195,7 @@ export function generarPDF(
   autoTable(doc, {
     head: [['Colaborador', 'Tipo', 'Hs', ...DIAS_SEMANA]],
     body: tableData,
-    startY: 30,
+    startY: meta.estado ? 31 : 30,
     theme: 'grid',
     headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
     bodyStyles: { textColor: [0, 0, 0], fontStyle: 'normal' },
@@ -325,6 +350,31 @@ export function generarPDF(
         })
         // Agregar espacio extra entre alertas
         y += 2
+      })
+    }
+  }
+
+  // PUB-01 (#12): anexo de validación independiente y faltantes
+  if (meta.validacion) {
+    const v = meta.validacion
+    doc.addPage()
+    doc.setFontSize(16)
+    doc.text('Validación y faltantes', 14, 15)
+    doc.setFontSize(11)
+    let y = 26
+    doc.text(`Estado: ${meta.estado ?? (v.publicable ? 'VALIDADO' : 'BORRADOR')}`, 14, y); y += 7
+    if (v.metricas) {
+      doc.text(`Horas-caja faltantes: ${v.metricas.horasCajaFaltantes}  ·  sobrantes: ${v.metricas.horasCajaSobrantes}`, 14, y); y += 9
+    }
+    if (v.violaciones.length === 0) {
+      doc.text('Sin violaciones de reglas normativas ni operativas.', 14, y)
+    } else {
+      autoTable(doc, {
+        startY: y,
+        head: [['Nivel', 'Código', 'Día', 'Detalle']],
+        body: v.violaciones.map(x => [x.nivel, x.codigo, x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', x.detalle]),
+        styles: { fontSize: 8 },
+        columnStyles: { 3: { cellWidth: 170 } },
       })
     }
   }
