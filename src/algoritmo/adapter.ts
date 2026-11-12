@@ -43,6 +43,64 @@ export function normalizarId(nombre: string): string {
     .replace(/\s+/g, '_');
 }
 
+// ==================== IDENTIDAD (ID-01, #9) ====================
+
+/** Persona que entra al motor, con su id estable de UI/Supabase. */
+interface PersonaUI { id: string; nombre: string }
+
+export interface IdentidadesV2 {
+  /** id de UI → id interno del motor */
+  v2PorUi: Map<string, string>
+  /** id interno del motor → persona de UI */
+  uiPorV2: Map<string, PersonaUI>
+  /** nombre normalizado → ids internos (más de uno = homónimos) */
+  v2PorNombre: Map<string, string[]>
+  /** grupos de nombres que colisionan al normalizar (p. ej. «José Pérez» / «Jose Perez») */
+  homonimos: string[][]
+}
+
+/**
+ * Asigna ids internos del motor sin colisiones.
+ * - El id interno es efímero (no se persiste); lo persistido es siempre el id de UI.
+ * - Si el nombre normalizado es único se conserva `normalizarId(nombre)`: así no cambia
+ *   el orden de desempate de las pasadas 2/3 ni el resultado para rosters normales.
+ * - Si dos personas normalizan igual, cada una recibe `nombre__<idUI>`: ya no se mezclan.
+ * - Un mismo id de UI repetido es un error de datos (no se adivina quién es quién).
+ */
+export function asignarIdentidadesV2(personas: PersonaUI[]): IdentidadesV2 {
+  const vistos = new Set<string>()
+  for (const p of personas) {
+    if (!p.id) throw new Error(`Colaborador sin id: «${p.nombre}».`)
+    if (vistos.has(p.id)) throw new Error(`Id de colaborador duplicado: ${p.id}.`)
+    vistos.add(p.id)
+  }
+  const porNombre = new Map<string, PersonaUI[]>()
+  for (const p of personas) {
+    const k = normalizarId(p.nombre)
+    porNombre.set(k, [...(porNombre.get(k) ?? []), p])
+  }
+  const v2PorUi = new Map<string, string>()
+  const uiPorV2 = new Map<string, PersonaUI>()
+  const v2PorNombre = new Map<string, string[]>()
+  const homonimos: string[][] = []
+  for (const [k, grupo] of porNombre) {
+    if (grupo.length > 1) homonimos.push(grupo.map(p => p.nombre))
+    const ids = grupo.map(p => (grupo.length === 1 ? k : `${k}__${p.id}`))
+    grupo.forEach((p, i) => { v2PorUi.set(p.id, ids[i]); uiPorV2.set(ids[i], p) })
+    v2PorNombre.set(k, ids)
+  }
+  return { v2PorUi, uiPorV2, v2PorNombre, homonimos }
+}
+
+/** Personas que el adapter envía al motor (mismo criterio que convertirInputAV2). */
+function personasDelMotor(cajeros: ColaboradorUI[], auxiliares: Auxiliar[], eventuales: Eventual[]): PersonaUI[] {
+  return [
+    ...cajeros.filter(c => c.tipo === 'FULL' || c.tipo === 'PART'),
+    ...auxiliares.filter(a => a.activo),
+    ...eventuales.filter(e => e.activo),
+  ]
+}
+
 /** Convierte "HH:MM" a slot index (0 = 08:00). */
 function horaStrASlot(hora: string): number {
   const [h, m] = hora.split(':').map(Number);
@@ -147,11 +205,12 @@ export function convertirInputAV2(
     }
   }
 
-  // 2. Colaboradores v2: solo FULL y PART desde cajeros
+  // 2. Colaboradores v2: solo FULL y PART desde cajeros (ids sin colisiones, ID-01)
+  const ident = asignarIdentidadesV2(personasDelMotor(cajeros, auxiliares, eventuales));
   const colaboradores: ColaboradorV2[] = [];
   for (const c of cajeros) {
     if (c.tipo === 'FULL' || c.tipo === 'PART') {
-      colaboradores.push({ id: normalizarId(c.nombre), nombre: c.nombre, rol: c.tipo });
+      colaboradores.push({ id: ident.v2PorUi.get(c.id)!, nombre: c.nombre, rol: c.tipo });
     }
   }
 
@@ -159,7 +218,7 @@ export function convertirInputAV2(
   const presencia_aux: Record<string, MatrizPresencia> = {};
   for (const aux of auxiliares) {
     if (!aux.activo) continue;
-    const auxId = normalizarId(aux.nombre);
+    const auxId = ident.v2PorUi.get(aux.id)!;
     colaboradores.push({ id: auxId, nombre: aux.nombre, rol: 'AUX' });
     presencia_aux[auxId] = construirMatrizAux(aux.horarioSemanal);
   }
@@ -168,7 +227,7 @@ export function convertirInputAV2(
   const disponibilidad_eventual: Record<string, MatrizDisponibilidad> = {};
   for (const ev of eventuales) {
     if (!ev.activo) continue;
-    const evId = normalizarId(ev.nombre);
+    const evId = ident.v2PorUi.get(ev.id)!;
     colaboradores.push({ id: evId, nombre: ev.nombre, rol: 'EVENTUAL' });
     disponibilidad_eventual[evId] = construirMatrizEventual(ev.horarioSemanal);
   }
@@ -178,7 +237,10 @@ export function convertirInputAV2(
   if (opciones?.preferenciasPorNombre) {
     preferencias_turno = {};
     for (const [nombre, sesgo] of Object.entries(opciones.preferenciasPorNombre)) {
-      preferencias_turno[normalizarId(nombre)] = sesgo;
+      // Preferencias aprendidas por nombre: con homónimos aplican a todos (se avisa en la salida).
+      for (const id of ident.v2PorNombre.get(normalizarId(nombre)) ?? [normalizarId(nombre)]) {
+        preferencias_turno[id] = sesgo;
+      }
     }
   }
 
@@ -210,11 +272,11 @@ export function convertirOutputDeV2(
   auxiliares: Auxiliar[],
   eventuales: Eventual[]
 ): ResultadoAsignacion {
-  // Mapeo v2Id → UI id (para restaurar IDs numéricos originales)
+  // Mapeo v2Id → UI id por identidad (no por nombre): homónimos no se mezclan (ID-01).
+  const ident = asignarIdentidadesV2(personasDelMotor(cajeros, auxiliares, eventuales));
   const idMap: Record<string, string> = {};
-  for (const c of cajeros) idMap[normalizarId(c.nombre)] = c.id;
-  for (const a of auxiliares) idMap[normalizarId(a.nombre)] = a.id;
-  for (const e of eventuales) idMap[normalizarId(e.nombre)] = e.id;
+  const nombreMap: Record<string, string> = {};
+  for (const [v2Id, p] of ident.uiPorV2) { idMap[v2Id] = p.id; nombreMap[v2Id] = p.nombre; }
 
   // Construir HorarioColaborador[] con FULL y PART
   const horarios: HorarioColaborador[] = [];
@@ -350,12 +412,7 @@ export function convertirOutputDeV2(
     }
   }
 
-  // Horarios de CAJA de AUX y EVENTUAL (Pasadas 2 y 3) para el PDF.
-  // Mapa v2Id → nombre legible.
-  const nombreMap: Record<string, string> = {};
-  for (const c of cajeros) nombreMap[normalizarId(c.nombre)] = c.nombre;
-  for (const a of auxiliares) nombreMap[normalizarId(a.nombre)] = a.nombre;
-  for (const e of eventuales) nombreMap[normalizarId(e.nombre)] = e.nombre;
+  // Horarios de CAJA de AUX y EVENTUAL (Pasadas 2 y 3) para el PDF (nombreMap: v2Id → nombre).
 
   const cajaAux: AsignacionCajaColaborador[] = Object.entries(resultado.asignacion_aux)
     .map(([v2Id, matriz]) => ({
@@ -377,7 +434,11 @@ export function convertirOutputDeV2(
   const alertas: string[] = [
     ...resultado.reporte_reglas.advertencias,
     ...resultado.reporte_reglas.violaciones.map(v =>
-      v.colab_id ? `${v.regla} (${v.colab_id}): ${v.detalle}` : `${v.regla}: ${v.detalle}`
+      v.colab_id ? `${v.regla} (${nombreMap[v.colab_id] ?? v.colab_id}): ${v.detalle}` : `${v.regla}: ${v.detalle}`
+    ),
+    // ID-01: excepciones y preferencias se cargan por nombre; con homónimos aplican a todos.
+    ...ident.homonimos.map(g =>
+      `Nombres equivalentes: ${g.join(' / ')}. Se planifican por separado, pero las excepciones y preferencias cargadas por nombre aplican a todos. Diferenciá los nombres en Colaboradores.`
     ),
   ];
 
