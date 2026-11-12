@@ -20,6 +20,23 @@ No confundir:
 - **Aliada Horarios**: calcula qué trabajadores cubren la demanda y explica lo posible/imposible.
 - **Agente IA (futuro)**: interpreta consultas, ejecuta herramientas seguras, simula y propone; **nunca sustituye** al validador/optimizador ni publica sin autorización.
 
+### Flujo mínimo obligatorio del supervisor — requisito de producto AH2-008
+
+**Regla de experiencia de usuario no negociable:** el supervisor de cajas **no arma ni transcribe manualmente los horarios cada semana**. Su recorrido habitual debe limitarse a:
+1. **Exportar el PDF semanal de POM** (sistema externo) y cargarlo en Aliada Horarios, sin copiar tablas ni cantidades a mano.
+2. **Generar y revisar**: la aplicación extrae fecha y matriz «Estimado de cajas necesarias», carga automáticamente el roster y las restricciones vigentes guardadas en su sucursal, ejecuta el optimizador y muestra **un cronograma completo con nombres de empleados**, turnos por día, francos, horas por persona y cobertura por franja.
+3. **Aprobar y exportar a PDF**: desde la propia aplicación obtiene un **PDF profesional, legible, ordenado y listo para compartir/imprimir**, encabezado con sucursal y semana, grilla semanal de colaboradores, horarios y francos, totales de horas, información de versión/aprobación y, cuando corresponda, un resumen separado de faltantes/alertas.
+
+**Definición de terminado (pruebas de aceptación obligatorias):**
+- Dado un PDF POM válido y una sucursal con dotación/reglas previamente configuradas, generar el cronograma de esa semana **sin carga adicional obligatoria de horarios individuales ni reingreso manual de la matriz POM**.
+- El resultado tiene **nombres correctos e identificadores estables**, columnas lunes–domingo, turnos legibles (incluidos cortados), francos, total semanal y distingue FULL/PART/AUX/eventuales cuando aplique.
+- Un PDF exportado y abierto nuevamente conserva datos, filas, columnas, fechas, cortes de página y legibilidad; se prueba con semanas representativas y plantillas variables.
+- El sistema valida todas las restricciones obligatorias **antes de permitir publicación oficial**; si la cobertura completa es imposible, muestra el **mejor resultado factible y un reporte claro de déficit**, sin inventar trabajadores ni transgredir restricciones. El supervisor puede decidir alternativas autorizadas; las reglas normativas no pueden ignorarse.
+- El control diario de plantilla, reglas y disponibilidad puede configurarse **fuera de ese recorrido semanal**; no imponer una configuración completa cada vez que se sube un PDF.
+- Un agente, si se incorpora, es **invisible u opcional** en el flujo normal: el supervisor no necesita conversar con IA ni escribir prompts para recibir el horario.
+
+**POM aprobado vs salida nueva:** el horario ya incluido en la primera página de POM es referencia comparativa, **nunca** reemplaza el horario optimizado de Aliada. La exportación de Aliada debe producir su propio documento.
+
 ## 2. Contrato de entrada POM — referencia real
 
 Correo «POM» del **12/11/2026**, PDF «Programacion semanal 2026-11-16 - 2026-11-22.pdf», **no incluido en este repositorio público** por contener nombres y horarios de empleados.
@@ -147,5 +164,6 @@ Agente (fase posterior): herramientas de lectura, simulación, explicación y bo
 | AH2-005 | Reglas por persona y sucursal, con vigencia semanal/mensual/por período/permanente | **APROBADO como diseño** |
 | AH2-006 | Evaluar CP-SAT, arquitectura híbrida y agente supervisado sin sustituir motor todavía | **PROPUESTO / benchmark pendiente** |
 | AH2-007 | Fase 0 solo documentación, sin merge/deploy/SQL y sin exposición de datos laborales | **APROBADO para ejecutar** |
+| AH2-008 | Flujo supervisor POM → generar/revisar cronograma nominal → aprobar/exportar PDF profesional, sin carga manual rutinaria | **APROBADO / REQUISITO FUNCIONAL NO NEGOCIABLE** |
 
 **Cualquier decisión nueva se registra aquí y enlaza Issue/PR; no crear otros registros de decisiones independientes.**
