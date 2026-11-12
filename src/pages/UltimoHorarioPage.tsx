@@ -9,6 +9,8 @@ import { useCorrecciones } from '../hooks/useCorrecciones'
 import { aplicarEdicionJornada } from '../hooks/useAsignacion'
 import { resumirTurnos } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
+import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
+import { getSucursalActual } from '../utils/sucursal'
 import { recalcularCajaAux } from '../utils/recalculoAux'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
@@ -68,7 +70,12 @@ export default function UltimoHorarioPage() {
       cajaAux: ultimaSemana.cajaAux,
       cajaEventual: ultimaSemana.cajaEventual,
     }
-    const pdf = generarPDF(resultado, colaboradoresActivos, ultimaSemana.descripcion, auxiliaresActivos, eventualesActivos)
+    const pdf = generarPDF(resultado, colaboradoresActivos, ultimaSemana.descripcion, auxiliaresActivos, eventualesActivos, {
+      sucursal: getSucursalActual(),
+      fechas: esLunesISO(ultimaSemana.fechaLunes) ? fechasDeSemana(ultimaSemana.fechaLunes) : undefined,
+      version: ultimaSemana.version,
+      necesidadFranjas: ultimaSemana.necesidadFranjas,
+    })
     pdf.save(`horarios-${ultimaSemana.descripcion.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
 
