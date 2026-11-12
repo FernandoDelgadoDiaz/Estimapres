@@ -37,7 +37,7 @@ create table if not exists public.reglas_v2 (
   id uuid primary key default gen_random_uuid(),
   local_id uuid not null default auth.uid(),
   sucursal_id text not null,
-  nivel text not null check (nivel in ('OPERATIVA','PREFERENCIA')),
+  nivel text not null check (nivel in ('NORMATIVA','OPERATIVA','PREFERENCIA')),
   ambito_tipo text not null check (ambito_tipo in ('EMPRESA','SUCURSAL','GRUPO','PERSONA')),
   ambito_id text not null,
   parametros jsonb not null,             -- {"tipo": ..., ...} según Parametros
@@ -49,7 +49,17 @@ create table if not exists public.reglas_v2 (
   creada_en timestamptz not null default now(),
   motivo text not null default '',
   version integer not null default 1,
-  legacy_id uuid unique                  -- trazabilidad con reglas_configurables.id
+  legacy_id uuid unique,                 -- trazabilidad con reglas_configurables.id
+  -- Excepción autorizada (opcional): reemplaza reglas OPERATIVAS nombradas, con vigencia acotada.
+  excepcion_reemplaza uuid[],
+  excepcion_autorizada_por text,
+  excepcion_autorizada_en timestamptz,
+  excepcion_motivo text,
+  constraint excepcion_completa check (
+    excepcion_reemplaza is null or (
+      cardinality(excepcion_reemplaza) > 0 and nivel = 'OPERATIVA'
+      and coalesce(btrim(excepcion_autorizada_por), '') <> '' and excepcion_autorizada_en is not null
+      and coalesce(btrim(excepcion_motivo), '') <> '' and vigencia->>'tipo' <> 'PERMANENTE'))
 );
 create index if not exists idx_reglas_v2_suc on public.reglas_v2 (local_id, sucursal_id);
 

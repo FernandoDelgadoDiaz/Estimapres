@@ -19,7 +19,12 @@ import { DEFAULTS_OPERATIVOS, horaASlotUI, type ConfigOperativa, type MinimoFran
 
 // ======================= MODELO =======================
 
-export type Nivel = 'OPERATIVA' | 'PREFERENCIA'
+/**
+ * NORMATIVA: obligación legal/convencional (valores en el perfil normativo, #7). Nunca se desactiva.
+ * OPERATIVA: obligatoria para la sucursal. Solo una EXCEPCIÓN AUTORIZADA puede reemplazarla.
+ * PREFERENCIA: blanda; se ordena por prioridad y cede ante cualquier obligatoria.
+ */
+export type Nivel = 'NORMATIVA' | 'OPERATIVA' | 'PREFERENCIA'
 export type TipoAmbito = 'EMPRESA' | 'SUCURSAL' | 'GRUPO' | 'PERSONA'
 export type Turno = 'manana' | 'tarde' | 'noche'
 
@@ -48,9 +53,23 @@ export interface Auditoria {
   version: number
 }
 
+/**
+ * Excepción autorizada: una regla OPERATIVA que reemplaza, mientras dure su vigencia,
+ * a reglas OPERATIVAS nombradas explícitamente. Requiere autor, fecha y motivo, y una
+ * vigencia acotada (SEMANA, MES o RANGO). Nunca puede reemplazar una regla NORMATIVA.
+ */
+export interface ExcepcionAutorizada {
+  reemplaza: string[]
+  autorizadaPor: string
+  autorizadaEn: string // ISO
+  motivo: string
+}
+
 export interface ReglaV2 {
   id: string
   nivel: Nivel
+  /** Presente solo si la regla es una excepción autorizada. */
+  excepcion?: ExcepcionAutorizada
   ambito: { tipo: TipoAmbito; id: string }
   parametros: Parametros
   vigencia: Vigencia
@@ -132,28 +151,56 @@ function aplicaASucursal(r: ReglaV2, ctx: ContextoSemana): boolean {
 
 // ======================= PRECEDENCIA =======================
 
-/** < 0 si `a` prevalece sobre `b`. Nivel → prioridad → especificidad → más reciente. */
+const RANGO_NIVEL: Record<Nivel, number> = { NORMATIVA: 2, OPERATIVA: 1, PREFERENCIA: 0 }
+const obligatoria = (r: ReglaV2) => r.nivel !== 'PREFERENCIA'
+
+/**
+ * Orden de evaluación: nivel → prioridad → especificidad → más reciente (< 0 si `a` va antes).
+ * El orden SOLO decide entre preferencias, o entre una preferencia y una obligatoria
+ * (gana la obligatoria). Dos obligatorias incompatibles son siempre CONFLICTO.
+ */
 export function compararPrecedencia(a: ReglaV2, b: ReglaV2): number {
-  const nivel = (x: ReglaV2) => (x.nivel === 'OPERATIVA' ? 1 : 0)
-  return (nivel(b) - nivel(a))
+  return (RANGO_NIVEL[b.nivel] - RANGO_NIVEL[a.nivel])
     || (b.prioridad - a.prioridad)
     || (ESPECIFICIDAD[b.ambito.tipo] - ESPECIFICIDAD[a.ambito.tipo])
     || b.auditoria.creadaEn.localeCompare(a.auditoria.creadaEn)
 }
 
 /**
- * Dos reglas incompatibles se resuelven por precedencia SOLO si la diferencia es
- * explícita: distinto nivel, distinta prioridad o alguna es preferencia. Dos
- * OPERATIVAS con la misma prioridad son un CONFLICTO bloqueante (AH2-010).
+ * Dos reglas incompatibles se resuelven automáticamente SOLO si alguna es PREFERENCIA.
+ * Las obligatorias (NORMATIVA/OPERATIVA) vigentes deben cumplirse simultáneamente: si
+ * chocan, es un CONFLICTO bloqueante cualquiera sea su prioridad. La única forma de
+ * apartar una OPERATIVA es una excepción autorizada que la nombre (ver validarExcepcion).
  */
 function resolubles(a: ReglaV2, b: ReglaV2): boolean {
-  return a.nivel !== b.nivel || a.prioridad !== b.prioridad || a.nivel === 'PREFERENCIA'
+  return !obligatoria(a) || !obligatoria(b)
+}
+
+/** Motivos por los que una excepción no es válida (vacío = válida). */
+export function validarExcepcion(r: ReglaV2, todas: ReglaV2[]): string[] {
+  const x = r.excepcion
+  if (!x) return []
+  const err: string[] = []
+  if (r.nivel !== 'OPERATIVA') err.push('una excepción debe ser de nivel OPERATIVA')
+  if (r.vigencia.tipo === 'PERMANENTE') err.push('una excepción necesita vigencia acotada (semana, mes o rango)')
+  if (!x.autorizadaPor.trim()) err.push('falta quién la autorizó')
+  if (!x.autorizadaEn.trim()) err.push('falta la fecha de autorización')
+  if (!x.motivo.trim()) err.push('falta el motivo')
+  if (!r.auditoria.creadaPor.trim() || !r.auditoria.creadaEn.trim()) err.push('falta la auditoría de creación')
+  if (!x.reemplaza.length) err.push('no indica qué reglas reemplaza')
+  for (const id of x.reemplaza) {
+    const t = todas.find(q => q.id === id)
+    if (!t) err.push(`la regla ${id} que dice reemplazar no existe`)
+    else if (t.nivel === 'NORMATIVA') err.push(`no puede reemplazar la regla normativa «${t.descripcion}»`)
+    else if (t.nivel !== 'OPERATIVA') err.push(`solo reemplaza reglas OPERATIVAS («${t.descripcion}» es ${t.nivel})`)
+  }
+  return err
 }
 
 // ======================= RESOLUCIÓN =======================
 
 export interface Conflicto {
-  codigo: 'FRANCO_FIJO' | 'TURNO' | 'VENTANA_VACIA' | 'FRANCOS_FIJOS_SOBRE_TOPE' | 'DOTACION_INSUFICIENTE' | 'PERSONA_INEXISTENTE'
+  codigo: 'FRANCO_FIJO' | 'TURNO' | 'VENTANA_VACIA' | 'FRANCOS_FIJOS_SOBRE_TOPE' | 'DOTACION_INSUFICIENTE' | 'PERSONA_INEXISTENTE' | 'EXCEPCION_INVALIDA' | 'TOGGLE'
   dia?: number
   colaboradorId?: string
   reglas: string[]
@@ -161,6 +208,9 @@ export interface Conflicto {
 }
 
 export interface Sobrescrita { regla: string; por: string; dia: number; colaboradorId: string; motivo: string }
+
+/** Regla OPERATIVA apartada por una excepción autorizada (queda en la auditoría de la semana). */
+export interface Reemplazada { regla: string; excepcion: string; dias: number[]; autorizadaPor: string; motivo: string }
 
 export interface ResolucionSemana {
   lunes: string
@@ -170,6 +220,7 @@ export interface ResolucionSemana {
   generales: Array<{ regla: ReglaV2; dias: number[] }>
   conflictos: Conflicto[]
   sobrescritas: Sobrescrita[]
+  reemplazadas: Reemplazada[]
   /** true si no hay conflictos: se puede generar. */
   ok: boolean
 }
@@ -193,6 +244,28 @@ export function resolverSemana(reglas: ReglaV2[], ctx: ContextoSemana): Resoluci
   const fechas = fechasSemana(ctx.lunes)
   const ids = new Set(ctx.roster.map(p => p.id))
 
+  // Excepciones: las inválidas no se aplican y bloquean; las válidas apartan, en sus días
+  // vigentes, a las reglas OPERATIVAS que nombran.
+  const reemplazadas: Reemplazada[] = []
+  const apartadasPorDia = Array.from({ length: 7 }, () => new Set<string>())
+  const invalidas = new Set<string>()
+  for (const r of reglas) {
+    if (!r.excepcion) continue
+    const dias = diasVigentes(r, ctx.lunes)
+    if (!dias.length) continue
+    const err = validarExcepcion(r, reglas)
+    if (err.length) {
+      invalidas.add(r.id)
+      conflictos.push({ codigo: 'EXCEPCION_INVALIDA', reglas: [r.id], detalle: `Excepción «${r.descripcion}» no aplicada: ${err.join('; ')}.` })
+      continue
+    }
+    for (const id of r.excepcion.reemplaza) {
+      for (const d of dias) apartadasPorDia[d].add(id)
+      reemplazadas.push({ regla: id, excepcion: r.id, dias, autorizadaPor: r.excepcion.autorizadaPor, motivo: r.excepcion.motivo })
+    }
+  }
+  const usable = (r: ReglaV2, d: number) => !invalidas.has(r.id) && !apartadasPorDia[d].has(r.id)
+
   for (const r of reglas) {
     if (r.ambito.tipo === 'PERSONA' && !ids.has(r.ambito.id) && diasVigentes(r, ctx.lunes).length) {
       conflictos.push({ codigo: 'PERSONA_INEXISTENTE', reglas: [r.id], detalle: `«${r.descripcion}» refiere a una persona que no está en el roster de la sucursal.` })
@@ -203,19 +276,22 @@ export function resolverSemana(reglas: ReglaV2[], ctx: ContextoSemana): Resoluci
     porPersona[p.id] = Array.from({ length: 7 }, () => [])
     for (let d = 0; d < 7; d++) {
       const candidatas = reglas
-        .filter(r => PERSONALES.has(r.parametros.tipo) && diasVigentes(r, ctx.lunes).includes(d) && aplicaA(r, p, fechas[d], ctx))
+        .filter(r => PERSONALES.has(r.parametros.tipo) && usable(r, d) && diasVigentes(r, ctx.lunes).includes(d) && aplicaA(r, p, fechas[d], ctx))
         .sort(compararPrecedencia)
       const efectivas: ReglaV2[] = []
       for (const r of candidatas) {
-        const choque = efectivas.find(e => chocan(e, r))
-        if (!choque) { efectivas.push(r); continue }
-        if (resolubles(choque, r)) {
-          sobrescritas.push({ regla: r.id, por: choque.id, dia: d, colaboradorId: p.id, motivo: `prevalece «${choque.descripcion}» (${choque.nivel}, prioridad ${choque.prioridad})` })
-        } else {
-          conflictos.push({
-            codigo: choque.parametros.tipo === 'franco_fijo' ? 'FRANCO_FIJO' : 'TURNO', dia: d, colaboradorId: p.id, reglas: [choque.id, r.id],
-            detalle: `${p.nombre}, ${DIAS[d]}: «${choque.descripcion}» y «${r.descripcion}» son incompatibles con la misma prioridad. Un rol autorizado debe decidir.`,
-          })
+        const choques = efectivas.filter(e => chocan(e, r))
+        if (!choques.length) { efectivas.push(r); continue }
+        for (const choque of choques) {
+          if (resolubles(choque, r)) {
+            // `choque` va antes en el orden: si una es preferencia, gana la otra o la de mayor prioridad
+            sobrescritas.push({ regla: r.id, por: choque.id, dia: d, colaboradorId: p.id, motivo: `prevalece «${choque.descripcion}» (${choque.nivel}, prioridad ${choque.prioridad})` })
+          } else {
+            conflictos.push({
+              codigo: choque.parametros.tipo === 'franco_fijo' ? 'FRANCO_FIJO' : 'TURNO', dia: d, colaboradorId: p.id, reglas: [choque.id, r.id],
+              detalle: `${p.nombre}, ${DIAS[d]}: «${choque.descripcion}» (${choque.nivel}) y «${r.descripcion}» (${r.nivel}) son obligatorias e incompatibles. La prioridad no decide entre obligatorias: corregir una o cargar una excepción autorizada.`,
+            })
+          }
         }
       }
       // Ventana horaria: todas obligatorias → intersección; vacía = conflicto
@@ -231,8 +307,20 @@ export function resolverSemana(reglas: ReglaV2[], ctx: ContextoSemana): Resoluci
 
   const generales = reglas
     .filter(r => !PERSONALES.has(r.parametros.tipo) && aplicaASucursal(r, ctx))
-    .map(regla => ({ regla, dias: diasVigentes(regla, ctx.lunes) }))
+    .map(regla => ({ regla, dias: diasVigentes(regla, ctx.lunes).filter(d => usable(regla, d)) }))
     .filter(g => g.dias.length > 0)
+
+  // Toggles operativos: dos obligatorias con valores distintos el mismo día = conflicto
+  const toggles = generales.filter(g => g.regla.parametros.tipo === 'toggle_operativo' && obligatoria(g.regla))
+  for (let i = 0; i < toggles.length; i++) for (let j = i + 1; j < toggles.length; j++) {
+    const a = toggles[i], b = toggles[j]
+    const pa = a.regla.parametros as Extract<Parametros, { tipo: 'toggle_operativo' }>
+    const pb = b.regla.parametros as Extract<Parametros, { tipo: 'toggle_operativo' }>
+    const dias = a.dias.filter(d => b.dias.includes(d))
+    if (pa.clave === pb.clave && pa.valor !== pb.valor && dias.length) {
+      conflictos.push({ codigo: 'TOGGLE', dia: dias[0], reglas: [a.regla.id, b.regla.id], detalle: `«${a.regla.descripcion}» y «${b.regla.descripcion}» fijan «${pa.clave}» en valores opuestos.` })
+    }
+  }
 
   // Conflictos entre personas y reglas generales (condiciones necesarias, sin horas)
   const tope = topeFrancos(generales)
@@ -262,7 +350,7 @@ export function resolverSemana(reglas: ReglaV2[], ctx: ContextoSemana): Resoluci
     }
   }
 
-  return { lunes: ctx.lunes, porPersona, generales, conflictos, sobrescritas, ok: conflictos.length === 0 }
+  return { lunes: ctx.lunes, porPersona, generales, conflictos, sobrescritas, reemplazadas, ok: conflictos.length === 0 }
 }
 
 function chocan(a: ReglaV2, b: ReglaV2): boolean {
@@ -281,7 +369,7 @@ function fuenteFrancoFijo(dias: ReglaV2[][]): string | undefined {
 
 /** Varias reglas de tope son todas obligatorias: rige la más restrictiva. */
 function topeFrancos(generales: ResolucionSemana['generales']): number | undefined {
-  const v = generales.flatMap(g => (g.regla.parametros.tipo === 'max_francos_dia' && g.regla.nivel === 'OPERATIVA' ? [Math.max(1, g.regla.parametros.cantidad)] : []))
+  const v = generales.flatMap(g => (g.regla.parametros.tipo === 'max_francos_dia' && obligatoria(g.regla) ? [Math.max(1, g.regla.parametros.cantidad)] : []))
   return v.length ? Math.min(...v) : undefined
 }
 
@@ -348,7 +436,7 @@ export function compilarParaMotor(res: ResolucionSemana, ctx: ContextoSemana): C
     apertura_solo_aux: 'aperturaSoloAux', sin_aux_cierre: 'sinAuxCierre',
     supervisor_jornada_completa: 'supervisorJornadaCompleta', franco_medio_corridos: 'francoMedioCorridos',
   }
-  const toggles = res.generales.filter(g => g.regla.parametros.tipo === 'toggle_operativo').sort((a, b) => compararPrecedencia(a.regla, b.regla))
+  const toggles = res.generales.filter(g => g.regla.parametros.tipo === 'toggle_operativo' && obligatoria(g.regla)).sort((a, b) => compararPrecedencia(a.regla, b.regla))
   const vistos = new Set<string>()
   for (const g of toggles) {
     const p = g.regla.parametros as Extract<Parametros, { tipo: 'toggle_operativo' }>

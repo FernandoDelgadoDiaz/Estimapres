@@ -71,14 +71,38 @@ describe('RULES-01: precedencia y conflictos', () => {
     expect(r.conflictos[0]).toMatchObject({ codigo: 'FRANCO_FIJO', colaboradorId: 'a' })
   })
 
-  it('con prioridad explícita distinta prevalece la mayor y la otra queda registrada como sobrescrita', () => {
+  it('dos obligatorias incompatibles con DISTINTA prioridad también son CONFLICTO (la prioridad no decide)', () => {
     const baja = regla({ tipo: 'franco_fijo', dia: 1 }, { descripcion: 'franco martes' })
-    const alta = regla({ tipo: 'franco_fijo', dia: 3 }, { prioridad: 10, descripcion: 'franco jueves (semana especial)' })
+    const alta = regla({ tipo: 'franco_fijo', dia: 3 }, { prioridad: 10, descripcion: 'franco jueves' })
     const r = resolverSemana([baja, alta], ctx())
+    expect(r.ok).toBe(false)
+    expect(r.sobrescritas).toEqual([])
+    expect(r.conflictos.every(c => c.codigo === 'FRANCO_FIJO')).toBe(true)
+    expect(r.conflictos[0].detalle).toMatch(/La prioridad no decide entre obligatorias/)
+    // igual con turnos y con NORMATIVA vs OPERATIVA
+    expect(resolverSemana([regla({ tipo: 'solo_turno', turno: 'manana' }, { prioridad: 99 }), regla({ tipo: 'siempre_cierre' })], ctx()).ok).toBe(false)
+    expect(resolverSemana([regla({ tipo: 'solo_turno', turno: 'manana' }, { nivel: 'NORMATIVA' }), regla({ tipo: 'siempre_cierre' }, { prioridad: 99 })], ctx()).ok).toBe(false)
+  })
+
+  it('preferencias: se ordenan por prioridad, luego especificidad y luego la más reciente', () => {
+    const p1 = regla({ tipo: 'solo_turno', turno: 'manana' }, { nivel: 'PREFERENCIA', prioridad: 1 })
+    const p5 = regla({ tipo: 'solo_turno', turno: 'noche' }, { nivel: 'PREFERENCIA', prioridad: 5 })
+    const r = resolverSemana([p1, p5], ctx())
     expect(r.ok).toBe(true)
-    expect(efectivas(r, 'a', 0)).toEqual([alta.id])
-    expect(r.sobrescritas.filter(s => s.regla === baja.id)).toHaveLength(7)
-    expect(r.sobrescritas[0].motivo).toMatch(/franco jueves/)
+    expect(efectivas(r, 'a', 0)).toEqual([p5.id])
+    expect(r.sobrescritas.filter(x => x.regla === p1.id)).toHaveLength(7)
+    const suc = regla({ tipo: 'solo_turno', turno: 'manana' }, { nivel: 'PREFERENCIA', ambito: { tipo: 'SUCURSAL', id: 'S1' } })
+    const per = regla({ tipo: 'solo_turno', turno: 'tarde' }, { nivel: 'PREFERENCIA' })
+    expect(efectivas(resolverSemana([suc, per], ctx()), 'a', 0)).toEqual([per.id])
+  })
+
+  it('una preferencia nunca desactiva una NORMATIVA ni una OPERATIVA, aunque tenga más prioridad', () => {
+    const norm = regla({ tipo: 'franco_fijo', dia: 2 }, { nivel: 'NORMATIVA', descripcion: 'normativa (test)' })
+    const pref = regla({ tipo: 'franco_fijo', dia: 4 }, { nivel: 'PREFERENCIA', prioridad: 1000 })
+    const r = resolverSemana([norm, pref], ctx())
+    expect(r.ok).toBe(true)
+    expect(efectivas(r, 'a', 0)).toEqual([norm.id])
+    expect(r.sobrescritas.every(x => x.regla === pref.id && x.por === norm.id)).toBe(true)
   })
 
   it('una preferencia nunca bloquea: cede ante la operativa', () => {
@@ -124,6 +148,67 @@ describe('RULES-01: precedencia y conflictos', () => {
 
   it('regla para una persona que no está en el roster → conflicto explícito', () => {
     expect(resolverSemana([regla({ tipo: 'siempre_cierre' }, { ambito: { tipo: 'PERSONA', id: 'zz' } })], ctx()).conflictos[0].codigo).toBe('PERSONA_INEXISTENTE')
+  })
+})
+
+describe('RULES-01: excepciones autorizadas', () => {
+  const franco = regla({ tipo: 'franco_fijo', dia: 1 }, { id: 'fm', descripcion: 'franco martes' })
+  const autorizada = (o: Partial<ReglaV2> = {}, x: Partial<NonNullable<ReglaV2['excepcion']>> = {}) =>
+    regla({ tipo: 'franco_fijo', dia: 3 }, {
+      id: 'ex', descripcion: 'franco jueves esta semana', vigencia: { tipo: 'SEMANA', lunes: LUNES },
+      excepcion: { reemplaza: ['fm'], autorizadaPor: 'supervisor-091', autorizadaEn: '2026-11-12T10:00:00Z', motivo: 'cambio pedido por la persona', ...x },
+      ...o,
+    })
+
+  it('reemplaza a la OPERATIVA nombrada durante su vigencia, con auditoría', () => {
+    const r = resolverSemana([franco, autorizada()], ctx())
+    expect(r.ok).toBe(true)
+    expect(efectivas(r, 'a', 0)).toEqual(['ex'])
+    expect(r.reemplazadas).toEqual([{ regla: 'fm', excepcion: 'ex', dias: [0, 1, 2, 3, 4, 5, 6], autorizadaPor: 'supervisor-091', motivo: 'cambio pedido por la persona' }])
+    // fuera de su vigencia vuelve a regir la regla original
+    expect(efectivas(resolverSemana([franco, autorizada()], ctx({ lunes: '2026-11-23' })), 'a', 0)).toEqual(['fm'])
+  })
+
+  it('solo aparta los días de su vigencia', () => {
+    const r = resolverSemana([franco, autorizada({ vigencia: { tipo: 'RANGO', desde: '2026-11-16', hasta: '2026-11-18' } })], ctx())
+    expect(r.reemplazadas[0].dias).toEqual([0, 1, 2])
+    expect(r.ok).toBe(true)
+    expect(efectivas(r, 'a', 5)).toEqual(['fm'])
+  })
+
+  it('sin vigencia acotada, sin autor, sin motivo o sin reglas a reemplazar → inválida, no se aplica y bloquea', () => {
+    for (const [o, x, msg] of [
+      [{ vigencia: { tipo: 'PERMANENTE' } }, {}, /vigencia acotada/],
+      [{}, { autorizadaPor: ' ' }, /quién la autorizó/],
+      [{}, { motivo: '' }, /falta el motivo/],
+      [{}, { reemplaza: [] }, /qué reglas reemplaza/],
+      [{ nivel: 'PREFERENCIA' }, {}, /nivel OPERATIVA/],
+    ] as const) {
+      const r = resolverSemana([franco, autorizada(o as Partial<ReglaV2>, x as Partial<NonNullable<ReglaV2["excepcion"]>>)], ctx())
+      expect(r.ok).toBe(false)
+      expect(r.conflictos.find(c => c.codigo === 'EXCEPCION_INVALIDA')?.detalle).toMatch(msg)
+      expect(r.reemplazadas).toEqual([])
+    }
+  })
+
+  it('nunca puede reemplazar una regla NORMATIVA', () => {
+    const norm = regla({ tipo: 'franco_fijo', dia: 1 }, { id: 'fm', nivel: 'NORMATIVA', descripcion: 'normativa (test)' })
+    const r = resolverSemana([norm, autorizada()], ctx())
+    expect(r.conflictos.find(c => c.codigo === 'EXCEPCION_INVALIDA')?.detalle).toMatch(/no puede reemplazar la regla normativa/)
+    expect(efectivas(r, 'a', 0)).toEqual(['fm'])
+  })
+
+  it('reemplaza también reglas generales (toggle) y dos toggles obligatorios opuestos son conflicto', () => {
+    const t1 = regla({ tipo: 'toggle_operativo', clave: 'apertura_solo_aux', valor: true }, { id: 't1', ambito: { tipo: 'SUCURSAL', id: 'S1' } })
+    const t2 = regla({ tipo: 'toggle_operativo', clave: 'apertura_solo_aux', valor: false }, { id: 't2', ambito: { tipo: 'SUCURSAL', id: 'S1' }, prioridad: 9 })
+    expect(resolverSemana([t1, t2], ctx()).conflictos.map(c => c.codigo)).toEqual(['TOGGLE'])
+    const ex = regla({ tipo: 'toggle_operativo', clave: 'apertura_solo_aux', valor: false }, {
+      id: 't3', ambito: { tipo: 'SUCURSAL', id: 'S1' }, vigencia: { tipo: 'SEMANA', lunes: LUNES },
+      excepcion: { reemplaza: ['t1'], autorizadaPor: 'gerente', autorizadaEn: '2026-11-12', motivo: 'inventario' },
+    })
+    const r = resolverSemana([t1, ex], ctx())
+    expect(r.ok).toBe(true)
+    expect(compilarParaMotor(r, ctx()).operativa.aperturaSoloAux).toBe(false)
   })
 })
 
