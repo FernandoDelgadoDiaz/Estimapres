@@ -81,6 +81,7 @@ export interface Auxiliar {
   nombre: string
   horarioSemanal: string[]  // 7 elementos, índice 0=lunes, "" = franco
   activo: boolean
+  horasSemanales?: number
 }
 
 export interface Eventual {
@@ -89,6 +90,7 @@ export interface Eventual {
   sector: string
   horarioSemanal: string[]  // 7 elementos, "" = no disponible
   activo: boolean
+  maxHorasSemanales?: number
 }
 
 // ==================== REGLAS CONFIGURABLES (Capacidad 1) ====================

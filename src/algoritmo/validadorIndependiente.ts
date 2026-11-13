@@ -102,6 +102,7 @@ export interface ResultadoValidacion {
   /** true si no hay violaciones NORMATIVA ni OPERATIVA ni DATOS. */
   publicable: boolean
   violaciones: Violacion[]
+  advertencias?: string[]
   metricas?: MetricasValidacion
 }
 

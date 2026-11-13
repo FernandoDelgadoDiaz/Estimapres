@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, JornadaResumida, Turno } from '../../types'
-import { formatoTurno } from '../../utils/timeUtils'
+import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, JornadaResumida } from '../../types'
+import { interpretarHorario, mostrarHorario, opcionesHorarioMotor } from '../../utils/timeUtils'
+import { minutosAsignados } from '../../utils/horasSemanales'
+import ResumenHoras from '../horarios/ResumenHoras'
 import { validarEdicionManual } from '../../utils/preferencias'
 
 interface TablaHorariosProps {
@@ -19,31 +21,29 @@ interface CeldaEnEdicion {
   dia: number
 }
 
-function padHora(hora: string): string {
-  const [h, m] = hora.split(':')
-  return `${h.padStart(2, '0')}:${(m || '00').padStart(2, '0')}`
-}
-
 export default function TablaHorarios({ horarios, colaboradores, auxiliares = [], eventuales = [], editable = false, onEditarJornada }: TablaHorariosProps) {
   const [editando, setEditando] = useState<CeldaEnEdicion | null>(null)
   const [editEsFranco, setEditEsFranco] = useState(false)
-  const [editTurnos, setEditTurnos] = useState<Turno[]>([{ inicio: '09:00', fin: '17:00' }])
+  const [textoTurnos, setTextoTurnos] = useState('')
+  const entrada = useMemo(() => interpretarHorario(textoTurnos, opcionesHorarioMotor), [textoTurnos])
+  const editTurnos = entrada.ok ? entrada.turnos : []
+  const errorEntrada = editEsFranco ? '' : entrada.ok ? (editTurnos.length ? '' : 'Ingresá un intervalo o marcá Franco.') : entrada.error
+  const objetivoDe = (id: string) => colaboradores.find(c => c.id === id)?.horasSemanales ??
+    auxiliares.find(a => a.id === id)?.horasSemanales ?? eventuales.find(e => e.id === id)?.maxHorasSemanales
 
   const abrirEditor = (colaboradorId: string, nombre: string, dia: number) => {
     const horario = horarios.find(h => h.colaboradorId === colaboradorId)
-    const jornada = horario?.jornadas[dia]
+    const jornada = horario?.jornadas.find(j => j.dia === dia)
     setEditando({ colaboradorId, nombre, dia })
     setEditEsFranco(jornada?.esFranco ?? false)
-    setEditTurnos(
-      jornada && jornada.turnos.length > 0
-        ? jornada.turnos.map(t => ({ inicio: padHora(t.inicio), fin: padHora(t.fin) }))
-        : [{ inicio: '09:00', fin: '17:00' }]
-    )
+    setTextoTurnos(jornada?.turnos.length
+      ? mostrarHorario(jornada.turnos.map(t => `${t.inicio}-${t.fin}`).join('|'))
+      : '09:00 - 17:00')
   }
 
   // Validación en tiempo real de la edición contra las reglas duras.
   const avisosValidacion = useMemo(() => {
-    if (!editando) return []
+    if (!editando || errorEntrada) return []
     const horario = horarios.find(h => h.colaboradorId === editando.colaboradorId)
     if (!horario) return []
     // Tipo real del colaborador: cajero (FULL/PART), AUX o EVENTUAL. Para
@@ -59,12 +59,12 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
     })
     const jornadaEditada: JornadaResumida = { esFranco: editEsFranco, turnos: editEsFranco ? [] : editTurnos }
     return validarEdicionManual(jornadaEditada, semana, editando.dia, tipo)
-  }, [editando, editEsFranco, editTurnos, horarios, colaboradores, auxiliares, eventuales])
+  }, [editando, editEsFranco, editTurnos, horarios, colaboradores, auxiliares, eventuales, errorEntrada])
 
   const hayErrores = avisosValidacion.some(a => a.severidad === 'error')
 
   const guardarEdicion = () => {
-    if (!editando || !onEditarJornada) return
+    if (!editando || !onEditarJornada || errorEntrada) return
     onEditarJornada(editando.colaboradorId, editando.dia, {
       esFranco: editEsFranco,
       turnos: editEsFranco ? [] : editTurnos,
@@ -148,7 +148,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', minWidth: '980px', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
           <thead style={{ background: 'var(--surface)' }}>
             <tr>
               <th style={{
@@ -161,7 +161,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                 position: 'sticky',
                 left: 0,
                 background: 'var(--surface)',
-                width: '112px',
+                width: '140px',
               }}>
                 Colaborador
               </th>
@@ -172,20 +172,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 textTransform: 'uppercase',
-                width: '48px',
+                width: '75px',
               }}>
                 Tipo
-              </th>
-              <th style={{
-                padding: '8px',
-                textAlign: 'center',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                width: '48px',
-              }}>
-                Hs
               </th>
               {DIAS_SEMANA.map((dia) => (
                 <th
@@ -197,7 +186,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     fontWeight: 600,
                     color: 'var(--text-muted)',
                     textTransform: 'uppercase',
-                    width: '80px',
+                    width: '91px',
                   }}
                 >
                   {dia}
@@ -210,9 +199,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 textTransform: 'uppercase',
-                width: '96px',
+                width: '135px',
               }}>
-                Errores
+                Horas semanales
               </th>
             </tr>
           </thead>
@@ -243,14 +232,18 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   tipo = 'EVENTUAL'
                 }
               }
+              const filaEditada = editando?.colaboradorId === horario.colaboradorId
+              const minutos = minutosAsignados(horario.jornadas.map(j => filaEditada && j.dia === editando?.dia && !errorEntrada
+                ? { esFranco: editEsFranco, turnos: editEsFranco ? [] : editTurnos }
+                : j))
               const tipoStyle = tiposColor[tipo] || tiposColor.FULL
 
               return (
                 <tr key={horario.colaboradorId} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{
                     padding: '8px',
-                    whiteSpace: 'nowrap',
-                    fontSize: '10px',
+                    overflowWrap: 'anywhere',
+                    fontSize: '12px',
                     fontWeight: 600,
                     color: 'var(--text)',
                     position: 'sticky',
@@ -259,7 +252,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   }}>
                     {nombre}
                   </td>
-                  <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '48px' }}>
+                  <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '75px' }}>
                     <span
                       style={{
                         display: 'inline-flex',
@@ -274,32 +267,21 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                       {tipo}
                     </span>
                   </td>
-                  <td style={{
-                    padding: '8px',
-                    whiteSpace: 'nowrap',
-                    fontSize: '10px',
-                    color: 'var(--text)',
-                    width: '48px',
-                    textAlign: 'center',
-                  }}>
-                    {horario.totalHoras}h
-                  </td>
                   {DIAS_SEMANA.map((_, diaIndex) => {
-                    const jornada = horario.jornadas[diaIndex]
-                    const rol = jornada.rol || (jornada.esFranco ? 'franco' : 'cajero')
+                    const jornada = horario.jornadas.find(j => j.dia === diaIndex)
+                    const rol = jornada?.rol || (jornada?.esFranco ? 'franco' : 'cajero')
                     const bgColor = rolColor[rol] || 'var(--card)'
-                    const isFrancoReal = jornada.esFranco || rol === 'franco'
+                    const isFrancoReal = jornada?.esFranco || rol === 'franco'
                     const enEdicion = editando?.colaboradorId === horario.colaboradorId && editando?.dia === diaIndex
                     return (
                       <td
                         key={diaIndex}
-                        onClick={editable ? () => abrirEditor(horario.colaboradorId, nombre, diaIndex) : undefined}
                         title={editable ? 'Clic para editar esta jornada' : undefined}
                         style={{
                           padding: '8px',
-                          whiteSpace: 'nowrap',
-                          fontSize: '10px',
-                          width: '80px',
+                          fontSize: '11px',
+                          verticalAlign: 'top',
+                          width: '91px',
                           textAlign: 'center',
                           color: isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
                           fontStyle: isFrancoReal ? 'italic' : 'normal',
@@ -309,19 +291,27 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           outlineOffset: '-2px',
                         }}
                       >
-                        {isFrancoReal ? 'FRANCO' : formatoTurno(jornada.turnos)}
+                        {(() => {
+                          const contenido = !jornada ? '—' : isFrancoReal
+                            ? (tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO')
+                            : <>{jornada.turnos.map((t, i) => <span key={i} className="block tabular-nums">{t.inicio} - {t.fin}</span>)}
+                                {rol === 'franco_medio' && <span className="block">Medio franco</span>}</>
+                          return editable && jornada
+                            ? <button type="button" className="w-full leading-5 focus-visible:outline focus-visible:outline-2"
+                                aria-label={`Editar ${nombre}, ${DIAS_SEMANA[diaIndex]}`} onClick={() => abrirEditor(horario.colaboradorId, nombre, diaIndex)}>{contenido}</button>
+                            : contenido
+                        })()}
                       </td>
                     )
                   })}
-                  <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '96px' }}>
-                    {horario.errores.length > 0 ? (
+                  <td className="align-top p-2 break-words">
+                    <ResumenHoras minutos={minutos} tipo={tipo} objetivo={objetivoDe(horario.colaboradorId)} />
+                    {horario.errores.length > 0 && (
                       <div style={{ fontSize: '10px', color: 'var(--danger)' }}>
                         {horario.errores.map((err, idx) => (
                           <div key={idx}>• {err}</div>
                         ))}
                       </div>
-                    ) : (
-                      <span style={{ fontSize: '10px', color: 'var(--accent-strong)' }}>✅ OK</span>
                     )}
                   </td>
                 </tr>
@@ -356,42 +346,15 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
               />
               Franco
             </label>
-            {!editEsFranco && editTurnos.map((turno, idx) => (
-              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  {editTurnos.length > 1 ? `Turno ${idx + 1}:` : 'Turno:'}
-                </span>
-                <input
-                  type="time"
-                  value={turno.inicio}
-                  onChange={(e) => setEditTurnos(prev => prev.map((t, i) => i === idx ? { ...t, inicio: e.target.value } : t))}
-                  style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
-                />
-                <span style={{ color: 'var(--text-muted)' }}>→</span>
-                <input
-                  type="time"
-                  value={turno.fin}
-                  onChange={(e) => setEditTurnos(prev => prev.map((t, i) => i === idx ? { ...t, fin: e.target.value } : t))}
-                  style={{ border: '1px solid var(--border)', boxShadow: 'var(--shadow)', borderRadius: '8px', padding: '6px 8px', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
-                />
-              </div>
-            ))}
-            {!editEsFranco && editTurnos.length < 2 && (
-              <button
-                onClick={() => setEditTurnos(prev => [...prev, { inicio: '17:00', fin: '22:30' }])}
-                style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: '8px', padding: '6px 12px', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}
-              >
-                + 2º turno (cortado)
-              </button>
+            {!editEsFranco && (
+              <label className="min-w-64 text-sm">Intervalos de la jornada
+                <textarea autoFocus rows={Math.max(2, textoTurnos.split('\n').length)}
+                  value={textoTurnos} onChange={e => setTextoTurnos(e.target.value)}
+                  aria-invalid={!!errorEntrada} className="mt-1 block w-full rounded border bg-white p-2 text-gray-900"
+                  placeholder="12 a 16 y 20 a 22" />
+              </label>
             )}
-            {!editEsFranco && editTurnos.length === 2 && (
-              <button
-                onClick={() => setEditTurnos(prev => prev.slice(0, 1))}
-                style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: '8px', padding: '6px 12px', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer' }}
-              >
-                Quitar 2º turno
-              </button>
-            )}
+            {errorEntrada && <p role="alert" className="text-sm text-red-800">{errorEntrada}</p>}
             <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto' }}>
               <button
                 onClick={() => setEditando(null)}
@@ -400,6 +363,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                 Cancelar
               </button>
               <button
+                disabled={!!errorEntrada}
                 onClick={guardarEdicion}
                 style={{
                   background: hayErrores ? 'var(--warning-bg)' : 'var(--accent)',

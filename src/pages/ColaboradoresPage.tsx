@@ -3,10 +3,9 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import TablaColaboradores from '../components/colaboradores/TablaColaboradores'
-import TablaAuxiliares from '../components/colaboradores/TablaAuxiliares'
-import TablaEventuales from '../components/colaboradores/TablaEventuales'
+import TablaDisponibilidad from '../components/colaboradores/TablaDisponibilidad'
 import FormColaborador from '../components/colaboradores/FormColaborador'
-import { Colaborador } from '../types'
+import { Auxiliar, Colaborador } from '../types'
 
 export default function ColaboradoresPage() {
   const {
@@ -72,11 +71,28 @@ export default function ColaboradoresPage() {
     setEditingColaborador(null)
   }
 
-  const handleAgregarAuxiliar = () => {
-    agregarAuxiliar({
-      nombre: 'Nuevo auxiliar',
-      horarioSemanal: ['', '', '', '', '', '', ''],
-    })
+  const [editorAux, setEditorAux] = useState<{ id?: string; nombre: string; horas: string } | null>(null)
+  const [errorAux, setErrorAux] = useState('')
+  const abrirAux = (aux?: Auxiliar) => {
+    setErrorAux('')
+    setEditorAux({ id: aux?.id, nombre: aux?.nombre ?? '', horas: aux?.horasSemanales?.toString() ?? '' })
+  }
+  const guardarAux = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editorAux) return
+    const nombre = editorAux.nombre.trim().replace(/\s+/g, ' ')
+    if (!nombre) {
+      setErrorAux('Ingresá el nombre completo.')
+      return
+    }
+    if (auxiliares.some(a => a.id !== editorAux.id && a.nombre.trim().replace(/\s+/g, ' ').localeCompare(nombre, 'es', { sensitivity: 'base' }) === 0)) {
+      setErrorAux('Ya hay un auxiliar con ese nombre. Revisá la ficha existente.')
+      return
+    }
+    const horasSemanales = editorAux.horas === '' ? undefined : Number(editorAux.horas)
+    if (editorAux.id) actualizarAuxiliar(editorAux.id, { nombre, horasSemanales })
+    else agregarAuxiliar({ nombre, horasSemanales, horarioSemanal: Array(7).fill('') })
+    setEditorAux(null)
   }
 
   const handleAgregarEventual = () => {
@@ -153,7 +169,7 @@ export default function ColaboradoresPage() {
         {activeTab === 'auxiliares' && (
           <button
             disabled={cargandoAuxiliares || errorAuxiliares}
-            onClick={handleAgregarAuxiliar}
+            onClick={() => abrirAux()}
             style={{
               background: 'var(--accent)',
               color: 'var(--accent-dark)',
@@ -420,8 +436,9 @@ export default function ColaboradoresPage() {
           <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
             <strong>Patrón habitual de presencia.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
           </p>
-          <TablaAuxiliares
-            auxiliares={auxiliares}
+          <TablaDisponibilidad
+            personas={auxiliares}
+            onEditarNombre={abrirAux}
             onEdit={actualizarAuxiliar}
             onDelete={eliminarAuxiliar}
             onToggleActivo={toggleActivoAux}
@@ -434,13 +451,37 @@ export default function ColaboradoresPage() {
           <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
             <strong>Patrón habitual de disponibilidad.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
           </p>
-          <TablaEventuales
-            eventuales={eventuales}
+          <TablaDisponibilidad
+            personas={eventuales}
             onEdit={actualizarEventual}
             onDelete={eliminarEventual}
             onToggleActivo={toggleActivoEv}
           />
         </>
+      )}
+
+      {editorAux && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+          <form role="dialog" aria-modal="true" aria-labelledby="titulo-editor-aux" onSubmit={guardarAux}
+            onKeyDown={e => { if (e.key === 'Escape') setEditorAux(null) }}
+            className="w-full max-w-md space-y-4 rounded-xl bg-white p-6 text-gray-900 shadow-xl">
+            <h2 id="titulo-editor-aux" className="text-lg font-bold">{editorAux.id ? 'Editar auxiliar' : 'Agregar auxiliar'}</h2>
+            <label className="block text-sm font-medium">Nombre completo
+              <input autoFocus required value={editorAux.nombre} className="mt-1 w-full rounded border px-3 py-2"
+                onChange={e => { setEditorAux({ ...editorAux, nombre: e.target.value }); setErrorAux('') }} />
+            </label>
+            <label className="block text-sm font-medium">Objetivo semanal en horas (opcional)
+              <input type="number" min="1" max="168" step="1" value={editorAux.horas}
+                className="mt-1 w-full rounded border px-3 py-2"
+                onChange={e => setEditorAux({ ...editorAux, horas: e.target.value })} />
+            </label>
+            {errorAux && <p role="alert" className="text-sm text-red-800">{errorAux}</p>}
+            <div className="flex justify-end gap-3">
+              <button type="button" className="rounded border px-4 py-2" onClick={() => setEditorAux(null)}>Cancelar</button>
+              <button type="submit" className="rounded bg-teal-800 px-4 py-2 text-white">Guardar auxiliar</button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* Formulario modal (solo para cajeros) */}

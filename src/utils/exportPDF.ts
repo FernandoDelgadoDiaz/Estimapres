@@ -62,7 +62,7 @@ export interface MetaPDF {
 
 const fechaAR = (iso: string) => iso.split('-').reverse().join('/')
 const MARGEN = 12
-const INICIO_TABLA = 37
+const INICIO_TABLA = 42
 const TINTA = [29, 43, 55] as const
 const PETROLEO = [21, 74, 78] as const
 
@@ -75,6 +75,9 @@ export function generarPDF(
   meta: MetaPDF = {}
 ): jsPDF {
   const doc = new jsPDF({ orientation: 'landscape', format: 'a4', unit: 'mm' })
+  // Helvetica a 9–10 pt ocupa más alto que el interlineado por defecto.
+  // AutoTable usa este factor tanto al medir la fila como al dibujarla.
+  doc.setLineHeightFactor(1.48)
   const { width, height } = doc.internal.pageSize
   const ancho = width - MARGEN * 2
   const fechas = meta.fechas?.length === 7 ? meta.fechas : undefined
@@ -84,7 +87,7 @@ export function generarPDF(
     fechas ? `Semana ${fechaAR(fechas[0])} al ${fechaAR(fechas[6])}` : null,
     meta.version !== undefined ? `Versión ${meta.version}` : null,
   ].filter(Boolean).join('  ·  ')
-  const estado = meta.estado ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
+  const estado = meta.estado?.split(':')[0] ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
 
   function encabezado(titulo: string, detalle?: string) {
     doc.setFillColor(...PETROLEO)
@@ -92,10 +95,13 @@ export function generarPDF(
     doc.setTextColor(...TINTA)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(17)
-    doc.text(titulo, MARGEN, 18, { maxWidth: ancho })
+    const alternativo = `${titulo} - ${semanaDesc}`
+    const tituloCorto = !ident && titulo === 'Horarios Semanales' && doc.getTextWidth(alternativo) <= ancho
+    doc.text(tituloCorto ? alternativo : titulo, MARGEN, 18, { maxWidth: ancho })
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     if (ident) doc.text(ident, MARGEN, 24)
+    else if (semanaDesc && !tituloCorto) doc.text(doc.splitTextToSize(semanaDesc, ancho)[0], MARGEN, 24)
     if (estado) {
       doc.setFontSize(8.5)
       doc.text(`Estado: ${estado}`, MARGEN, 29)
@@ -111,12 +117,13 @@ export function generarPDF(
       theme: 'grid',
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
+      tableWidth: ancho,
       margin: { top: INICIO_TABLA, bottom: 15, left: MARGEN, right: MARGEN },
       startY: INICIO_TABLA,
       headStyles: { fillColor: [...PETROLEO], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [244, 248, 248] },
       ...opciones,
-      styles: { cellPadding: 1.6, fontSize: 9, textColor: [...TINTA], overflow: 'linebreak', valign: 'middle', ...opciones.styles },
+      styles: { cellPadding: { top: 2, bottom: 2, left: 1.8, right: 1.8 }, fontSize: 10, textColor: [...TINTA], overflow: 'linebreak', valign: 'top', ...opciones.styles },
       willDrawPage: () => encabezado(titulo, detalle),
     })
   }
@@ -145,14 +152,14 @@ export function generarPDF(
     ]
   })
 
-  const anchoDiaNominal = (ancho - 94) / 7
-  tabla(fechas ? 'Horarios Semanales' : `Horarios Semanales - ${semanaDesc}`, {
+  const anchoDiaNominal = (ancho - 97) / 7
+  tabla('Horarios Semanales', {
     head: [['Colaborador', 'Tipo', 'Horas', ...dias]],
     body: nominal,
     styles: { halign: 'center' },
     columnStyles: {
-      0: { cellWidth: 58, halign: 'left' },
-      1: { cellWidth: 21 },
+      0: { cellWidth: 56, halign: 'left' },
+      1: { cellWidth: 26 },
       2: { cellWidth: 15 },
       ...Object.fromEntries(dias.map((_, d) => [d + 3, { cellWidth: anchoDiaNominal }])),
     },
@@ -178,8 +185,8 @@ export function generarPDF(
       styles: { halign: 'center' },
       columnStyles: {
         0: { cellWidth: 58, halign: 'left' },
-        1: { cellWidth: 21 },
-        ...Object.fromEntries(dias.map((_, d) => [d + 2, { cellWidth: (ancho - 79) / 7 }])),
+        1: { cellWidth: 26 },
+        ...Object.fromEntries(dias.map((_, d) => [d + 2, { cellWidth: (ancho - 84) / 7 }])),
       },
     }, 'Bloques en caja de AUX y eventuales. Un guion indica que no hay asignación.')
   }
@@ -232,11 +239,12 @@ export function generarPDF(
     }
   }
 
-  if (resultado.alertas.length > 0) {
+  const alertas = [...resultado.alertas, ...(meta.validacion?.advertencias ?? [])]
+  if (alertas.length > 0) {
     doc.addPage()
     tabla('Alertas de generación', {
       head: [['N.º', 'Detalle']],
-      body: resultado.alertas.map((alerta, i) => [i + 1, sanitizarTexto(alerta)]),
+      body: alertas.map((alerta, i) => [i + 1, sanitizarTexto(alerta)]),
       columnStyles: { 0: { cellWidth: 14 }, 1: { cellWidth: ancho - 14 } },
     }, `Cobertura al generar: ${resultado.porcentajeCobertura.toFixed(1)} %`)
   }

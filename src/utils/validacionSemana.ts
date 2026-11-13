@@ -2,6 +2,7 @@
 // para la UI y el PDF, usando el validador independiente (VAL-01).
 import type { Auxiliar, Colaborador, Eventual, ExcepcionSemanal, Franja, HorarioColaborador, ResultadoAsignacion } from '../types'
 import { PERFIL_MOTOR_ACTUAL, validarHorario, type PerfilNormativo, type ResultadoValidacion } from '../algoritmo/validadorIndependiente'
+import { horasLegibles, minutosAsignados, resumenHoras } from './horasSemanales'
 import type { HuecoSupervision } from './disponibilidadHabitual'
 import { normalizarExcepciones, type MinimoFranja } from './preferencias'
 
@@ -39,14 +40,19 @@ export function validarResultadoSemana(
     cajaEventual: resultado.cajaEventual,
     semanaAnterior: ctx.semanaAnterior,
   })
-  if (!ctx.huecosSupervision?.length) return validacion
+  const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales)
+  const huecos = ctx.huecosSupervision ?? []
+  if (!huecos.length && !horas.violaciones.length) return { ...validacion, advertencias: horas.advertencias }
+
   return {
     ...validacion,
+    advertencias: horas.advertencias,
     ok: false,
     publicable: false,
     violaciones: [
       ...validacion.violaciones,
-      ...ctx.huecosSupervision.map(h => ({
+      ...horas.violaciones,
+      ...huecos.map(h => ({
         codigo: h.tipo === 'APERTURA' ? 'H-A1' : 'H-A2',
         nivel: 'OPERATIVA' as const,
         dia: h.dia,
@@ -54,6 +60,28 @@ export function validarResultadoSemana(
       })),
     ],
   }
+}
+
+export function validarHorasAsignadas(
+  horarios: HorarioColaborador[], colaboradores: Colaborador[], eventuales: Eventual[],
+): Pick<ResultadoValidacion, 'violaciones'> & { advertencias: string[] } {
+  const roster = new Map<string, { nombre: string; tipo: string; objetivo?: number }>([
+    ...colaboradores.map(c => [c.id, { nombre: c.nombre, tipo: c.tipo, objetivo: c.horasSemanales }] as const),
+    ...eventuales.map(e => [e.id, { nombre: e.nombre, tipo: 'EVENTUAL', objetivo: e.maxHorasSemanales }] as const),
+  ])
+  const violaciones: ResultadoValidacion['violaciones'] = []
+  const advertencias: string[] = []
+  for (const h of horarios) {
+    const persona = roster.get(h.colaboradorId)
+    if (!persona) continue
+    const { asignados, limite, exceso, preventivo } = resumenHoras(minutosAsignados(h.jornadas), persona.tipo, persona.objetivo)
+    if (exceso) violaciones.push({
+      codigo: 'OP_HORAS_FICHA', nivel: 'OPERATIVA', colaboradorId: h.colaboradorId,
+      detalle: `${persona.nombre}: ${horasLegibles(asignados)} asignadas. Límite en ficha: ${limite} h.`,
+    })
+    if (preventivo) advertencias.push(`${persona.nombre}: ${horasLegibles(asignados)} asignadas. Supera 48 h (aviso preventivo).`)
+  }
+  return { violaciones, advertencias }
 }
 
 /** Texto de estado para UI y PDF. */

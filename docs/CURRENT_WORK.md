@@ -1,5 +1,14 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## Retoma — corrección de la operación real de la 091 · 2026-11-13
+
+- Base publicada `0460b706cf2b9f51dcf71c4d79db1dcb482fb882`, rama `fix/ah2-operacion-real`, [Issue #36](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/36). El PR de la rama registra el SHA exacto del candidato.
+- PDF semanal en Nueva Semana y Último Horario. AutoTable ahora mide y dibuja con el mismo interlineado ampliado, reserva margen para encabezado/pie y pagina las filas. El caso guardado de la 091, leído sin escrituras y con nombres sustituidos, pasó de 66 cruces de cajas de texto a 0 en 5 páginas renderizadas. El repositorio contiene solo fixtures sintéticos. El PDF de Historial sigue siendo el resumen de versiones.
+- Alta AUX mediante formulario con foco, nombre completo y objetivo opcional. Cambios de la misma ficha se escriben en orden. Las celdas de AUX/eventuales crecen al escribir y la grilla nominal muestra un bloque por línea. Parser común para disponibilidad, excepciones, edición manual y franja de reglas. Se conserva el formato histórico en almacenamiento y se mantienen las medias horas del motor.
+- Horas por fila calculadas a partir de bloques sin solaparlos ni contar francos. El objetivo FULL/PART viene de la ficha. Para AUX se mide presencia y para eventuales hay máximo opcional con aviso preventivo sobre 48 h. El campo existente `horas_semanales` guarda los valores opcionales. Los excesos configurados entran en la revisión final, sin cambiar el optimizador.
+- Pruebas locales: instalación limpia, TypeScript, build, Vitest 218/218 con POM y semana locales, Playwright 10/10 incluida recarga y reingreso con backend simulado. `npm run lint` falla también en la base por falta de configuración ESLint.
+- El candidato está para revisión en borrador. Próxima acción: revisar CI y evidencia visual, y probar una impresión al 100% y el reingreso en la cuenta 091 tras una publicación autorizada. Sin merge, deploy ni escrituras en Supabase.
+
 ## PUNTO ÚNICO DE RETOMA — preparación del piloto 091 · 2026-11-13
 
 - **Rama de tarea:** `fix/ah2-desbloqueo-piloto`, desde `bb8753fa7f5d78e39af10a15040fa09dfc02e669`. El SHA definitivo del release y sus checks se registran en el [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30). La Entrega 1 en producción corresponde a `main@8aa104db17f87250661d7e2348af1190e9806759`.

@@ -1,3 +1,4 @@
+import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
 import { useMemo, useState } from 'react'
 import { DIAS_SEMANA, ReglaConfigurable, TipoReglaColaborador, TipoReglaLocal } from '../types'
 import { useReglas } from '../hooks/useReglas'
@@ -85,8 +86,7 @@ export default function ReglasPage() {
   const [colaboradorNombre, setColaboradorNombre] = useState('')
   const [dia, setDia] = useState<number>(-1)
   const [hora, setHora] = useState('')
-  const [horaDesde, setHoraDesde] = useState('')
-  const [horaHasta, setHoraHasta] = useState('')
+  const [franja, setFranja] = useState('')
   const [cantidad, setCantidad] = useState<number>(2)
   const [conVigencia, setConVigencia] = useState(false)
   const [vigenciaDesde, setVigenciaDesde] = useState('')
@@ -102,7 +102,7 @@ export default function ReglasPage() {
     setErrorForm('')
   }
 
-  const describir = (): string => {
+  const describir = (horaDesde?: string, horaHasta?: string): string => {
     const vigencia = conVigencia && (vigenciaDesde || vigenciaHasta)
       ? ` (vigente ${vigenciaDesde || 'siempre'} → ${vigenciaHasta || 'sin límite'})`
       : ''
@@ -133,8 +133,10 @@ export default function ReglasPage() {
       setErrorForm('Ingresá la hora.')
       return
     }
-    if (tipo === 'min_cajeros_franja' && (!horaDesde || !horaHasta || horaHasta <= horaDesde)) {
-      setErrorForm('Ingresá una franja horaria válida (desde < hasta).')
+    const intervalo = interpretarHorario(franja, { ...opcionesHorarioMotor, maxBloques: 1 })
+    const turno = intervalo.ok ? intervalo.turnos[0] : undefined
+    if (tipo === 'min_cajeros_franja' && !turno) {
+      setErrorForm(intervalo.ok ? 'Ingresá una franja, por ejemplo 12 a 22.' : intervalo.error)
       return
     }
     if ((tipo === 'min_cajeros_franja' || tipo === 'max_francos_dia') && cantidad < 1) {
@@ -148,20 +150,19 @@ export default function ReglasPage() {
       colaboradorNombre: ambito === 'colaborador' ? colaboradorNombre : undefined,
       dia: tipo === 'franco_fijo' || tipo === 'min_cajeros_franja' ? dia : undefined,
       hora: tipo === 'no_antes_de' || tipo === 'no_despues_de' ? hora : undefined,
-      horaDesde: tipo === 'min_cajeros_franja' ? horaDesde : undefined,
-      horaHasta: tipo === 'min_cajeros_franja' ? horaHasta : undefined,
+      horaDesde: tipo === 'min_cajeros_franja' ? turno?.inicio : undefined,
+      horaHasta: tipo === 'min_cajeros_franja' ? turno?.fin : undefined,
       cantidad: tipo === 'min_cajeros_franja' || tipo === 'max_francos_dia' ? cantidad : undefined,
       vigenciaDesde: conVigencia && vigenciaDesde ? vigenciaDesde : undefined,
       vigenciaHasta: conVigencia && vigenciaHasta ? vigenciaHasta : undefined,
-      descripcion: describir(),
+      descripcion: describir(turno?.inicio, turno?.fin),
     })
 
     // limpiar campos de valor, mantener ámbito/tipo para cargas en serie
     setColaboradorNombre('')
     setDia(-1)
     setHora('')
-    setHoraDesde('')
-    setHoraHasta('')
+    setFranja('')
     setConVigencia(false)
     setVigenciaDesde('')
     setVigenciaHasta('')
@@ -326,16 +327,10 @@ export default function ReglasPage() {
           )}
 
           {pideFranja && (
-            <>
-              <div>
-                <label style={labelStyle}>Desde</label>
-                <input type="time" value={horaDesde} onChange={e => setHoraDesde(e.target.value)} style={inputStyle} step={1800} />
-              </div>
-              <div>
-                <label style={labelStyle}>Hasta</label>
-                <input type="time" value={horaHasta} onChange={e => setHoraHasta(e.target.value)} style={inputStyle} step={1800} />
-              </div>
-            </>
+            <label style={labelStyle}>Franja horaria
+              <input type="text" value={franja} onChange={e => setFranja(e.target.value)}
+                placeholder="12 a 22" style={inputStyle} />
+            </label>
           )}
 
           {pideCantidad && (

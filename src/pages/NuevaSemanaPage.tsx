@@ -277,7 +277,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       antes: { esFranco: jornadaAnterior.esFranco, turnos: jornadaAnterior.turnos },
       despues: nueva,
     })
-    editarJornada(colaboradorId, dia, nueva)
+    editarJornada(colaboradorId, dia, nueva, nombrePorId[colaboradorId])
     if (semanaGuardadaId) actualizarSemana(semanaGuardadaId, { editadoManualmente: true })
   }
 
@@ -287,6 +287,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     if (resultado && semanaGuardadaId) {
       actualizarSemana(semanaGuardadaId, {
         horarios: resultado.horarios,
+        cajaEventual: resultado.cajaEventual,
         resumenPorColaborador: resumirTurnos(resultado.horarios, nombrePorId),
       })
     }
@@ -1138,6 +1139,11 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   Horas-caja faltantes: {validacion.metricas.horasCajaFaltantes} · sobrantes: {validacion.metricas.horasCajaSobrantes}
                 </p>
+              )}
+              {!!validacion.advertencias?.length && (
+                <ul className="mt-2 list-disc pl-5 font-semibold text-amber-900">
+                  {validacion.advertencias.map(a => <li key={a}>{a}</li>)}
+                </ul>
               )}
               {validacion.violaciones.length > 0 && (
                 <ul style={{ marginTop: '8px', fontSize: '13px' }}>

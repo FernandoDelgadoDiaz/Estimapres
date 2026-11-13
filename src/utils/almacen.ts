@@ -114,14 +114,22 @@ function encolarReintento(clave: string, ejecutar: () => Promise<boolean>): void
   }
 }
 
+let procesandoCola = false
+
 async function procesarColaSync(): Promise<void> {
-  for (let i = colaSync.length - 1; i >= 0; i--) {
+  if (procesandoCola) return
+  procesandoCola = true
+  for (const op of [...colaSync].reverse()) {
     try {
-      if (await colaSync[i].ejecutar()) colaSync.splice(i, 1)
+      if (await op.ejecutar()) {
+        const indice = colaSync.indexOf(op)
+        if (indice >= 0) colaSync.splice(indice, 1)
+      }
     } catch {
       // sigue pendiente, se reintenta en el próximo ciclo
     }
   }
+  procesandoCola = false
   emitirEstadoSync()
   if (colaSync.length === 0 && timerSync) {
     clearInterval(timerSync)
@@ -657,7 +665,7 @@ function itemAFilaRoster(grupo: GrupoRoster, item: ItemRoster): FilaRoster {
     grupo,
     nombre: item.nombre,
     tipo: grupo === 'cajero' ? (c.tipo ?? null) : null,
-    horas_semanales: grupo === 'cajero' ? (c.horasSemanales ?? null) : null,
+    horas_semanales: (grupo === 'eventual' ? c.maxHorasSemanales : c.horasSemanales) ?? null,
     horario_semanal: grupo === 'cajero' ? null : (c.horarioSemanal ?? []),
     sector: grupo === 'eventual' ? (c.sector ?? '') : null,
     activo: item.activo,
@@ -677,9 +685,11 @@ function filaAItemRoster(grupo: GrupoRoster, f: FilaRoster): ItemRoster {
   }
   const horario = Array.isArray(f.horario_semanal) ? (f.horario_semanal as string[]) : ['', '', '', '', '', '', '']
   if (grupo === 'auxiliar') {
-    return { id: f.id, nombre: f.nombre, horarioSemanal: horario, activo: f.activo }
+    return { id: f.id, nombre: f.nombre, horarioSemanal: horario, activo: f.activo,
+      ...(f.horas_semanales != null ? { horasSemanales: f.horas_semanales } : {}) }
   }
-  return { id: f.id, nombre: f.nombre, sector: f.sector ?? '', horarioSemanal: horario, activo: f.activo }
+  return { id: f.id, nombre: f.nombre, sector: f.sector ?? '', horarioSemanal: horario, activo: f.activo,
+    ...(f.horas_semanales != null ? { maxHorasSemanales: f.horas_semanales } : {}) }
 }
 
 // Cache de carga por grupo: los hooks del mismo grupo comparten UNA query
@@ -741,25 +751,57 @@ export async function cargarGrupoRoster<T extends ItemRoster>(grupo: GrupoRoster
   return p as Promise<T[]>
 }
 
-/** Upsert inmediato de un colaborador del roster (con reintento si falla). */
+const escriturasRoster = new Map<string, Promise<void>>()
+
+/** Serializa los cambios sucesivos de la misma ficha y reintenta el último. */
 export async function guardarItemRoster(grupo: GrupoRoster, item: ItemRoster): Promise<void> {
-  const uid = await backendUid()
-  if (!uid || !supabase) return
+  if (!supabase) return
   const fila = itemAFilaRoster(grupo, item)
-  const { error } = await supabase.from('colaboradores').upsert(fila)
-  if (error) {
+  const pendiente = escriturasRoster.get(item.id)
+  const escritura = (async () => {
+    const uid = await backendUid()
+    if (!uid || !supabase) return
+    await pendiente?.catch(() => {})
+    const { error } = await supabase.from('colaboradores').upsert({ ...fila, local_id: uid })
+    if (!error) {
+      const indice = colaSync.findIndex(op => op.clave === `roster:${item.id}`)
+      if (indice >= 0) colaSync.splice(indice, 1)
+      emitirEstadoSync()
+      return
+    }
     console.warn('Error guardando roster; reintentando sync con Supabase:', error.message)
     encolarReintento(`roster:${item.id}`, async () => {
-      if (!supabase) return false
-      const { error: err } = await supabase.from('colaboradores').upsert(fila)
-      return !err
+      if (!supabase || escriturasRoster.has(item.id)) return false
+      const cliente = supabase
+      const reintento = (async () => {
+        if (await backendUid() !== uid) return false
+        const { error: fallo } = await cliente.from('colaboradores').upsert({ ...fila, local_id: uid })
+        return !fallo
+      })()
+      const barrera = reintento.then(() => {}, () => {})
+      escriturasRoster.set(item.id, barrera)
+      try {
+        return await reintento
+      } finally {
+        if (escriturasRoster.get(item.id) === barrera) escriturasRoster.delete(item.id)
+      }
     })
+  })()
+  escriturasRoster.set(item.id, escritura)
+  try {
+    await escritura
+  } finally {
+    if (escriturasRoster.get(item.id) === escritura) escriturasRoster.delete(item.id)
   }
 }
 
 export async function eliminarItemRoster(id: string): Promise<void> {
   const uid = await backendUid()
   if (!uid || !supabase) return
+  await escriturasRoster.get(id)?.catch(() => {})
+  const pendiente = colaSync.findIndex(op => op.clave === `roster:${id}`)
+  if (pendiente >= 0) colaSync.splice(pendiente, 1)
+  emitirEstadoSync()
   const { error } = await supabase.from('colaboradores').delete().eq('id', id)
   if (error) {
     console.warn('Baja de roster local; reintentando sync con Supabase:', error.message)

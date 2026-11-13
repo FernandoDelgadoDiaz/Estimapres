@@ -877,7 +877,7 @@ export function validarEdicionManual(
 
   // --- Descanso 12h entre este día y los adyacentes (H-D1) ---
   const chequeoDescanso = (previa: JornadaResumida | undefined, siguiente: JornadaResumida | undefined) => {
-    if (!previa || previa.esFranco || jornadaEditada.esFranco) return
+    if (!previa?.turnos.length || previa.esFranco || jornadaEditada.esFranco) return
     if (siguiente) return
     const finPrev = horaAMinutos(previa.turnos[previa.turnos.length - 1].fin)
     const inicioHoy = horaAMinutos(jornadaEditada.turnos[0].inicio)
@@ -889,7 +889,7 @@ export function validarEdicionManual(
   }
   chequeoDescanso(semana[dia - 1], undefined)
   // día siguiente
-  if (!jornadaEditada.esFranco && dia < 6 && semana[dia + 1] && !semana[dia + 1].esFranco) {
+  if (!jornadaEditada.esFranco && dia < 6 && semana[dia + 1]?.turnos.length && !semana[dia + 1].esFranco) {
     const finHoy = horaAMinutos(jornadaEditada.turnos[jornadaEditada.turnos.length - 1].fin)
     const inicioSig = horaAMinutos(semana[dia + 1].turnos[0].inicio)
     const descanso = (24 * 60 - finHoy) + inicioSig

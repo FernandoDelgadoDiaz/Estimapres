@@ -1,5 +1,7 @@
+import { minutosDesdeMedianoche } from '../utils/timeUtils'
 import { useState } from 'react'
 import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual, JornadaResumida, HorarioColaborador } from '../types'
+import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
 
@@ -19,19 +21,13 @@ export function aplicarEdicionJornada(
     if (h.colaboradorId !== colaboradorId) return h
     const jornadas = h.jornadas.map(j => {
       if (j.dia !== dia) return j
-      const horas = nueva.esFranco
-        ? 0
-        : nueva.turnos.reduce((sum, t) => {
-            const [hi, mi] = t.inicio.split(':').map(Number)
-            const [hf, mf] = t.fin.split(':').map(Number)
-            return sum + (hf * 60 + (mf || 0) - hi * 60 - (mi || 0)) / 60
-          }, 0)
+      const horas = minutosAsignados([nueva]) / 60
       return {
         ...j,
         esFranco: nueva.esFranco,
         turnos: nueva.esFranco ? [] : nueva.turnos,
         horas,
-        rol: nueva.esFranco ? ('franco' as const) : ('cajero' as const),
+        rol: nueva.esFranco ? 'franco' as const : j.esFranco ? h.rolGeneral : j.rol,
       }
     })
     return {
@@ -40,6 +36,23 @@ export function aplicarEdicionJornada(
       totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
     }
   })
+}
+
+/** Refleja las ediciones de caja de eventuales en el anexo y la cobertura. */
+export function actualizarCajaEventual(
+  caja: ResultadoAsignacion['cajaEventual'], id: string, dia: number, jornada: JornadaResumida, nombre: string,
+): NonNullable<ResultadoAsignacion['cajaEventual']> {
+  const existentes = caja ?? []
+  const anterior = existentes.find(a => a.colaboradorId === id)
+  const slotsCajaPorDia = Array.from({ length: 7 }, (_, d) => {
+    if (d !== dia) return anterior?.slotsCajaPorDia[d] ?? Array<boolean>(30).fill(false)
+    return Array.from({ length: 30 }, (_, slot) => {
+      const inicio = 8 * 60 + slot * 30
+      return !jornada.esFranco && jornada.turnos.some(turno =>
+        minutosDesdeMedianoche(turno.inicio) <= inicio && minutosDesdeMedianoche(turno.fin) > inicio)
+    })
+  })
+  return [...existentes.filter(a => a.colaboradorId !== id), { colaboradorId: id, nombre, slotsCajaPorDia }]
 }
 
 export function useAsignacion() {
@@ -99,10 +112,15 @@ export function useAsignacion() {
    * Edición manual del horario generado (Capacidad 3). Reemplaza la jornada
    * de un colaborador en un día y recalcula las horas totales.
    */
-  const editarJornada = (colaboradorId: string, dia: number, nueva: JornadaResumida) => {
+  const editarJornada = (colaboradorId: string, dia: number, nueva: JornadaResumida, nombre?: string) => {
     setResultado(prev => {
       if (!prev) return prev
-      return { ...prev, horarios: aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva) }
+      const esEventual = prev.horarios.some(h => h.colaboradorId === colaboradorId && h.rolGeneral === 'eventual_sector')
+      return {
+        ...prev,
+        horarios: aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva),
+        cajaEventual: esEventual ? actualizarCajaEventual(prev.cajaEventual, colaboradorId, dia, nueva, nombre ?? colaboradorId) : prev.cajaEventual,
+      }
     })
   }
 
