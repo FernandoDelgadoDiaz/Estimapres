@@ -42,9 +42,9 @@ type Paso = 'upload' | 'revisar' | 'resultado'
 export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string }) {
   const [paso, setPaso] = useState<Paso>('upload')
   const { necesidad, loading: loadingPDF, error: errorPDF, parsearPDF, reset: resetPDF } = usePDFParser()
-  const { colaboradores, colaboradoresActivos, loading: cargandoColaboradores } = useColaboradores()
-  const { auxiliaresActivos, loading: cargandoAuxiliares } = useAuxiliares()
-  const { eventualesActivos, loading: cargandoEventuales } = useEventuales()
+  const { colaboradores, colaboradoresActivos, loading: cargandoColaboradores, errorCarga: errorColaboradores } = useColaboradores()
+  const { auxiliaresActivos, loading: cargandoAuxiliares, errorCarga: errorAuxiliares } = useAuxiliares()
+  const { eventualesActivos, loading: cargandoEventuales, errorCarga: errorEventuales } = useEventuales()
   const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, editarJornada, reset: resetAsignacion } = useAsignacion()
   const { reglas, reglasActivas } = useReglas()
   const { historial, agregarSemana, actualizarSemana } = useHistorial()
@@ -180,12 +180,13 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   )
 
   const cargandoDotacion = cargandoColaboradores || cargandoAuxiliares || cargandoEventuales
+  const errorDotacion = errorColaboradores || errorAuxiliares || errorEventuales
   const fechasSemana = useMemo(() => esLunesISO(lunesSemana) ? fechasDeSemana(lunesSemana) : [], [lunesSemana])
   const disponibilidad = useMemo(
-    () => !cargandoDotacion && fechasSemana.length
+    () => !cargandoDotacion && !errorDotacion && fechasSemana.length
       ? prepararDisponibilidadSemana(auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana[0])
       : null,
-    [auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana, cargandoDotacion]
+    [auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana, cargandoDotacion, errorDotacion]
   )
   const excepcionesDeLaSemana = excepcionesDisponibilidad.filter(x => fechasSemana.includes(x.fecha))
   const generacionDeshabilitada = loadingAsignacion || !disponibilidad || disponibilidad.errores.length > 0
@@ -522,6 +523,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
           </div>
 
           {cargandoDotacion && <p role="status">Cargando dotación…</p>}
+          {errorDotacion && <p role="alert">No se pudo cargar la dotación. Recargá la página antes de generar.</p>}
           {disponibilidad && (
             <DisponibilidadSemana
               key={fechasSemana[0]}

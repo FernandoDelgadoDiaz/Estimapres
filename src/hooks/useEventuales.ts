@@ -1,34 +1,33 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Eventual } from '../types'
-import { claveConSucursal } from '../utils/sucursal'
-import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, actualizarCacheRoster, CLAVES_ROSTER } from '../utils/almacen'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, actualizarCacheRoster } from '../utils/almacen'
 
 /**
  * Eventuales de otros sectores. Persisten en Supabase (tabla colaboradores,
- * por sucursal); localStorage como backup offline. Estado optimista.
+ * por sucursal); el modo sin Supabase guarda en el dispositivo.
  */
 export function useEventuales() {
   const [eventuales, setEventuales] = useState<Eventual[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
 
   useEffect(() => {
     let vivo = true
     cargarGrupoRoster<Eventual>('eventual')
-      .then(es => { if (vivo) setEventuales(es) })
-      .catch(error => console.error('Error cargando eventuales:', error))
+      .then(items => { if (vivo) setEventuales(items) })
+      .catch(error => {
+        console.error('Error cargando eventuales:', error)
+        if (vivo) setErrorCarga(true)
+      })
       .finally(() => { if (vivo) setLoading(false) })
     return () => { vivo = false }
   }, [])
 
-  // Backup local automático (offline) + sincronización del cache compartido:
-  // un eventual desactivado acá NO debe entrar a la generación de horarios.
+  // Comparte el roster vigente con la generación de horarios.
   useEffect(() => {
-    if (!loading) {
-      localStorage.setItem(claveConSucursal(CLAVES_ROSTER.eventual), JSON.stringify(eventuales))
-      actualizarCacheRoster('eventual', eventuales)
-    }
-  }, [eventuales, loading])
+    if (!loading && !errorCarga) actualizarCacheRoster('eventual', eventuales)
+  }, [eventuales, loading, errorCarga])
 
   const agregarEventual = (nuevo: Omit<Eventual, 'id' | 'activo'>) => {
     const eventual: Eventual = { ...nuevo, id: uuidv4(), activo: true }
@@ -62,6 +61,7 @@ export function useEventuales() {
     eventuales,
     eventualesActivos,
     loading,
+    errorCarga,
     agregarEventual,
     actualizarEventual,
     eliminarEventual,

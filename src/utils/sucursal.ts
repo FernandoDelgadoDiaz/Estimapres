@@ -23,10 +23,6 @@ export function setSucursalActual(sucursal: string): void {
   }
 }
 
-export function esSucursalPorDefecto(): boolean {
-  return getSucursalActual() === SUCURSAL_POR_DEFECTO
-}
-
 /**
  * Clave de localStorage con namespace por sucursal. La sucursal por defecto
  * conserva las claves históricas (los datos existentes siguen visibles);

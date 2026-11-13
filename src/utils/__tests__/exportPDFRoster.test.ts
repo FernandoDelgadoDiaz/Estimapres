@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.js'
+import { abrirPDFNode } from './fixtures/pdfTextoNode'
 import { describe, expect, it } from 'vitest'
 import { generarPDF } from '../exportPDF'
 import { fechasDeSemana } from '../pomContrato'
@@ -86,7 +86,7 @@ describe('PDF semanal A4', () => {
     const salidaQA = process.env.AH2_PDF_QA_DIR
     if (salidaQA) writeFileSync(join(salidaQA, `horarios-${cantidad}.pdf`), buffer)
 
-    const pdfReabierto = await pdfjs.getDocument({ data: buffer }).promise
+    const pdfReabierto = await abrirPDFNode(buffer)
     const titulos = new Map<string, number>()
     const nombresVistos: string[] = []
     const textos: string[] = []
