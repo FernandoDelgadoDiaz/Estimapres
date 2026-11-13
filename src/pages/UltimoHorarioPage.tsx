@@ -1,3 +1,4 @@
+import { validarHorasAsignadas } from '../utils/validacionSemana'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { JornadaResumida, ResultadoAsignacion } from '../types'
@@ -6,7 +7,7 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import { useCorrecciones } from '../hooks/useCorrecciones'
-import { aplicarEdicionJornada } from '../hooks/useAsignacion'
+import { aplicarEdicionJornada, actualizarCajaEventual } from '../hooks/useAsignacion'
 import { resumirTurnos } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
@@ -57,6 +58,9 @@ export default function UltimoHorarioPage() {
     return cob.map((fila, fi) => fila.map((x, dia) => x + (falt[fi]?.[dia] ?? 0)))
   }, [ultimaSemana])
 
+  const controlHoras = validarHorasAsignadas(ultimaSemana?.horarios ?? [], colaboradoresActivos, eventualesActivos)
+  const avisosHoras = [...controlHoras.violaciones.map(v => v.detalle), ...controlHoras.advertencias]
+
   // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el
   // snapshot de cobertura/CAJA guardado al generar (si existe).
   const handleExportarPDF = () => {
@@ -65,7 +69,7 @@ export default function UltimoHorarioPage() {
       horarios: ultimaSemana.horarios,
       coberturaFranjas: ultimaSemana.coberturaFranjas ?? [],
       faltantesFranjas: ultimaSemana.faltantesFranjas ?? [],
-      alertas: [],
+      alertas: avisosHoras,
       porcentajeCobertura: ultimaSemana.porcentajeCobertura ?? 0,
       cajaAux: ultimaSemana.cajaAux,
       cajaEventual: ultimaSemana.cajaEventual,
@@ -113,6 +117,9 @@ export default function UltimoHorarioPage() {
     actualizarSemana(ultimaSemana.id, {
       horarios,
       cajaAux,
+      cajaEventual: filaEditada?.rolGeneral === 'eventual_sector'
+        ? actualizarCajaEventual(ultimaSemana.cajaEventual, colaboradorId, dia, nueva, nombrePorId[colaboradorId] ?? colaboradorId)
+        : ultimaSemana.cajaEventual,
       resumenPorColaborador: resumirTurnos(horarios, nombrePorId),
       editadoManualmente: true,
     })
@@ -219,6 +226,12 @@ export default function UltimoHorarioPage() {
             />
           )}
 
+          {!!avisosHoras.length && (
+            <section aria-label="Avisos de horas semanales" className="mb-4 rounded border border-amber-300 bg-amber-50 p-4 text-amber-950">
+              <strong>Revisá las horas semanales</strong>
+              <ul className="list-disc pl-5">{avisosHoras.map(aviso => <li key={aviso}>{aviso}</li>)}</ul>
+            </section>
+          )}
           <TablaHorarios
             horarios={ultimaSemana.horarios}
             colaboradores={colaboradoresActivos}

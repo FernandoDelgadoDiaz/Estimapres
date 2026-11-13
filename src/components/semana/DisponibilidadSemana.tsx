@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
+import { interpretarHorario, mostrarHorario, opcionesHorarioMotor } from '../../utils/timeUtils'
 import { DIAS_SEMANA } from '../../types'
-import { horarioValido, type ExcepcionDisponibilidad, type HuecoSupervision, type OrigenDia } from '../../utils/disponibilidadHabitual'
+import { type ExcepcionDisponibilidad, type HuecoSupervision, type OrigenDia } from '../../utils/disponibilidadHabitual'
 
 interface Persona {
   id: string
@@ -37,14 +38,14 @@ export default function DisponibilidadSemana({
 
   function agregar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const horarioEfectivo = sinDisponibilidad ? '' : horario.trim()
+    const entrada = interpretarHorario(sinDisponibilidad ? '' : horario, opcionesHorarioMotor)
     const responsable = autorSesion || autor.trim()
     if (!personas.some(p => p.id === colaboradorId) || !fechas.includes(fecha)) {
       setError('Elegí una persona activa y una fecha de esta semana.')
       return
     }
-    if ((!sinDisponibilidad && !horarioEfectivo) || !horarioValido(horarioEfectivo)) {
-      setError('Ingresá bloques en medias horas, ordenados y sin superposición, o marcá Sin disponibilidad.')
+    if (!entrada.ok || (!sinDisponibilidad && !entrada.turnos.length)) {
+      setError(entrada.ok ? 'Ingresá un horario o marcá Sin disponibilidad.' : entrada.error)
       return
     }
     if (!motivo.trim() || !responsable) {
@@ -55,7 +56,7 @@ export default function DisponibilidadSemana({
       setError('Ya existe una excepción para esta persona y fecha. Quitala para reemplazarla.')
       return
     }
-    onAgregar({ colaboradorId, fecha, horario: horarioEfectivo, motivo: motivo.trim(), autor: responsable, creadaEn: new Date().toISOString() })
+    onAgregar({ colaboradorId, fecha, horario: entrada.normalizado, motivo: motivo.trim(), autor: responsable, creadaEn: new Date().toISOString() })
     setHorario('')
     setMotivo('')
     setSinDisponibilidad(false)
@@ -106,7 +107,7 @@ export default function DisponibilidadSemana({
                       <th scope="row" className="p-2">{p.nombre} · {p.tipo}</th>
                       {fechas.map((f, d) => (
                         <td key={f} className="p-2 align-top">
-                          <span className="block whitespace-nowrap">{p.horarioSemanal[d]?.trim() || 'Sin disponibilidad'}</span>
+                          <span className="block whitespace-pre-line">{mostrarHorario(p.horarioSemanal[d]?.trim() || '') || 'Sin disponibilidad'}</span>
                           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                             {origen[p.id]?.[d] === 'excepcion' ? 'Excepción' : 'Habitual'}
                           </span>

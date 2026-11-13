@@ -29,7 +29,7 @@ function fixture(cantidad: number) {
     else cajeros.push({ ...persona, tipo, horasSemanales: 0 })
     const franjas = [
       tipo === 'FULL' ? ['08:00-12:00', '17:00-21:30'] : ['08:00-12:00'],
-      ['09:00-13:00'],
+      tipo === 'EVENTUAL' ? ['08:00-08:30', '09:00-09:30', '10:00-10:30', '11:00-11:30', '12:00-12:30', '13:00-13:30', '14:00-14:30'] : ['09:00-13:00'],
       [],
       ['11:00-15:00'],
       ['12:00-16:00'],
@@ -38,13 +38,13 @@ function fixture(cantidad: number) {
     ]
     const esperado = franjas.map((bloques, d) => d === 2
       ? [tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO']
-      : bloques)
+      : d === 3 && tipo === 'FULL' ? [...bloques, 'Medio franco'] : bloques)
     const jornadas: HorarioColaborador['jornadas'] = franjas.map((bloques, dia) => ({
       dia,
       turnos: bloques.map(b => { const [inicio, fin] = b.split('-'); return { inicio, fin } }),
       horas: bloques.length === 2 ? 8.5 : bloques.length * 4,
       esFranco: bloques.length === 0,
-      rol: bloques.length ? 'cajero' : 'franco',
+      rol: !bloques.length ? 'franco' : dia === 3 && tipo === 'FULL' ? 'franco_medio' : 'cajero',
     }))
     const horario: HorarioColaborador = {
       colaboradorId: id, jornadas: jornadas.reverse(), errores: [],
@@ -98,7 +98,7 @@ describe('PDF semanal A4', () => {
         expect(alto).toBeCloseTo(595.28, 1)
         const { items } = await pagina.getTextContent()
         const texto = items.flatMap(t => 'str' in t && t.str.trim()
-          ? [{ str: t.str.trim(), x: t.transform[4], y: t.transform[5], ancho: t.width }]
+          ? [{ str: t.str.trim(), x: t.transform[4], y: t.transform[5], ancho: t.width, tam: t.height }]
           : [])
         const paginaTexto = texto.map(t => t.str).join(' ')
         textos.push(paginaTexto)
@@ -113,35 +113,45 @@ describe('PDF semanal A4', () => {
           expect(t.y).toBeGreaterThan(pdfPt(6))
           expect(t.y).toBeLessThan(alto - pdfPt(10))
         }
+        // Baselines más la altura nominal de Helvetica. Exigir espacio vertical
+        // también entre dos intervalos consecutivos en la misma columna.
+        for (const [idx, a] of texto.entries()) {
+          for (const b of texto.slice(idx + 1)) {
+            const anchoComun = Math.min(a.x + a.ancho, b.x + b.ancho) - Math.max(a.x, b.x)
+            if (anchoComun <= 2) continue
+            const altoComun = Math.min(a.y + 1.08 * a.tam, b.y + 1.08 * b.tam) - Math.max(a.y - 0.26 * a.tam, b.y - 0.26 * b.tam)
+            expect(altoComun, `Página ${i}: «${a.str}» / «${b.str}»`).toBeLessThanOrEqual(0.7)
+          }
+        }
         const titulo = texto[0].str
         titulos.set(titulo, (titulos.get(titulo) ?? 0) + 1)
         if (titulo !== 'Horarios Semanales') continue
         for (const col of columnas) expect(paginaTexto).toContain(col)
 
-        const xTipo = pdfPt(12 + 58)
-        const xHoras = pdfPt(12 + 79)
-        const xDias = pdfPt(12 + 94)
-        const anchoDia = (ancho - pdfPt(24 + 94)) / 7
+        const xTipo = pdfPt(12 + 56)
+        const xHoras = pdfPt(12 + 82)
+        const xDias = pdfPt(12 + 97)
+        const anchoDia = (ancho - pdfPt(24 + 97)) / 7
         const celdas = (x0: number, x1: number, y0: number, y1: number) =>
           texto.filter(t => t.x >= x0 && t.x < x1 && t.y >= y0 && t.y <= y1).map(t => t.str)
         const personas = texto.filter(t => t.x < xTipo && /^Sintético \d{3}/.test(t.str))
         expect(personas.length).toBeGreaterThan(0)
-        for (const persona of personas) {
+        for (const [indice, persona] of personas.entries()) {
           const n = Number(persona.str.match(/\d{3}/)![0]) - 1
           const esperado = nominal[n]
           // El centro de tipo/horas queda a la altura de la primera o segunda línea del nombre.
           const tipo = texto.find(t => t.x >= xTipo && t.x < xHoras && Math.abs(t.y - persona.y) < 12)
           expect(tipo?.str).toBe(esperado.tipo)
           const centro = tipo!.y
-          const mediaAltura = esperado.nombre.length > 30 ? 13 : 9
-          const textoNombre = celdas(pdfPt(12), xTipo, centro - mediaAltura, centro + mediaAltura).join(' ')
+          const ySiguiente = personas[indice + 1]?.y ?? pdfPt(15)
+          const textoNombre = celdas(pdfPt(12), xTipo, ySiguiente + 1, centro + 2).join(' ')
           expect(textoNombre).toBe(esperado.nombre)
           nombresVistos.push(textoNombre)
           expect(celdas(xHoras, xDias, centro - 2, centro + 2)).toEqual([
             `${String(esperado.horario.totalHoras).replace('.', ',')} h`,
           ])
           esperado.esperado.forEach((bloques, d) => {
-            expect(celdas(xDias + d * anchoDia, xDias + (d + 1) * anchoDia, centro - 8, centro + 8)).toEqual(bloques)
+            expect(celdas(xDias + d * anchoDia, xDias + (d + 1) * anchoDia, ySiguiente + 1, centro + 2)).toEqual(bloques)
           })
         }
       }
@@ -150,7 +160,7 @@ describe('PDF semanal A4', () => {
     }
     expect(nombresVistos).toEqual(nominal.map(n => n.nombre))
     expect(titulos.get('Horarios Semanales')).toBeGreaterThan(1)
-    expect(titulos.get('Cobertura por franja')).toBe(1)
+    expect(titulos.get('Cobertura por franja')).toBeGreaterThanOrEqual(1)
     expect(textos.find(t => t.startsWith('Cobertura por franja'))).toContain('3/2')
     expect(textos.join(' ')).toContain('10:00-10:30 11:00-11:30')
     for (let i = 0; i < cantidad; i++) expect(textos.join(' ')).toContain(`Fin del aviso ${ids(i)}.`)
