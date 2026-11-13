@@ -1,34 +1,33 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { Auxiliar, AUXILIARES_INICIALES } from '../types'
-import { claveConSucursal } from '../utils/sucursal'
-import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, reemplazarGrupoRoster, actualizarCacheRoster, CLAVES_ROSTER } from '../utils/almacen'
+import { Auxiliar } from '../types'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, actualizarCacheRoster } from '../utils/almacen'
 
 /**
  * Auxiliares supervisores (AUX). Persisten en Supabase (tabla colaboradores,
- * por sucursal); localStorage como backup offline. Estado optimista.
+ * por sucursal); el modo sin Supabase guarda en el dispositivo.
  */
 export function useAuxiliares() {
   const [auxiliares, setAuxiliares] = useState<Auxiliar[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
 
   useEffect(() => {
     let vivo = true
     cargarGrupoRoster<Auxiliar>('auxiliar')
-      .then(as => { if (vivo) setAuxiliares(as) })
-      .catch(error => console.error('Error cargando auxiliares:', error))
+      .then(items => { if (vivo) setAuxiliares(items) })
+      .catch(error => {
+        console.error('Error cargando auxiliares:', error)
+        if (vivo) setErrorCarga(true)
+      })
       .finally(() => { if (vivo) setLoading(false) })
     return () => { vivo = false }
   }, [])
 
-  // Backup local automático (offline) + sincronización del cache compartido:
-  // la generación de horarios debe ver los horarios de AUX recién editados.
+  // Comparte el roster vigente con la generación de horarios.
   useEffect(() => {
-    if (!loading) {
-      localStorage.setItem(claveConSucursal(CLAVES_ROSTER.auxiliar), JSON.stringify(auxiliares))
-      actualizarCacheRoster('auxiliar', auxiliares)
-    }
-  }, [auxiliares, loading])
+    if (!loading && !errorCarga) actualizarCacheRoster('auxiliar', auxiliares)
+  }, [auxiliares, loading, errorCarga])
 
   const agregarAuxiliar = (nuevo: Omit<Auxiliar, 'id' | 'activo'>) => {
     const auxiliar: Auxiliar = { ...nuevo, id: uuidv4(), activo: true }
@@ -56,22 +55,16 @@ export function useAuxiliares() {
     actualizarAuxiliar(id, { activo: !actual.activo })
   }
 
-  const resetAuxiliares = () => {
-    setAuxiliares(AUXILIARES_INICIALES)
-    localStorage.setItem(claveConSucursal(CLAVES_ROSTER.auxiliar), JSON.stringify(AUXILIARES_INICIALES))
-    void reemplazarGrupoRoster('auxiliar', AUXILIARES_INICIALES)
-  }
-
   const auxiliaresActivos = auxiliares.filter(aux => aux.activo)
 
   return {
     auxiliares,
     auxiliaresActivos,
     loading,
+    errorCarga,
     agregarAuxiliar,
     actualizarAuxiliar,
     eliminarAuxiliar,
     toggleActivo,
-    resetAuxiliares,
   }
 }

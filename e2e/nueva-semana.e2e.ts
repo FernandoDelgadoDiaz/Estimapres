@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { jsPDF } from 'jspdf'
 import { MATRIZ_POM_SINTETICA } from '../src/utils/__tests__/fixtures/pomSintetico'
 import { textoPDFNode } from '../src/utils/__tests__/fixtures/pdfTextoNode'
-import { COLABORADORES_INICIALES, AUXILIARES_INICIALES } from '../src/types'
+import { CAJEROS_DE_PRUEBA, AUXILIARES_DE_PRUEBA } from './fixtures/roster'
 
 function pdfPom() {
   const pdf = new jsPDF()
@@ -47,7 +47,7 @@ async function preparar(page: Page, auxiliarInvalido = false) {
     localStorage.setItem('cajeros_colaboradores::900', JSON.stringify(cajeros))
     localStorage.setItem('aliada_auxiliares::900', JSON.stringify(auxiliares))
     localStorage.setItem('aliada_eventuales::900', JSON.stringify([eventual]))
-  }, { cajeros: COLABORADORES_INICIALES, auxiliares: AUXILIARES_INICIALES, eventual, auxiliarInvalido })
+  }, { cajeros: CAJEROS_DE_PRUEBA, auxiliares: AUXILIARES_DE_PRUEBA, eventual, auxiliarInvalido })
   await page.goto('/nueva-semana')
   await page.locator('input[type=file]').setInputFiles({
     name: 'demanda-prueba.pdf',

@@ -12,7 +12,7 @@
 // estado optimista: la UI nunca espera a la red.
 
 import { supabase, asegurarSesion } from '../lib/supabase'
-import { getSucursalActual, claveConSucursal, esSucursalPorDefecto } from './sucursal'
+import { getSucursalActual, claveConSucursal } from './sucursal'
 import type {
   ReglaConfigurable,
   SemanaHistorial,
@@ -526,19 +526,13 @@ export interface ResumenDatosLocales {
   reglas: number
   semanas: number
   correcciones: number
-  roster: number
 }
 
 export function resumenDatosLocales(): ResumenDatosLocales {
-  const rosterLocal =
-    leerAlmacen<unknown[]>('cajeros_colaboradores', []).length +
-    leerAlmacen<unknown[]>('aliada_auxiliares', []).length +
-    leerAlmacen<unknown[]>('aliada_eventuales', []).length
   return {
     reglas: leerAlmacen<ReglaConfigurable[]>(CLAVES_ALMACEN.reglas, []).length,
     semanas: leerAlmacen<SemanaHistorial[]>(CLAVES_ALMACEN.historial, []).length,
     correcciones: leerAlmacen<CorreccionManual[]>(CLAVES_ALMACEN.correcciones, []).length,
-    roster: rosterLocal,
   }
 }
 
@@ -628,14 +622,11 @@ export function validarExporte(datos: unknown): datos is ExporteConfiguracion {
 }
 
 // ==================== ROSTER (cajeros / auxiliares / eventuales) ====================
-// El roster vive en Supabase (tabla colaboradores, particionada por sucursal)
-// para que un dispositivo nuevo lo vea automáticamente. localStorage queda
-// como backup offline: los hooks siguen respaldando la lista completa en
-// cada cambio, y acá cada mutación se upsertea/borra en la nube con la misma
-// cola de reintentos que el resto de los datos.
+// Las cuentas leen su roster de Supabase. El modo sin Supabase conserva
+// su roster de dispositivo en localStorage. Las altas, bajas y ediciones
+// de una cuenta usan la cola de reintentos de la sesión.
 
 import type { Colaborador, Auxiliar, Eventual } from '../types'
-import { COLABORADORES_INICIALES, AUXILIARES_INICIALES, EVENTUALES_INICIALES } from '../types'
 
 export const CLAVES_ROSTER = {
   cajero: 'cajeros_colaboradores',
@@ -691,14 +682,8 @@ function filaAItemRoster(grupo: GrupoRoster, f: FilaRoster): ItemRoster {
   return { id: f.id, nombre: f.nombre, sector: f.sector ?? '', horarioSemanal: horario, activo: f.activo }
 }
 
-const SEEDS_ROSTER: Record<GrupoRoster, ItemRoster[]> = {
-  cajero: COLABORADORES_INICIALES,
-  auxiliar: AUXILIARES_INICIALES,
-  eventual: EVENTUALES_INICIALES,
-}
-
 // Cache de carga por grupo: los hooks del mismo grupo comparten UNA query
-// por carga de página. Se invalida en login/logout (useAuth) y en resets.
+// por carga de página. Se invalida en los cambios de sesión (useAuth).
 const cacheRoster: Partial<Record<GrupoRoster, Promise<ItemRoster[]>>> = {}
 
 export function invalidarCacheRoster(): void {
@@ -720,30 +705,24 @@ export function invalidarCacheRoster(): void {
  * del hook dentro del cache compartido.
  */
 export function actualizarCacheRoster(grupo: GrupoRoster, items: ItemRoster[]): void {
+  if (!supabase && typeof localStorage !== 'undefined') {
+    guardarAlmacen(claveConSucursal(CLAVES_ROSTER[grupo]), items)
+  }
   cacheRoster[grupo] = Promise.resolve([...items])
 }
 
-function localRoster<T extends ItemRoster>(grupo: GrupoRoster, esDefault: boolean): T[] {
-  const guardado = leerAlmacen<T[] | null>(claveConSucursal(CLAVES_ROSTER[grupo]), null)
-  if (guardado) return guardado
-  return esDefault ? (SEEDS_ROSTER[grupo] as T[]) : []
-}
-
 /**
- * Carga un grupo del roster. Con Supabase: lee la tabla filtrada por
- * sucursal; si la nube está vacía pero hay datos locales (o seeds en la
- * sucursal por defecto), los SIEMBRA automáticamente hacia la tabla vacía
- * (idempotente, nunca pisa datos existentes) — así el primer login desde el
- * dispositivo que ya tenía roster no lo "pierde". Sin Supabase: localStorage.
+ * Lee el grupo de la cuenta y la sucursal activas. La carga nunca importa
+ * el roster del dispositivo a la cuenta, incluso si el grupo está vacío.
  */
 export async function cargarGrupoRoster<T extends ItemRoster>(grupo: GrupoRoster): Promise<T[]> {
   const enCache = cacheRoster[grupo]
   if (enCache) return enCache as Promise<T[]>
 
   const p = (async (): Promise<ItemRoster[]> => {
-    const esDefault = esSucursalPorDefecto()
+    if (!supabase) return leerAlmacen<T[]>(claveConSucursal(CLAVES_ROSTER[grupo]), [])
     const uid = await backendUid()
-    if (!uid || !supabase) return localRoster(grupo, esDefault)
+    if (!uid) return []
 
     const { data, error } = await supabase
       .from('colaboradores')
@@ -751,39 +730,25 @@ export async function cargarGrupoRoster<T extends ItemRoster>(grupo: GrupoRoster
       .eq('grupo', grupo)
       .eq('sucursal_id', getSucursalActual())
       .order('created_at', { ascending: true })
-    if (error) {
-      console.warn(`Error cargando roster (${grupo}) de Supabase:`, error.message)
-      return localRoster(grupo, esDefault)
-    }
-    if (data.length > 0) {
-      return (data as FilaRoster[]).map(f => filaAItemRoster(grupo, f))
-    }
-
-    // Nube vacía: sembrar datos locales (o seeds de la sucursal default)
-    const candidatos = localRoster(grupo, esDefault)
-    if (candidatos.length > 0) {
-      const { error: errIns } = await supabase
-        .from('colaboradores')
-        .insert(candidatos.map(item => itemAFilaRoster(grupo, item)))
-      if (errIns) console.warn(`No se pudo sembrar roster (${grupo}) en Supabase:`, errIns.message)
-    }
-    return candidatos
+    if (error) throw new Error(`Error cargando roster (${grupo}) de Supabase: ${error.message}`)
+    return (data as FilaRoster[]).map(f => filaAItemRoster(grupo, f))
   })()
 
   cacheRoster[grupo] = p
-  void p.catch(() => { delete cacheRoster[grupo] })
+  void p.catch(() => {
+    if (cacheRoster[grupo] === p) delete cacheRoster[grupo]
+  })
   return p as Promise<T[]>
 }
 
 /** Upsert inmediato de un colaborador del roster (con reintento si falla). */
 export async function guardarItemRoster(grupo: GrupoRoster, item: ItemRoster): Promise<void> {
-  // El backup local lo mantiene el hook (guarda la lista completa por sucursal)
   const uid = await backendUid()
   if (!uid || !supabase) return
   const fila = itemAFilaRoster(grupo, item)
   const { error } = await supabase.from('colaboradores').upsert(fila)
   if (error) {
-    console.warn('Roster guardado localmente; reintentando sync con Supabase:', error.message)
+    console.warn('Error guardando roster; reintentando sync con Supabase:', error.message)
     encolarReintento(`roster:${item.id}`, async () => {
       if (!supabase) return false
       const { error: err } = await supabase.from('colaboradores').upsert(fila)
@@ -803,25 +768,5 @@ export async function eliminarItemRoster(id: string): Promise<void> {
       const { error: err } = await supabase.from('colaboradores').delete().eq('id', id)
       return !err
     })
-  }
-}
-
-/** Reemplaza un grupo completo (usado por "restaurar horarios de prueba"). */
-export async function reemplazarGrupoRoster(grupo: GrupoRoster, items: ItemRoster[]): Promise<void> {
-  invalidarCacheRoster()
-  const uid = await backendUid()
-  if (!uid || !supabase) return
-  const { error: errDel } = await supabase
-    .from('colaboradores')
-    .delete()
-    .eq('local_id', uid)
-    .eq('sucursal_id', getSucursalActual())
-    .eq('grupo', grupo)
-  if (errDel) console.warn(`Error limpiando roster (${grupo}) en Supabase:`, errDel.message)
-  if (items.length > 0) {
-    const { error } = await supabase
-      .from('colaboradores')
-      .insert(items.map(item => itemAFilaRoster(grupo, item)))
-    if (error) console.warn(`Error reemplazando roster (${grupo}) en Supabase:`, error.message)
   }
 }

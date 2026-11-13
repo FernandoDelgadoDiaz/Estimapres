@@ -17,7 +17,8 @@ export interface ResultadoParseoPDF {
 
 /** Texto completo del PDF (todas las páginas, ítems unidos por espacio). */
 export async function extraerTextoPDF(data: ArrayBuffer | Uint8Array): Promise<string> {
-  const pdf = await pdfjsLib.getDocument({ data }).promise
+  // Mitigación de PDF.js para CVE-2024-4367.
+  const pdf = await pdfjsLib.getDocument({ data, isEvalSupported: false }).promise
   let texto = ''
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i)
