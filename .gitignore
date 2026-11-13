@@ -35,3 +35,7 @@ dist-ssr
 
 # POM y otros PDF con datos laborales: nunca versionar (ver docs/PUBLICACION_ENTREGA1.md §8)
 *.pdf
+
+# Playwright
+/test-results/
+/playwright-report/

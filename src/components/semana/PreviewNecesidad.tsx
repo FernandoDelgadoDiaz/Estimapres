@@ -11,7 +11,7 @@ export default function PreviewNecesidad({ necesidad }: PreviewNecesidadProps) {
 
   // Calcular totales por día
   const totalesPorDia = DIAS_SEMANA.map((_, diaIndex) =>
-    necesidad.reduce((sum, franja) => sum + franja.necesidad[diaIndex], 0)
+    necesidad.reduce((sum, franja) => sum + franja.necesidad[diaIndex] * 0.5, 0)
   )
 
   return (
@@ -65,7 +65,7 @@ export default function PreviewNecesidad({ necesidad }: PreviewNecesidadProps) {
             {/* Totales */}
             <tr className="bg-gray-50 font-semibold">
               <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                Total cajas-hora
+                Total horas-caja
               </td>
               {totalesPorDia.map((total, idx) => (
                 <td
@@ -86,9 +86,9 @@ export default function PreviewNecesidad({ necesidad }: PreviewNecesidadProps) {
           <p>
             Se necesitan{' '}
             <span className="font-semibold">
-              {totalesPorDia.reduce((a, b) => a + b, 0)} cajas-hora
+              {totalesPorDia.reduce((a, b) => a + b, 0)} horas-caja
             </span>{' '}
-            esta semana. Cada cajero aporta ~48h (FULL/AUX) o ~30h (PART).
+            esta semana.
           </p>
         </div>
         <div className="flex items-center text-sm text-amber-800 bg-amber-50 p-2 rounded">

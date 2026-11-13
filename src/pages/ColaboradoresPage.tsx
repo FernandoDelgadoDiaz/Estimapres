@@ -12,6 +12,8 @@ export default function ColaboradoresPage() {
   const {
     colaboradores,
     colaboradoresActivos,
+    loading: cargandoColaboradores,
+    errorCarga: errorColaboradores,
     agregarColaborador,
     actualizarColaborador,
     eliminarColaborador,
@@ -21,16 +23,19 @@ export default function ColaboradoresPage() {
   const {
     auxiliares,
     auxiliaresActivos,
+    loading: cargandoAuxiliares,
+    errorCarga: errorAuxiliares,
     agregarAuxiliar,
     actualizarAuxiliar,
     eliminarAuxiliar,
     toggleActivo: toggleActivoAux,
-    resetAuxiliares,
   } = useAuxiliares()
 
   const {
     eventuales,
     eventualesActivos,
+    loading: cargandoEventuales,
+    errorCarga: errorEventuales,
     agregarEventual,
     actualizarEventual,
     eliminarEventual,
@@ -124,6 +129,7 @@ export default function ColaboradoresPage() {
         </div>
         {activeTab === 'cajeros' && (
           <button
+            disabled={cargandoColaboradores || errorColaboradores}
             onClick={() => setShowForm(true)}
             style={{
               background: 'var(--accent)',
@@ -145,51 +151,31 @@ export default function ColaboradoresPage() {
           </button>
         )}
         {activeTab === 'auxiliares' && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleAgregarAuxiliar}
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--accent-dark)',
-                padding: '12px 24px',
-                borderRadius: '100px',
-                border: 'none',
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 800,
-                fontSize: '14px',
-                letterSpacing: '-0.2px',
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: '20px', marginRight: '8px' }}>+</span>
-              Agregar auxiliar
-            </button>
-            <button
-              onClick={resetAuxiliares}
-              style={{
-                background: 'var(--surface)',
-                color: 'var(--text-muted)',
-                padding: '12px 24px',
-                borderRadius: '100px',
-                border: 'none',
-                fontFamily: "'Syne', sans-serif",
-                fontWeight: 800,
-                fontSize: '14px',
-                letterSpacing: '-0.2px',
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: '20px', marginRight: '8px' }}>↺</span>
-              Restaurar horarios de prueba
-            </button>
-          </div>
+          <button
+            disabled={cargandoAuxiliares || errorAuxiliares}
+            onClick={handleAgregarAuxiliar}
+            style={{
+              background: 'var(--accent)',
+              color: 'var(--accent-dark)',
+              padding: '12px 24px',
+              borderRadius: '100px',
+              border: 'none',
+              fontFamily: "'Syne', sans-serif",
+              fontWeight: 800,
+              fontSize: '14px',
+              letterSpacing: '-0.2px',
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '20px', marginRight: '8px' }}>+</span>
+            Agregar auxiliar
+          </button>
         )}
         {activeTab === 'eventuales' && (
           <button
+            disabled={cargandoEventuales || errorEventuales}
             onClick={handleAgregarEventual}
             style={{
               background: 'var(--accent)',
@@ -387,6 +373,10 @@ export default function ColaboradoresPage() {
         </div>
       </div>
 
+      {(errorColaboradores || errorAuxiliares || errorEventuales) && (
+        <p role="alert">No se pudo cargar toda la dotación. Recargá la página antes de editar el grupo afectado.</p>
+      )}
+
       {/* Tabla según pestaña */}
       {activeTab === 'cajeros' && (
         <>
@@ -426,21 +416,31 @@ export default function ColaboradoresPage() {
       )}
 
       {activeTab === 'auxiliares' && (
-        <TablaAuxiliares
-          auxiliares={auxiliares}
-          onEdit={actualizarAuxiliar}
-          onDelete={eliminarAuxiliar}
-          onToggleActivo={toggleActivoAux}
-        />
+        <>
+          <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <strong>Patrón habitual de presencia.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
+          </p>
+          <TablaAuxiliares
+            auxiliares={auxiliares}
+            onEdit={actualizarAuxiliar}
+            onDelete={eliminarAuxiliar}
+            onToggleActivo={toggleActivoAux}
+          />
+        </>
       )}
 
       {activeTab === 'eventuales' && (
-        <TablaEventuales
-          eventuales={eventuales}
-          onEdit={actualizarEventual}
-          onDelete={eliminarEventual}
-          onToggleActivo={toggleActivoEv}
-        />
+        <>
+          <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+            <strong>Patrón habitual de disponibilidad.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
+          </p>
+          <TablaEventuales
+            eventuales={eventuales}
+            onEdit={actualizarEventual}
+            onDelete={eliminarEventual}
+            onToggleActivo={toggleActivoEv}
+          />
+        </>
       )}
 
       {/* Formulario modal (solo para cajeros) */}

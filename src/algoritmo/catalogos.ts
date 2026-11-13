@@ -27,21 +27,21 @@ export interface JornadaValida {
 export const CATALOGO_FULL_CORRIDAS: JornadaValida[] = [
   // F9-M: 9h, inicio 09:00-11:00
   { tipo: "F9-M", duracion_slots: 18, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
-  // F9-T: 9h, inicio 11:30-14:00 (fin ≤ 22:30)
+  // F9-T: 9h, inicio 11:30-14:00 (fin ≤ 23:00)
   { tipo: "F9-T", duracion_slots: 18, slot_inicio_min: 7, slot_inicio_max: 12, turno: "tarde", rol: "FULL" },
   // F8-M: 8h, inicio 09:00-11:00
   { tipo: "F8-M", duracion_slots: 16, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
-  // F8-T: 8h, inicio 11:30-15:00 (fin ≤ 22:30)
+  // F8-T: 8h, inicio 11:30-15:00 (fin ≤ 23:00)
   { tipo: "F8-T", duracion_slots: 16, slot_inicio_min: 7, slot_inicio_max: 14, turno: "tarde", rol: "FULL" },
   // F5-M: 5h, inicio 09:00-11:00
   { tipo: "F5-M", duracion_slots: 10, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "FULL" },
-  // F5-T: 5h, inicio 11:30-18:00 (fin ≤ 22:30)
+  // F5-T: 5h, inicio 11:30-18:00 (fin ≤ 23:00)
   { tipo: "F5-T", duracion_slots: 10, slot_inicio_min: 7, slot_inicio_max: 20, turno: "tarde", rol: "FULL" },
 ];
 
 // Catálogo de jornadas válidas para PART: corridas de 4-6h (8..12 slots).
 // P-M: inicio 09:00-11:00 (cuenta como mañana para H-P3).
-// P-T: inicio desde 11:30, continuo hasta donde permita el cierre (fin ≤ 22:30).
+// P-T: inicio desde 11:30, continuo hasta donde permita el cierre (fin ≤ 23:00).
 export const CATALOGO_PART: JornadaValida[] = [];
 for (let duracion = 8; duracion <= 12; duracion++) {
   CATALOGO_PART.push({

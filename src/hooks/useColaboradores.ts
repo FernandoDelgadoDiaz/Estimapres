@@ -1,36 +1,34 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { Colaborador } from '../types'
-import { claveConSucursal } from '../utils/sucursal'
-import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, actualizarCacheRoster, CLAVES_ROSTER } from '../utils/almacen'
+import { cargarGrupoRoster, guardarItemRoster, eliminarItemRoster, actualizarCacheRoster } from '../utils/almacen'
 
 /**
  * Cajeros FULL/PART (y AUX contractuales). Persisten en Supabase (tabla
  * colaboradores, por sucursal): un dispositivo nuevo los ve al iniciar
- * sesión. localStorage queda como backup offline. Estado optimista.
+ * sesión. El modo sin Supabase guarda en el dispositivo.
  */
 export function useColaboradores() {
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
 
   useEffect(() => {
     let vivo = true
     cargarGrupoRoster<Colaborador>('cajero')
-      .then(cs => { if (vivo) setColaboradores(cs) })
-      .catch(error => console.error('Error cargando colaboradores:', error))
+      .then(items => { if (vivo) setColaboradores(items) })
+      .catch(error => {
+        console.error('Error cargando colaboradores:', error)
+        if (vivo) setErrorCarga(true)
+      })
       .finally(() => { if (vivo) setLoading(false) })
     return () => { vivo = false }
   }, [])
 
-  // Backup local automático (offline) + sincronización del cache compartido:
-  // así la próxima generación de horarios (Nueva Semana) lee esta lista fresca
-  // y no un snapshot anterior a los cambios (activo/horarios).
+  // Comparte el roster vigente con la generación de horarios.
   useEffect(() => {
-    if (!loading) {
-      localStorage.setItem(claveConSucursal(CLAVES_ROSTER.cajero), JSON.stringify(colaboradores))
-      actualizarCacheRoster('cajero', colaboradores)
-    }
-  }, [colaboradores, loading])
+    if (!loading && !errorCarga) actualizarCacheRoster('cajero', colaboradores)
+  }, [colaboradores, loading, errorCarga])
 
   const agregarColaborador = (nuevo: Omit<Colaborador, 'id' | 'activo'>) => {
     const colaborador: Colaborador = { ...nuevo, id: uuidv4(), activo: true }
@@ -64,6 +62,7 @@ export function useColaboradores() {
     colaboradores,
     colaboradoresActivos,
     loading,
+    errorCarga,
     agregarColaborador,
     actualizarColaborador,
     eliminarColaborador,

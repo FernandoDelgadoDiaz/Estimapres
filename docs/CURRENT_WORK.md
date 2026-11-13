@@ -1,25 +1,92 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## ▶ PUNTO ÚNICO DE RETOMA (vigente) — entrega 1 — Claude, 2026-11-12
+## PUNTO ÚNICO DE RETOMA — preparación del piloto 091 · 2026-11-13
 
-**Leer primero esto.** Esta sección manda sobre las demás.
+- **Rama de tarea:** `fix/ah2-desbloqueo-piloto`, desde `bb8753fa7f5d78e39af10a15040fa09dfc02e669`. El SHA definitivo del release y sus checks se registran en el [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30). La Entrega 1 en producción corresponde a `main@8aa104db17f87250661d7e2348af1190e9806759`.
+- **PDF:** se aplica la opción recomendada por PDF.js al abrir archivos en el navegador y en el lector Node que usa la validación local. Pruebas de regresión en `pdfSeguridad.test.ts`. La deuda de actualización queda en [Seguridad PDF y padrón](SEGURIDAD_ENTREGA2.md).
+- **Colaboradores:** `cargarGrupoRoster` solo consulta el grupo autenticado, incluso vacío. Los hooks separan el modo local del roster de la cuenta y avisan si falla la consulta. Se retiró de Colaboradores la restauración de AUX de prueba, se corrigió el aviso de login y los ejemplos quedaron en los fixtures de Playwright. La decisión de importación queda en MASTER §9, AH2-013.
+- **Regresión local:** Vitest 197/197 con el POM original. La semana 16–22/11 conserva 31 franjas × 7 días, 217 valores, 406 horas-caja y un pico de 7. La suite incluye tests de cuenta vacía, con roster existente, con grupos parciales y con fallo de lectura. Playwright cubre la pantalla vacía y un alta local explícita tras recargar, además de POM → generación → validación → PDF A4 reabierto. La comprobación del POM original es local y el archivo queda fuera de Git.
+- **Supabase y Prestify:** sin escrituras ni migraciones. El release no cambia configuración de Netlify ni las funciones `create-payment` y `webhook-mp` frente a `main`. La [auditoría SEC-02](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/5#issuecomment-6839785095) verificó RLS y el rechazo de lecturas anónimas. El merge de #30 dispara producción en ambos sitios.
+- **Próxima acción:** con el nuevo SHA validado, verificar acceso de publicación para [al-iada](https://app.netlify.com/projects/al-iada/deploys/6af6266feb1a7e267dfa1aa8) y [prestify](https://app.netlify.com/projects/prestify/deploys/6af6266f137817f4541290c9). Conservar #30 en borrador hasta autorización expresa del propietario. La primera validación con la dotación vigente la dirige el propietario.
 
-- **Esta versión llega a `main` con la entrega 1** (seguridad, CI, rutas y privacidad): #16, #15, #26, #27, #25. Procedimiento de publicación, verificación y reversión: [`docs/PUBLICACION_ENTREGA1.md`](PUBLICACION_ENTREGA1.md).
-- **Pendiente para una entrega posterior:** el resto del release candidato **PR #30** (`release/ah2-f1`): #17, #18, #19, #20 (cambia los horarios generados), #21, #22, #29. El #30 desciende de esta entrega; se integra con «Create a merge commit» sin conflictos (verificado).
-- **#24** es solo demostración.
-- **Bloqueos del propietario:**
-  - lote 0 (revocar la clave de Anthropic);
-  - D1–D3 (#7), D4, D5 (#5);
-  - historial y visibilidad del repo (#23);
-  - AUX-D1 a AUX-D4 (#28);
-  - migraciones (#12, #18, #22, #28).
-- **Siguiente acción exacta:**
-  - si la entrega 1 está integrada: registrar en la épica #3 el SHA y los deploys, y luego pedir autorización para el #30;
-  - si no: esperar la autorización del §9 de `PUBLICACION_ENTREGA1.md`.
+## Registro histórico — Entrega 2 consolidada — ChatGPT Work, 2026-11-12
+
+- **Estado:** #32 (PDF A4) y #33 (AUX/eventuales) fusionados exclusivamente en `release/ah2-f1`. Merge #32 `1b770d2ed0b66eec9432c4da764aa39258bbcfbe`. Merge #33 y candidato funcional verificado `195276af0361222824a25d2fa7d156a8289c5be7`. El SHA posterior que incorpora este informe se registra en el [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30).
+- **PR #30:** sigue en borrador y pendiente de autorización del propietario. `main` = `8aa104db17f87250661d7e2348af1190e9806759`.
+- **Archivos y alcance:** 21 archivos del conjunto #32/#33, incluidos la pantalla Nueva Semana, el generador PDF, disponibilidad, validador y pruebas. La consolidación conservó los dos cambios en los archivos compartidos. Este cierre incorpora únicamente este registro y [el informe de aceptación](ACEPTACION_ENTREGA2.md).
+- **Pruebas sobre el código integrado:** Node 22.23.5, `npm ci --no-audit --no-fund` (347 paquetes), `npm test` (189 aprobadas y 1 omitida, POM real), `npx tsc --noEmit`, `npm run build` y Playwright 4/4 sobre el build. `test-build` y `browser` en verde en GitHub. PDF sintético → 31 franjas y 406 horas-caja → horario → validación → PDF A4 reabierto.
+- **Regresión de horarios vs `1165027`:** motor idéntico en 4 escenarios sintéticos. Turnos de cajeros/eventuales, caja y cobertura coincidentes. En el escenario con hueco, el único cambio de la salida nominal es que conserva la presencia de los AUX; no los asigna a caja.
+- **Pendientes de producción:** prueba local con POM real y dotación vigente, decisiones laborales y operativas D1–D4 y AUX-D1–D4, y decisión del propietario sobre el alcance de la publicación. Siguen abiertas la publicación oficial persistida, persistencia de excepciones y las tareas #5/#23. Detalle y evidencia en el informe.
+- **Supabase / despliegue:** sin consultas, escrituras, migraciones ni despliegue productivo. Se probó en local con datos sintéticos.
+- **Próxima acción:** validar en local el POM representativo con `POM_PDF="/ruta/al/archivo.pdf" npx vitest run pom-real.local`, revisar el informe y registrar la decisión del propietario en el PR #30.
+
+## Registro histórico de retoma — implementación previa a la integración de Entrega 2 — 2026-11-12
+
+- **GitHub verificado:** `main` = `8aa104db17f87250661d7e2348af1190e9806759` (Entrega 1, #31); `release/ah2-f1` = `11650278b09037054dcbd2432bab47ce685c27e0` (PR #30 abierto en borrador, sin autorización de merge y con `test-build` exitoso).
+- **Rama de revisión:** `feat/ah2-aux01-excepciones-ui` (#28), basada en el SHA verificado del release. La rama independiente `fix/ah2-pub01-pdf-a4` (#12) tiene la mejora de impresión. Borradores [#33](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/33) y [#32](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/32). Cada PR enlaza su HEAD y sus checks.
+- **#28:** `DisponibilidadSemana.tsx`, `NuevaSemanaPage.tsx` y `ColaboradoresPage.tsx` distinguen patrón y excepción con fecha, motivo y autor. Se usa el módulo habitual en la generación, con corrección de errores cruzados entre roles y detección de horarios inválidos o contradictorios. Los huecos H-A1/H-A2 se muestran antes de generar y dejan el resultado como BORRADOR. El adapter conserva la presencia nominal de AUX aunque el motor descarte su asignación en caja. La excepción vive en memoria de la pantalla, no altera el patrón y se pierde al salir o recargar.
+- **Recorrido integrado:** `main.tsx` sirve el worker de PDF desde la app y `PreviewNecesidad.tsx` informa horas-caja de medias horas. `e2e/nueva-semana.e2e.ts` ejecuta POM sintético de tres páginas → 31 franjas y 406 horas-caja → horario nominal → validación → PDF reabierto. Incluye flujo habitual, excepción eventual, huecos de AUX, inconsistencia, retiro y recarga. `playwright.config.ts` desactiva Supabase y los tests rechazan tráfico externo. El PR incluye el job de navegador y la relectura del PDF usa el export por defecto de pdf.js para compatibilidad con Node 22.
+- **Pruebas de los dos cambios combinados:** instalación limpia con `npm ci --no-audit --no-fund`, Vitest **189 aprobadas y 1 omitida** (requiere el POM real), TypeScript y build correctos, Playwright **4/4** en Chromium headless. Los cuatro recorridos usan solo datos sintéticos.
+- **Límites:** quedan pendientes la persistencia de excepciones y los estados formales de publicación (#12 y #28), la planificación automática de presencia AUX y las decisiones AUX-D1–D4, D1–D4 del motor y los pendientes de seguridad D5/#5 y #23 ya documentados. El propietario informó que eliminó las claves de Anthropic. El antecedente de abajo es histórico; la generación y sus pruebas no requieren credenciales.
+- **Datos:** ninguna consulta ni escritura en Supabase, migración, fusión o publicación de producción. Pruebas con dotación y POM sintéticos. La comprobación del formato del POM real sigue pendiente y se hace localmente, sin publicar el archivo.
+- **Siguiente acción:** revisar los dos PR contra el release y sus checks; tras autorizar su integración, repetir `npm ci`, `npm test`, `npx tsc --noEmit`, `npm run build` y `npm run test:e2e` sobre el nuevo SHA del PR #30 y validar un POM representativo localmente. El merge del PR #30 y su publicación requieren autorización propia.
+
+## Registro histórico de retoma — después de la ENTREGA 1 — Claude, 2026-11-12
+
+Estado al cierre de la Entrega 1.
+
+### Entrega 1 — EJECUTADA y verificada (2026-11-12, autorización: PR #31, comentario 6835443386)
+- **`main` = `8aa104db17f87250661d7e2348af1190e9806759`**: merge commit del PR #31 (padres `9909e87` y `acb2ba8`). Rama `release/ah2-f1-entrega1` conservada.
+- **Producción:**
+
+  | Sitio | Deploy | Commit |
+  |---|---|---|
+  | `al-iada` | `6af6266feb1a7e267dfa1aa8` | `8aa104d` |
+  | `prestify` | `6af6266f137817f4541290c9` | `8aa104d` |
+
+  Ambos en estado ready, con 1 regla de redirect procesada.
+- **Rollback disponible:**
+  - al-iada `6af5ff7184f60b0849ef3c79`
+  - prestify `6af5ff713eac55707eeb3c28`
+
+  Procedimiento: `docs/PUBLICACION_ENTREGA1.md` §6. **No hizo falta usarlo.**
+- **Verificado en producción:**
+  - proxy `SEGURO` en ambos sitios (OPTIONS 204 sin CORS, GET 405, POST 503);
+  - `/`, `/nueva-semana`, `/colaboradores`, `/reglas`, `/historial` → 200;
+  - bundle sin nombres anteriores, sin SDK de IA y sin patrón de clave;
+  - funciones de pago sin cambios (GET 405, igual que antes);
+  - UI carga en ambos sitios sin errores JS.
+- **Credenciales:** eliminadas de ambos sitios las variables `CLAUDE_API_KEY`, `VITE_CLAUDE_API_KEY`, `VITE_ANTHROPIC_API_KEY` y `ANTHROPIC_API_KEY`, antes del build. No se leyó ni registró ningún valor.
+- **⚠️ Riesgo residual (conflicto abierto):**
+  - La **revocación o rotación en Anthropic no se hizo**: no hay acceso a esa consola desde las herramientas de desarrollo, y desde Netlify no se puede saber si la clave se usa en otros sistemas.
+  - Los **permalinks de deploys anteriores** (por ejemplo `6af5ff71…--al-iada.netlify.app`) siguen sirviendo el proxy viejo, con la variable que tenían al desplegarse.
+  - Contención intentada: protección de deploys no productivos en Netlify. Respuesta 422: no disponible.
+  - **Acción del propietario:** en la consola de Anthropic, revisar el uso de la clave; si no la usa otro sistema, revocarla; si la usa, rotarla y actualizar ese sistema.
+
+### Release candidato (PR #30) — PENDIENTE de autorización propia
+- **Rama de release `release/ah2-f1`:** combina, sobre `main` y en este orden: #16 → #15 → #26 → #27 → #25 → #17 → #18 → #19 → #20 → #21 → #22 → #29. Conflictos resueltos:
+  - `docs/CURRENT_WORK.md`: reordenado en este archivo;
+  - `src/pages/NuevaSemanaPage.tsx` entre #17 y #21: se conservan los dos bloques de estado;
+  - registro AH2 del MASTER: reordenado.
   
-  No hacer merge, deploy, migraciones ni cambios de credenciales sin autorización.
+  Evidencia de pruebas: en el PR de la rama de release y en la épica #3.
+- **#24** es solo demostración (*deploy preview*). **No es PR de integración.**
+- **Entrega 1:** ya integrada en `main` (ver arriba). Rama `release/ah2-f1-entrega1`, prefijo de esta rama (#16, #15, #26, #27, #25 + procedimiento). Procedimiento: [`docs/PUBLICACION_ENTREGA1.md`](PUBLICACION_ENTREGA1.md). Después de la entrega 1, este PR (#30) se integra con «Create a merge commit»; lo que agrega es #17–#22 y #29.
+- **Cómo integrar** (requiere autorización del propietario; cada merge despliega `al-iada` y `prestify`):
+  - **opción A:** PR por PR en el orden de arriba (`docs/INTEGRACION_F1.md`);
+  - **opción B:** un único merge de la rama de release, que ya está probada en conjunto.
+- **Antes de integrar (lote 0):** revocar la clave de Anthropic. Ver `docs/SEC01_REMEDIATION_RUNBOOK.md`.
+- **Bloqueos del propietario:**
+  - D1–D3 (#7) y D4 (cierre);
+  - D5 (#5);
+  - historial y visibilidad del repo por datos personales (#23);
+  - AUX-D1 a AUX-D4 (#28);
+  - migraciones propuestas (#12, #18, #22, #28).
+- **Siguiente acción exacta para cualquier modelo:**
+  1. Si se autorizó la integración: seguir A o B, verificar con `scripts/sec01-verify-proxy.sh` y `curl …/nueva-semana` = 200, y actualizar esta sección en `main`.
+  2. Si no: trabajo desbloqueado sin decisiones → UI de excepciones de disponibilidad y aviso de huecos de supervisión (#28), prueba de PDF con roster grande (#12). No hacer merge, deploy, migraciones ni cambios de credenciales.
 
-## Registro por tarea
+## Registro por tarea (cada rama de F1)
 
 ### ESTADO — TOOL-01 (#6) — rama `feat/ah2-tool01-ci` — Claude, 2026-11-12
 
@@ -59,8 +126,68 @@
 - **Cambios:** 16 nombres de personas que parecían reales → nombres sintéticos por rol (`Full A–D`, `Part A–G`, `Aux A–D`, `Eventual A`), en roster semilla (`src/types/index.ts`), fixtures y tests, comentarios del adapter, placeholder del formulario y ejemplos del MASTER/plan. El orden alfabético dentro de cada rol se preservó a propósito: las pasadas 2/3 desempatan por id, así el motor produce exactamente lo mismo.
 - **Pruebas:** `npm test` 80/80 · `tsc` ✅ · build ✅. Salida completa del motor sobre el fixture (`ejecutarAlgoritmo` + `convertirOutputDeV2`) **idéntica** a `main` tras aplicar el mapeo de nombres (solo difiere la marca de tiempo de ejecución). `git grep` de los 16 nombres, apellidos y variantes: sin resultados.
 - **No hecho (requiere autorización):** reescritura del historial, cambio de visibilidad, datos de Supabase (el roster real vive allí y no se tocó). Riesgo residual evaluado en Issue #23.
-## HISTÓRICO — FASE 0 (cerrada: PR #2 integrado en `9909e87`)
+### ESTADO — POM-01 (#8) — rama `feat/ah2-pom01-contrato` — Claude, 2026-11-12
 
+- **Issue:** [#8](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/8) · **PR:** draft (ver Issue #8) · base `main` `9909e87` (independiente de #15/#16).
+- **Cambios:** `src/utils/pomContrato.ts` (nuevo, puro): `detectarSemanaPOM` (lunes+domingo de la misma semana en el texto, si no en el nombre del archivo; ambigua → error), `parsearTablaEstimado` (errores explícitos: duplicados, negativos/no enteros, huecos, desorden, demanda > 0 fuera de 07:00–22:00; avisos: filas de borde ausentes). `pdfParser.ts` delega en él (`extraerTextoPDF` + `interpretarTextoPOM`). `NuevaSemanaPage.tsx` usa la semana del PDF (ya no `startOfWeek(new Date())`); si no se detecta, propone la actual y exige confirmar un lunes. `PDFUploader` muestra errores multilínea.
+- **Fixture sintético** `src/utils/__tests__/fixtures/pomSintetico.ts`: 31×7, ceros 07:00/07:30, sáb 19:30–21:00 = 7, **406 horas-caja**; sin datos reales.
+- **Pruebas:** `npm test` → 100 OK + 1 omitido (prueba local de PDF real, requiere `POM_PDF`); nuevos 21 (19 contrato + ida y vuelta jsPDF→pdf.js→contrato + local). `tsc` OK, `npm run build` OK. UI con Playwright sobre `vite`: PDF sintético → «Semana: 2026-11-16 al 2026-11-22 (detectada en el PDF)»; martes rechazado; cambio manual a 23/11 aplicado.
+- **No verificado:** maquetación del PDF POM **real** (no está en el repo). Para validarlo localmente sin subirlo: `POM_PDF=/ruta/al.pdf npx vitest run pom-real.local` (imprime solo números).
+- **Decisión D4 (cierre 22:30 vs 23:00):** no se decidió. Se mantiene MASTER §2: fila 22:00 = 22:00–22:30; slot de motor 22:30–23:00 queda sin demanda; demanda > 0 en una fila 22:30 del PDF es error explícito.
+- **Siguiente:** #9 (IDs estables).
+### ESTADO — ID-01 (#9) — rama `feat/ah2-id01-ids-estables` — Claude, 2026-11-12
+
+- **Issue:** [#9](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/9) · **PR:** draft (ver Issue #9) · base `main` `9909e87`.
+- **Cambios (`src/algoritmo/adapter.ts`):** `asignarIdentidadesV2` asigna ids internos del motor sin colisiones; la salida se mapea por **identidad** (id de UI) y no por nombre. Con nombre único se conserva `normalizarId(nombre)` → el desempate de pasadas 2/3 y los resultados no cambian. Homónimos («José Pérez»/«Jose Perez») → `nombre__<idUI>` + alerta visible. Id de UI repetido o vacío → error explícito. Las alertas de reglas muestran el nombre en vez del id interno.
+- **Pruebas:** `npm test` 87/87 (7 nuevos en `identidades.test.ts`) · `tsc` ✅ · build ✅. Regresión: salida de `asignarHorariosConIA` con el roster real del fixture **idéntica** a `main` (todos los campos, incluidas alertas).
+- **Límite:** reglas, correcciones y aprendizajes se guardan en Supabase por `colaborador_nombre`; que un renombre conserve ese aprendizaje requiere migración. SQL **propuesto, no aplicado**: `docs/proposals/ID01_colaborador_id.sql` (columna opcional `colaborador_id`, backfill solo para nombres únicos, rollback). Requiere autorización.
+- **Siguiente:** #10 validador independiente (parametrizado con el perfil histórico, sin decidir D1–D3).
+### ESTADO — PUB-01 parcial (#12, sin migración) — rama `feat/ah2-pub01-validacion-pdf` (apilada sobre `fix/ah2-descanso-12h`) — Claude, 2026-11-12
+
+- **Alcance:** la parte de #12 que no requiere base de datos. Estados formales BORRADOR→PUBLICADO y bloqueo de publicación quedan pendientes de migración autorizada.
+- **Cambios:** `src/utils/validacionSemana.ts` (valida el resultado con el validador independiente usando roster, excepciones, tope de francos, mínimos y la semana anterior del historial); `NuevaSemanaPage.tsx` muestra el estado «VALIDADO / BORRADOR: N violaciones» con métricas de faltantes/sobrantes y se **recalcula tras cada edición manual**; `exportPDF.ts` agrega (opcional, compatible) sucursal, fechas lunes–domingo, estado y un anexo «Validación y faltantes».
+- **Pruebas:** `npm test` 104/104 (6 nuevos, incluido PDF reabierto con pdf.js que conserva sucursal, fechas, estado, nombres y anexo) · `tsc` ✅ · build ✅. **UI de punta a punta con Playwright** (vite local, roster local): subir PDF → generar → «✅ VALIDADO… Horas-caja faltantes 26.5 · sobrantes 1.5» → PDF descargado y releído con encabezado y anexo correctos.
+- **Integración:** al combinar con #17 (POM-01) habrá conflicto en `NuevaSemanaPage.tsx` (`handleGenerarHorarios`): conservar las fechas de la semana del POM de #17 y el contexto de validación de este PR.
+- **Hallazgo (PII):** `src/types/index.ts` (roster semilla) y `src/algoritmo/__tests__/fixtures.ts` contienen nombres y horarios que parecen de personas reales, en un repositorio **público**. Decisión del propietario: anonimizar y, si corresponde, reescribir historial.
+
+### ESTADO — PDF semanal A4 (#12) — ChatGPT Work, 2026-11-12
+
+- **Rama:** `fix/ah2-pub01-pdf-a4` contra `release/ah2-f1` · **base verificada:** `11650278b09037054dcbd2432bab47ce685c27e0`. El SHA de revisión está en el PR vinculado a #12.
+- **Cambios:** `src/utils/exportPDF.ts` rediseña la grilla nominal A4 apaisada, con columnas fijas, jornadas cortadas en líneas, francos, tipos y horas semanales. Incluye presencia de AUX y caja de eventuales, más anexos de caja, cobertura, validación y alertas. Repite sucursal, semana, estado disponible, versión existente y encabezados, con numeración de páginas. `NuevaSemanaPage.tsx` y `UltimoHorarioPage.tsx` pasan los metadatos de las semanas correspondientes. Las reimpresiones antiguas usan los datos que tengan guardados.
+- **Evidencia:** `exportPDFRoster.test.ts` reabre PDFs sintéticos de **25, 40 y 60** con pdf.js y comprueba cada nombre, tipo, horas y los siete días, incluidos límites de página y anexos. Revisión visual con Poppler de **7, 8 y 13 páginas** respectivamente, con **2, 3 y 4** páginas nominales. El caso de 60 incluye 45 incidencias y 60 alertas sintéticas para probar los cortes.
+- **Pendiente #12:** aprobación y publicación persistidas, bloqueo formal y trazabilidad de la versión con hash del POM, perfil y reglas. Requieren la decisión y autorización correspondientes. Supabase, migraciones, producción y datos operativos quedaron fuera del trabajo.
+
+### ESTADO — Corrección descanso 12 h (#10) — rama `fix/ah2-descanso-12h` (apilada sobre `feat/ah2-val01-validador`) — Claude, 2026-11-12
+
+- **Defecto:** el motor contaba 19 slots de 30 min entre 23:00 y 08:00 (son 18) → aceptaba **11,5 h** de descanso. Origen: un test y comentarios asumían «slot 30 = 22:30», pero el propio motor/adapter usa slot 0 = 08:00 → slot 30 = 23:00 (lo que ve el supervisor).
+- **Cambios:** `pasada1-fullpart.ts` (`bucketFin` y 8 buckets de fin en los DP FULL/PART), `reglas.ts` (`validarDescansoEntreDias`: 18), `reglas.test.ts` (casos 12 h exactas válidos y 11,5 h inválidos), comentarios de `catalogos.ts` («fin ≤ 23:00»), test del validador ahora exige 0 violaciones sobre el fixture real.
+- **Pruebas:** `npm test` 98/98 · `tsc` ✅ · build ✅. Validador independiente sobre la salida real del motor: **0 violaciones** (antes 7 descansos de 11,5 h). Impacto con el roster del fixture: cobertura 84,84 % → 84,84 %, faltantes 62 → 62 horas-caja; los turnos se redistribuyen.
+- **Relación con D4:** si la sucursal cierra a las 22:30, las jornadas que terminan 23:00 son un tema aparte (D4); esta corrección solo hace que 12 h signifique 12 h reales.
+- **Siguiente:** quedan bloqueados por decisiones/autorizaciones #5, #7 (D1–D3), #11/#12 (migraciones); ver informe consolidado.
+
+### ESTADO — VAL-01 (#10) — rama `feat/ah2-val01-validador` — Claude, 2026-11-12
+
+- **Issue:** [#10](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/10) · **PR:** draft (ver Issue #10) · base `main` `9909e87`.
+- **Cambios:** `src/algoritmo/validadorIndependiente.ts` — `validarHorario()` puro sobre el horario **de UI** (lo que se edita y publica), independiente del motor, con horas reales. Parámetros en `PerfilNormativo`; `PERFIL_MOTOR_ACTUAL` reproduce lo implementado hoy (estado `PROPUESTO`, sin decidir D1–D3). Valida horas semanales (máx./exactas), francos, cortes ≥ 4 h, bloques por día, horas por día, composición FULL, cantidad de cortadas, **12 h incluido domingo anterior → lunes**, excepciones operativas (franco fijo, entrada/salida, solo mañana/noche, siempre cierre), máximo de francos por día, mínimo de cajeros por franja, integridad de datos; métricas de faltantes/sobrantes por franja. Se eliminó el stub `validarIntegridadResultado` (sin usos).
+- **Pruebas:** `npm test` 96/96 (16 nuevos) · `tsc` ✅ · build ✅. La cobertura del validador coincide franja a franja con la del motor en el fixture real.
+- **⚠️ Defecto del motor detectado:** sobre la salida real del fixture, 7 jornadas con **11,5 h de descanso**. Causa: `pasada1-fullpart.ts` (`bucketFin`, condición H-D1) y `reglas.ts` (`validarDescansoEntreDias`) cuentan 19 slots nocturnos en vez de 18 (23:00→08:00 = 9 h). Corrección en PR separado (rama `fix/ah2-descanso-12h`, apilada sobre esta).
+- **No incluido (es #12):** ejecutar el validador al guardar/publicar.
+- **Siguiente:** corrección del descanso 12 h.
+### ESTADO — RULES-01 (#11) — rama `feat/ah2-rules01-reglas-v2` — Claude, 2026-11-12
+
+- **Issue:** [#11](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/11) · **PR:** draft (ver Issue #11) · base `main` `9909e87` (independiente de #15–#21).
+- **Cambios:** `src/reglas/reglasV2.ts` (puro): modelo `ReglaV2`/`Grupo` (ámbito EMPRESA/SUCURSAL/GRUPO/PERSONA, vigencia SEMANA/MES/RANGO/PERMANENTE evaluada **por día**, nivel OPERATIVA/PREFERENCIA, prioridad, auditoría); `resolverSemana` (precedencia nivel → prioridad → especificidad → reciente; dos OPERATIVAS incompatibles con igual prioridad = **conflicto bloqueante**; con prioridad distinta, la menor queda registrada como sobrescrita; conflictos de franco fijo, turno, ventana vacía, francos fijos sobre el tope, dotación insuficiente para un mínimo y persona inexistente); `compilarParaMotor` (al formato que ya usa el motor, con avisos de lo no representable); `desdeReglasLegacy` (compatibilidad). SQL **propuesto, no aplicado**: `docs/proposals/RULES01_reglas_v2.sql`.
+- **Pruebas:** `npm test` 98/98 (18 nuevos) · `tsc` ✅ · build ✅ · mutaciones detectadas. Equivalencia con el pipeline actual (`reglasAExcepciones`, `capFrancosDeReglas`, `demandaMinimaDeReglas`, `configOperativaDeReglas`) verificada en 4 semanas.
+- **Corrección (pedido del propietario, 2026-11-12):** dos reglas obligatorias (NORMATIVA/OPERATIVA) incompatibles son **siempre conflicto**, cualquiera sea su prioridad; la prioridad solo ordena **preferencias**. Una OPERATIVA solo se aparta con una **excepción autorizada** (`excepcion`: reglas que reemplaza, autor, fecha, motivo, vigencia acotada; auditada en `reemplazadas`). Nada desactiva una NORMATIVA. Toggles obligatorios opuestos = conflicto. Tests: 25 en el módulo, 105/105 en total; restaurar la lógica anterior hace fallar el test de distinta prioridad.
+- **No incluido / dependencias:** UI de carga de vigencia/ámbito/prioridad y persistencia (migración no autorizada); valores normativos (#7, D1–D3: el módulo no contiene ninguno); identidad por id en datos guardados (#9 / SQL de ID-01). La app sigue usando el modelo actual hasta integrar.
+### ESTADO — AUX-01 (AUX y eventuales sin carga semanal) — rama `feat/ah2-aux01-disponibilidad-habitual` — Claude, 2026-11-12
+
+- **Diseño:** [`docs/AUX01_DISENO.md`](AUX01_DISENO.md) (arquitectura, decisiones AUX-D1–D4, criterios). Issue AUX-01 en la épica #3.
+- **Implementado (sin decisiones laborales ni migraciones):** `src/utils/disponibilidadHabitual.ts` — patrón habitual (`horarioSemanal` actual) + excepciones por fecha con motivo/autor; diagnóstico de supervisión previo con la semántica H-A1/H-A2 del motor. `construirMatrizAux` exportado desde `adapter.ts` (sin cambio de lógica).
+- **Pruebas:** `npm test` 89/89 (9 nuevos) · `tsc` ✅ · build ✅.
+- **Pendiente:** UI de excepciones y aviso previo; persistencia (migración); planificador de AUX tras AUX-D1–D3.
+
+## HISTÓRICO — FASE 0 (cerrada: PR #2 integrado en `9909e87`)
 
 **Última actualización:** 2026-11-12
 **Tarea en curso:** Fase 0 — documentación y protocolo de relevo Astra/Claude **(auditada por Claude, lista para revisión del propietario)** + plan de F1 propuesto (sin implementar).
@@ -71,6 +198,7 @@
 **HEAD:** ver «Registro de relevo — Claude» al final; el SHA del commit que contiene este archivo no puede escribirse dentro de él: confirmar siempre con `git log -1 origin/docs/aliada-horarios-2-fase0` y con el comentario de auditoría en PR #2.
 **Plan F1 (propuesto):** [`docs/AH2_FASE1_PLAN.md`](AH2_FASE1_PLAN.md) · Épica [#3](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/3) · sub-Issues #4–#14.
 **Autoridad de producto:** propietario. Ningún modelo tiene prioridad sobre otro.
+
 
 ## Estado confirmado previo a editar
 - `main`: `02ad9d9d46c3477022dbf1c084b5642c1e996c0c` (última lectura 2026-11-12).

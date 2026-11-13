@@ -8,12 +8,16 @@ import { useAsignacion } from '../hooks/useAsignacion'
 import { useReglas } from '../hooks/useReglas'
 import { useHistorial } from '../hooks/useHistorial'
 import { useCorrecciones } from '../hooks/useCorrecciones'
+import DisponibilidadSemana from '../components/semana/DisponibilidadSemana'
+import { prepararDisponibilidadSemana, type ExcepcionDisponibilidad } from '../utils/disponibilidadHabitual'
 import PDFUploader from '../components/semana/PDFUploader'
 import PreviewNecesidad from '../components/semana/PreviewNecesidad'
 import TablaCobertura from '../components/semana/TablaCobertura'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import PanelAlertas from '../components/semana/PanelAlertas'
 import { generarPDF } from '../utils/exportPDF'
+import { validarResultadoSemana, estadoValidacion, type ContextoValidacionSemana } from '../utils/validacionSemana'
+import { getSucursalActual } from '../utils/sucursal'
 import {
   reglasAExcepciones,
   demandaMinimaDeReglas,
@@ -29,40 +33,65 @@ import {
   explicarSesgos,
   resumirTurnos,
 } from '../utils/preferencias'
-import { format, startOfWeek, addDays } from 'date-fns'
+import { format, startOfWeek } from 'date-fns'
+import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
 import { es } from 'date-fns/locale'
 
 type Paso = 'upload' | 'revisar' | 'resultado'
 
-export default function NuevaSemanaPage() {
+export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string }) {
   const [paso, setPaso] = useState<Paso>('upload')
   const { necesidad, loading: loadingPDF, error: errorPDF, parsearPDF, reset: resetPDF } = usePDFParser()
-  const { colaboradores, colaboradoresActivos } = useColaboradores()
-  const { auxiliaresActivos } = useAuxiliares()
-  const { eventualesActivos } = useEventuales()
+  const { colaboradores, colaboradoresActivos, loading: cargandoColaboradores, errorCarga: errorColaboradores } = useColaboradores()
+  const { auxiliaresActivos, loading: cargandoAuxiliares, errorCarga: errorAuxiliares } = useAuxiliares()
+  const { eventualesActivos, loading: cargandoEventuales, errorCarga: errorEventuales } = useEventuales()
   const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, editarJornada, reset: resetAsignacion } = useAsignacion()
   const { reglas, reglasActivas } = useReglas()
   const { historial, agregarSemana, actualizarSemana } = useHistorial()
   const { correcciones, agregarCorreccion } = useCorrecciones()
   const [semanaGuardadaId, setSemanaGuardadaId] = useState<string | null>(null)
   const [semanaDesc, setSemanaDesc] = useState('')
+  // POM-01 (#8): semana tomada del PDF (encabezado/nombre); manual solo si no se detectó.
+  const [lunesSemana, setLunesSemana] = useState('')
+  const [origenSemana, setOrigenSemana] = useState<'pdf' | 'manual'>('manual')
+  const [avisoSemana, setAvisoSemana] = useState<string | null>(null)
+  const [avisosPOM, setAvisosPOM] = useState<string[]>([])
+  // PUB-01 (#12): contexto con el que se generó la semana, para validarla (y revalidarla tras ediciones).
+  const [ctxValidacion, setCtxValidacion] = useState<(ContextoValidacionSemana & { fechas: string[]; auxiliares: typeof auxiliaresActivos; eventuales: typeof eventualesActivos }) | null>(null)
+  const [excepcionesDisponibilidad, setExcepcionesDisponibilidad] = useState<ExcepcionDisponibilidad[]>([])
   const [excepciones, setExcepciones] = useState<ExcepcionSemanal[]>([])
   const [mostrarExcepciones, setMostrarExcepciones] = useState(false)
   const [colaboradorSeleccionado, setColaboradorSeleccionado] = useState('')
   const [tipoSeleccionado, setTipoSeleccionado] = useState<ExcepcionSemanal['tipo']>('franco_dia')
   const [valorInput, setValorInput] = useState('')
 
+  const aplicarSemana = (lunes: string, origen: 'pdf' | 'manual') => {
+    setLunesSemana(lunes)
+    setOrigenSemana(origen)
+    const f = new Date(lunes + 'T12:00:00')
+    setSemanaDesc(`Semana ${format(f, 'w', { locale: es })} - ${format(f, 'MMMM yyyy', { locale: es })}`)
+  }
+
   const handlePDFSelect = async (file: File) => {
+    let resultado
     try {
-      await parsearPDF(file)
+      resultado = await parsearPDF(file)
     } catch {
       // El error ya quedó en usePDFParser.error y lo muestra PDFUploader.
       // NO avanzar al paso de revisión/generación con demanda inválida.
       return
     }
-    // Generar descripción de la semana basada en fecha actual
-    const hoy = new Date()
-    setSemanaDesc(`Semana ${format(hoy, 'w', { locale: es })} - ${format(hoy, 'MMMM yyyy', { locale: es })}`)
+    setAvisosPOM(resultado.avisos)
+    if (resultado.semana.ok) {
+      aplicarSemana(resultado.semana.semana.lunes, 'pdf')
+      setAvisoSemana(null)
+    } else {
+      // Sin semana detectable: se propone la semana actual pero el supervisor debe confirmarla.
+      aplicarSemana(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'), 'manual')
+      setAvisoSemana(resultado.semana.motivo === 'ambigua'
+        ? `El PDF menciona más de una semana (${resultado.semana.candidatas.join(', ')}). Elegí el lunes correcto.`
+        : 'No se encontró la semana en el PDF. Confirmá el lunes de la semana a planificar.')
+    }
     setPaso('revisar')
   }
 
@@ -150,14 +179,26 @@ export default function NuevaSemanaPage() {
     [criteriosCobertura]
   )
 
+  const cargandoDotacion = cargandoColaboradores || cargandoAuxiliares || cargandoEventuales
+  const errorDotacion = errorColaboradores || errorAuxiliares || errorEventuales
+  const fechasSemana = useMemo(() => esLunesISO(lunesSemana) ? fechasDeSemana(lunesSemana) : [], [lunesSemana])
+  const disponibilidad = useMemo(
+    () => !cargandoDotacion && !errorDotacion && fechasSemana.length
+      ? prepararDisponibilidadSemana(auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana[0])
+      : null,
+    [auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana, cargandoDotacion, errorDotacion]
+  )
+  const excepcionesDeLaSemana = excepcionesDisponibilidad.filter(x => fechasSemana.includes(x.fecha))
+  const generacionDeshabilitada = loadingAsignacion || !disponibilidad || disponibilidad.errores.length > 0
+
   const handleGenerarHorarios = async () => {
-    // Calcular fechas de la semana actual (lunes a domingo)
-    const hoy = new Date()
-    const lunes = startOfWeek(hoy, { weekStartsOn: 1 }) // 1 = lunes
-    const fechas = Array.from({ length: 7 }, (_, i) => {
-      const fecha = addDays(lunes, i)
-      return format(fecha, 'yyyy-MM-dd')
-    })
+    // POM-01 (#8): fechas de la semana del PDF (o la confirmada por el supervisor), nunca del reloj.
+    if (!esLunesISO(lunesSemana)) {
+      setAvisoSemana('La fecha elegida no es un lunes. Corregila antes de generar.')
+      return
+    }
+    if (!disponibilidad || disponibilidad.errores.length || loadingAsignacion) return
+    const fechas = fechasSemana
     const fechaLunes = fechas[0]
     const cajerosActivos = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
 
@@ -177,7 +218,29 @@ export default function NuevaSemanaPage() {
       francoMedioCorridos: operativa.francoMedioCorridos,
     }
 
-    const res = await generarHorarios(necesidad, cajerosActivos, auxiliaresActivos, eventualesActivos, fechas, excepcionesTotales, opciones)
+    let res
+    try {
+      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones)
+    } catch {
+      // El hook expone el error en Revisar y permite reintentar.
+      return
+    }
+
+    // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación
+    const lunesPrevio = new Date(new Date(fechaLunes + 'T12:00:00').getTime() - 7 * 86_400_000).toISOString().slice(0, 10)
+    const previas = historial.filter(h => h.fechaLunes === lunesPrevio)
+    const previa = previas[previas.length - 1]
+    setCtxValidacion({
+      fechas,
+      necesidad,
+      excepciones: excepcionesTotales,
+      maxFrancosDia: opciones.maxFrancosDia,
+      minimosCajeros: opciones.demandaMinima,
+      semanaAnterior: previa?.horarios,
+      auxiliares: disponibilidad.auxiliares,
+      eventuales: disponibilidad.eventuales,
+      huecosSupervision: disponibilidad.huecosSupervision,
+    })
 
     // Capacidad 2: guardar la semana en el historial para la rotación futura
     if (res) {
@@ -230,9 +293,23 @@ export default function NuevaSemanaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultado])
 
+  // PUB-01: validación independiente del horario vigente (se recalcula tras cada edición manual)
+  const validacion = useMemo(
+    () => (resultado && ctxValidacion
+      ? validarResultadoSemana(resultado, colaboradoresActivos, ctxValidacion.auxiliares, ctxValidacion.eventuales, ctxValidacion)
+      : null),
+    [resultado, ctxValidacion, colaboradoresActivos]
+  )
+
   const handleExportarPDF = () => {
     if (!resultado) return
-    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, auxiliaresActivos, eventualesActivos)
+    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, ctxValidacion?.auxiliares ?? auxiliaresActivos, ctxValidacion?.eventuales ?? eventualesActivos, {
+      sucursal: getSucursalActual(),
+      fechas: ctxValidacion?.fechas,
+      version: historial.find(s => s.id === semanaGuardadaId)?.version,
+      validacion: validacion ?? undefined,
+      estado: validacion ? estadoValidacion(validacion) : undefined,
+    })
     pdf.save(`horarios-${semanaDesc.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
 
@@ -240,6 +317,8 @@ export default function NuevaSemanaPage() {
     resetPDF()
     resetAsignacion()
     setExcepciones([])
+    setExcepcionesDisponibilidad([])
+    setCtxValidacion(null)
     setMostrarExcepciones(false)
     setSemanaGuardadaId(null)
     setPaso('upload')
@@ -412,8 +491,56 @@ export default function NuevaSemanaPage() {
             }}>
               Resumen de necesidad
             </h3>
+            <div data-testid="semana-pom" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', color: 'var(--text)' }}>
+              <span style={{ fontWeight: 700 }}>
+                {fechasSemana.length > 0 ? `Semana: ${fechasSemana[0]} al ${fechasSemana[6]}` : 'Elegí un lunes válido'}
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {origenSemana === 'pdf' ? '(detectada en el PDF)' : '(elegida manualmente)'}
+              </span>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Lunes:{' '}
+                <input
+                  type="date"
+                  value={lunesSemana}
+                  onChange={e => {
+                    const v = e.target.value
+                    if (esLunesISO(v)) { aplicarSemana(v, 'manual'); setAvisoSemana(null) }
+                    else { setLunesSemana(v); setAvisoSemana('La fecha elegida no es un lunes.') }
+                  }}
+                />
+              </label>
+            </div>
+            {avisoSemana && (
+              <p role="alert" style={{ color: 'var(--danger, #b91c1c)', marginBottom: '12px' }}>{avisoSemana}</p>
+            )}
+            {avisosPOM.length > 0 && (
+              <ul style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                {avisosPOM.map(a => <li key={a}>{a}</li>)}
+              </ul>
+            )}
             <PreviewNecesidad necesidad={necesidad} />
           </div>
+
+          {cargandoDotacion && <p role="status">Cargando dotación…</p>}
+          {errorDotacion && <p role="alert">No se pudo cargar la dotación. Recargá la página antes de generar.</p>}
+          {disponibilidad && (
+            <DisponibilidadSemana
+              key={fechasSemana[0]}
+              fechas={fechasSemana}
+              personas={[
+                ...disponibilidad.auxiliares.map(a => ({ ...a, tipo: 'AUX' as const })),
+                ...disponibilidad.eventuales.map(e => ({ ...e, tipo: 'EVENTUAL' as const })),
+              ]}
+              origen={disponibilidad.origen}
+              excepciones={excepcionesDeLaSemana}
+              huecos={disponibilidad.huecosSupervision}
+              errores={disponibilidad.errores}
+              autorSesion={autorSesion}
+              onAgregar={x => setExcepcionesDisponibilidad(prev => [...prev, x])}
+              onQuitar={(id, fecha) => setExcepcionesDisponibilidad(prev => prev.filter(x => x.colaboradorId !== id || x.fecha !== fecha))}
+            />
+          )}
 
           <div style={{
             background: 'var(--card)',
@@ -886,10 +1013,11 @@ export default function NuevaSemanaPage() {
                 ⚠ No se encontró la tabla de necesidad de cajas en el PDF. Verificá que el archivo sea correcto.
               </p>
             )}
+            {errorAsignacion && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAsignacion}</p>}
             <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleGenerarHorarios}
-                disabled={loadingAsignacion || horasNecesariasEstimadas === 0}
+                disabled={generacionDeshabilitada || horasNecesariasEstimadas === 0}
                 style={{
                   background: 'var(--accent)',
                   color: 'var(--accent-dark)',
@@ -902,8 +1030,8 @@ export default function NuevaSemanaPage() {
                   letterSpacing: '-0.2px',
                   display: 'flex',
                   alignItems: 'center',
-                  cursor: (loadingAsignacion || horasNecesariasEstimadas === 0) ? 'not-allowed' : 'pointer',
-                  opacity: (loadingAsignacion || horasNecesariasEstimadas === 0) ? 0.5 : 1,
+                  cursor: (generacionDeshabilitada || horasNecesariasEstimadas === 0) ? 'not-allowed' : 'pointer',
+                  opacity: (generacionDeshabilitada || horasNecesariasEstimadas === 0) ? 0.5 : 1,
                 }}
               >
                 {loadingAsignacion ? (
@@ -997,6 +1125,26 @@ export default function NuevaSemanaPage() {
                 <span style={{ color: 'var(--accent-strong)', marginRight: '8px' }}>❌</span>
                 <p style={{ color: 'var(--text)' }}>{errorAsignacion}</p>
               </div>
+            </div>
+          )}
+
+          {validacion && (
+            <div data-testid="estado-validacion" style={{
+              background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '20px 24px',
+              color: validacion.publicable ? 'var(--text)' : 'var(--danger, #b91c1c)',
+            }}>
+              <p style={{ fontWeight: 700 }}>{validacion.publicable ? '✅' : '⛔'} {estadoValidacion(validacion)}</p>
+              {validacion.metricas && (
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                  Horas-caja faltantes: {validacion.metricas.horasCajaFaltantes} · sobrantes: {validacion.metricas.horasCajaSobrantes}
+                </p>
+              )}
+              {validacion.violaciones.length > 0 && (
+                <ul style={{ marginTop: '8px', fontSize: '13px' }}>
+                  {validacion.violaciones.slice(0, 30).map((v, i) => <li key={i}>[{v.nivel}] {v.detalle}</li>)}
+                  {validacion.violaciones.length > 30 && <li>… y {validacion.violaciones.length - 30} más (ver PDF).</li>}
+                </ul>
+              )}
             </div>
           )}
 

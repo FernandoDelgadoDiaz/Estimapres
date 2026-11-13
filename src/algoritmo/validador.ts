@@ -94,6 +94,5 @@ export function calcularMetricasCobertura(
   };
 }
 
-export function validarIntegridadResultado(_resultado: unknown): { ok: boolean; errores: string[] } {
-  return { ok: true, errores: [] };
-}
+// VAL-01 (#10): el stub `validarIntegridadResultado` (siempre ok) se eliminó.
+// La validación independiente vive en ./validadorIndependiente.ts (validarHorario).
