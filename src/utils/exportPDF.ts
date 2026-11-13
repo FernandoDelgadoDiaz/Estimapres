@@ -95,11 +95,13 @@ export function generarPDF(
     doc.setTextColor(...TINTA)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(17)
-    doc.text(titulo, MARGEN, 18, { maxWidth: ancho })
+    const alternativo = `${titulo} - ${semanaDesc}`
+    const tituloCorto = !ident && titulo === 'Horarios Semanales' && doc.getTextWidth(alternativo) <= ancho
+    doc.text(tituloCorto ? alternativo : titulo, MARGEN, 18, { maxWidth: ancho })
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
     if (ident) doc.text(ident, MARGEN, 24)
-    else if (semanaDesc) doc.text(doc.splitTextToSize(semanaDesc, ancho)[0], MARGEN, 24)
+    else if (semanaDesc && !tituloCorto) doc.text(doc.splitTextToSize(semanaDesc, ancho)[0], MARGEN, 24)
     if (estado) {
       doc.setFontSize(8.5)
       doc.text(`Estado: ${estado}`, MARGEN, 29)
