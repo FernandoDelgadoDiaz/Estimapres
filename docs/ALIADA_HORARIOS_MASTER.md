@@ -1,7 +1,7 @@
 # ALIADA HORARIOS 2.0 — FUENTE ÚNICA DE VERDAD
 
-**Estado:** propuesta de gobernanza en revisión (rama `docs/aliada-horarios-2-fase0`). Se convierte en normativa de desarrollo al aprobar/fusionar el PR correspondiente.
-**Actualizado:** 2026-11-12
+**Estado:** normativa vigente de producto, integrada en `main` (PR #2, `9909e87`). Toda decisión nueva se registra en §9 como APROBADO, PROPUESTO o PENDIENTE DE VALIDACIÓN (AH2-018).
+**Actualizado:** 2026-11-14 (arquitectura adaptativa §6.1 y contrato de horas PART, Issues #44 y #7)
 **Repositorio:** `FernandoDelgadoDiaz/Estimapres`
 **Propietario y autoridad de producto:** Fernando (aprueba cambios de alcance, reglas, migraciones, merges, despliegues y gastos).
 **Estado operacional y relevo entre modelos:** [`docs/CURRENT_WORK.md`](CURRENT_WORK.md).
@@ -60,7 +60,7 @@ El producto debe soportar perfiles versionados por país, convenio colectivo, ca
 
 **Requisitos expresados por el propietario (aceptados como objetivos de diseño; situación normativa pendiente de verificar):**
 - 12 horas mínimas de descanso entre fin e inicio de jornada; incluye cambio de domingo a lunes de semanas consecutivas.
-- PART: no superar **32 horas semanales** (el código actual restringe a 31).
+- PART: no superar **32 horas semanales**. Implementado como perfil de horas vigente (`src/algoritmo/contratos.ts`, AH2-014); el perfil histórico de 31 h se conserva para validar semanas anteriores.
 - FULL: no superar **48 horas semanales** (el código actual compone 48 exactas).
 - FULL: **un franco y medio** a la semana, cuya definición operativa/convencional debe verificarse; el motor actual representa un día franco y una jornada de 5 h.
 - PART: un franco semanal.
@@ -115,6 +115,15 @@ Equidad de turnos, rotación de cierres/fin de semana, aprendizajes de correccio
 - **Datos personales en el repositorio público:** roster semilla (`src/types/index.ts`) y fixtures de tests con nombres y horarios que parecen reales (Issue #23).
 - `npm ci` falla: `package-lock.json` no está sincronizado con `package.json`. Con `npm install --no-save`: `vitest run` 80/80 OK y `npm run build` OK. No hay CI (`.github/` no existe).
 
+### 4.1 Estado actualizado — 2026-11-14 (prevalece sobre las diferencias históricas de arriba)
+
+- Motor en tres pasadas corregido (#38/#39): apertura configurable, AUX en caja solo con déficit real, eventuales solo para el déficit residual.
+- Validador independiente real (`src/algoritmo/validadorIndependiente.ts` + `src/utils/validacionSemana.ts`): incluye descanso entre semanas, composición de apertura, supervisión H-A2 y cobertura duplicada. Estados VALIDADO / BORRADOR / SIN VERIFICAR.
+- Recálculo de la cascada tras ediciones manuales (`src/utils/recalculoSemana.ts`).
+- PDF operativo de dos cuadros, caja y presencia (#41).
+- **Contrato de horas único** (`src/algoritmo/contratos.ts`, #7): lo usan el adaptador, la pasada 1, H-P1, el validador, la UI y el PDF (AH2-014).
+- `ai/*`, `README.md` y partes de este §4 anteriores a esta fecha son antecedentes; el código es la evidencia del comportamiento real.
+
 ## 5. Base de datos y seguridad — verificación de solo lectura 2026-11-12
 
 Supabase proyecto **al-iada horarios**, estado `ACTIVE_HEALTHY` al momento de la revisión.
@@ -146,6 +155,52 @@ PDF POM / otra fuente de demanda
 ```
 
 Agente (fase posterior): herramientas de lectura, simulación, explicación y borradores; para cambios sensibles requerir permisos y aprobación humana. Desencadenamiento por evento/cron, no llamadas de IA permanentes; presupuestos y límites. **Aún no seleccionar modelo, SDK o despliegue definitivo.**
+
+### 6.1 Arquitectura de planificación adaptativa — Issue #44
+
+**Dirección aprobada por el propietario (14/11/2026).** El producto evoluciona de un generador semanal aislado a una planificación adaptativa que considera:
+- demanda POM por franja;
+- contratos y horas semanales por colaborador;
+- reglas obligatorias y configuración por sucursal;
+- disponibilidad, vacaciones, licencias y ausencias;
+- historial de horarios **efectivamente vigentes**;
+- continuidad y rotación por ciclo;
+- replanificación ante contingencias.
+
+Componentes (los formatos técnicos son **PROPUESTOS**):
+
+```text
+POM (snapshot inmutable, matriz día×franja)
+  + roster con IDs estables y contrato (objetivo y máximo de horas)       ← tramo A (este PR)
+  + reglas versionadas (normativa / operativa / preferencia, con vigencia)
+  + ausencias {empleadoId, desde, hasta, alcance, estado, auditoría}       ← tramo D
+  + horario publicado vigente y ciclo de planificación                    ← tramo B
+    → comparador de demanda POM (Δ por día/franja)                         ← tramo C
+    → optimizador determinista: reglas duras → cobertura ≥ objetivo
+      → estabilidad dentro del ciclo / rotación al cambiar de ciclo
+    → validador independiente + diferencias explicadas
+    → BORRADOR → aprobación humana → PUBLICADO (versionado)
+```
+
+Reglas de producto (APROBADAS, ver AH2-015…AH2-017):
+1. **Continuidad intramensual:** dentro de un mismo ciclo de planificación se minimizan los cambios de turno y franco frente al horario vigente. Se adapta solo lo que exige el POM.
+2. **Rotación intermensual:** al iniciar un nuevo ciclo se favorecen cambios visibles y equitativos de turno (mañana, tarde, cierre y fines de semana), contabilizados por semanas efectivas y no por PDF ni versiones. Las reglas individuales de turno fijo prevalecen.
+3. **Corte de ciclo explícito:** cada sucursal declara `cicloPlanificacionId` y su fecha de inicio. El cambio de ciclo nunca se deduce solo de que una semana cruce el día 1.
+4. **Contingencias:** una ausencia sobre un horario publicado solo replanifica el tramo futuro afectado. Lo ya trabajado nunca se reescribe, y se muestra un diff con mínima cantidad de cambios.
+5. **Cobertura objetivo configurable por sucursal:** 95 % en la 091. Es una meta operativa: no es contractual y nunca justifica violar una regla dura.
+6. **Aprobación humana antes de publicar.** Ningún agente publica.
+
+Tramos de entrega:
+
+| Tramo | Contenido | Estado |
+|---|---|---|
+| A | Contrato de horas PART coherente (este PR) | EN REVISIÓN |
+| B | Publicación, vigencia, ciclo y versionado (#10/#12) | PENDIENTE |
+| C | Comparación de POM y continuidad/rotación; benchmark #13 | PENDIENTE |
+| D | Ausencias y replanificación parcial (#28) | PENDIENTE |
+| E | Aprendizaje/agente supervisado (#14) | PENDIENTE |
+
+Cada tramo se entrega en un PR aislado y verificable, sin migraciones ni publicación sin autorización.
 
 ## 7. Reglas de trabajo entre modelos (Astra / ChatGPT / Claude)
 
@@ -187,5 +242,12 @@ Agente (fase posterior): herramientas de lectura, simulación, explicación y bo
 | AH2-011 | Benchmark motor actual vs CP-SAT fuera de producción (Python offline sobre fixtures sintéticos); no se elige despliegue de CP-SAT hasta tener resultados | **PROPUESTO** — amplía AH2-006 |
 | AH2-012 | Reglas obligatorias (normativas y operativas) vigentes se cumplen **simultáneamente**: si son incompatibles es conflicto explícito, sin importar la prioridad. La prioridad ordena solo preferencias. Una operativa solo se aparta mediante **excepción autorizada** con vigencia acotada, motivo, autor y auditoría. Ninguna normativa se desactiva por preferencia ni excepción | **APROBADO por el propietario** (instrucción del 2026-11-12, implementado en PR #22) |
 | AH2-013 | Los grupos de colaboradores se cargan desde la cuenta y sucursal activas. Un grupo vacío permanece vacío y la apertura de pantallas no importa nóminas del dispositivo. Cualquier importación futura debe ser explícita y supervisada. | **APROBADO por el propietario** (2026-11-13) · [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30) |
+
+| AH2-014 | **Contrato de horas único** (`src/algoritmo/contratos.ts`), usado por motor, H-P1, validador, UI y PDF.<br>• Conceptos: `objetivoHoras` = ficha; `maximoHoras` = tope del perfil; tope del motor = min(objetivo, máximo), sin asignar por encima de la ficha; `asignadas`/`diferencia` con motivo si no se cumple.<br>• Perfil vigente: PART ≤ 32 h, FULL 48 h sin cambios.<br>• Perfil histórico: PART ≤ 31 h, para validar semanas anteriores.<br>• Las horas objetivo tienen prioridad sobre la cobertura (lexicográfica) mientras las reglas lo permitan. Si no es factible, se informa el máximo factible y la causa; nunca se relajan reglas. | **REQUISITO APROBADO (32 h, AH2-004) / DISEÑO TÉCNICO PROPUESTO / VALIDACIÓN JURÍDICA PENDIENTE** — Issue #7, tramo A |
+| AH2-015 | Arquitectura de planificación adaptativa (§6.1): POM + contratos + reglas + ausencias + historial vigente; continuidad intramensual, rotación intermensual, contingencias parciales y aprobación humana | **APROBADO como dirección por el propietario (14/11/2026)**; formatos técnicos PROPUESTOS — Issue #44 |
+| AH2-016 | El corte de ciclo mensual es explícito (`cicloPlanificacionId` y fecha de inicio por sucursal); no se deduce del día 1 del calendario | **APROBADO por el propietario (14/11/2026)** — Issue #44 |
+| AH2-017 | Cobertura objetivo configurable por sucursal (091: 95 %), operativa y subordinada a reglas duras | **APROBADO por el propietario** |
+| AH2-018 | Gobernanza: este MASTER es la única autoridad de producto; `CURRENT_WORK.md` solo registra estado operativo y relevo; `AGENTS.md`/`CLAUDE.md` remiten a ambos; Issues/PR enlazan, no duplican reglas | **APROBADO por el propietario (14/11/2026)** |
+| AH2-019 | Cada semana guardada registra el perfil de horas con que se generó (`perfilHorasId` en el jsonb existente, sin migración) y se valida con ese perfil; sin el dato, se usa el perfil histórico | **PROPUESTO** — tramo A |
 
 **Cualquier decisión nueva se registra aquí y enlaza Issue/PR; no crear otros registros de decisiones independientes.**

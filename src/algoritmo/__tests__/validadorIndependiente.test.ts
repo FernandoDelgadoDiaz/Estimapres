@@ -1,6 +1,6 @@
 // VAL-01 (#10): validador independiente — un caso válido y al menos uno inválido por restricción.
 import { describe, expect, it } from 'vitest'
-import { validarHorario, PERFIL_MOTOR_ACTUAL, type EntradaValidacion, type PerfilNormativo } from '../validadorIndependiente'
+import { validarHorario, PERFIL_MOTOR_ACTUAL, PERFIL_MOTOR_HISTORICO_31, type EntradaValidacion, type PerfilNormativo } from '../validadorIndependiente'
 import { ejecutarAlgoritmo } from '../orquestador'
 import { convertirOutputDeV2 } from '../adapter'
 import { ROSTER_REAL_PDF, DEMANDA_REAL_PDF, PRESENCIA_AUX_REAL_PDF, DISPONIBILIDAD_EV_REAL_PDF } from './fixtures'
@@ -94,9 +94,12 @@ describe('VAL-01: restricciones normativas (perfil del motor actual)', () => {
 
   it('el perfil parametriza los límites: PART 32 h acepta lo que 31 h rechaza', () => {
     const h32 = horario('p', ['09:00-15:00', '09:00-15:00', '16:00-22:00', '16:00-22:00', null, '09:00-14:00', '10:00-13:00'])
-    expect(codigos(base([h32]))).toContain('NORM_HORAS_MAX')
-    const p32: PerfilNormativo = { ...PERFIL_MOTOR_ACTUAL, id: 'test-32', contratos: { ...PERFIL_MOTOR_ACTUAL.contratos, PART: { ...PERFIL_MOTOR_ACTUAL.contratos.PART, horasSemanaMax: 32 } } }
-    expect(codigos(validarHorario({ horarios: [h32], roster, perfil: p32 }))).not.toContain('NORM_HORAS_MAX')
+    // #7: el perfil vigente (requisito de producto) admite 32 h; el histórico del motor, 31 h.
+    expect(PERFIL_MOTOR_ACTUAL.contratos.PART.horasSemanaMax).toBe(32)
+    expect(codigos(base([h32]))).not.toContain('NORM_HORAS_MAX')
+    expect(codigos(validarHorario({ horarios: [h32], roster, perfil: PERFIL_MOTOR_HISTORICO_31 }))).toContain('NORM_HORAS_MAX')
+    const p31: PerfilNormativo = { ...PERFIL_MOTOR_ACTUAL, id: 'test-31', contratos: { ...PERFIL_MOTOR_ACTUAL.contratos, PART: { ...PERFIL_MOTOR_ACTUAL.contratos.PART, horasSemanaMax: 31 } } }
+    expect(codigos(validarHorario({ horarios: [h32], roster, perfil: p31 }))).toContain('NORM_HORAS_MAX')
   })
 })
 

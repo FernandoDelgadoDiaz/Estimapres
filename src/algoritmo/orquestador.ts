@@ -68,5 +68,6 @@ export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
         `Colaborador ${id} no pudo ser asignado con las restricciones dadas`
       ),
     },
+    cumplimiento_horas: p1.cumplimiento_horas,
   };
 }

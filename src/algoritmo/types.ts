@@ -102,6 +102,11 @@ export interface InputAlgoritmo {
   // de cada FULL debe ser adyacente a su franco completo (36h corridas de
   // descanso). Fallback: false (el día de 5h puede caer cualquier día).
   franco_medio_corridos?: boolean;
+
+  // #7 — Contrato de horas por colaborador PART (slots de 30 min): objetivo de la
+  // ficha y tope = min(objetivo, máximo del perfil). Sin dato: 62 slots (31 h,
+  // comportamiento histórico) para no alterar llamadas directas al motor.
+  contratos?: Record<string, { objetivoSlots: number; maximoSlots: number }>;
 }
 
 // Outputs del algoritmo
@@ -133,6 +138,8 @@ export interface ResultadoSemanal {
   asignacion_eventual: Record<string, AsignacionEv[][]>;  // [dia][slot]
   metricas: MetricasCobertura;
   reporte_reglas: ReporteReglas;
+  /** #7: objetivo vs horas asignadas por contrato (motivo si no se cumple). */
+  cumplimiento_horas?: import("./contratos").CumplimientoHoras[];
 }
 
 // Helpers de tiempo

@@ -34,6 +34,7 @@ import type {
   Colaborador,
   SesgoTurno,
 } from "./types";
+import type { ContratoSlots, CumplimientoHoras } from "./contratos";
 import {
   CATALOGO_FULL_CORRIDAS,
   CATALOGO_FULL_CORTADAS,
@@ -46,6 +47,8 @@ export interface ResultadoPasada1 {
   jornadas_part: Record<string, Jornada[]>;
   deficit_1: number[][]; // 7 x 30
   infactibles: string[];
+  /** #7: objetivo vs horas asignadas por PART (y FULL), con motivo si no se cumple. */
+  cumplimiento_horas?: CumplimientoHoras[];
 }
 
 const PESO_SUPERAVIT = 0.5;   // cubrir de más cuesta la mitad de lo que rinde cubrir déficit
@@ -53,6 +56,12 @@ const PENALIZACION_FRANCO = 30; // por franco ya existente ese día (reparto sua
 const MAX_PASADAS = 8;
 const PRESUPUESTO_MS = 6000;
 const SESGO_MAX = 12; // tope del sesgo blando por jornada: desempata, no manda
+// #7: cada media hora que falte para el objetivo de horas del contrato PART pesa
+// más que cualquier ganancia de cobertura de una jornada → prioridad lexicográfica:
+// primero cumplir las horas pactadas (si las reglas lo permiten), luego cobertura.
+const PENALIZACION_HORA_FALTANTE = 1000;
+/** Tope histórico del motor (31 h) cuando no llega contrato por persona (llamadas directas). */
+export const MAX_SLOTS_PART_HISTORICO = 62;
 
 const SESGO_NEUTRO: SesgoTurno = { manana: 0, tarde: 0, cierre: 0 };
 
@@ -142,16 +151,18 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
       if (previa) quitarSemana(previa, cobertura, francos_full, francos_part, es_full);
 
       const pre = prefijosUtilidad(demanda, cobertura, pesosEfectivos);
+      const contrato = contratoPart(input, colab.id);
       const nueva = es_full
         ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos)
-        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos);
+        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, contrato);
+      const penal = (sem: Jornada[]) => (es_full ? 0 : penalizacionHoras(sem, contrato));
 
       let elegida: Jornada[] | null = previa;
       if (nueva) {
         if (
           !previa ||
-          utilidadSemana(nueva, pre, francos_full, francos_part, sesgo) >
-            utilidadSemana(previa, pre, francos_full, francos_part, sesgo) + 1e-6
+          utilidadSemana(nueva, pre, francos_full, francos_part, sesgo) - penal(nueva) >
+            utilidadSemana(previa, pre, francos_full, francos_part, sesgo) - penal(previa) + 1e-6
         ) {
           elegida = nueva;
           cambios++;
@@ -186,7 +197,60 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     fila.map((v, s) => Math.max(0, v - cobertura[d][s]))
   );
 
-  return { jornadas_full, jornadas_part, deficit_1, infactibles };
+  // #7: cumplimiento de horas por contrato. Si un PART no llega a su objetivo,
+  // se calcula cuántas horas permiten SUS reglas (sin mirar cobertura) para
+  // explicar el motivo: restricciones de la persona/contrato o competencia.
+  const cumplimiento_horas: CumplimientoHoras[] = [];
+  for (const c of fulls) {
+    const sem = jornadas_full[c.id];
+    const asignadas = slotsSemana(sem) / 2;
+    cumplimiento_horas.push({
+      colab_id: c.id, tipo: "FULL", objetivoHoras: 48, maximoHoras: 48, asignadasHoras: asignadas,
+      diferenciaHoras: 48 - asignadas,
+      motivo: sem.length ? undefined : "Sin semana válida con las restricciones de la persona (composición FULL 48 h).",
+    });
+  }
+  const ceros = Array.from({ length: 7 }, () => new Array(31).fill(0));
+  for (const c of parts) {
+    const contrato = contratoPart(input, c.id);
+    const sem = jornadas_part[c.id];
+    const asignadas = slotsSemana(sem) / 2;
+    const fila: CumplimientoHoras = {
+      colab_id: c.id, tipo: "PART",
+      objetivoHoras: contrato.objetivoSlots / 2, maximoHoras: contrato.maximoSlots / 2,
+      asignadasHoras: asignadas, diferenciaHoras: contrato.objetivoSlots / 2 - asignadas,
+    };
+    if (fila.diferenciaHoras > 0) {
+      // Máximo alcanzable por reglas: misma DP con utilidad de cobertura nula.
+      const otros_ff = [...francos_full];
+      const otros_fp = [...francos_part];
+      for (const j of sem) if (j.bloques.length === 0) otros_fp[j.dia] -= 1;
+      const maxima = optimizarSemanaPart(c, ceros, otros_ff, otros_fp, excepciones, SESGO_NEUTRO, cap_francos, contrato);
+      fila.factibleHoras = maxima ? slotsSemana(maxima) / 2 : 0;
+      const propias = excepciones.filter(x => x.colaboradorNombre === c.nombre).map(x => x.descripcion || x.tipo);
+      fila.motivo = !maxima
+        ? "No existe ninguna semana PART válida con sus restricciones (franco, ≥2 mañanas, 4–6 h por día, descanso 12 h)."
+        : fila.factibleHoras < fila.objetivoHoras
+          ? `Sus reglas permiten como máximo ${fila.factibleHoras} h esta semana (jornadas de 4–6 h, 1 franco, ≥2 mañanas, descanso 12 h${propias.length ? `; reglas propias: ${propias.join(", ")}` : ""}${cap_francos ? `; tope de ${cap_francos} francos por día` : ""}).`
+          : "El motor no alcanzó el objetivo aunque las reglas lo permiten (límite de tiempo de optimización).";
+    }
+    cumplimiento_horas.push(fila);
+  }
+
+  return { jornadas_full, jornadas_part, deficit_1, infactibles, cumplimiento_horas };
+}
+
+function slotsSemana(semana: Jornada[] | undefined): number {
+  return (semana ?? []).reduce((n, j) => n + j.bloques.reduce((m, b) => m + b.slot_fin - b.slot_inicio, 0), 0);
+}
+
+/** Contrato PART en slots: el informado por persona o el tope histórico (31 h). */
+function contratoPart(input: InputAlgoritmo, id: string): ContratoSlots {
+  return input.contratos?.[id] ?? { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO };
+}
+
+function penalizacionHoras(semana: Jornada[], contrato: ContratoSlots): number {
+  return PENALIZACION_HORA_FALTANTE * Math.max(0, Math.min(contrato.objetivoSlots, contrato.maximoSlots) - slotsSemana(semana));
 }
 
 /** Peso de los slots de apertura cuando la abre un cajero (apertura_solo_aux OFF). */
@@ -614,11 +678,11 @@ function optimizarSemanaFull(
 }
 
 // ============== DP PART ==============
-// Estado PART: s = ((finB·2 + francoUsado)·3 + mañanas)·63 + slotsUsados
-// H-P1: slotsUsados ≤ 62 (31h). Las duraciones 8..12 garantizan H-P5.
-
-const MAX_SLOTS_PART = 62;
-const NUM_ESTADOS_PART = NUM_BUCKETS_FIN * 2 * 3 * (MAX_SLOTS_PART + 1); // 3024
+// Estado PART: s = ((finB·2 + francoUsado)·3 + mañanas)·(max+1) + slotsUsados
+// H-P1: slotsUsados ≤ tope del contrato (#7: objetivo de la ficha, nunca más que
+// el máximo del perfil; 62 = 31 h si no llega contrato). Las duraciones 8..12
+// garantizan H-P5. Al cerrar la semana se penaliza cada media hora que falte
+// para el objetivo (PENALIZACION_HORA_FALTANTE).
 
 function optimizarSemanaPart(
   colab: Colaborador,
@@ -627,8 +691,12 @@ function optimizarSemanaPart(
   francos_part: number[],
   excepciones: ExcepcionSemanal[],
   sesgo: SesgoTurno,
-  cap_francos: number
+  cap_francos: number,
+  contrato: ContratoSlots = { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO }
 ): Jornada[] | null {
+  const MAX_SLOTS_PART = Math.max(0, Math.floor(contrato.maximoSlots));
+  const OBJETIVO = Math.min(MAX_SLOTS_PART, Math.max(0, Math.floor(contrato.objetivoSlots)));
+  const NUM_ESTADOS_PART = NUM_BUCKETS_FIN * 2 * 3 * (MAX_SLOTS_PART + 1);
   const cands_por_dia: Candidato[][] = [];
   for (let d = 0; d < 7; d++) {
     cands_por_dia.push(
@@ -690,14 +758,17 @@ function optimizarSemanaPart(
     cur = next;
   }
 
-  // Estados finales: 1 franco, ≥2 mañanas, cualquier total de horas ≤ 31
+  // Estados finales: 1 franco, ≥2 mañanas, total ≤ tope del contrato; se elige
+  // la mejor utilidad descontando las medias horas que falten para el objetivo.
   let mejor_s = -1;
   let mejor_u = -Infinity;
   for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
     for (let usados = 0; usados <= MAX_SLOTS_PART; usados++) {
       const s = ((finB * 2 + 1) * 3 + 2) * USADOS + usados;
-      if (cur[s] > mejor_u) {
-        mejor_u = cur[s];
+      if (cur[s] === -Infinity) continue;
+      const v = cur[s] - PENALIZACION_HORA_FALTANTE * Math.max(0, OBJETIVO - usados);
+      if (v > mejor_u) {
+        mejor_u = v;
         mejor_s = s;
       }
     }

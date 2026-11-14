@@ -219,6 +219,8 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
       configOperativa: s.configOperativa,
       disponibilidadSemana: s.disponibilidadSemana,
       eventualesFijos: s.eventualesFijos,
+      perfilHorasId: s.perfilHorasId,
+      cumplimientoHoras: s.cumplimientoHoras,
     },
     metricas: {
       resumenPorColaborador: s.resumenPorColaborador,
@@ -248,6 +250,8 @@ function filaASemana(f: FilaSemana): SemanaHistorial {
     configOperativa: h.configOperativa as SemanaHistorial['configOperativa'],
     disponibilidadSemana: h.disponibilidadSemana as SemanaHistorial['disponibilidadSemana'],
     eventualesFijos: h.eventualesFijos as string[] | undefined,
+    perfilHorasId: h.perfilHorasId as string | undefined,
+    cumplimientoHoras: h.cumplimientoHoras as SemanaHistorial['cumplimientoHoras'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,

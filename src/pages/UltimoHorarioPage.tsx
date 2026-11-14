@@ -1,5 +1,6 @@
 import { validarResultadoSemana, estadoValidacion } from '../utils/validacionSemana'
 import { useReglas } from '../hooks/useReglas'
+import { perfilNormativoDeSemana } from '../algoritmo/validadorIndependiente'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { HORAS_FRANJAS, JornadaResumida, ResultadoAsignacion } from '../types'
@@ -99,6 +100,8 @@ export default function UltimoHorarioPage() {
         operativa,
         omitirDisponibilidadEventual: !disp,
         limitaciones,
+        // #7: cada semana se valida con el perfil de horas con que se generó (histórico: PART ≤ 31 h).
+        perfil: perfilNormativoDeSemana(ultimaSemana.perfilHorasId),
       },
     )
   }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])

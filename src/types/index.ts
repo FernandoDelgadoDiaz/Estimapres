@@ -55,6 +55,8 @@ export interface ResultadoAsignacion {
   cajaEventual?: AsignacionCajaColaborador[]
   // #38: celdas de eventuales fijadas a mano ("id|día"): el recálculo las respeta.
   eventualesFijos?: string[]
+  // #7: objetivo vs horas asignadas por contrato (FULL/PART), con motivo si no se cumple.
+  cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
 }
 
 export type DiaSemana = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom'
@@ -178,6 +180,11 @@ export interface SemanaHistorial {
   disponibilidadSemana?: Record<string, string[]>
   // #38: celdas de eventuales fijadas a mano ("id|día").
   eventualesFijos?: string[]
+  // #7: perfil de horas por contrato con que se generó (contratos.ts). Ausente en
+  // semanas anteriores: se validan con el perfil histórico del motor (PART ≤ 31 h).
+  perfilHorasId?: string
+  // #7: objetivo vs horas asignadas por contrato, tal como lo informó el motor.
+  cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
 }
 
 // ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================

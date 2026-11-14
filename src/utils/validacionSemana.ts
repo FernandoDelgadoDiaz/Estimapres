@@ -3,6 +3,7 @@
 import type { Auxiliar, Colaborador, Eventual, ExcepcionSemanal, Franja, HorarioColaborador, ResultadoAsignacion } from '../types'
 import { PERFIL_MOTOR_ACTUAL, validarHorario, type PerfilNormativo, type ResultadoValidacion } from '../algoritmo/validadorIndependiente'
 import { horasLegibles, minutosAsignados, resumenHoras } from './horasSemanales'
+import { PERFIL_HORAS_VIGENTE, perfilHorasDeSemana, resolverContratoHoras } from '../algoritmo/contratos'
 import type { HuecoSupervision } from './disponibilidadHabitual'
 import { DEFAULTS_OPERATIVOS, normalizarExcepciones, type ConfigOperativa, type MinimoFranja } from './preferencias'
 
@@ -68,7 +69,7 @@ export function validarResultadoSemana(
     semanaAnterior: ctx.semanaAnterior,
     operativa: operativaEfectiva(ctx.operativa),
   })
-  const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales)
+  const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales, (ctx.perfil ?? PERFIL_MOTOR_ACTUAL).perfilHorasId)
   // H-A2 (supervisión 09–22) ya la calcula el validador sobre la presencia real
   // (incluida la edición manual); del diagnóstico previo solo se agrega H-A1.
   // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).
@@ -93,7 +94,10 @@ export function validarResultadoSemana(
 
 export function validarHorasAsignadas(
   horarios: HorarioColaborador[], colaboradores: Colaborador[], eventuales: Eventual[],
+  perfilHorasId?: string,
 ): Pick<ResultadoValidacion, 'violaciones'> & { advertencias: string[] } {
+  const perfilHoras = perfilHorasId ? perfilHorasDeSemana(perfilHorasId) : PERFIL_HORAS_VIGENTE
+  const porId = new Map(colaboradores.map(c => [c.id, c]))
   const roster = new Map<string, { nombre: string; tipo: string; objetivo?: number }>([
     ...colaboradores.map(c => [c.id, { nombre: c.nombre, tipo: c.tipo, objetivo: c.horasSemanales }] as const),
     ...eventuales.map(e => [e.id, { nombre: e.nombre, tipo: 'EVENTUAL', objetivo: e.maxHorasSemanales }] as const),
@@ -109,6 +113,13 @@ export function validarHorasAsignadas(
       detalle: `${persona.nombre}: ${horasLegibles(asignados)} asignadas. Límite en ficha: ${limite} h.`,
     })
     if (preventivo) advertencias.push(`${persona.nombre}: ${horasLegibles(asignados)} asignadas. Supera 48 h (aviso preventivo).`)
+    // #7: PART por debajo de su objetivo de horas (ficha acotada al máximo del perfil).
+    const c = porId.get(h.colaboradorId)
+    if (c?.tipo === 'PART') {
+      const contrato = resolverContratoHoras('PART', c.horasSemanales, perfilHoras)
+      const faltan = Math.round(contrato.objetivoHoras * 60) - asignados
+      if (faltan > 0) advertencias.push(`${persona.nombre}: ${horasLegibles(asignados)} asignadas de ${contrato.objetivoHoras} h objetivo (faltan ${horasLegibles(faltan)}).`)
+    }
   }
   return { violaciones, advertencias }
 }

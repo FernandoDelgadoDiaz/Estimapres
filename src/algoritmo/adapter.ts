@@ -14,6 +14,7 @@ import type {
   AsignacionCajaColaborador,
 } from '../types';
 import { HORAS_FRANJAS } from '../types';
+import { PERFIL_HORAS_VIGENTE, resolverContratoHoras, aSlots, type PerfilHorasContrato } from './contratos';
 
 import type {
   InputAlgoritmo,
@@ -172,6 +173,8 @@ export interface OpcionesGeneracion {
   sinAuxCierre?: boolean;
   supervisorJornadaCompleta?: boolean;
   francoMedioCorridos?: boolean;
+  // #7: perfil de horas por contrato (máximo PART/FULL). Default: perfil vigente (PART ≤ 32 h).
+  perfilHoras?: PerfilHorasContrato;
 }
 
 export function convertirInputAV2(
@@ -208,9 +211,14 @@ export function convertirInputAV2(
   // 2. Colaboradores v2: solo FULL y PART desde cajeros (ids sin colisiones, ID-01)
   const ident = asignarIdentidadesV2(personasDelMotor(cajeros, auxiliares, eventuales));
   const colaboradores: ColaboradorV2[] = [];
+  // #7: contrato de horas por PART (objetivo = ficha; tope = min(ficha, máximo del perfil)).
+  const contratos: NonNullable<InputAlgoritmo['contratos']> = {};
+  const perfilHoras = opciones?.perfilHoras ?? PERFIL_HORAS_VIGENTE;
   for (const c of cajeros) {
     if (c.tipo === 'FULL' || c.tipo === 'PART') {
-      colaboradores.push({ id: ident.v2PorUi.get(c.id)!, nombre: c.nombre, rol: c.tipo });
+      const id = ident.v2PorUi.get(c.id)!;
+      colaboradores.push({ id, nombre: c.nombre, rol: c.tipo });
+      if (c.tipo === 'PART') contratos[id] = aSlots(resolverContratoHoras('PART', c.horasSemanales, perfilHoras));
     }
   }
 
@@ -257,6 +265,7 @@ export function convertirInputAV2(
     sin_aux_cierre: opciones?.sinAuxCierre,
     supervisor_jornada_completa: opciones?.supervisorJornadaCompleta,
     franco_medio_corridos: opciones?.francoMedioCorridos,
+    contratos,
   };
 }
 
@@ -443,7 +452,13 @@ export function convertirOutputDeV2(
     ...ident.homonimos.map(g =>
       `Nombres equivalentes: ${g.join(' / ')}. Se planifican por separado, pero las excepciones y preferencias cargadas por nombre aplican a todos. Diferenciá los nombres en Colaboradores.`
     ),
+    // #7: objetivo de horas no alcanzado, con el motivo concreto.
+    ...(resultado.cumplimiento_horas ?? []).filter(c => c.diferenciaHoras > 0).map(c =>
+      `Horas ${c.tipo} (${nombreMap[c.colab_id] ?? c.colab_id}): ${c.asignadasHoras} h de ${c.objetivoHoras} h objetivo. ${c.motivo ?? ''}`.trim()
+    ),
   ];
+
+  const cumplimientoHoras = (resultado.cumplimiento_horas ?? []).map(c => ({ ...c, colab_id: idMap[c.colab_id] ?? c.colab_id }));
 
   return {
     horarios,
@@ -453,5 +468,6 @@ export function convertirOutputDeV2(
     porcentajeCobertura: resultado.metricas.cobertura_total_pct,
     cajaAux,
     cajaEventual,
+    cumplimientoHoras,
   };
 }

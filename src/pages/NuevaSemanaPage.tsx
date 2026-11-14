@@ -18,6 +18,7 @@ import PanelAlertas from '../components/semana/PanelAlertas'
 import { generarPDF } from '../utils/exportPDF'
 import { validarResultadoSemana, estadoValidacion, type ContextoValidacionSemana } from '../utils/validacionSemana'
 import { getSucursalActual } from '../utils/sucursal'
+import { PERFIL_HORAS_VIGENTE, resolverContratoHoras } from '../algoritmo/contratos'
 import {
   reglasAExcepciones,
   demandaMinimaDeReglas,
@@ -267,6 +268,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         // Necesidad del PDF: para el panel de cobertura en vivo del editor
         necesidadFranjas: necesidad.map(f => [...f.necesidad]),
         configOperativa: operativa,
+        perfilHorasId: PERFIL_HORAS_VIGENTE.id,
+        cumplimientoHoras: res.cumplimientoHoras,
         disponibilidadSemana: Object.fromEntries(
           [...disponibilidad.auxiliares, ...disponibilidad.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
       })
@@ -357,8 +360,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     0
   ) * 0.5 // Cada franja son 0.5h
 
+  // #7: capacidad con la MISMA definición de contrato que usa el motor (ficha acotada al máximo del perfil).
   const horasDisponibles = colaboradoresActivos.reduce((sum, col) => {
-    if (col.tipo === 'PART') return sum + 32 // Máximo para PART
+    if (col.tipo === 'PART') return sum + resolverContratoHoras('PART', col.horasSemanales, PERFIL_HORAS_VIGENTE).topeHoras
     return sum + col.horasSemanales
   }, 0)
 

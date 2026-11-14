@@ -65,7 +65,7 @@ function semanaFullValida(colab: string): Jornada[] {
   ];
 }
 
-// Semana PART válida: ≤31h, ≥2 mañanas, 1 franco, corridas de 4-6h.
+// Semana PART válida: ≤ tope del contrato, ≥2 mañanas, 1 franco, corridas de 4-6h.
 function semanaPartValida(colab: string): Jornada[] {
   return [
     jornadaCorrida(colab, 0, 0, 10),  // L: 5h mañana
@@ -133,7 +133,17 @@ describe("Reglas PART", () => {
     expect(validarSemanaPart("test", semanaPartValida("test"))).toEqual([]);
   });
 
-  it("H-P1: PART con 32h es violación", () => {
+  it("H-P1 (#7): 32 h es válido con el perfil vigente y viola el histórico de 31 h", () => {
+    const sem = semanaPartValida("test");
+    sem[0] = jornadaCorrida("test", 0, 0, 12); // 6h
+    sem[1] = jornadaCorrida("test", 1, 0, 11); // 5,5h
+    sem[2] = jornadaCorrida("test", 2, 10, 21); // 5,5h → total 32h
+    expect(sem.reduce((a, j) => a + horasDeJornada(j), 0)).toBe(32);
+    expect(validarSemanaPart("test", sem).some(v => v.regla === "H-P1")).toBe(false);
+    expect(validarSemanaPart("test", sem, 62).some(v => v.regla === "H-P1")).toBe(true);
+  });
+
+  it("H-P1: PART por encima del máximo vigente (33 h) es violación", () => {
     const sem = semanaPartValida("test");
     sem[5] = jornadaCorrida("test", 5, 18, 30); // 6h en vez de 5h → total 31h + 1h = 32h
     // Ajustar otro día para llegar a 32h real
