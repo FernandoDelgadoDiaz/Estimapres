@@ -105,23 +105,27 @@ describe('AUX-01: diagnóstico de supervisión antes de generar', () => {
     ])
   })
 
-  it('coincide con el motor: con huecos, la pasada 2 no pone ningún AUX en caja', () => {
+  it('coincide con el motor: los huecos se informan como violación pero NO anulan la semana (#38)', () => {
     const necesidad = HORAS_FRANJAS.map(hora => ({ hora, necesidad: Array(7).fill(hora < '08:00' ? 0 : 6) }))
-    const run = (auxs: Auxiliar[]) => {
-      const input = convertirInputAV2(necesidad, [], auxs, [], [])
-      return ejecutarAlgoritmo(input)
-    }
+    const run = (auxs: Auxiliar[]) => ejecutarAlgoritmo(convertirInputAV2(necesidad, [], auxs, [], [], { aperturaSoloAux: true }))
     const conHueco = prepararDisponibilidadSemana([AUX_A, AUX_B], [], [x({ horario: '' })], LUNES)
     expect(conHueco.huecosSupervision.length).toBeGreaterThan(0)
-    const sinCaja = run(conHueco.auxiliares)
-    expect(Object.keys(sinCaja.asignacion_aux)).toEqual([])
-    const nominal = convertirOutputDeV2(sinCaja, [], conHueco.auxiliares, [])
+    const r = run(conHueco.auxiliares)
+    // El motor informa los mismos huecos que el diagnóstico (apertura + supervisión del miércoles)…
+    expect(r.reporte_reglas.duras_cumplidas).toBe(false)
+    expect(r.reporte_reglas.violaciones.some(v => v.regla === 'H-A1' && v.dia === 2)).toBe(true)
+    expect(r.reporte_reglas.violaciones.some(v => v.regla === 'H-A2' && v.dia === 2)).toBe(true)
+    // …pero sigue asignando el resto de la semana: el miércoles nadie de A en caja,
+    // los demás días la apertura la abre exactamente un AUX presente.
+    const nominal = convertirOutputDeV2(r, [], conHueco.auxiliares, [])
     const supervisor = nominal.horarios.find(h => h.colaboradorId === 'a')
     expect(supervisor?.jornadas[2].esFranco).toBe(true)
     expect(supervisor?.jornadas[1].turnos).toEqual([{ inicio: '8:00', fin: '16:00' }])
-    expect(nominal.cajaAux).toEqual([])
+    const cajaA = nominal.cajaAux?.find(c => c.colaboradorId === 'a')
+    expect(cajaA?.slotsCajaPorDia[2].some(Boolean)).toBe(false)
+    for (const d of [0, 1, 3, 4, 5, 6]) expect(cajaA?.slotsCajaPorDia[d].slice(0, 2)).toEqual([true, true])
     const sinHueco = prepararDisponibilidadSemana([AUX_A, AUX_B], [], [], LUNES)
     expect(sinHueco.huecosSupervision).toEqual([])
-    expect(Object.keys(run(sinHueco.auxiliares).asignacion_aux).sort()).toEqual(['aux_a', 'aux_b'])
+    expect(run(sinHueco.auxiliares).reporte_reglas.duras_cumplidas).toBe(true)
   })
 })

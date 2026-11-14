@@ -216,6 +216,8 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
       editadoManualmente: s.editadoManualmente,
       cajaAux: s.cajaAux,
       cajaEventual: s.cajaEventual,
+      configOperativa: s.configOperativa,
+      disponibilidadSemana: s.disponibilidadSemana,
     },
     metricas: {
       resumenPorColaborador: s.resumenPorColaborador,
@@ -242,6 +244,8 @@ function filaASemana(f: FilaSemana): SemanaHistorial {
     editadoManualmente: (h.editadoManualmente as boolean) ?? false,
     cajaAux: h.cajaAux as SemanaHistorial['cajaAux'],
     cajaEventual: h.cajaEventual as SemanaHistorial['cajaEventual'],
+    configOperativa: h.configOperativa as SemanaHistorial['configOperativa'],
+    disponibilidadSemana: h.disponibilidadSemana as SemanaHistorial['disponibilidadSemana'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,

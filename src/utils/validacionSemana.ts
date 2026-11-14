@@ -4,7 +4,7 @@ import type { Auxiliar, Colaborador, Eventual, ExcepcionSemanal, Franja, Horario
 import { PERFIL_MOTOR_ACTUAL, validarHorario, type PerfilNormativo, type ResultadoValidacion } from '../algoritmo/validadorIndependiente'
 import { horasLegibles, minutosAsignados, resumenHoras } from './horasSemanales'
 import type { HuecoSupervision } from './disponibilidadHabitual'
-import { normalizarExcepciones, type MinimoFranja } from './preferencias'
+import { DEFAULTS_OPERATIVOS, normalizarExcepciones, type ConfigOperativa, type MinimoFranja } from './preferencias'
 
 export interface ContextoValidacionSemana {
   necesidad: Franja[]
@@ -14,6 +14,27 @@ export interface ContextoValidacionSemana {
   semanaAnterior?: HorarioColaborador[]
   perfil?: PerfilNormativo
   huecosSupervision?: HuecoSupervision[]
+  /**
+   * #38 — Configuración operativa EFECTIVA con la que se generó la semana. Si
+   * falta (semanas guardadas antes de #38), se usan los valores predeterminados
+   * del negocio; la UI lo indica.
+   */
+  operativa?: Partial<ConfigOperativa>
+  /**
+   * Semanas guardadas antes de #38 no conservan la disponibilidad resuelta de
+   * eventuales (excepciones por fecha): en ese caso no se puede verificar su
+   * disponibilidad sin riesgo de falsos positivos y se omite ese control.
+   */
+  omitirDisponibilidadEventual?: boolean
+}
+
+export function operativaEfectiva(op?: Partial<ConfigOperativa>): ConfigOperativa {
+  return {
+    aperturaSoloAux: op?.aperturaSoloAux ?? DEFAULTS_OPERATIVOS.apertura_solo_aux,
+    sinAuxCierre: op?.sinAuxCierre ?? DEFAULTS_OPERATIVOS.sin_aux_cierre,
+    supervisorJornadaCompleta: op?.supervisorJornadaCompleta ?? DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
+    francoMedioCorridos: op?.francoMedioCorridos ?? DEFAULTS_OPERATIVOS.franco_medio_corridos,
+  }
 }
 
 export function validarResultadoSemana(
@@ -25,8 +46,8 @@ export function validarResultadoSemana(
 ): ResultadoValidacion {
   const roster = [
     ...colaboradores.filter(c => c.tipo === 'FULL' || c.tipo === 'PART').map(c => ({ id: c.id, nombre: c.nombre, contrato: c.tipo as 'FULL' | 'PART' })),
-    ...auxiliares.map(a => ({ id: a.id, nombre: a.nombre, contrato: 'AUX' as const })),
-    ...eventuales.map(e => ({ id: e.id, nombre: e.nombre, contrato: 'EVENTUAL' as const })),
+    ...auxiliares.map(a => ({ id: a.id, nombre: a.nombre, contrato: 'AUX' as const, horarioSemanal: a.horarioSemanal })),
+    ...eventuales.map(e => ({ id: e.id, nombre: e.nombre, contrato: 'EVENTUAL' as const, horarioSemanal: ctx.omitirDisponibilidadEventual ? undefined : e.horarioSemanal })),
   ]
   const validacion = validarHorario({
     horarios: resultado.horarios,
@@ -39,9 +60,12 @@ export function validarResultadoSemana(
     cajaAux: resultado.cajaAux,
     cajaEventual: resultado.cajaEventual,
     semanaAnterior: ctx.semanaAnterior,
+    operativa: operativaEfectiva(ctx.operativa),
   })
   const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales)
-  const huecos = ctx.huecosSupervision ?? []
+  // H-A2 (supervisión 09–22) ya la calcula el validador sobre la presencia real
+  // (incluida la edición manual); del diagnóstico previo solo se agrega H-A1.
+  const huecos = (ctx.huecosSupervision ?? []).filter(h => h.tipo === 'APERTURA')
   if (!huecos.length && !horas.violaciones.length) return { ...validacion, advertencias: horas.advertencias }
 
   return {

@@ -12,7 +12,7 @@ import type {
 import { HORAS_FRANJAS } from '../types'
 import type { AsignacionAux, MatrizPresencia } from '../algoritmo/types'
 import { ejecutarPasada2 } from '../algoritmo/pasada2-auxiliares'
-import { horaASlotUI } from './preferencias'
+import { horaASlotUI, DEFAULTS_OPERATIVOS, type ConfigOperativa } from './preferencias'
 
 function horaAMin(hora: string): number {
   const [h, m] = hora.split(':').map(Number)
@@ -40,14 +40,18 @@ function presenciaDesdeJornadas(h: HorarioColaborador): MatrizPresencia {
  * - Déficit de entrada = necesidad del PDF − cobertura de los CAJEROS del
  *   horario actual (los eventuales van después en la cascada, como en el motor).
  * - Presencia de cada AUX = sus jornadas actuales (con la edición aplicada).
- * Devuelve null si no se puede recalcular con garantías (sin necesidad del
- * PDF, sin filas AUX, o si la presencia editada viola las precondiciones
- * duras de la Pasada 2) — en ese caso el caller conserva el snapshot previo.
+ * - Aplica la MISMA configuración operativa con la que se generó la semana
+ *   (apertura solo AUX, sin AUX al cierre, supervisor de jornada completa).
+ * Devuelve null solo si no hay datos para recalcular (sin necesidad del PDF o
+ * sin filas AUX). Si la presencia editada deja huecos de supervisión, se
+ * recalcula igual (#38: nunca conservar CAJA fuera de la presencia nueva) y el
+ * validador informa la violación.
  */
 export function recalcularCajaAux(
   horarios: HorarioColaborador[],
   necesidadFranjas: number[][],
-  nombrePorId: Record<string, string>
+  nombrePorId: Record<string, string>,
+  operativa?: Partial<ConfigOperativa>,
 ): AsignacionCajaColaborador[] | null {
   const filasAux = horarios.filter(h => h.rolGeneral === 'aux_supervisor')
   if (filasAux.length === 0) return null
@@ -89,13 +93,14 @@ export function recalcularCajaAux(
   }
 
   const p2 = ejecutarPasada2(
-    { demanda, colaboradores: [], presencia_aux, disponibilidad_eventual: {} },
+    {
+      demanda, colaboradores: [], presencia_aux, disponibilidad_eventual: {},
+      apertura_solo_aux: operativa?.aperturaSoloAux ?? DEFAULTS_OPERATIVOS.apertura_solo_aux,
+      sin_aux_cierre: operativa?.sinAuxCierre ?? DEFAULTS_OPERATIVOS.sin_aux_cierre,
+      supervisor_jornada_completa: operativa?.supervisorJornadaCompleta ?? DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
+    },
     { jornadas_full: {}, jornadas_part: {}, deficit_1, infactibles: [] }
   )
-
-  // Presencia editada rompe precondiciones duras (H-A1/H-A2 de input):
-  // no hay recálculo confiable → el caller conserva el snapshot previo.
-  if (p2.violaciones_input.length > 0) return null
 
   return Object.entries(p2.asignacion_aux)
     .map(([id, matriz]) => ({

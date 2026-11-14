@@ -100,8 +100,11 @@ test('POM → demanda → horario nominal → validación → PDF, con excepció
 test('genera a partir del POM y el patrón habitual sin cargar excepciones', async ({ page }) => {
   const externas = await preparar(page)
   await expect(page.getByText('Supervisión cubierta según las franjas que comprueba el motor.')).toBeVisible()
+  // #38: el estado efectivo de las reglas operativas se muestra antes de generar
+  await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: ACTIVADA (valor predeterminado)')
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
   await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
+  await expect(page.getByTestId('estado-validacion')).not.toContainText('OP_APERTURA')
   await expect(page.getByText('Aux A', { exact: true }).first()).toBeVisible()
   expect(externas).toEqual([])
 })

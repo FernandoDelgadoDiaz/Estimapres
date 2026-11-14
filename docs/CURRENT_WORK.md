@@ -1,5 +1,47 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## Retoma — #38 corrección del motor de asignación (apertura, AUX, eventuales) · 2026-11-14
+
+- **Rama:** `fix/ah2-38-apertura-aux`, desde `main@59e751e` (#37). [Issue #38](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/38). El PR borrador registra el SHA del candidato. **Sin merge, deploy, migraciones ni escrituras en Supabase.**
+- **Causa raíz del 2/1 (semana 16–22/11, v3):** con «apertura solo AUX» ON la pasada 1 deja toda la demanda de 08:00–09:00 en el déficit. La pasada 2 sentaba al AUX de apertura pero armaba el déficit para la pasada 3 **sin descontar** esa cobertura. La pasada 3 cubría ese déficit con el eventual disponible desde las 06:00, los seis días en que estaba disponible. El validador no revisaba la composición de la apertura, por eso figuraba VALIDADO.
+- **Corrección del motor:**
+  - **Pasada 1:**
+    - Default `apertura_solo_aux` = ON, igual que el negocio.
+    - OFF: los slots de apertura pesan ×8 para que los abra un FULL/PART con el catálogo vigente (cortadas FULL).
+    - No se cambió el catálogo de jornadas.
+  - **Pasada 2 (reescrita):**
+    - El AUX está presente PARADO por defecto y se sienta solo donde hay déficit real, dejando ≥1 parado.
+    - ON: exactamente 1 AUX abre y su cobertura se descuenta del déficit. Sin AUX → violación, sin sustituto. OFF: ningún AUX en la apertura.
+    - Los huecos H-A1/H-A2 se informan y ya no anulan la pasada entera.
+    - Se eliminaron el relleno y la extensión de bloques sin déficit.
+    - R3: el designado queda supervisando parado; solo abre si es el único AUX presente en la apertura obligatoria.
+  - **Pasada 3:** solo cubre el déficit residual, nunca la apertura.
+- **Reglas:** `resolverReglaOperativa` considera solo las filas aplicables a la semana. La vigencia acotada prevalece sobre la permanente; a igual especificidad, la más reciente. Los conflictos se informan; antes ganaba la primera fila. Nueva Semana muestra el estado efectivo y su origen. 091 tiene dos filas `supervisor_jornada_completa` activas en cuentas distintas; RLS hace que cada cuenta vea solo la suya, así que el valor efectivo no cambia. No se tocaron.
+- **Validador:** recibe `operativa` y bloquea:
+  - `OP_APERTURA_COMPOSICION`
+  - `OP_CATEGORIA`
+  - `OP_AUX_FUERA_PRESENCIA`
+  - `OP_EVENTUAL_FUERA_DISPONIBILIDAD`
+  - `OP_AUX_CIERRE`
+  - `H-A2` sobre presencia real
+  - `OP_SUPERVISOR_JORNADA`
+  - `OP_COBERTURA_DUPLICADA`
+- **Persistencia y edición:**
+  - La semana guarda `configOperativa` y `disponibilidadSemana` en el jsonb `horario_completo` (sin migración).
+  - Último Horario valida completo, muestra el estado y exporta el PDF con VALIDADO o BORRADOR real.
+  - Editar la presencia de un AUX recalcula CAJA con la misma configuración, en las dos pantallas.
+- **Pruebas:**
+  - TypeScript y build: OK.
+  - Vitest 248 aprobadas y 2 omitidas (locales). Las 30 pruebas nuevas dan 23 rojas sobre `main` y 30 verdes con la corrección.
+  - Playwright 10/10.
+  - `npm run lint` sigue sin configuración ESLint (también en la base).
+- **Pendientes de decisión:**
+  1. Confirmar la nueva semántica de R3, que revierte `05ccf5f`.
+  2. OFF con PART o corridas desde 08:00 requiere autorización para cambiar el catálogo de jornadas.
+  3. Sin la extensión a 1 h, un AUX puede quedar en caja 30 min aislados.
+  4. Las semanas guardadas antes de #38 se revalidan con las reglas vigentes y sin verificar la disponibilidad de eventuales.
+- **Próxima acción:** revisión del propietario del PR borrador. Tras autorizarlo, regenerar en la 091 la semana 16–22/11 como versión nueva, sin modificar las guardadas.
+
 ## Retoma — corrección de la operación real de la 091 · 2026-11-13
 
 - Base publicada `0460b706cf2b9f51dcf71c4d79db1dcb482fb882`, rama `fix/ah2-operacion-real`, [Issue #36](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/36). El PR de la rama registra el SHA exacto del candidato.

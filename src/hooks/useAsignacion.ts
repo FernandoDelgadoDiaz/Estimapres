@@ -4,6 +4,8 @@ import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, E
 import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
+import { recalcularCajaAux } from '../utils/recalculoAux'
+import type { ConfigOperativa } from '../utils/preferencias'
 
 /**
  * Aplica una edición manual de jornada sobre una lista de horarios y devuelve
@@ -112,13 +114,24 @@ export function useAsignacion() {
    * Edición manual del horario generado (Capacidad 3). Reemplaza la jornada
    * de un colaborador en un día y recalcula las horas totales.
    */
-  const editarJornada = (colaboradorId: string, dia: number, nueva: JornadaResumida, nombre?: string) => {
+  const editarJornada = (
+    colaboradorId: string, dia: number, nueva: JornadaResumida, nombre?: string,
+    // #38: si se edita la PRESENCIA de un AUX, sus bloques en CAJA se recalculan
+    // con la misma configuración operativa (nunca quedan CAJA fuera de presencia).
+    recalculo?: { necesidadFranjas: number[][]; nombrePorId: Record<string, string>; operativa: Partial<ConfigOperativa> },
+  ) => {
     setResultado(prev => {
       if (!prev) return prev
       const esEventual = prev.horarios.some(h => h.colaboradorId === colaboradorId && h.rolGeneral === 'eventual_sector')
+      const esAux = prev.horarios.some(h => h.colaboradorId === colaboradorId && h.rolGeneral === 'aux_supervisor')
+      const horarios = aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva)
+      const cajaAux = esAux && recalculo
+        ? recalcularCajaAux(horarios, recalculo.necesidadFranjas, recalculo.nombrePorId, recalculo.operativa) ?? prev.cajaAux
+        : prev.cajaAux
       return {
         ...prev,
-        horarios: aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva),
+        horarios,
+        cajaAux,
         cajaEventual: esEventual ? actualizarCajaEventual(prev.cajaEventual, colaboradorId, dia, nueva, nombre ?? colaboradorId) : prev.cajaEventual,
       }
     })

@@ -72,7 +72,7 @@ export interface Violacion {
 export interface EntradaValidacion {
   horarios: HorarioColaborador[]
   /** Contrato y nombre de cada persona (por id de UI). */
-  roster: Array<{ id: string; nombre: string; contrato: Contrato }>
+  roster: Array<{ id: string; nombre: string; contrato: Contrato; horarioSemanal?: string[] }>
   perfil: PerfilNormativo
   /** Excepciones/reglas por colaborador vigentes (mismo formato que usa el motor; franco_dia con índice 0..6). */
   excepciones?: ExcepcionSemanal[]
@@ -86,6 +86,21 @@ export interface EntradaValidacion {
   cajaEventual?: AsignacionCajaColaborador[]
   /** Horarios de la semana anterior (para 12 h domingo → lunes). */
   semanaAnterior?: HorarioColaborador[]
+  /**
+   * #38 — Estado EFECTIVO de las reglas operativas de la sucursal con el que se
+   * generó/edita la semana. Si se informa, se validan como reglas obligatorias:
+   * composición de la apertura, categoría de quien está en caja, AUX en caja solo
+   * dentro de su presencia, eventuales solo dentro de su disponibilidad, ≥1 AUX
+   * parado supervisando 09:00–22:00, sin AUX en caja al cierre y sin cobertura
+   * duplicada indebida (AUX/eventual en caja donde la demanda ya está cubierta).
+   */
+  operativa?: OperativaValidacion
+}
+
+export interface OperativaValidacion {
+  aperturaSoloAux: boolean
+  sinAuxCierre?: boolean
+  supervisorJornadaCompleta?: boolean
 }
 
 export interface MetricasValidacion {
@@ -197,6 +212,8 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
       }
     }
   }
+
+  if (e.operativa) validarReglasOperativas(v, e, e.operativa, porId)
 
   const bloqueantes = v.length
   return { ok: bloqueantes === 0, publicable: bloqueantes === 0, violaciones: v, metricas }
@@ -335,4 +352,168 @@ function calcularMetricas(e: EntradaValidacion, porId: Map<string, { contrato: C
   const sobrantes = nec.map((f, i) => f.necesidad.map((dem, d) => Math.max(0, cobertura[i][d] - dem)))
   const suma = (m: number[][]) => m.flat().reduce((a, b) => a + b, 0) / 2
   return { cobertura, faltantes, sobrantes, horasCajaFaltantes: suma(faltantes), horasCajaSobrantes: suma(sobrantes) }
+}
+
+// ======================= REGLAS OPERATIVAS (#38) =======================
+
+const SLOTS = 30
+const horaDeSlot = (s: number) => `${String(8 + Math.floor(s / 2)).padStart(2, '0')}:${s % 2 ? '30' : '00'}`
+
+/** Matriz 7×30 de presencia a partir de bloques "HH:MM-HH:MM|…" por día. */
+function matrizDeHorarioSemanal(hs: string[]): boolean[][] {
+  return Array.from({ length: 7 }, (_, d) => {
+    const fila = Array(SLOTS).fill(false)
+    for (const r of (hs[d] ?? '').split('|').map(x => x.trim()).filter(Boolean)) {
+      const [a, b] = r.split('-')
+      if (!a || !b) continue
+      for (let t = min(a); t < min(b); t += 30) {
+        const s = (t - 8 * 60) / 30
+        if (s >= 0 && s < SLOTS && Number.isInteger(s)) fila[s] = true
+      }
+    }
+    return fila
+  })
+}
+
+/** Matriz 7×30 de presencia a partir de las jornadas UI (filas AUX = presencia). */
+function matrizDeJornadas(h: HorarioColaborador): boolean[][] {
+  const m = Array.from({ length: 7 }, () => Array(SLOTS).fill(false))
+  for (const j of h.jornadas) {
+    if (j.esFranco) continue
+    for (const b of bloquesDe(j.turnos)) for (let t = b.ini; t < b.fin; t += 30) {
+      const s = Math.floor((t - 8 * 60) / 30)
+      if (s >= 0 && s < SLOTS) m[j.dia][s] = true
+    }
+  }
+  return m
+}
+
+function validarReglasOperativas(
+  v: Violacion[], e: EntradaValidacion, op: OperativaValidacion, porId: Map<string, { nombre: string; contrato: Contrato; horarioSemanal?: string[] }>,
+) {
+  const sinAuxCierre = op.sinAuxCierre ?? true
+  const nombre = (id: string) => porId.get(id)?.nombre ?? id
+  const demanda = (d: number, s: number) => e.necesidad?.find(f => f.hora === horaDeSlot(s))?.necesidad[d] ?? 0
+
+  // Cajeros FULL/PART en caja por día/slot
+  const fp = Array.from({ length: 7 }, () => Array(SLOTS).fill(0))
+  for (const h of e.horarios) {
+    const c = porId.get(h.colaboradorId)?.contrato
+    if (c !== 'FULL' && c !== 'PART') continue
+    const m = matrizDeJornadas(h)
+    m.forEach((fila, d) => fila.forEach((x, s) => { if (x) fp[d][s]++ }))
+  }
+
+  // Categoría: en cajaAux solo AUX; en cajaEventual solo EVENTUAL.
+  const revisarCategoria = (lista: AsignacionCajaColaborador[] | undefined, esperado: Contrato) => {
+    for (const a of lista ?? []) {
+      const c = porId.get(a.colaboradorId)?.contrato
+      if (c !== esperado && a.slotsCajaPorDia.some(f => f.some(Boolean))) {
+        v.push({ codigo: 'OP_CATEGORIA', nivel: 'OPERATIVA', colaboradorId: a.colaboradorId, detalle: `${nombre(a.colaboradorId)} figura en caja como ${esperado} pero su categoría es ${c ?? 'desconocida'}.` })
+      }
+    }
+  }
+  revisarCategoria(e.cajaAux, 'AUX')
+  revisarCategoria(e.cajaEventual, 'EVENTUAL')
+
+  // Presencia de AUX: fila editada del horario (si existe) o patrón del roster.
+  const presencia = new Map<string, boolean[][]>()
+  for (const [id, r] of porId) {
+    if (r.contrato !== 'AUX') continue
+    const fila = e.horarios.find(h => h.colaboradorId === id)
+    if (fila) presencia.set(id, matrizDeJornadas(fila))
+    else if (r.horarioSemanal) presencia.set(id, matrizDeHorarioSemanal(r.horarioSemanal))
+  }
+  const auxCaja = new Map((e.cajaAux ?? []).filter(a => porId.get(a.colaboradorId)?.contrato === 'AUX').map(a => [a.colaboradorId, a.slotsCajaPorDia]))
+  const evCaja = (e.cajaEventual ?? []).filter(a => porId.get(a.colaboradorId)?.contrato === 'EVENTUAL')
+  const enCaja = (m: boolean[][] | undefined, d: number, s: number) => !!m?.[d]?.[s]
+
+  // AUX en caja fuera de su presencia / al cierre
+  for (const [id, m] of auxCaja) {
+    const pres = presencia.get(id)
+    for (let d = 0; d < 7; d++) {
+      const fuera: string[] = []
+      const cierre: string[] = []
+      for (let s = 0; s < SLOTS; s++) {
+        if (!m[d]?.[s]) continue
+        if (pres && !pres[d][s]) fuera.push(horaDeSlot(s))
+        if (s >= 29 || (sinAuxCierre && s >= 28)) cierre.push(horaDeSlot(s))
+      }
+      if (fuera.length) v.push({ codigo: 'OP_AUX_FUERA_PRESENCIA', nivel: 'OPERATIVA', colaboradorId: id, dia: d, detalle: `${nombre(id)}: en caja el ${DIAS[d]} fuera de su horario de presencia (${fuera.join(', ')}).` })
+      if (cierre.length) v.push({ codigo: 'OP_AUX_CIERRE', nivel: 'OPERATIVA', colaboradorId: id, dia: d, detalle: `${nombre(id)}: supervisor en caja el ${DIAS[d]} después de las 22:00 (${cierre.join(', ')}).` })
+    }
+  }
+
+  // Eventual en caja fuera de su disponibilidad
+  for (const a of evCaja) {
+    const hs = porId.get(a.colaboradorId)?.horarioSemanal
+    if (!hs) continue
+    const disp = matrizDeHorarioSemanal(hs)
+    for (let d = 0; d < 7; d++) {
+      const fuera = (a.slotsCajaPorDia[d] ?? []).flatMap((x, s) => (x && !disp[d][s] ? [horaDeSlot(s)] : []))
+      if (fuera.length) v.push({ codigo: 'OP_EVENTUAL_FUERA_DISPONIBILIDAD', nivel: 'OPERATIVA', colaboradorId: a.colaboradorId, dia: d, detalle: `${nombre(a.colaboradorId)}: en caja el ${DIAS[d]} fuera de su disponibilidad (${fuera.join(', ')}).` })
+    }
+  }
+
+  for (let d = 0; d < 7; d++) {
+    const auxEn = (s: number) => [...auxCaja].filter(([, m]) => enCaja(m, d, s)).map(([id]) => id)
+    const evEn = (s: number) => evCaja.filter(a => enCaja(a.slotsCajaPorDia, d, s)).map(a => a.colaboradorId)
+
+    // Apertura 08:00–09:00
+    const problemas: string[] = []
+    for (const s of [0, 1]) {
+      const a = auxEn(s), ev = evEn(s), f = fp[d][s]
+      const h = horaDeSlot(s)
+      if (op.aperturaSoloAux) {
+        if (a.length !== 1) problemas.push(`${h}: ${a.length} AUX en caja (debe ser exactamente 1)`)
+        if (f > 0) problemas.push(`${h}: ${f} FULL/PART en caja (la apertura es solo AUX)`)
+        if (ev.length) problemas.push(`${h}: ${ev.length} eventual(es) en caja`)
+      } else {
+        if (a.length) problemas.push(`${h}: ${a.length} AUX en caja (la apertura la abre un FULL/PART)`)
+        if (ev.length) problemas.push(`${h}: ${ev.length} eventual(es) en caja`)
+        if (demanda(d, s) > 0 && f < 1) problemas.push(`${h}: sin cajero FULL/PART`)
+      }
+    }
+    if (problemas.length) v.push({
+      codigo: 'OP_APERTURA_COMPOSICION', nivel: 'OPERATIVA', dia: d, franja: '08:00',
+      detalle: `Apertura del ${DIAS[d]} (${op.aperturaSoloAux ? 'regla «apertura solo AUX» activa' : 'regla «apertura solo AUX» desactivada'}): ${problemas.join('; ')}.`,
+    })
+
+    // ≥1 AUX parado supervisando 09:00–22:00 (solo si hay presencia informada)
+    if (presencia.size) {
+      const sinParado: string[] = []
+      for (let s = 2; s <= 27; s++) {
+        const parados = [...presencia].filter(([id, p]) => p[d][s] && !enCaja(auxCaja.get(id), d, s)).length
+        if (parados === 0) sinParado.push(horaDeSlot(s))
+      }
+      if (sinParado.length) v.push({ codigo: 'H-A2', nivel: 'OPERATIVA', dia: d, detalle: `${DIAS[d]}: ningún supervisor (AUX) parado supervisando en ${rangos(sinParado)}.` })
+
+      // R3: con 2+ AUX simultáneos, uno queda parado toda su jornada (salvo apertura obligatoria)
+      if (op.supervisorJornadaCompleta) {
+        let max = 0
+        for (let s = 0; s < SLOTS; s++) max = Math.max(max, [...presencia.values()].filter(p => p[d][s]).length)
+        if (max >= 2) {
+          const algunoSupervisa = [...presencia].some(([id, p]) => p[d].some(Boolean) && !(auxCaja.get(id)?.[d] ?? []).some((x, s) => x && s >= 2))
+          if (!algunoSupervisa) v.push({ codigo: 'OP_SUPERVISOR_JORNADA', nivel: 'OPERATIVA', dia: d, detalle: `${DIAS[d]}: con «supervisor de jornada completa» activa, ningún AUX queda supervisando toda su jornada.` })
+        }
+      }
+    }
+
+    // Cobertura duplicada indebida: AUX/eventual en caja donde FULL/PART ya cubren la demanda
+    if (e.necesidad) {
+      const dup: string[] = []
+      for (let s = 0; s < SLOTS; s++) {
+        const obligatorioApertura = op.aperturaSoloAux && s < 2 ? 1 : 0
+        const extra = auxEn(s).length - obligatorioApertura + evEn(s).length
+        if (extra <= 0) continue
+        const necesarios = Math.max(0, demanda(d, s) - fp[d][s] - obligatorioApertura)
+        if (extra > necesarios) dup.push(horaDeSlot(s))
+      }
+      if (dup.length) v.push({ codigo: 'OP_COBERTURA_DUPLICADA', nivel: 'OPERATIVA', dia: d, detalle: `${DIAS[d]}: AUX/eventual en caja sin déficit real (${rangos(dup)}).` })
+    }
+  }
+}
+
+function rangos(horas: string[]): string {
+  return horas.length > 4 ? `${horas[0]}…${horas[horas.length - 1]} (${horas.length} medias horas)` : horas.join(', ')
 }

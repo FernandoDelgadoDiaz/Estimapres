@@ -23,6 +23,8 @@ import {
   demandaMinimaDeReglas,
   capFrancosDeReglas,
   configOperativaDeReglas,
+  resolucionOperativaDeReglas,
+  ETIQUETAS_OPERATIVAS,
   validarConflictosReglas,
   calcularSesgoRotacion,
   calcularSesgoAprendizaje,
@@ -240,6 +242,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       auxiliares: disponibilidad.auxiliares,
       eventuales: disponibilidad.eventuales,
       huecosSupervision: disponibilidad.huecosSupervision,
+      operativa, // #38: estado efectivo de las reglas → el validador lo exige
     })
 
     // Capacidad 2: guardar la semana en el historial para la rotación futura
@@ -257,6 +260,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         porcentajeCobertura: res.porcentajeCobertura,
         // Necesidad del PDF: para el panel de cobertura en vivo del editor
         necesidadFranjas: necesidad.map(f => [...f.necesidad]),
+        configOperativa: operativa,
+        disponibilidadSemana: Object.fromEntries(
+          [...disponibilidad.auxiliares, ...disponibilidad.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
       })
       setSemanaGuardadaId(semana.id)
     }
@@ -277,7 +283,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       antes: { esFranco: jornadaAnterior.esFranco, turnos: jornadaAnterior.turnos },
       despues: nueva,
     })
-    editarJornada(colaboradorId, dia, nueva, nombrePorId[colaboradorId])
+    editarJornada(colaboradorId, dia, nueva, nombrePorId[colaboradorId], ctxValidacion?.operativa ? {
+      necesidadFranjas: necesidad.map(f => [...f.necesidad]), nombrePorId, operativa: ctxValidacion.operativa,
+    } : undefined)
     if (semanaGuardadaId) actualizarSemana(semanaGuardadaId, { editadoManualmente: true })
   }
 
@@ -287,6 +295,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     if (resultado && semanaGuardadaId) {
       actualizarSemana(semanaGuardadaId, {
         horarios: resultado.horarios,
+        cajaAux: resultado.cajaAux,
         cajaEventual: resultado.cajaEventual,
         resumenPorColaborador: resumirTurnos(resultado.horarios, nombrePorId),
       })
@@ -522,6 +531,24 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             )}
             <PreviewNecesidad necesidad={necesidad} />
           </div>
+
+          {fechasSemana.length > 0 && (
+            <div data-testid="reglas-efectivas" style={{
+              background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '20px 24px', color: 'var(--text)',
+            }}>
+              <p style={{ fontWeight: 700, marginBottom: '8px' }}>Reglas operativas que se aplicarán a esta semana</p>
+              <ul style={{ fontSize: '13px' }}>
+                {Object.entries(resolucionOperativaDeReglas(reglas, fechasSemana[0])).map(([tipo, r]) => (
+                  <li key={tipo} data-testid={`regla-efectiva-${tipo}`}>
+                    <strong>{ETIQUETAS_OPERATIVAS[tipo as keyof typeof ETIQUETAS_OPERATIVAS].titulo}:</strong>{' '}
+                    {r.valor ? 'ACTIVADA' : 'DESACTIVADA'}{' '}
+                    <span style={{ color: 'var(--text-muted)' }}>({r.origen === 'regla' ? 'configurada en Reglas' : 'valor predeterminado'})</span>
+                    {r.conflicto && <span role="alert" style={{ display: 'block', color: 'var(--danger, #b91c1c)' }}>{r.conflicto}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {cargandoDotacion && <p role="status">Cargando dotación…</p>}
           {errorDotacion && <p role="alert">No se pudo cargar la dotación. Recargá la página antes de generar.</p>}
