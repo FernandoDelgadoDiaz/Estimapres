@@ -5,8 +5,11 @@ import { convertirInputAV2 } from '../../algoritmo/adapter'
 import { ejecutarAlgoritmo } from '../../algoritmo/orquestador'
 import type { InputAlgoritmo, Jornada, ResultadoSemanal } from '../../algoritmo/types'
 import type { Colaborador, Franja } from '../../types'
-import { generarConMultiArranque, type SalidaMultiArranque } from '../generacionMultiArranque'
-import { validarResultadoSemana } from '../validacionSemana'
+import { ESTRATEGIAS_MULTI_ARRANQUE, PREFIJO_AVISO_MULTI_ARRANQUE, VERSION_ALGORITMO, generarConMultiArranque, registroGeneracion, type SalidaMultiArranque } from '../generacionMultiArranque'
+import { estadoValidacion, validarResultadoSemana } from '../validacionSemana'
+import { filaASemana, semanaAFila } from '../almacen'
+import { aplicarEdicionConRecalculo } from '../../hooks/useAsignacion'
+import type { SemanaHistorial } from '../../types'
 import { asignarHorariosConIA } from '../iaAsignacion'
 import { escenarioSintetico, generarEscenario, type Escenario } from '../../algoritmo/__tests__/fixtures/escenariosSinteticos'
 import { AUX_S47, CAJEROS_S47, EVENTUALES_S47, OPERATIVA_S47 } from '../../algoritmo/__tests__/fixtures/semana47Anonimizada'
@@ -108,6 +111,9 @@ describe('AH2-020 · respaldo, presupuesto y alcance', () => {
     const o = generar(e, { presupuestoMs: 0 })
     expect(o.seleccion.estrategia).toBe('actual')
     expect(o.seleccion.candidatos.map(c => c.estrategia)).toEqual(['actual'])
+    // Cierre de calidad: agotado el presupuesto ANTES de empezar, se informan TODAS las alternativas.
+    expect(o.seleccion.omitidas).toEqual(ESTRATEGIAS_MULTI_ARRANQUE.filter(x => x !== 'actual'))
+    expect(o.seleccion.sinAlternativas).toBe('presupuesto-agotado')
     const r = respaldo(e)
     expect([o.resultadoV2.jornadas_full, o.resultadoV2.jornadas_part]).toEqual([r.jornadas_full, r.jornadas_part])
   })
@@ -118,6 +124,8 @@ describe('AH2-020 · respaldo, presupuesto y alcance', () => {
     const input = convertirInputAV2(e.necesidad, cajeros, AUX_S47, EVENTUALES_S47, e.excepciones, { ...OPERATIVA_S47 })
     const o = generarConMultiArranque({ input, cajeros, auxiliares: AUX_S47, eventuales: EVENTUALES_S47, contexto: ctx(e.necesidad, e.excepciones) })
     expect(o.seleccion.candidatos.map(c => c.estrategia)).toEqual(['actual'])
+    expect(o.seleccion.omitidas).toEqual([]) // no aplica: no es falta de tiempo
+    expect(o.seleccion.sinAlternativas).toBe('sin-objetivo-horas')
     expect(o.resultadoV2.impacto_horas).toBeUndefined()
   })
 
@@ -175,4 +183,109 @@ describe('AH2-020 · no regresión', () => {
     for (const id of Object.keys(hR)) expect(hO[id], `horas de ${id}`).toBeGreaterThanOrEqual(hR[id])
     expect(o.resultadoV2.cumplimiento_horas!.filter(c => c.tipo === 'PART').every(c => c.estadoObjetivo === 'cumplido')).toBe(true)
   }, 180_000)
+})
+
+describe('cierre de calidad · presupuesto agotado a mitad de camino', () => {
+  it('reloj simulado: cada estrategia pedida queda corrida u omitida, nunca en silencio; las dependientes de una omitida también se omiten', () => {
+    const e = escenarioSintetico(121)
+    for (const presupuestoMs of [1, 5_000, 9_000, 13_000, 17_000, 25_000]) {
+      let t = 0
+      const o = generar(e, { presupuestoMs, reloj: () => (t += 1_000) })
+      const corridas = o.seleccion.candidatos.map(c => c.estrategia).filter(x => x !== 'actual')
+      expect([...corridas, ...o.seleccion.omitidas].sort(), `presupuesto ${presupuestoMs}`).toEqual(ESTRATEGIAS_MULTI_ARRANQUE.filter(x => x !== 'actual').sort())
+      if (o.seleccion.omitidas.includes('alternada-1')) expect(o.seleccion.omitidas).toContain('alternada-2')
+      if (o.seleccion.omitidas.includes('desde-sin-prioridad')) expect(o.seleccion.omitidas).toEqual(expect.arrayContaining(['alternada-ms-1', 'alternada-ms-2']))
+      if (o.seleccion.omitidas.length === 6) expect(o.seleccion.sinAlternativas).toBe('presupuesto-agotado')
+      sinRegresion(e, o)
+    }
+  })
+})
+
+describe('cierre de calidad · sin violaciones nuevas ≠ totalmente válido', () => {
+  // Dotación grande con el tope predeterminado de 2 francos/día: el respaldo deja personas sin semana
+  // (violaciones preexistentes). Ningún candidato puede ser válido; el elegido no es publicable.
+  const cajeros: Colaborador[] = [
+    ...Array.from({ length: 6 }, (_, i) => ({ id: `gf${i}`, nombre: `GF${i}`, tipo: 'FULL' as const, horasSemanales: 48, activo: true })),
+    ...Array.from({ length: 14 }, (_, i) => ({ id: `gp${i}`, nombre: `GP${i}`, tipo: 'PART' as const, horasSemanales: 32, activo: true })),
+  ]
+  const necesidad = NECESIDAD_S47.map(f => ({ ...f, necesidad: f.necesidad.map(n => n * 2) }))
+  const e: Escenario = { id: -2, modo: 'preexistentes', necesidad, cajeros, excepciones: [] }
+  const o = generar(e)
+
+  it('los candidatos elegibles se distinguen de los totalmente válidos', () => {
+    const elegibles = o.seleccion.candidatos.filter(c => c.elegible)
+    expect(elegibles.length).toBeGreaterThan(0)
+    for (const c of elegibles) {
+      expect(c.violacionesNuevas).toBe(0)
+      expect(c.violacionesPreexistentes).toBeGreaterThan(0)
+      expect(c.totalmenteValido).toBe(false)
+    }
+    expect(o.seleccion.validacion).toBe('con-violaciones-preexistentes')
+    expect(o.seleccion.violacionesElegida).toBeGreaterThan(0)
+  })
+
+  it('el horario elegido queda en BORRADOR, no publicable, con aviso explícito', () => {
+    const v = validarResultadoSemana(o.resultado, cajeros, AUX_S47, EVENTUALES_S47, ctx(necesidad))
+    expect(v.publicable).toBe(false)
+    expect(estadoValidacion(v)).toMatch(/^BORRADOR/)
+    expect(o.resultado.alertas.some(a => a.startsWith(PREFIJO_AVISO_MULTI_ARRANQUE) && a.includes('No es publicable'))).toBe(true)
+    expect(registroGeneracion(o.seleccion).validacion).toBe('con-violaciones-preexistentes')
+  })
+
+  it('tras una edición manual el aviso de generación se retira (la validez la informa el validador)', () => {
+    const h = o.resultado.horarios.find(x => x.jornadas.some(j => !j.esFranco))!
+    const j = h.jornadas.find(x => !x.esFranco)!
+    const editado = aplicarEdicionConRecalculo(o.resultado, h.colaboradorId, j.dia, { esFranco: false, turnos: j.turnos }, cajeros.find(c => c.id === h.colaboradorId)?.nombre ?? h.colaboradorId)
+    expect(editado.alertas.some(a => a.startsWith(PREFIJO_AVISO_MULTI_ARRANQUE))).toBe(false)
+  })
+
+  it('un escenario totalmente válido se informa como «valida» y sin aviso de multi-arranque', () => {
+    const v = generar(escenarioSintetico(121))
+    expect(v.seleccion.validacion).toBe('valida')
+    expect(v.seleccion.candidatos.find(c => c.estrategia === v.seleccion.estrategia)!.totalmenteValido).toBe(true)
+    expect(v.resultado.alertas.some(a => a.startsWith(PREFIJO_AVISO_MULTI_ARRANQUE))).toBe(false)
+  })
+})
+
+describe('cierre de calidad · persistencia de la generación (jsonb existente, sin migración)', () => {
+  const semanaDe = (o: SalidaMultiArranque, extra: Partial<SemanaHistorial> = {}): SemanaHistorial => ({
+    id: 's1', fechaLunes: '2026-11-16', version: 1, descripcion: 'S', generadoEl: '2026-11-14T00:00:00Z',
+    resumenPorColaborador: {}, horarios: o.resultado.horarios, editadoManualmente: false,
+    generacion: registroGeneracion(o.resultado.multiArranque!), ...extra,
+  })
+
+  it('registro: versión, estrategia, mejora frente al respaldo, omitidas y validez', () => {
+    const o = generar(escenarioSintetico(121))
+    const g = registroGeneracion(o.resultado.multiArranque!)
+    expect(g).toEqual({
+      versionAlgoritmo: VERSION_ALGORITMO, estrategia: 'desde-sin-prioridad',
+      coberturaRespaldoPct: o.seleccion.coberturaRespaldoPct, coberturaElegidaPct: o.seleccion.coberturaElegidaPct,
+      mejoraPp: Math.round((o.seleccion.coberturaElegidaPct - o.seleccion.coberturaRespaldoPct) * 100) / 100,
+      omitidas: [], validacion: 'valida',
+    })
+    expect(g.mejoraPp).toBeCloseTo(2.34, 2)
+  })
+
+  it('ida y vuelta por la fila de Supabase (horario_completo.generacion) y por localStorage (JSON)', () => {
+    const o = generar(escenarioSintetico(121))
+    const semana = semanaDe(o)
+    const fila = semanaAFila(semana)
+    expect((fila.horario_completo as Record<string, unknown>).generacion).toEqual(semana.generacion)
+    expect(filaASemana({ ...fila, created_at: '2026-11-14T00:00:00Z' }).generacion).toEqual(semana.generacion)
+    const local = JSON.parse(JSON.stringify([semana])) as SemanaHistorial[]
+    expect(local[0].generacion).toEqual(semana.generacion)
+  })
+
+  it('presupuesto agotado y violaciones preexistentes también se conservan al recuperar', () => {
+    const o = generar(escenarioSintetico(121), { presupuestoMs: 0 })
+    const vuelta = filaASemana({ ...semanaAFila(semanaDe(o)), created_at: '2026-11-14T00:00:00Z' })
+    expect(vuelta.generacion).toMatchObject({ estrategia: 'actual', mejoraPp: 0, sinAlternativas: 'presupuesto-agotado', omitidas: ESTRATEGIAS_MULTI_ARRANQUE.filter(x => x !== 'actual') })
+  })
+
+  it('semanas anteriores (sin el campo) se recuperan sin generación y sin errores', () => {
+    const o = generar(escenarioSintetico(121))
+    const fila = semanaAFila(semanaDe(o, { generacion: undefined }))
+    delete (fila.horario_completo as Record<string, unknown>).generacion
+    expect(filaASemana({ ...fila, created_at: '2026-11-14T00:00:00Z' }).generacion).toBeUndefined()
+  })
 })

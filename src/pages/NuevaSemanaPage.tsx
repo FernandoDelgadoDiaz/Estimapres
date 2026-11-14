@@ -19,6 +19,7 @@ import { generarPDF } from '../utils/exportPDF'
 import { validarResultadoSemana, estadoValidacion, type ContextoValidacionSemana } from '../utils/validacionSemana'
 import { getSucursalActual } from '../utils/sucursal'
 import { PERFIL_HORAS_VIGENTE, resolverContratoHoras } from '../algoritmo/contratos'
+import { registroGeneracion } from '../utils/generacionMultiArranque'
 import {
   reglasAExcepciones,
   demandaMinimaDeReglas,
@@ -273,6 +274,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         configOperativa: operativa,
         perfilHorasId: PERFIL_HORAS_VIGENTE.id,
         cumplimientoHoras: res.cumplimientoHoras,
+        // #7 · AH2-020: versión del algoritmo, estrategia elegida y mejora frente al respaldo
+        generacion: res.multiArranque ? registroGeneracion(res.multiArranque) : undefined,
         disponibilidadSemana: Object.fromEntries(
           [...disponibilidad.auxiliares, ...disponibilidad.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
       })

@@ -43,6 +43,51 @@
   - AGENTS.md y CLAUDE.md con la jerarquía MASTER → CURRENT_WORK → PR;
   - esta sección pasa a ser el único punto de retoma (la anterior quedó como registro histórico).
 
+### Cierre de calidad del PR #45 · 2026-11-14 (sobre `86bb019`)
+Sin cambios en prioridades ni en estrategias de optimización. Es el mismo selector, con estos agregados:
+1. **Persistencia de la generación.**
+   - `SemanaHistorial.generacion` (`RegistroGeneracion`) guarda: `versionAlgoritmo` (`VERSION_ALGORITMO = ah2-v2.1-multiarranque-2026-11-14`), `estrategia`, `coberturaRespaldoPct`, `coberturaElegidaPct`, `mejoraPp`, `omitidas`, `sinAlternativas` y `validacion`.
+   - Viaja en `horario_completo.generacion`, el jsonb existente, sin migración.
+   - Nueva Semana lo guarda al generar. Describe la generación, así que no cambia con ediciones manuales (para eso está `editadoManualmente`).
+   - Pruebas:
+     - ida y vuelta por la fila de Supabase (`semanaAFila` / `filaASemana`) y por JSON (localStorage);
+     - presupuesto agotado;
+     - semana anterior sin el campo;
+     - E2E: guardado en el navegador y conservado tras recargar.
+2. **«Sin violaciones nuevas» ≠ «totalmente válido».**
+   - Cada candidato informa `violacionesNuevas`, `violacionesPreexistentes`, `elegible` y `totalmenteValido`. La selección informa `validacion` (`valida` / `con-violaciones-preexistentes`) y `violacionesElegida`.
+   - Si la solución elegida hereda violaciones del respaldo:
+     - aviso «Multi-arranque: … No es publicable: queda en BORRADOR»;
+     - el validador independiente la marca BORRADOR y `publicable = false`;
+     - tras una edición manual el aviso se retira, porque la validez pasa a informarla el validador.
+   - Prueba con 20 cajeros y el tope predeterminado de 2 francos por día, donde el respaldo ya deja personas sin semana.
+3. **Estrategias omitidas.**
+   - Si el presupuesto se agota antes de empezar las alternativas, se informan todas (`sinAlternativas = presupuesto-agotado`). Antes quedaba `omitidas: []`.
+   - Sin objetivo de horas: `sin-objetivo-horas`, sin omitidas.
+   - Prueba con reloj simulado: para 6 presupuestos, cada estrategia queda corrida u omitida, nunca en silencio, y las dependientes de una omitida también se omiten.
+4. **Navegador y equipos lentos.** `e2e/rendimiento.perf.ts` con `playwright.perf.config.ts`: build de producción, CPU ralentizada por CDP. No integra la suite E2E.
+   - Interfaz congelada (tarea larga máxima, en s), multi-arranque [respaldo solo]:
+
+     | Cajeros | 1× | 4× | 6× |
+     |---|---|---|---|
+     | 9 (091) | 0,5 [0,2] | 2,0 [0,5] | 3,0 [0,7] |
+     | 20 | 1,1 [0,3] | 4,7 [1,2] | 7,4 [1,9] |
+     | 35 | 3,2 [0,6] | 13,8 [2,3] | 20,6 [3,2] |
+     | 55 | 3,3 [0,7] | 13,8 [3,0] | 21,2 [4,5] |
+
+   - Antes de este cierre, el indicador «generando…» **no se pintaba**. Ahora `asignarHorariosConIA` cede un cuadro antes de calcular y se pinta en las 12 combinaciones.
+   - Con 35 cajeros a 6× se omitió `alternada-ms-2` en una de dos corridas: en equipos lentos el resultado puede depender del equipo, aunque queda registrado en `generacion.omitidas`.
+   - Reproducir: `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npm run build && PLAYWRIGHT_CHROMIUM_EXECUTABLE=<chromium> npx playwright test -c playwright.perf.config.ts` (opcional `AH2_PERF_OUT=<json>`).
+   - **Web Worker: PROPUESTO** en un PR separado (`docs/proposals/AH2-020_WEB_WORKER_GENERACION.md`). Recomendado antes de sucursales de 20 o más cajeros o de equipos lentos. Para la 091 no es imprescindible.
+5. **Verificación del cierre:**
+   - TypeScript: OK.
+   - Vitest: **366 aprobadas**, 3 omitidas (+9 pruebas nuevas, 23 en `generacionMultiArranque.test.ts`).
+   - Build: OK.
+   - Playwright: **11/11** (incluye la persistencia de `generacion` tras recargar).
+   - Rendimiento: 12/12 combinaciones.
+   - Benchmark de 200 escenarios: **idéntico** a `86bb019` (0 diferencias de cobertura, estrategia u horas). Cobertura media 98,756 % (respaldo 98,631 %); 0 regresiones; 0 violaciones.
+   - `npm run lint` sigue sin configuración (preexistente).
+
 ### B conjunta implementada — AH2-020 APROBADO (dirección, con condiciones) · 2026-11-14
 - **Qué cambia en producción (al mergear, no autorizado aún):** `asignarHorariosConIA` ya no corre el motor una sola vez. Llama a `generarConMultiArranque` (`src/utils/generacionMultiArranque.ts`).
   - **Respaldo:** el motor anterior en frío, sin cambios. Siempre corre y siempre es elegible.
@@ -247,7 +292,8 @@ El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, qu
 - **Prioridad de horas (AH2-020, B conjunta):** el multi-arranque es una heurística. Mejora sin regresiones frente al respaldo, pero no garantiza el óptimo: quedan casos «no encontrados» (escenario 100). Para certificarlos hace falta CP-SAT (#13).
 - **Costo de cálculo:** la generación pasa de unos 0,05 s a 0,3–0,6 s en dotaciones chicas y unos 2 s con 55 personas. Corre en el hilo del navegador (bloquea la UI durante ese tiempo). Presupuesto de 20 s con respaldo garantizado.
 - **Determinismo:** el resultado depende de presupuestos de tiempo (6 s en la pasada 1, 20 s en el multi-arranque). En máquinas muy lentas podrían omitirse estrategias; se informa en `multiArranque.omitidas`.
-- **UI:** la estrategia elegida y los candidatos viajan en `resultado.multiArranque`, pero todavía no se muestran en pantalla ni se persisten en el historial.
+- **UI:** la estrategia elegida se persiste (`generacion`), pero todavía no se muestra en pantalla.
+- **Bloqueo de interfaz:** entre 0,5 y 3 s en la 091 y hasta unos 21 s con 55 cajeros en equipos lentos. Ver la propuesta de Web Worker.
 - **Semanas guardadas antes de este PR:** se validan con el perfil histórico de 31 h, que es el correcto para ellas. Una edición manual que las lleve a 32 h se marcará como `NORM_HORAS_MAX`: hay que regenerarlas como versión nueva.
 - **Datos:** sin migraciones ni escrituras en Supabase; los campos nuevos viajan en el jsonb existente.
 
@@ -255,7 +301,8 @@ El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, qu
 **AH2-020 «B conjunta» implementada en PR #45 (borrador).** Pendiente del propietario:
 1. Revisar los resultados y riesgos. Merge, deploy, migraciones y Supabase siguen **no autorizados**.
 2. Decidir si se ejecuta el benchmark CP-SAT (#13) según `docs/proposals/AH2-020_BENCHMARK_CPSAT_ISSUE13.md` (offline; requiere Python y OR-Tools en un entorno de análisis).
-3. Opcional: mostrar en Nueva Semana la estrategia elegida y la mejora frente al respaldo.
+3. Decidir si se autoriza el PR separado de **Web Worker** (`docs/proposals/AH2-020_WEB_WORKER_GENERACION.md`) y si se cambia el corte por tiempo por un corte por trabajo (afecta la reproducibilidad entre equipos).
+4. Opcional: mostrar en Nueva Semana y en Último Horario la estrategia elegida y la mejora (ya persistidas en `generacion`).
 
 **No avanzar al tramo B sin nueva autorización.** Después, el tramo B:
 

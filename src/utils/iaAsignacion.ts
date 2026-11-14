@@ -19,6 +19,12 @@ import { operativaEfectiva, type ContextoValidacionSemana } from './validacionSe
 
 // ==================== FUNCIÓN PRINCIPAL ====================
 
+/** Espera a que el navegador pinte un cuadro (no-op fuera del navegador). */
+function cederUnCuadro(): Promise<void> {
+  if (typeof requestAnimationFrame !== 'function') return Promise.resolve()
+  return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)))
+}
+
 export async function asignarHorariosConIA(
   necesidad: Franja[],
   cajeros: Colaborador[],
@@ -30,6 +36,10 @@ export async function asignarHorariosConIA(
   /** Contexto de validación de la semana (el mismo que usa la pantalla). Sin él, se arma desde la entrada. */
   contextoValidacion?: ContextoValidacionSemana
 ): Promise<ResultadoAsignacion> {
+  // #7 · AH2-020: el cálculo es síncrono y bloquea el hilo de la interfaz (de 1 a 20 s según
+  // dotación y equipo; ver CURRENT_WORK). Se cede un cuadro para que llegue a pintarse el
+  // indicador «generando…» antes de bloquear. La solución de fondo (Web Worker) es otro PR.
+  await cederUnCuadro()
   // 1. Ejecutar algoritmo v2 (excepciones normalizadas: día textual → índice)
   const inputV2 = convertirInputAV2(
     necesidad, cajeros, auxiliares, eventuales,

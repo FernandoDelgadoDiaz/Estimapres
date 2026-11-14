@@ -7,6 +7,7 @@ import type { OpcionesGeneracion } from '../algoritmo/adapter'
 import type { ContextoValidacionSemana } from '../utils/validacionSemana'
 import { recalcularSemanaTrasEdicion, type ContextoRecalculo } from '../utils/recalculoSemana'
 import { recalcularCumplimiento, avisosCumplimiento, esAvisoDeHoras } from '../algoritmo/contratos'
+import { PREFIJO_AVISO_MULTI_ARRANQUE } from '../utils/generacionMultiArranque'
 
 /**
  * Aplica una edición manual de jornada sobre una lista de horarios y devuelve
@@ -67,7 +68,8 @@ export function aplicarEdicionConRecalculo(
   }
   const cumplimientoHoras = recalcularCumplimiento(prev.cumplimientoHoras, horasDe)
   const alertas = [
-    ...prev.alertas.filter(a => !esAvisoDeHoras(a)),
+    // El aviso del multi-arranque describe la generación; tras editar, la validez la informa el validador.
+    ...prev.alertas.filter(a => !esAvisoDeHoras(a) && !a.startsWith(PREFIJO_AVISO_MULTI_ARRANQUE)),
     ...avisosCumplimiento(cumplimientoHoras),
   ]
   const editado: ResultadoAsignacion = { ...prev, horarios, cajaEventual, eventualesFijos, cumplimientoHoras, impactoHoras: undefined, alertas }

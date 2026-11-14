@@ -222,6 +222,7 @@ export function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> 
       eventualesFijos: s.eventualesFijos,
       perfilHorasId: s.perfilHorasId,
       cumplimientoHoras: s.cumplimientoHoras,
+      generacion: s.generacion, // #7 · AH2-020 (jsonb existente, sin migración)
     },
     metricas: {
       resumenPorColaborador: s.resumenPorColaborador,
@@ -254,6 +255,7 @@ export function filaASemana(f: FilaSemana): SemanaHistorial {
     eventualesFijos: h.eventualesFijos as string[] | undefined,
     perfilHorasId: h.perfilHorasId as string | undefined,
     cumplimientoHoras: h.cumplimientoHoras as SemanaHistorial['cumplimientoHoras'],
+    generacion: h.generacion as SemanaHistorial['generacion'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,

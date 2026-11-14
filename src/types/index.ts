@@ -193,6 +193,10 @@ export interface SemanaHistorial {
   perfilHorasId?: string
   // #7: objetivo vs horas asignadas por contrato, tal como lo informó el motor.
   cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
+  // #7 · AH2-020: cómo se generó (versión del algoritmo, estrategia multi-arranque elegida,
+  // mejora frente al respaldo, estrategias omitidas y validez). Ausente en semanas anteriores.
+  // Describe la GENERACIÓN: no cambia tras ediciones manuales (ver editadoManualmente).
+  generacion?: import('../utils/generacionMultiArranque').RegistroGeneracion
 }
 
 // ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================
