@@ -1,5 +1,56 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## Publicación — #39 motor de asignación corregido · 2026-11-14
+
+- **Publicado en producción** con autorización expresa del propietario.
+  - SHA autorizado: `7258d7d`.
+  - Merge commit en `main`: **`f0fcdc2861b4b896395bb04da674359ebb6bfaa8`** (base `59e751e`).
+- **Deploys de producción:**
+
+  | Sitio | Nuevo (commit `f0fcdc2`, estado ready) | Anterior (rollback, commit `59e751e`) |
+  |---|---|---|
+  | al-iada | `6af869b146e8e683320974d3` | `6af787ded7f28c7e2a47dd5f` |
+  | prestify | `6af869b1e0d88f43fb9e77a5` | `6af787de1dbac72c8383dd5f` |
+
+- **Rollback:**
+  - Los deploys anteriores siguen servidos: sus permalinks responden 200.
+  - Vía que puede ejecutar el agente: revert del merge `f0fcdc2` en `main`. Netlify reconstruye ambos sitios desde `main` (`branch: main`, `manual_deploy: false`).
+  - Vía del propietario: «Publish deploy» del deploy anterior, desde el panel de Netlify.
+  - La prueba de restauración por la API de Netlify (re-publicar el deploy vigente) fue bloqueada por el sistema de permisos de la sesión y **no se ejecutó**.
+  - No fue necesario hacer rollback.
+- **Preflight:**
+  - SHA y base coinciden con lo autorizado.
+  - Checks `test-build`, `browser` y deploy previews en verde.
+  - Sin migraciones ni cambios en `netlify/` (funciones de pago).
+- **Verificación posterior:**
+  - Los dos sitios sirven el bundle nuevo, con los marcadores del motor y del validador.
+  - Rutas de al-iada: responden 200, el login se renderiza, las rutas protegidas piden sesión, sin errores de consola ni escrituras.
+  - Prestify:
+    - `create-payment` y `webhook-mp` tienen los mismos digests (`3cf2a63e…` y `45dfe6a4…`).
+    - Responden OPTIONS 200 y GET 405, sin ejecutar transacciones.
+  - Batería completa sobre `f0fcdc2`:
+    - TypeScript y build: OK.
+    - Vitest: 289 aprobadas y 2 omitidas.
+    - Playwright: 11/11 (apertura ON/OFF, AUX, eventuales, edición, H-A2, PDF).
+- **Motor publicado con la dotación real de la 091** (lectura de solo lectura, ids seudónimos, en memoria y sin guardar):
+  - ON: apertura con 1 AUX / 0 FULL-PART / 0 eventuales los 7 días; sin cobertura duplicada; VALIDADO; cobertura 99,4 %.
+  - OFF: abre 1 FULL/PART, sin AUX ni eventuales; VALIDADO.
+  - Cero AUX simulado: H-A2 en los 7 días, BORRADOR.
+  - Edición en memoria: sin duplicación ni asignaciones fuera de disponibilidad.
+- **Supabase** (antes y después, mismos conteos y mismo hash de contenido):
+
+  | Tabla | Filas |
+  |---|---|
+  | colaboradores | 16 |
+  | reglas_configurables | 3 |
+  | semanas_historial | 12 |
+  | correcciones_manuales | 37 |
+  | aprendizajes_derivados | 0 |
+
+  No hubo escrituras ni migraciones, y la semana 47 no se regeneró.
+- **Limitación:** no se probó el flujo autenticado en producción porque no hay credenciales y generar una semana escribiría datos. El flujo quedó cubierto por Playwright sobre el mismo commit.
+- **Próxima acción (propietario):** en la 091, generar la semana 16–22/11 como versión nueva desde Nueva Semana y revisar el estado VALIDADO/BORRADOR antes de exportar.
+
 ## Retoma — #38 corrección del motor de asignación (apertura, AUX, eventuales) · 2026-11-14
 
 - **Rama:** `fix/ah2-38-apertura-aux` desde `main@59e751e` (#37). [PR borrador #39](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/39) · [Issue #38](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/38).
