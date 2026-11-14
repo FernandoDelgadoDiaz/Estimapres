@@ -115,6 +115,8 @@ export default function UltimoHorarioPage() {
       fechas: esLunesISO(ultimaSemana.fechaLunes) ? fechasDeSemana(ultimaSemana.fechaLunes) : undefined,
       version: ultimaSemana.version,
       necesidadFranjas: ultimaSemana.necesidadFranjas,
+      // Presencia registrada al generar; semanas históricas sin ella → «Presencia no registrada».
+      presencia: ultimaSemana.disponibilidadSemana,
       // #38: el PDF lleva el estado real; si hay violaciones sale como BORRADOR.
       validacion: validacion ?? undefined,
       estado: validacion ? estadoValidacion(validacion) : 'SIN VERIFICAR: la semana no tiene datos de demanda para validar',

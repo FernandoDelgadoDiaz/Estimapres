@@ -332,6 +332,10 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       version: historial.find(s => s.id === semanaGuardadaId)?.version,
       validacion: validacion ?? undefined,
       estado: validacion ? estadoValidacion(validacion) : undefined,
+      // Presencia registrada de la semana (patrón + excepciones por fecha), la misma que se guarda.
+      presencia: ctxValidacion
+        ? Object.fromEntries([...ctxValidacion.auxiliares, ...ctxValidacion.eventuales].map(p => [p.id, [...p.horarioSemanal]]))
+        : undefined,
     })
     pdf.save(`horarios-${semanaDesc.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
