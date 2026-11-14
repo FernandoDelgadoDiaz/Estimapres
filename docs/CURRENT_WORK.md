@@ -9,7 +9,7 @@
 - **PR:** [#45](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/45), en borrador.
 - **Rama:** `feat/ah2-part-horas-contrato`.
   - Base: `main@587192046cf59fcde22e62b14a41ce5bf22df9c5`.
-  - Commits de código: `e11ecc0` (tramo A) y `cf6814a2986baf98d22d1b3ac69716023c887229` (revisión final). El HEAD exacto (este registro) figura en el PR.
+  - Commits de código: `e11ecc0` (tramo A), `cf6814a` (revisión final) y `c34da2c385a56ac0eacad6b0b76412273750518b` (benchmark AH2-020). El HEAD exacto (este registro) figura en el PR.
 - **Estado:** sin merge, sin deploy, sin migraciones, sin escrituras en Supabase. Producción sigue en `c8d6fa8` (#41). El PR #42 de rollback no se tocó.
 
 ### Qué se hizo
@@ -42,6 +42,38 @@
   - MASTER §4.1, §6.1 y §9 (AH2-014…AH2-019);
   - AGENTS.md y CLAUDE.md con la jerarquía MASTER → CURRENT_WORK → PR;
   - esta sección pasa a ser el único punto de retoma (la anterior quedó como registro histórico).
+
+### Benchmark de prioridad de horas vs cobertura (`c34da2c`) — AH2-020, PROPUESTO
+- **Orientación del propietario:** se prefiere la alternativa B (cobertura), pero no se reducen automáticamente horas contractuales exigibles. El motor productivo **no cambió**.
+- **Método:** benchmark offline reproducible.
+  - Comando: `AH2_BENCH=1 AH2_BENCH_N=200 AH2_BENCH_OUT=<json> npx vitest run src/algoritmo/__tests__/benchmark/prioridadHoras.bench.test.ts`, unos 60 s.
+  - 200 escenarios sintéticos con semilla fija (`fixtures/escenariosSinteticos.ts`).
+  - En todos, la solución sin prioridad (A0) y la del motor actual (H1000) **validan sin violaciones**: ninguno tiene una persona infactible.
+  - Estrategias: A0, H1000, penalizaciones 50, 10 y 2, y multi-arranque desde A0 (MS).
+  - Para habilitarlas, la pasada 1 ganó parámetros `experimental` desactivados por defecto. Está probado que sin ellos el resultado es idéntico.
+- **Horas:**
+  - H1000 alcanza la meta de horas en 200/200.
+  - En 42 escenarios el objetivo de 32 h es **inviable demostrado**: una cota exacta por persona, que relaja solo el tope de francos por día, da 24 o 30 h.
+- **Cobertura:**
+  - 183 sin brecha.
+  - 13 «factible encontrada» con el mejor entre H1000 y MS.
+  - 2 más encontradas con estrategias extra (66: semanas FULL fijas; 156: arranques alternados).
+  - **2 no encontradas**, sin prueba de imposibilidad: escenario 100 (95,93 % frente a 97,56 %) y 130 (99,49 % frente a 100 %).
+  - Escenario 121: H1000 93,75 % → multi-arranque 96,09 %, con 32 h y validado. Es la prueba concluyente de que la pérdida era un óptimo local.
+- **Penalización de 1.000:** no es la causa.
+  - 10 y 50 dan el mismo resultado en los 200 escenarios.
+  - 2 pierde horas exigibles en 93 escenarios (782 h) y además empeora la cobertura media (−0,02 pp).
+- **Medias de cobertura:** H1000 98,63 %; mejor entre H1000 y MS 98,72 %. En los 18 escenarios donde mejora, +0,99 pp (máximo +2,34).
+- **Propuesta «B conjunta»** (MASTER AH2-020):
+  - horas exigibles como restricción (objetivo o cota probada);
+  - multi-arranque con selección del mejor validado (+60–80 ms);
+  - tres estados explícitos;
+  - aviso bajo el 95 % sin recortar horas;
+  - **benchmark de CP-SAT (#13)** para certificar los «no encontrados».
+- **Pruebas en CI:**
+  - `prioridadHorasOptimo.test.ts`: 6 casos.
+  - La prueba con P0 infactible quedó marcada como no concluyente.
+  - TypeScript y build: OK. Vitest: 343 aprobadas, 3 omitidas (incluido el benchmark). Playwright: 11/11.
 
 ### Revisión final (`cf6814a`) — los cuatro puntos pedidos
 1. **Prioridad de horas PART frente a cobertura** (AH2-020, PROPUESTO; decisión del propietario pendiente).
@@ -182,7 +214,16 @@ El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, qu
 - **Semanas guardadas antes de este PR:** se validan con el perfil histórico de 31 h, que es el correcto para ellas. Una edición manual que las lleve a 32 h se marcará como `NORM_HORAS_MAX`: hay que regenerarlas como versión nueva.
 - **Datos:** sin migraciones ni escrituras en Supabase; los campos nuevos viajan en el jsonb existente.
 
-### Próxima tarea exacta (tramo B, Issue #44 / #12)
+### Próxima tarea exacta
+**Decisión pendiente del propietario sobre AH2-020:** aprobar o no «B conjunta». Si se aprueba:
+1. Implementar el multi-arranque en `orquestador.ts`.
+2. Implementar los tres estados en `cumplimiento_horas` / `impacto_horas`.
+3. Regresión: los 200 escenarios del benchmark no deben empeorar la cobertura ni las horas frente a H1000.
+4. Preparar el benchmark de CP-SAT (#13) en Python offline sobre `escenariosSinteticos.ts`.
+
+Después, el tramo B:
+
+#### Tramo B (Issue #44 / #12)
 Diseñar e implementar sin migración el modelo de **ciclo de planificación y publicación**:
 - `cicloPlanificacionId`, `vigenteDesde`/`vigenteHasta` y estado `BORRADOR → APROBADO → PUBLICADO`, dentro del jsonb de la semana;
 - detección de la semana vigente sin contar versiones repetidas;
