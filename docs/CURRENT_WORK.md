@@ -6,10 +6,10 @@
 
 - **Responsable:** Claude (Claude Code), 2026-11-14.
 - **Issues:** #7 (perfiles y horas PART) y #44 (arquitectura adaptativa, tramo A).
-- **PR:** borrador; su número y la evidencia están en el PR de la rama.
+- **PR:** [#45](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/45), en borrador.
 - **Rama:** `feat/ah2-part-horas-contrato`.
   - Base: `main@587192046cf59fcde22e62b14a41ce5bf22df9c5`.
-  - Commit de código: `e11ecc05eab9b127cae2d8e07b2600437261cfd7`. El HEAD exacto (este registro) figura en el PR.
+  - Commits de código: `e11ecc0` (tramo A) y `cf6814a2986baf98d22d1b3ac69716023c887229` (revisión final). El HEAD exacto (este registro) figura en el PR.
 - **Estado:** sin merge, sin deploy, sin migraciones, sin escrituras en Supabase. Producción sigue en `c8d6fa8` (#41). El PR #42 de rollback no se tocó.
 
 ### Qué se hizo
@@ -43,10 +43,53 @@
   - AGENTS.md y CLAUDE.md con la jerarquía MASTER → CURRENT_WORK → PR;
   - esta sección pasa a ser el único punto de retoma (la anterior quedó como registro histórico).
 
+### Revisión final (`cf6814a`) — los cuatro puntos pedidos
+1. **Prioridad de horas PART frente a cobertura** (AH2-020, PROPUESTO; decisión del propietario pendiente).
+   - La prioridad no cambió.
+   - El orquestador corre además la misma cascada sin esa prioridad (`impacto_horas`). Informa la cobertura con y sin ella, las franjas que empeoran (marcando picos), los sobrantes agregados y si la cobertura cae bajo el 95 % solo por las horas.
+   - Búsqueda en 120 escenarios sintéticos:
+     - 5 bajan la cobertura (siempre en un pico);
+     - 1 cae de 95,59 % a 93,38 %;
+     - 116 agregan sobrantes.
+   - Los casos 59 y 95 quedaron como fixtures en `src/algoritmo/__tests__/fixtures/prioridadHorasAdversarial.ts`.
+   - Semana 47: la cobertura no baja; +0,5 h de sobrante (genera una página de alertas en el PDF).
+2. **Ficha PART** (AH2-021).
+   - Se distinguen tres casos: faltante, inválida (0, negativa, no numérica) y válida.
+   - Faltante o inválida: se planifica sin objetivo, hasta el máximo del perfil, con `DATOS_HORAS_FICHA` (BORRADOR) y un mensaje distinto por caso.
+   - Ficha de 36 h → se planifica con 32 y se avisa. Ficha de 31,75 h → 31,5 con aviso.
+   - Al cargar desde Supabase, un PART sin horas ya no se convierte en 48 h (FULL sigue en 48). Colaboradores muestra «Sin dato» y el formulario permite dejar el campo vacío.
+3. **Edición manual.**
+   - `aplicarEdicionConRecalculo` recalcula `cumplimientoHoras` desde las jornadas editadas: motivo «modificadas manualmente» y sin el factible anterior.
+   - Regenera los avisos «Horas PART» y descarta `impactoHoras`.
+   - Nueva Semana y Último Horario persisten el cumplimiento nuevo (probado ida y vuelta con `semanaAFila` y `filaASemana`).
+4. **Perfil de horas** (AH2-019).
+   - `resolverPerfilHorasSemana`: sin identificador → histórico 31 h; identificador conocido → ese perfil; desconocido → limitación, la semana queda «SIN VERIFICAR» (nunca VALIDADO).
+   - La validación de Último Horario lo resuelve vía `perfilHorasId`.
+
+**Defectos confirmados en el HEAD anterior `1f3fab4`** (worktree temporal):
+- Una ficha faltante o en 0 se convertía en 32 h y la semana salía VALIDADO.
+- Un perfil desconocido se validaba como 31 h sin aviso.
+- Tras editar a 31 h, el cumplimiento seguía diciendo 32 h.
+- No se informaba el costo de priorizar las horas.
+
+**Pruebas sobre `cf6814a`:**
+- TypeScript y build: OK.
+- Vitest: **337 aprobadas**, 2 omitidas.
+- Playwright: **11/11**.
+- `prioridadHorasRevision.test.ts`: 12 casos nuevos.
+
+**Fuera de alcance (sin cambios):** autenticación, aislamiento de sucursales y permisos. La incorporación de otras sucursales es un requisito independiente (AH2-022).
+
 ### Archivos modificados
 - **Motor y contratos** (`src/algoritmo/`): `contratos.ts` (nuevo), `adapter.ts`, `pasada1-fullpart.ts`, `orquestador.ts`, `reglas.ts`, `types.ts`, `validadorIndependiente.ts`.
 - **Validación, tipos y persistencia:** `src/utils/validacionSemana.ts`, `src/utils/almacen.ts`, `src/types/index.ts`.
 - **Páginas:** `src/pages/NuevaSemanaPage.tsx`, `src/pages/UltimoHorarioPage.tsx`.
+- **Revisión final:**
+  - `src/hooks/useAsignacion.ts`;
+  - `src/components/colaboradores/FormColaborador.tsx` y `TablaColaboradores.tsx`;
+  - `src/utils/algoritmoAsignacion.ts`;
+  - `src/algoritmo/orquestador.ts` (impacto de la prioridad de horas);
+  - `src/utils/almacen.ts` (carga de PART sin horas; conversiones exportadas para pruebas).
 - **Pruebas:**
   - `src/algoritmo/__tests__/contratoHorasPart.test.ts` (nuevo, 24 casos);
   - `reglas.test.ts` y `validadorIndependiente.test.ts` (adaptadas al perfil vigente).
@@ -133,8 +176,9 @@ El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, qu
 
 ### Riesgos y pendientes
 - **Validación jurídica:** 32 h es requisito de producto y configuración de la sucursal; la validación jurídica/contractual está pendiente (AH2-004/AH2-014).
-- **Configuración de fichas:** si una ficha PART supera 32 h, se planifica con 32 y se avisa. Fichas en 0 o vacías usan 32 h por defecto: revisar la configuración real.
-- **Prioridad de horas:** la prioridad lexicográfica de las horas objetivo puede agregar sobrantes en franjas de baja demanda (en la semana 47, como mucho +0,5 h).
+- **Fichas reales:** las fichas PART faltantes o en 0 dejarán la semana en BORRADOR (`DATOS_HORAS_FICHA`) hasta completarlas. Revisar las fichas reales antes de publicar. Si una ficha supera 32 h, se planifica con 32 y se avisa.
+- **Prioridad de horas (AH2-020):** puede bajar la cobertura en picos (4 % de los escenarios sintéticos) y agrega sobrantes. Hoy solo se informa. Elegir la política (a), (b) o (c) es decisión del propietario.
+- **Costo de cálculo:** medir el impacto duplica el cálculo de la cascada (unos 70 ms adicionales en la semana 47).
 - **Semanas guardadas antes de este PR:** se validan con el perfil histórico de 31 h, que es el correcto para ellas. Una edición manual que las lleve a 32 h se marcará como `NORM_HORAS_MAX`: hay que regenerarlas como versión nueva.
 - **Datos:** sin migraciones ni escrituras en Supabase; los campos nuevos viajan en el jsonb existente.
 
