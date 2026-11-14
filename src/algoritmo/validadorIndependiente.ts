@@ -481,15 +481,24 @@ function validarReglasOperativas(
       detalle: `Apertura del ${DIAS[d]} (${op.aperturaSoloAux ? 'regla «apertura solo AUX» activa' : 'regla «apertura solo AUX» desactivada'}): ${problemas.join('; ')}.`,
     })
 
-    // ≥1 AUX parado supervisando 09:00–22:00 (solo si hay presencia informada)
-    if (presencia.size) {
+    // H-A2: ≥1 AUX parado supervisando 09:00–22:00. Obligatoria SIEMPRE, con
+    // cualquier valor de «apertura solo AUX» y aunque la sucursal no tenga ningún
+    // AUX (cero AUX = sin supervisión = violación), igual que el diagnóstico previo
+    // y el motor (validarCobertura0922).
+    {
       const sinParado: string[] = []
       for (let s = 2; s <= 27; s++) {
         const parados = [...presencia].filter(([id, p]) => p[d][s] && !enCaja(auxCaja.get(id), d, s)).length
         if (parados === 0) sinParado.push(horaDeSlot(s))
       }
-      if (sinParado.length) v.push({ codigo: 'H-A2', nivel: 'OPERATIVA', dia: d, detalle: `${DIAS[d]}: ningún supervisor (AUX) parado supervisando en ${rangos(sinParado)}.` })
-
+      if (sinParado.length) v.push({
+        codigo: 'H-A2', nivel: 'OPERATIVA', dia: d,
+        detalle: presencia.size
+          ? `${DIAS[d]}: ningún supervisor (AUX) parado supervisando en ${rangos(sinParado)}.`
+          : `${DIAS[d]}: no hay ningún supervisor (AUX) disponible; la supervisión de 09:00 a 22:00 es obligatoria.`,
+      })
+    }
+    if (presencia.size) {
       // R3: con 2+ AUX simultáneos, uno queda parado toda su jornada (salvo apertura obligatoria)
       if (op.supervisorJornadaCompleta) {
         let max = 0

@@ -48,7 +48,16 @@
   - Contra el candidato `449d835`: el archivo nuevo de recálculo y apertura OFF da 11/13 rojas, y el recorrido Playwright OFF falla.
   - Contra `main`: las pruebas de la 1.ª entrega dan 23/30 rojas.
   - `npm run lint` sigue sin configuración ESLint (también en la base).
-- **Próxima acción:** revisión final y autorización del propietario. Tras publicar, regenerar en la 091 la semana 16–22/11 como versión nueva, sin modificar las guardadas.
+- **Último control (H-A2):**
+  - El validador ya no condiciona H-A2 a que exista presencia de AUX. Con cero AUX, cada día da H-A2 («no hay ningún supervisor (AUX) disponible») y BORRADOR, con cualquier valor de «apertura solo AUX».
+  - Diagnóstico previo, motor, validación final, edición y PDF coinciden en los días con H-A2.
+  - `supervisionHA2.test.ts` cubre 4 escenarios × ON/OFF: cero AUX, AUX solo en la apertura, AUX solo por la tarde y supervisión completa. También cubre la edición y el PDF.
+  - Contra `8931bbd` fallan los 5 casos de cero AUX.
+- **Pruebas del candidato final:**
+  - TypeScript y build: OK.
+  - Vitest: 289 aprobadas y 2 omitidas.
+  - Playwright: 11/11.
+- **Próxima acción:** autorización de publicación del propietario. Tras publicar, regenerar en la 091 la semana 16–22/11 como versión nueva, sin modificar las guardadas.
 
 ## Retoma — corrección de la operación real de la 091 · 2026-11-13
 
