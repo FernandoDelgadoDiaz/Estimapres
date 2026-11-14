@@ -2,7 +2,6 @@ import type { ResultadoValidacion } from '../algoritmo/validadorIndependiente'
 import jsPDF from 'jspdf'
 import autoTable, { type UserOptions } from 'jspdf-autotable'
 import { ResultadoAsignacion, Colaborador, Auxiliar, Eventual, SemanaHistorial, DIAS_SEMANA, HORAS_FRANJAS } from '../types'
-import { formatoTurno } from './timeUtils'
 import type { MetricaSemana, IndicadoresEfectividad, PrediccionCorrecciones, MadurezBanda } from './efectividad'
 import type { CriterioCobertura } from './preferencias'
 
@@ -58,6 +57,13 @@ export interface MetaPDF {
   validacion?: ResultadoValidacion
   estado?: string
   necesidadFranjas?: number[][]
+  /**
+   * Presencia/disponibilidad REGISTRADA de la semana por id (formato horarioSemanal:
+   * "08:00-14:00|20:00-23:00" o "" por día), tal como se guardó con la semana
+   * (SemanaHistorial.disponibilidadSemana). Fuente de la presencia de EVENTUALES en
+   * el cuadro de presencia; sin ella se informa «Presencia no registrada».
+   */
+  presencia?: Record<string, string[]>
 }
 
 const fechaAR = (iso: string) => iso.split('-').reverse().join('/')
@@ -65,6 +71,136 @@ const MARGEN = 12
 const INICIO_TABLA = 42
 const TINTA = [29, 43, 55] as const
 const PETROLEO = [21, 74, 78] as const
+
+export const TITULO_CAJA = 'HORARIOS DE CAJA'
+export const TITULO_PRESENCIA = 'HORARIOS DE PRESENCIA — PERSONAL DE APOYO'
+export const SIN_CAJA = 'Sin caja'
+export const NO_DISPONIBLE = 'No disponible'
+export const PRESENCIA_NO_REGISTRADA = 'Presencia no registrada'
+const ANCHO_NOMBRE = 54
+const ANCHO_TIPO = 22
+const ANCHO_HORAS = 19
+// Altura estimada de una fila de los cuadros semanales (8,5 pt × factor 1,48 + relleno).
+const INTERLINEADO_CUADROS = 1.3
+const ALTO_LINEA = 8.5 * 0.3528 * INTERLINEADO_CUADROS
+const altoFila = (celdas: string[]) => 2.8 + ALTO_LINEA * Math.max(1, ...celdas.map(c => c.split('\n').length))
+const ORDEN_TIPO: Record<string, number> = { FULL: 0, PART: 1, CAJA: 2, AUX: 3, EVENTUAL: 4 }
+
+export interface FilaPDF {
+  colaboradorId: string
+  nombre: string
+  tipo: string
+  /** Horas (de caja en el cuadro 1; de presencia en el cuadro 2). */
+  horas: number
+  /** 7 celdas (lunes→domingo); franjas separadas por salto de línea. */
+  celdas: string[]
+  /** Cuadro 2: false si la semana no guardó la presencia de este eventual. */
+  registrada?: boolean
+}
+
+const aMin = (h: string) => { const [a, b] = h.split(':').map(Number); return a * 60 + (b || 0) }
+const hhmm = (h: string) => h.padStart(5, '0')
+const horasLegibles = (h: number) => `${String(Math.round(h * 100) / 100).replace('.', ',')} h`
+
+/** Bloques contiguos de CAJA de un día como "HH:MM-HH:MM" (fin exclusivo). */
+function bloquesCaja(slots: boolean[] = []): string[] {
+  return formatearCajaDia(slots, '').split(' | ').filter(Boolean)
+}
+const ordenar = (filas: FilaPDF[]) => filas
+  .map((f, i) => ({ f, i }))
+  .sort((a, b) => (ORDEN_TIPO[a.f.tipo] ?? 9) - (ORDEN_TIPO[b.f.tipo] ?? 9) || a.i - b.i)
+  .map(x => x.f)
+
+/**
+ * Cuadro 1: FULL/PART con sus jornadas efectivas; AUX y EVENTUAL solo con sus
+ * franjas en CAJA (cajaAux / cajaEventual). Las horas salen de las franjas.
+ */
+export function filasHorariosCaja(resultado: ResultadoAsignacion, nombres: Map<string, { nombre: string; tipo: string }>): FilaPDF[] {
+  const filas: FilaPDF[] = []
+  for (const h of resultado.horarios.filter(x => x.rolGeneral === 'cajero')) {
+    const porDia = new Map(h.jornadas.map(j => [j.dia, j]))
+    let minutos = 0
+    const celdas = Array.from({ length: 7 }, (_, d) => {
+      const j = porDia.get(d)
+      if (!j) return '-'
+      if (j.esFranco) return 'FRANCO'
+      for (const t of j.turnos) minutos += aMin(t.fin) - aMin(t.inicio)
+      const bloques = j.turnos.map(t => `${hhmm(t.inicio)}-${hhmm(t.fin)}`).join('\n')
+      return j.rol === 'franco_medio' ? `${bloques}\nMedio franco` : bloques
+    })
+    const col = nombres.get(h.colaboradorId)
+    filas.push({ colaboradorId: h.colaboradorId, nombre: col?.nombre ?? h.colaboradorId, tipo: col?.tipo ?? 'CAJA', horas: minutos / 60, celdas })
+  }
+  const presenciaAux = new Map(resultado.horarios.filter(x => x.rolGeneral === 'aux_supervisor').map(h => [h.colaboradorId, h]))
+  const cajaAux = new Map((resultado.cajaAux ?? []).map(a => [a.colaboradorId, a]))
+  for (const id of [...new Set([...presenciaAux.keys(), ...cajaAux.keys()])]) {
+    const caja = cajaAux.get(id)
+    const pres = presenciaAux.get(id)
+    const celdas = Array.from({ length: 7 }, (_, d) => {
+      const b = bloquesCaja(caja?.slotsCajaPorDia[d])
+      if (b.length) return b.join('\n')
+      const j = pres?.jornadas.find(x => x.dia === d)
+      return j?.esFranco ? 'FRANCO' : SIN_CAJA
+    })
+    const slots = (caja?.slotsCajaPorDia ?? []).reduce((n, f) => n + f.filter(Boolean).length, 0)
+    filas.push({ colaboradorId: id, nombre: nombres.get(id)?.nombre ?? caja?.nombre ?? id, tipo: 'AUX', horas: slots / 2, celdas })
+  }
+  const cajaEv = new Map((resultado.cajaEventual ?? []).map(e => [e.colaboradorId, e]))
+  const idsEv = [...new Set([...resultado.horarios.filter(x => x.rolGeneral === 'eventual_sector').map(h => h.colaboradorId), ...cajaEv.keys()])]
+  for (const id of idsEv) {
+    const caja = cajaEv.get(id)
+    const celdas = Array.from({ length: 7 }, (_, d) => bloquesCaja(caja?.slotsCajaPorDia[d]).join('\n') || SIN_CAJA)
+    const slots = (caja?.slotsCajaPorDia ?? []).reduce((n, f) => n + f.filter(Boolean).length, 0)
+    filas.push({ colaboradorId: id, nombre: nombres.get(id)?.nombre ?? caja?.nombre ?? id, tipo: 'EVENTUAL', horas: slots / 2, celdas })
+  }
+  return ordenar(filas)
+}
+
+/**
+ * Cuadro 2: AUX con su jornada de presencia (fila AUX de horarios, con ediciones);
+ * EVENTUAL con la disponibilidad registrada de la semana. Nunca se reconstruye la
+ * presencia de un eventual desde su caja ni desde la disponibilidad actual.
+ */
+export function filasPresenciaApoyo(
+  resultado: ResultadoAsignacion, nombres: Map<string, { nombre: string; tipo: string }>, presencia?: Record<string, string[]>,
+): FilaPDF[] {
+  const filas: FilaPDF[] = []
+  for (const h of resultado.horarios.filter(x => x.rolGeneral === 'aux_supervisor')) {
+    const porDia = new Map(h.jornadas.map(j => [j.dia, j]))
+    let minutos = 0
+    const celdas = Array.from({ length: 7 }, (_, d) => {
+      const j = porDia.get(d)
+      if (!j || j.esFranco || !j.turnos.length) return 'FRANCO'
+      for (const t of j.turnos) minutos += aMin(t.fin) - aMin(t.inicio)
+      return j.turnos.map(t => `${hhmm(t.inicio)}-${hhmm(t.fin)}`).join('\n')
+    })
+    filas.push({ colaboradorId: h.colaboradorId, nombre: nombres.get(h.colaboradorId)?.nombre ?? h.colaboradorId, tipo: 'AUX', horas: minutos / 60, celdas, registrada: true })
+  }
+  const idsEv = [...new Set([
+    ...resultado.horarios.filter(x => x.rolGeneral === 'eventual_sector').map(h => h.colaboradorId),
+    ...(resultado.cajaEventual ?? []).map(e => e.colaboradorId),
+  ])]
+  for (const id of idsEv) {
+    const nombre = nombres.get(id)?.nombre ?? resultado.cajaEventual?.find(e => e.colaboradorId === id)?.nombre ?? id
+    const dias = presencia?.[id]
+    if (!dias) {
+      filas.push({ colaboradorId: id, nombre, tipo: 'EVENTUAL', horas: 0, celdas: Array(7).fill(PRESENCIA_NO_REGISTRADA), registrada: false })
+      continue
+    }
+    let minutos = 0
+    const celdas = Array.from({ length: 7 }, (_, d) => {
+      const bloques = (dias[d] ?? '').split('|').map(x => x.trim()).filter(Boolean)
+      if (!bloques.length) return NO_DISPONIBLE
+      return bloques.map(b => {
+        const [ini, fin] = b.split('-')
+        minutos += aMin(fin) - aMin(ini)
+        return `${hhmm(ini)}-${hhmm(fin)}`
+      }).join('\n')
+    })
+    filas.push({ colaboradorId: id, nombre, tipo: 'EVENTUAL', horas: minutos / 60, celdas, registrada: true })
+  }
+  return filas
+}
 
 export function generarPDF(
   resultado: ResultadoAsignacion,
@@ -89,14 +225,18 @@ export function generarPDF(
   ].filter(Boolean).join('  ·  ')
   const estado = meta.estado?.split(':')[0] ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
 
+  // Páginas que ya tienen encabezado: un cuadro que empieza a mitad de página no
+  // vuelve a dibujarlo encima (evita textos superpuestos).
+  const paginasConEncabezado = new Set<number>()
   function encabezado(titulo: string, detalle?: string) {
+    paginasConEncabezado.add(doc.getCurrentPageInfo().pageNumber)
     doc.setFillColor(...PETROLEO)
     doc.rect(MARGEN, 9, 13, 1, 'F')
     doc.setTextColor(...TINTA)
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(17)
     const alternativo = `${titulo} - ${semanaDesc}`
-    const tituloCorto = !ident && titulo === 'Horarios Semanales' && doc.getTextWidth(alternativo) <= ancho
+    const tituloCorto = !ident && titulo === TITULO_CAJA && doc.getTextWidth(alternativo) <= ancho
     doc.text(tituloCorto ? alternativo : titulo, MARGEN, 18, { maxWidth: ancho })
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
@@ -112,19 +252,21 @@ export function generarPDF(
     }
   }
 
-  function tabla(titulo: string, opciones: UserOptions, detalle?: string) {
+  function tabla(titulo: string, opciones: UserOptions, detalle?: string, startY = INICIO_TABLA) {
     autoTable(doc, {
       theme: 'grid',
       showHead: 'everyPage',
       rowPageBreak: 'avoid',
       tableWidth: ancho,
       margin: { top: INICIO_TABLA, bottom: 15, left: MARGEN, right: MARGEN },
-      startY: INICIO_TABLA,
+      startY,
       headStyles: { fillColor: [...PETROLEO], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [244, 248, 248] },
       ...opciones,
       styles: { cellPadding: { top: 2, bottom: 2, left: 1.8, right: 1.8 }, fontSize: 10, textColor: [...TINTA], overflow: 'linebreak', valign: 'top', ...opciones.styles },
-      willDrawPage: () => encabezado(titulo, detalle),
+      willDrawPage: () => {
+        if (!paginasConEncabezado.has(doc.getCurrentPageInfo().pageNumber)) encabezado(titulo, detalle)
+      },
     })
   }
 
@@ -132,63 +274,75 @@ export function generarPDF(
   for (const c of colaboradores) nombres.set(c.id, { nombre: c.nombre, tipo: c.tipo })
   for (const a of auxiliares) nombres.set(a.id, { nombre: a.nombre, tipo: 'AUX' })
   for (const e of eventuales) nombres.set(e.id, { nombre: e.nombre, tipo: 'EVENTUAL' })
-  const tipoPorRol = { cajero: 'CAJA', aux_supervisor: 'AUX', aux_eventual: 'AUX', eventual_sector: 'EVENTUAL' }
 
-  const nominal = resultado.horarios.map(h => {
-    const col = nombres.get(h.colaboradorId)
-    const tipo = col?.tipo ?? tipoPorRol[h.rolGeneral]
-    const porDia = new Map(h.jornadas.map(j => [j.dia, j]))
-    return [
-      col?.nombre ?? h.colaboradorId,
-      tipo,
-      `${String(h.totalHoras).replace('.', ',')} h`,
-      ...dias.map((_, d) => {
-        const jornada = porDia.get(d)
-        if (!jornada) return '-'
-        if (jornada.esFranco) return tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO'
-        const bloques = formatoTurno(jornada.turnos.map(t => ({ inicio: t.inicio.padStart(5, '0'), fin: t.fin.padStart(5, '0') }))).split(' | ').join('\n')
-        return jornada.rol === 'franco_medio' ? `${bloques}\nMedio franco` : bloques
-      }),
-    ]
-  })
-
-  const anchoDiaNominal = (ancho - 97) / 7
-  tabla('Horarios Semanales', {
-    head: [['Colaborador', 'Tipo', 'Horas', ...dias]],
-    body: nominal,
-    styles: { halign: 'center' },
+  // ===== CUADRO 1 — HORARIOS DE CAJA (FULL + PART + AUX + EVENTUAL) =====
+  // Solo franjas EFECTIVAS en caja: FULL/PART = sus jornadas; AUX = cajaAux;
+  // EVENTUAL = cajaEventual. La presencia de AUX/eventuales NO se muestra acá.
+  const filasCaja = filasHorariosCaja(resultado, nombres)
+  // Los cuadros semanales (8,5 pt) usan un interlineado más compacto; AutoTable
+  // mide y dibuja con el mismo factor, así que no hay superposición. Se restaura
+  // el factor general para cobertura, validación y alertas.
+  doc.setLineHeightFactor(INTERLINEADO_CUADROS)
+  const columnasDias = (desde: number, anchoDia: number) => Object.fromEntries(dias.map((_, d) => [d + desde, { cellWidth: anchoDia }]))
+  const anchoDia = (ancho - ANCHO_NOMBRE - ANCHO_TIPO - ANCHO_HORAS) / 7
+  const estiloCelda: UserOptions['didParseCell'] = ({ cell, column, section }) => {
+    if (section !== 'body' || column.index < 3) return
+    if (cell.raw === 'FRANCO') { cell.styles.fillColor = [232, 238, 240]; cell.styles.fontStyle = 'bold' }
+    else if (cell.raw === SIN_CAJA || cell.raw === NO_DISPONIBLE) cell.styles.textColor = [120, 132, 138]
+    else if (cell.raw === PRESENCIA_NO_REGISTRADA) { cell.styles.textColor = [146, 32, 28]; cell.styles.fontStyle = 'italic' }
+  }
+  const estilosCuadro = (encabezadoHoras: string) => ({
+    head: [['Colaborador', 'Tipo', encabezadoHoras, ...dias]],
+    styles: { halign: 'center' as const, fontSize: 8.5, cellPadding: { top: 1.4, bottom: 1.4, left: 1.5, right: 1.5 } },
+    headStyles: { fillColor: [...PETROLEO] as [number, number, number], textColor: 255, fontStyle: 'bold' as const, valign: 'middle' as const, fontSize: 8.5 },
     columnStyles: {
-      0: { cellWidth: 56, halign: 'left' },
-      1: { cellWidth: 26 },
-      2: { cellWidth: 15 },
-      ...Object.fromEntries(dias.map((_, d) => [d + 3, { cellWidth: anchoDiaNominal }])),
+      0: { cellWidth: ANCHO_NOMBRE, halign: 'left' as const },
+      1: { cellWidth: ANCHO_TIPO },
+      2: { cellWidth: ANCHO_HORAS },
+      ...columnasDias(3, anchoDia),
     },
-    didParseCell: ({ cell, column, section }) => {
-      if (section === 'body' && column.index >= 3 && cell.raw === 'FRANCO') {
-        cell.styles.fillColor = [232, 238, 240]
-        cell.styles.fontStyle = 'bold'
-      }
-    },
-  }, 'AUX: jornada de presencia. Eventuales: turnos y horas asignados en caja.')
+    didParseCell: estiloCelda,
+  })
+  tabla(TITULO_CAJA, {
+    ...estilosCuadro('Horas\ncaja'),
+    body: filasCaja.map(f => [f.nombre, f.tipo, horasLegibles(f.horas), ...f.celdas]),
+  }, 'Quién trabaja en caja y en qué franjas. AUX y eventuales: solo sus franjas asignadas a caja (no su presencia).')
 
-  const asignaciones = [
-    ...(resultado.cajaAux ?? []).map(a => ({ ...a, tipo: 'AUX' })),
-    ...(resultado.cajaEventual ?? []).map(a => ({ ...a, tipo: 'EVENTUAL' })),
-  ]
-  if (asignaciones.length > 0) {
-    doc.addPage()
-    tabla('Asignaciones en caja', {
-      head: [['Colaborador', 'Tipo', ...dias]],
-      body: asignaciones.map(a => [
-        a.nombre, a.tipo, ...dias.map((_, d) => formatearCajaDia(a.slotsCajaPorDia[d] ?? [], '-').split(' | ').join('\n')),
-      ]),
-      styles: { halign: 'center' },
-      columnStyles: {
-        0: { cellWidth: 58, halign: 'left' },
-        1: { cellWidth: 26 },
-        ...Object.fromEntries(dias.map((_, d) => [d + 2, { cellWidth: (ancho - 84) / 7 }])),
-      },
-    }, 'Bloques en caja de AUX y eventuales. Un guion indica que no hay asignación.')
+  // ===== CUADRO 2 — HORARIOS DE PRESENCIA (AUX + EVENTUAL) =====
+  // Presencia o disponibilidad REGISTRADA (no asignaciones del motor): AUX = sus
+  // jornadas de presencia; EVENTUAL = disponibilidad resuelta guardada con la semana.
+  const filasPresencia = filasPresenciaApoyo(resultado, nombres, meta.presencia)
+  if (filasPresencia.length > 0) {
+    const detallePresencia = 'Presencia o disponibilidad registrada para la semana. Estar presente no implica estar en caja.'
+    const finCaja = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? INICIO_TABLA
+    let inicio = INICIO_TABLA
+    // El cuadro 2 sigue en la misma página solo si entra COMPLETO (título + tabla);
+    // si no, empieza en página nueva: nunca una fila suelta al pie de página.
+    const altoCuadro2 = 15 + 2.8 + 2 * ALTO_LINEA + filasPresencia.reduce((h, f) => h + altoFila(f.registrada ? f.celdas : ['']), 0)
+    if (height - 15 - finCaja >= altoCuadro2) {
+      // Continúa en la misma página, con una separación y título de sección propios.
+      const y = finCaja + 8
+      doc.setDrawColor(...PETROLEO)
+      doc.setLineWidth(0.6)
+      doc.line(MARGEN, y - 4, MARGEN + 13, y - 4)
+      doc.setLineWidth(0.2)
+      doc.setTextColor(...TINTA)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(12)
+      doc.text(TITULO_PRESENCIA, MARGEN, y + 1)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8.5)
+      doc.text(detallePresencia, MARGEN, y + 6)
+      inicio = y + 9
+    } else {
+      doc.addPage()
+    }
+    tabla(TITULO_PRESENCIA, {
+      ...estilosCuadro('Horas\npresencia'),
+      body: filasPresencia.map(f => f.registrada
+        ? [f.nombre, f.tipo, horasLegibles(f.horas), ...f.celdas]
+        : [f.nombre, f.tipo, '-', { content: PRESENCIA_NO_REGISTRADA + ': la semana no guardó su disponibilidad original; no se reconstruye desde la caja.', colSpan: 7, styles: { halign: 'left', textColor: [146, 32, 28], fontStyle: 'italic' } }]),
+    }, detallePresencia, inicio)
   }
 
   const metricas = meta.validacion?.metricas
@@ -205,7 +359,7 @@ export function generarPDF(
           : meta.necesidadFranjas?.[f]?.[d] ?? asignadas + (resultado.faltantesFranjas[f]?.[d] ?? 0)
         return `${asignadas}/${requeridas}`
       })]),
-      styles: { cellPadding: 0.7, fontSize: 8, halign: 'center' },
+      styles: { cellPadding: { top: 0.55, bottom: 0.55, left: 0.7, right: 0.7 }, fontSize: 8, halign: 'center' },
       didParseCell: ({ cell, column, section }) => {
         if (section !== 'body' || column.index === 0) return
         const [asignadas, requeridas] = String(cell.raw).split('/').map(Number)
@@ -219,6 +373,8 @@ export function generarPDF(
     }, demandaConocida ? 'Cajas asignadas / necesarias por media hora.' : 'Cajas asignadas / referencia calculada a partir de los faltantes guardados.')
   }
 
+  // Desde acá (validación y alertas, textos largos) vuelve el interlineado general.
+  doc.setLineHeightFactor(1.48)
   if (meta.validacion) {
     doc.addPage()
     const { violaciones, limitaciones = [] } = meta.validacion

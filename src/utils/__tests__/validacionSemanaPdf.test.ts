@@ -91,6 +91,6 @@ describe('PUB-01: PDF con identificación, estado y anexo', () => {
     const r = await generar()
     const texto = await textoPDFNode(new Uint8Array(generarPDF(r, cajeros, 'S').output('arraybuffer')))
     expect(texto).not.toContain('Validación y faltantes')
-    expect(texto).toContain('Horarios Semanales - S')
+    expect(texto).toContain('HORARIOS DE CAJA - S') // título del cuadro de caja + descripción
   })
 })

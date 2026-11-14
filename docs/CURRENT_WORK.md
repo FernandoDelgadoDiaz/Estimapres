@@ -1,5 +1,38 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## Retoma — rediseño operativo del PDF (caja / presencia) · 2026-11-14
+
+- **Rama:** `feat/ah2-pdf-caja-presencia`, desde `main@d57227b`. PR en borrador. Sin merge ni publicación hasta la autorización del propietario.
+- **Diseño anterior:**
+  - El cuadro «Horarios Semanales» mezclaba la caja de FULL/PART con la *presencia* de los AUX (p. ej. 49 h de un AUX que solo está 9,5 h en caja).
+  - Había además una tabla aparte, «Asignaciones en caja», para AUX y eventuales.
+  - Total: 6 páginas para la semana 47 anonimizada.
+- **Diseño nuevo:**
+  1. **HORARIOS DE CAJA:**
+     - Incluye FULL, PART, AUX y EVENTUAL juntos.
+     - FULL/PART muestran sus jornadas efectivas.
+     - AUX y EVENTUAL muestran solo `cajaAux` y `cajaEventual`.
+     - Las celdas dicen «Sin caja» o «FRANCO» según corresponda.
+     - «Horas caja» se calcula sumando las franjas efectivas.
+  2. **HORARIOS DE PRESENCIA — PERSONAL DE APOYO:**
+     - AUX: su jornada de presencia, con ediciones.
+     - EVENTUAL: la disponibilidad registrada con la semana (`disponibilidadSemana`).
+     - Si falta la disponibilidad: «Presencia no registrada». Nunca se reconstruye desde la caja ni desde la disponibilidad actual.
+  - Se eliminó la tabla «Asignaciones en caja».
+  - Cobertura, validación y alertas se conservan.
+  - El PDF de la semana 47 pasa a 4 páginas: interlineado más compacto en las tablas semanales y la cobertura entra en una sola página.
+- **Alcance:**
+  - Cambia solo la presentación: `src/utils/exportPDF.ts` y el pasaje de `presencia` desde Nueva Semana y Último Horario.
+  - No cambian el motor, las reglas, la cobertura ni su umbral, Supabase, los datos guardados ni Prestify.
+- **Pruebas:**
+  - TypeScript y build: OK.
+  - Vitest: 300 aprobadas, 2 omitidas.
+  - Playwright: 11/11.
+  - Nuevo `pdfCajaPresencia.test.ts` (10 casos) con geometría de márgenes y superposición en cada página.
+  - `exportPDFRoster` adaptado y verificado con 25, 40 y 60 personas.
+  - Evidencia visual en `docs/evidencia/pdf-caja-presencia/`, con datos anonimizados.
+- **Próxima acción:** revisión del propietario. Si lo aprueba, autorizar merge y publicación.
+
 ## Publicación — #39 motor de asignación corregido · 2026-11-14
 
 - **Publicado en producción** con autorización expresa del propietario.

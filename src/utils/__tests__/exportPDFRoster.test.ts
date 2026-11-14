@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { abrirPDFNode } from './fixtures/pdfTextoNode'
 import { describe, expect, it } from 'vitest'
-import { generarPDF } from '../exportPDF'
+import { generarPDF, TITULO_CAJA, TITULO_PRESENCIA } from '../exportPDF'
 import { fechasDeSemana } from '../pomContrato'
 import { HORAS_FRANJAS, type Auxiliar, type Colaborador, type Eventual, type HorarioColaborador, type ResultadoAsignacion } from '../../types'
 import type { ResultadoValidacion } from '../../algoritmo/validadorIndependiente'
@@ -36,9 +36,15 @@ function fixture(cantidad: number) {
       ['13:00-17:00'],
       ['14:00-18:00'],
     ]
+    // Cuadro de caja: FULL/PART = jornadas; AUX = solo sus franjas de caja; EVENTUAL = su caja.
     const esperado = franjas.map((bloques, d) => d === 2
       ? [tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO']
-      : d === 3 && tipo === 'FULL' ? [...bloques, 'Medio franco'] : bloques)
+      : tipo === 'AUX' ? ['10:00-10:30', '11:00-11:30']
+        : d === 3 && tipo === 'FULL' ? [...bloques, 'Medio franco'] : bloques)
+    const horasCaja = tipo === 'AUX' ? 6 : franjas.flat().reduce((h, b) => {
+      const [i, f] = b.split('-').map(x => { const [hh, mm] = x.split(':').map(Number); return hh * 60 + mm })
+      return h + (f - i) / 60
+    }, 0)
     const jornadas: HorarioColaborador['jornadas'] = franjas.map((bloques, dia) => ({
       dia,
       turnos: bloques.map(b => { const [inicio, fin] = b.split('-'); return { inicio, fin } }),
@@ -51,7 +57,7 @@ function fixture(cantidad: number) {
       rolGeneral: tipo === 'AUX' ? 'aux_supervisor' : tipo === 'EVENTUAL' ? 'eventual_sector' : 'cajero',
       totalHoras: jornadas.reduce((sum, j) => sum + j.horas, 0),
     }
-    return { nombre, tipo, esperado, horario }
+    return { nombre, tipo, esperado, horario, horasCaja }
   })
   const resultado: ResultadoAsignacion = {
     horarios: nominal.map(n => n.horario),
@@ -60,9 +66,21 @@ function fixture(cantidad: number) {
     porcentajeCobertura: 90,
     alertas: Array.from({ length: cantidad }, (_, i) =>
       `Alerta sintética ${ids(i)}. Revisar las franjas con baja cobertura y confirmar disponibilidad. Fin del aviso ${ids(i)}.`),
+    // AUX: en caja 10:00-10:30 y 11:00-11:30 salvo el miércoles (franco de presencia).
     cajaAux: aux.map(a => ({
       colaboradorId: a.id, nombre: a.nombre,
-      slotsCajaPorDia: Array.from({ length: 7 }, () => Array.from({ length: 30 }, (_, s) => s === 4 || s === 6)),
+      slotsCajaPorDia: Array.from({ length: 7 }, (_, d) => Array.from({ length: 30 }, (_, s) => d !== 2 && (s === 4 || s === 6))),
+    })),
+    // EVENTUAL: su caja (fuente del cuadro de caja) coincide con sus franjas.
+    cajaEventual: nominal.filter(n => n.tipo === 'EVENTUAL').map(n => ({
+      colaboradorId: n.horario.colaboradorId, nombre: n.nombre,
+      slotsCajaPorDia: Array.from({ length: 7 }, (_, d) => Array.from({ length: 30 }, (_, s) => {
+        const t = 8 * 60 + s * 30
+        return (n.horario.jornadas.find(j => j.dia === d)?.turnos ?? []).some(x => {
+          const [hi, mi] = x.inicio.split(':').map(Number); const [hf, mf] = x.fin.split(':').map(Number)
+          return hi * 60 + mi <= t && hf * 60 + mf > t
+        })
+      })),
     })),
   }
   const validacion: ResultadoValidacion = {
@@ -125,16 +143,20 @@ describe('PDF semanal A4', () => {
         }
         const titulo = texto[0].str
         titulos.set(titulo, (titulos.get(titulo) ?? 0) + 1)
-        if (titulo !== 'Horarios Semanales') continue
+        // El cuadro de presencia puede empezar a mitad de una página del cuadro de caja.
+        const inicioPresencia = texto.find(t => t.str === TITULO_PRESENCIA && t !== texto[0])
+        if (inicioPresencia) titulos.set(TITULO_PRESENCIA, (titulos.get(TITULO_PRESENCIA) ?? 0) + 1)
+        if (titulo !== TITULO_CAJA) continue
         for (const col of columnas) expect(paginaTexto).toContain(col)
 
-        const xTipo = pdfPt(12 + 56)
-        const xHoras = pdfPt(12 + 82)
-        const xDias = pdfPt(12 + 97)
-        const anchoDia = (ancho - pdfPt(24 + 97)) / 7
+        const xTipo = pdfPt(12 + 54)
+        const xHoras = pdfPt(12 + 76)
+        const xDias = pdfPt(12 + 95)
+        const anchoDia = (ancho - pdfPt(24 + 95)) / 7
+        const yMin = inicioPresencia ? inicioPresencia.y + 1 : 0
         const celdas = (x0: number, x1: number, y0: number, y1: number) =>
-          texto.filter(t => t.x >= x0 && t.x < x1 && t.y >= y0 && t.y <= y1).map(t => t.str)
-        const personas = texto.filter(t => t.x < xTipo && /^Sintético \d{3}/.test(t.str))
+          texto.filter(t => t.x >= x0 && t.x < x1 && t.y >= Math.max(y0, yMin) && t.y <= y1).map(t => t.str)
+        const personas = texto.filter(t => t.x < xTipo && t.y > yMin && /^Sintético \d{3}/.test(t.str))
         expect(personas.length).toBeGreaterThan(0)
         for (const [indice, persona] of personas.entries()) {
           const n = Number(persona.str.match(/\d{3}/)![0]) - 1
@@ -143,12 +165,12 @@ describe('PDF semanal A4', () => {
           const tipo = texto.find(t => t.x >= xTipo && t.x < xHoras && Math.abs(t.y - persona.y) < 12)
           expect(tipo?.str).toBe(esperado.tipo)
           const centro = tipo!.y
-          const ySiguiente = personas[indice + 1]?.y ?? pdfPt(15)
+          const ySiguiente = personas[indice + 1]?.y ?? Math.max(pdfPt(15), yMin)
           const textoNombre = celdas(pdfPt(12), xTipo, ySiguiente + 1, centro + 2).join(' ')
           expect(textoNombre).toBe(esperado.nombre)
           nombresVistos.push(textoNombre)
           expect(celdas(xHoras, xDias, centro - 2, centro + 2)).toEqual([
-            `${String(esperado.horario.totalHoras).replace('.', ',')} h`,
+            `${String(esperado.horasCaja).replace('.', ',')} h`,
           ])
           esperado.esperado.forEach((bloques, d) => {
             expect(celdas(xDias + d * anchoDia, xDias + (d + 1) * anchoDia, ySiguiente + 1, centro + 2)).toEqual(bloques)
@@ -158,8 +180,11 @@ describe('PDF semanal A4', () => {
     } finally {
       await pdfReabierto.destroy()
     }
-    expect(nombresVistos).toEqual(nominal.map(n => n.nombre))
-    expect(titulos.get('Horarios Semanales')).toBeGreaterThan(1)
+    const orden = ['FULL', 'PART', 'AUX', 'EVENTUAL']
+    expect(nombresVistos).toEqual([...nominal].sort((a, b) => orden.indexOf(a.tipo) - orden.indexOf(b.tipo)).map(n => n.nombre))
+    expect(titulos.get(TITULO_CAJA)).toBeGreaterThan(1)
+    expect(titulos.get(TITULO_PRESENCIA)).toBeGreaterThanOrEqual(1)
+    expect(textos.join(' ')).not.toContain('Asignaciones en caja')
     expect(titulos.get('Cobertura por franja')).toBeGreaterThanOrEqual(1)
     expect(textos.find(t => t.startsWith('Cobertura por franja'))).toContain('3/2')
     expect(textos.join(' ')).toContain('10:00-10:30 11:00-11:30')
