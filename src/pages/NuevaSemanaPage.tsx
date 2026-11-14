@@ -227,19 +227,13 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       francoMedioCorridos: operativa.francoMedioCorridos,
     }
 
-    let res
-    try {
-      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones)
-    } catch {
-      // El hook expone el error en Revisar y permite reintentar.
-      return
-    }
-
-    // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación
+    // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación.
+    // #7 · AH2-020: se arma ANTES de generar para que el multi-arranque valide cada candidato
+    // con exactamente el mismo contexto que luego usa esta pantalla.
     const lunesPrevio = new Date(new Date(fechaLunes + 'T12:00:00').getTime() - 7 * 86_400_000).toISOString().slice(0, 10)
     const previas = historial.filter(h => h.fechaLunes === lunesPrevio)
     const previa = previas[previas.length - 1]
-    setCtxValidacion({
+    const ctx = {
       fechas,
       necesidad,
       excepciones: excepcionesTotales,
@@ -250,7 +244,16 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       eventuales: disponibilidad.eventuales,
       huecosSupervision: disponibilidad.huecosSupervision,
       operativa, // #38: estado efectivo de las reglas → el validador lo exige
-    })
+    }
+
+    let res
+    try {
+      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx)
+    } catch {
+      // El hook expone el error en Revisar y permite reintentar.
+      return
+    }
+    setCtxValidacion(ctx)
 
     // Capacidad 2: guardar la semana en el historial para la rotación futura
     if (res) {

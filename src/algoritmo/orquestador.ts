@@ -20,39 +20,52 @@ function correrCascada(input: InputAlgoritmo) {
   return { p1, p2, p3, metricas };
 }
 
+type MetricasImpacto = Pick<ResultadoSemanal['metricas'], 'cobertura_total_pct' | 'deficit_por_slot' | 'exceso_por_slot'>;
+
 /**
- * #7 · AH2-020 (PROPUESTO): la prioridad de las horas objetivo PART NO cambia, pero
- * se mide su costo frente a la misma cascada SIN esa prioridad (mismas reglas, mismo
- * tope). Se informa cobertura, faltantes, sobrantes y franjas (marcando picos) que
- * empeoran, y si la cobertura queda bajo el objetivo operativo solo por las horas.
+ * #7 · AH2-020: costo de la prioridad de horas objetivo PART frente a la misma cascada
+ * SIN esa prioridad (mismas reglas, mismo tope). Compara dos resultados ya calculados:
+ * cobertura, faltantes, sobrantes y franjas (marcando picos) que empeoran.
  */
-function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correrCascada>): ImpactoPrioridadHoras | undefined {
-  const contratos = input.contratos ?? {};
-  if (!Object.values(contratos).some(c => c.objetivoSlots !== null)) return undefined;
-  const alt = correrCascada({
-    ...input,
-    contratos: Object.fromEntries(Object.entries(contratos).map(([id, c]) => [id, { ...c, objetivoSlots: null }])),
-  });
+export function compararImpactoHoras(
+  demanda: number[][], conPrioridad: MetricasImpacto, sinPrioridad: MetricasImpacto, coberturaObjetivoPct = COBERTURA_OBJETIVO_PCT,
+): ImpactoPrioridadHoras {
   const suma = (m: number[][]) => m.flat().reduce((a, b) => a + b, 0) / 2;
   const franjasPeores: ImpactoPrioridadHoras['franjasPeores'] = [];
   for (let d = 0; d < 7; d++) {
-    const pico = Math.max(...input.demanda[d]);
+    const pico = Math.max(...demanda[d]);
     for (let s = 0; s < 30; s++) {
-      const antes = alt.metricas.deficit_por_slot[d][s];
-      const despues = real.metricas.deficit_por_slot[d][s];
-      if (despues > antes) franjasPeores.push({ dia: d, slot: s, antes, despues, pico: pico > 0 && input.demanda[d][s] === pico });
+      const antes = sinPrioridad.deficit_por_slot[d][s];
+      const despues = conPrioridad.deficit_por_slot[d][s];
+      if (despues > antes) franjasPeores.push({ dia: d, slot: s, antes, despues, pico: pico > 0 && demanda[d][s] === pico });
     }
   }
   return {
-    coberturaConPrioridadPct: real.metricas.cobertura_total_pct,
-    coberturaSinPrioridadPct: alt.metricas.cobertura_total_pct,
-    faltantesConPrioridadHoras: suma(real.metricas.deficit_por_slot),
-    faltantesSinPrioridadHoras: suma(alt.metricas.deficit_por_slot),
-    sobrantesConPrioridadHoras: suma(real.metricas.exceso_por_slot),
-    sobrantesSinPrioridadHoras: suma(alt.metricas.exceso_por_slot),
+    coberturaConPrioridadPct: conPrioridad.cobertura_total_pct,
+    coberturaSinPrioridadPct: sinPrioridad.cobertura_total_pct,
+    faltantesConPrioridadHoras: suma(conPrioridad.deficit_por_slot),
+    faltantesSinPrioridadHoras: suma(sinPrioridad.deficit_por_slot),
+    sobrantesConPrioridadHoras: suma(conPrioridad.exceso_por_slot),
+    sobrantesSinPrioridadHoras: suma(sinPrioridad.exceso_por_slot),
     franjasPeores,
-    coberturaObjetivoPct: input.cobertura_objetivo_pct ?? COBERTURA_OBJETIVO_PCT,
+    coberturaObjetivoPct: coberturaObjetivoPct,
   };
+}
+
+/** Misma entrada, sin objetivo de horas PART (mismo tope y reglas). */
+export function inputSinPrioridadHoras(input: InputAlgoritmo): InputAlgoritmo {
+  const contratos = input.contratos ?? {};
+  return { ...input, contratos: Object.fromEntries(Object.entries(contratos).map(([id, c]) => [id, { ...c, objetivoSlots: null }])) };
+}
+
+export function tieneObjetivoHoras(input: InputAlgoritmo): boolean {
+  return Object.values(input.contratos ?? {}).some(c => c.objetivoSlots !== null);
+}
+
+function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correrCascada>): ImpactoPrioridadHoras | undefined {
+  if (input.omitir_impacto_horas || !tieneObjetivoHoras(input)) return undefined;
+  const alt = correrCascada({ ...inputSinPrioridadHoras(input), semillas: undefined });
+  return compararImpactoHoras(input.demanda, real.metricas, alt.metricas, input.cobertura_objetivo_pct);
 }
 
 /**

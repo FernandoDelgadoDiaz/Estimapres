@@ -63,6 +63,8 @@ export interface ResultadoAsignacion {
   cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
   // #7: costo de priorizar las horas objetivo (se descarta tras una edición manual).
   impactoHoras?: import('../algoritmo/contratos').ImpactoPrioridadHoras
+  /** #7 · AH2-020: estrategia elegida por el multi-arranque y métricas de cada candidato. */
+  multiArranque?: import('../utils/generacionMultiArranque').SeleccionMultiArranque
 }
 
 export type DiaSemana = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom'

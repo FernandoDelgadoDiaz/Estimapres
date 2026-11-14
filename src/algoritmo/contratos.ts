@@ -159,7 +159,31 @@ export interface CumplimientoHoras {
   diferenciaHoras: number | null
   /** Máximo que permiten las restricciones duras y reglas de la persona, sin mirar cobertura. */
   factibleHoras?: number
+  /**
+   * AH2-020 · Cota individual exacta: máximo de horas que admiten SUS reglas con la
+   * demanda en cero y el tope de francos por día relajado (la única regla compartida
+   * entre PART). Si es menor que el objetivo, el objetivo es imposible para esa persona.
+   * No demuestra nada sobre el óptimo global de cobertura.
+   */
+  cotaHoras?: number
+  /**
+   * AH2-020 · Estados separados (nunca se mezclan):
+   *  - cumplido: la solución asigna el objetivo;
+   *  - imposible-demostrado: la cota individual es menor que el objetivo;
+   *  - no-encontrado: la cota lo permite, pero no se encontró una solución que lo cumpla
+   *    (puede deberse a la competencia con otras personas o al límite de búsqueda);
+   *  - sin-objetivo: la ficha no tiene un objetivo válido.
+   */
+  estadoObjetivo?: EstadoObjetivoHoras
   motivo?: string
+}
+export type EstadoObjetivoHoras = 'cumplido' | 'imposible-demostrado' | 'no-encontrado' | 'sin-objetivo'
+
+export function estadoObjetivoHoras(objetivo: number | null, asignadas: number, cota?: number): EstadoObjetivoHoras {
+  if (objetivo === null) return 'sin-objetivo'
+  if (asignadas >= objetivo - 1e-9) return 'cumplido'
+  if (cota !== undefined && cota < objetivo - 1e-9) return 'imposible-demostrado'
+  return 'no-encontrado'
 }
 
 /**
@@ -192,6 +216,7 @@ export function recalcularCumplimiento(
       asignadasHoras: asignadas,
       diferenciaHoras: c.objetivoHoras === null ? null : c.objetivoHoras - asignadas,
       factibleHoras: undefined,
+      estadoObjetivo: estadoObjetivoHoras(c.objetivoHoras, asignadas, c.cotaHoras),
       motivo: 'Jornadas modificadas manualmente después de generar.',
     }
   })

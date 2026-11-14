@@ -1,6 +1,6 @@
 // #38 — Helpers compartidos por las pruebas de apertura y reglas operativas.
-import { convertirInputAV2, convertirOutputDeV2 } from '../../adapter'
-import { ejecutarAlgoritmo } from '../../orquestador'
+import { convertirInputAV2 } from '../../adapter'
+import { generarConMultiArranque } from '../../../utils/generacionMultiArranque'
 import { MATRIZ_POM_SINTETICA } from '../../../utils/__tests__/fixtures/pomSintetico'
 import type { Auxiliar, Colaborador, Eventual, Franja, ResultadoAsignacion } from '../../../types'
 import { AUX_S47, CAJEROS_S47, EVENTUALES_S47, OPERATIVA_S47 } from './semana47Anonimizada'
@@ -17,8 +17,9 @@ export function generar(
   cajeros: Colaborador[] = CAJEROS_S47,
   necesidad: Franja[] = NECESIDAD_S47,
 ): ResultadoAsignacion {
+  // #7 · AH2-020: mismo camino que la app (multi-arranque con el motor actual de respaldo).
   const input = convertirInputAV2(necesidad, cajeros, auxiliares, eventuales, [], { ...operativa })
-  return convertirOutputDeV2(ejecutarAlgoritmo(input), cajeros, auxiliares, eventuales)
+  return generarConMultiArranque({ input, cajeros, auxiliares, eventuales, contexto: { necesidad, excepciones: [], operativa } }).resultado
 }
 export const generarS47 = generar
 

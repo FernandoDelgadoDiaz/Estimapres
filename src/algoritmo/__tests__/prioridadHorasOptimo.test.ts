@@ -25,7 +25,7 @@ describe('AH2-020 · la pérdida de cobertura del motor actual es un óptimo loc
   const a0 = ejecutarAlgoritmo(sinPrioridad(inp))
   const h1000 = ejecutarAlgoritmo(inp)
   const semillas: Record<string, Jornada[]> = { ...a0.jornadas_full, ...a0.jornadas_part }
-  const ms = ejecutarAlgoritmo({ ...inp, experimental: { semillas } })
+  const ms = ejecutarAlgoritmo({ ...inp, semillas })
 
   it('escenario 121 es concluyente: sin personas infactibles y ambas soluciones validan sin violaciones', () => {
     expect(e.excepciones.every(x => x.descripcion !== 'sintética restrictiva')).toBe(true)

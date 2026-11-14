@@ -110,12 +110,18 @@ export interface InputAlgoritmo {
   // #7: objetivo operativo de cobertura (091: 95 %), solo para informar el costo
   // de priorizar las horas objetivo. No cambia prioridades ni reglas.
   cobertura_objetivo_pct?: number;
-  // #7 · EXPERIMENTAL (AH2-020, análisis offline): no lo usa la app. Ausente → comportamiento productivo.
+  // #7 · AH2-020 (APROBADO, B conjunta): semanas iniciales por colaborador para el
+  // multi-arranque de la pasada 1 (warm start de la búsqueda local). Cada semilla se
+  // re-optimiza en la primera pasada con las mismas reglas: nunca se acepta sin pasar
+  // por la DP. Ausente → arranque en frío (comportamiento de respaldo).
+  semillas?: Record<string, Jornada[]>;
+  // #7 · AH2-020: no correr la cascada sin prioridad de horas para medir el impacto
+  // (el selector multi-arranque ya la corre como candidata y lo calcula él).
+  omitir_impacto_horas?: boolean;
+  // #7 · EXPERIMENTAL (análisis offline): no lo usa la app. Ausente → comportamiento productivo.
   experimental?: {
     /** Penalización por media hora faltante al objetivo PART (productivo: 1000 = lexicográfica). */
     penalizacionHoraFaltante?: number;
-    /** Semanas iniciales por colaborador (warm start de la búsqueda local de la pasada 1). */
-    semillas?: Record<string, Jornada[]>;
   };
 }
 

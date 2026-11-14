@@ -2,14 +2,14 @@
 
 ## PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
 
-> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-019), después esta sección y el PR de la rama activa.
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-022, en especial AH2-020 APROBADO), después esta sección y el PR de la rama activa.
 
 - **Responsable:** Claude (Claude Code), 2026-11-14.
 - **Issues:** #7 (perfiles y horas PART) y #44 (arquitectura adaptativa, tramo A).
 - **PR:** [#45](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/45), en borrador.
 - **Rama:** `feat/ah2-part-horas-contrato`.
   - Base: `main@587192046cf59fcde22e62b14a41ce5bf22df9c5`.
-  - Commits de código: `e11ecc0` (tramo A), `cf6814a` (revisión final) y `c34da2c385a56ac0eacad6b0b76412273750518b` (benchmark AH2-020). El HEAD exacto (este registro) figura en el PR.
+  - Commits de código: `e11ecc0` (tramo A), `cf6814a` (revisión final) `c34da2c385a56ac0eacad6b0b76412273750518b` (benchmark AH2-020) y el commit de «B conjunta» (AH2-020 aprobado). El HEAD exacto figura en el PR y en el reporte de entrega.
 - **Estado:** sin merge, sin deploy, sin migraciones, sin escrituras en Supabase. Producción sigue en `c8d6fa8` (#41). El PR #42 de rollback no se tocó.
 
 ### Qué se hizo
@@ -43,7 +43,42 @@
   - AGENTS.md y CLAUDE.md con la jerarquía MASTER → CURRENT_WORK → PR;
   - esta sección pasa a ser el único punto de retoma (la anterior quedó como registro histórico).
 
-### Benchmark de prioridad de horas vs cobertura (`c34da2c`) — AH2-020, PROPUESTO
+### B conjunta implementada — AH2-020 APROBADO (dirección, con condiciones) · 2026-11-14
+- **Qué cambia en producción (al mergear, no autorizado aún):** `asignarHorariosConIA` ya no corre el motor una sola vez. Llama a `generarConMultiArranque` (`src/utils/generacionMultiArranque.ts`).
+  - **Respaldo:** el motor anterior en frío, sin cambios. Siempre corre y siempre es elegible.
+  - **6 estrategias,** con la misma entrada, reglas y prioridad lexicográfica de horas: `desde-sin-prioridad`, `full-fijos` (escenario 66), `alternada-1/2` (desde el respaldo; escenario 156) y `alternada-ms-1/2` (desde `desde-sin-prioridad`; escenario 130). Solo cambian las semanas iniciales de la pasada 1 (`InputAlgoritmo.semillas`, ahora formal), que la DP re-optimiza en la primera pasada.
+  - **Elegibilidad:** el candidato valida con `validarResultadoSemana` y el MISMO contexto que usa Nueva Semana (que ahora lo arma antes de generar), sin violaciones que el respaldo no tenga, y sin bajar las horas de ninguna persona frente al respaldo.
+  - **Elección:** mayor cobertura, luego menos sobrantes; ante empate, el respaldo.
+  - **Presupuesto:** 20 s. Las estrategias omitidas se informan en `resultado.multiArranque`, que se guarda sin tiempos para que el resultado sea reproducible.
+- **Motor:**
+  - `cumplimiento_horas[].estadoObjetivo` ∈ {`cumplido`, `imposible-demostrado`, `no-encontrado`, `sin-objetivo`}.
+  - `cotaHoras` es la cota individual exacta: demanda 0, sin francos de otros, tope de francos relajado. Prueba imposibilidad por persona, **no** el óptimo global.
+  - `compararImpactoHoras` mide el impacto sobre la solución elegida frente a la cascada sin prioridad. `omitir_impacto_horas` evita duplicar el cálculo.
+  - `experimental` conserva solo la penalización (análisis offline).
+- **Resultados, 200 escenarios por el camino productivo** (`AH2_BENCH=1 AH2_BENCH_N=200`, columna `PROD`, ≈ 2 min):
+  - Cobertura media: 98,631 → **98,756 %**. Escenarios bajo el 95 %: 7 → 6.
+  - 28 escenarios mejoran (+25,11 pp sumados).
+  - **0 regresiones** de cobertura y de horas; 0 violaciones.
+  - Estrategia elegida: actual 121, desde-sin-prioridad 37, full-fijos 22, alternada-1 11, alternada-ms-1 6, alternada-2 2, alternada-ms-2 1.
+  - De los 17 escenarios con brecha frente a «sin prioridad», 15 alcanzan esa cobertura con todas las horas exigibles.
+  - El 130 mejora en parte (98,97 → 99,49 %, frente a 100 %). El 100 queda **no encontrado** (95,93 % frente a 97,56 %). No se afirma recuperar los 17.
+  - Tiempo: p50 0,30 s y máximo 0,63 s (antes 0,05 s). Con 20, 35 y 55 personas: 0,9 s, 2,0 s y 2,0 s, sin violaciones ni estrategias omitidas.
+- **Pruebas nuevas:** `src/utils/__tests__/generacionMultiArranque.test.ts` (14).
+  - Escenarios 121, 66 (solo `full-fijos` lo logra), 156, 130 (parcial, sin afirmar el 100 %) y 100 (respaldo).
+  - Estados de horas.
+  - Presupuesto 0 → idéntico al motor anterior.
+  - Fichas sin dato → solo respaldo.
+  - Reproducibilidad.
+  - 40 escenarios sin regresión.
+  - Semana 47.
+  - Dotación grande.
+- **Pruebas adaptadas:**
+  - La semana 47 (`aperturaHelpers.generar`) corre ahora por el camino productivo; todas sus pruebas pasan.
+  - SEC-01 compara contra el multi-arranque determinístico.
+- **Verificación:** TypeScript OK; Vitest **357 aprobadas**, 3 omitidas; build OK; Playwright **11/11**. `npm run lint` no corre: el repo no tiene configuración de ESLint (preexistente).
+- **Propuesta separada CP-SAT (#13):** `docs/proposals/AH2-020_BENCHMARK_CPSAT_ISSUE13.md`. Offline, no productiva.
+
+### Benchmark de prioridad de horas vs cobertura (`c34da2c`) — AH2-020, evidencia previa a la aprobación
 - **Orientación del propietario:** se prefiere la alternativa B (cobertura), pero no se reducen automáticamente horas contractuales exigibles. El motor productivo **no cambió**.
 - **Método:** benchmark offline reproducible.
   - Comando: `AH2_BENCH=1 AH2_BENCH_N=200 AH2_BENCH_OUT=<json> npx vitest run src/algoritmo/__tests__/benchmark/prioridadHoras.bench.test.ts`, unos 60 s.
@@ -209,19 +244,20 @@ El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, qu
 ### Riesgos y pendientes
 - **Validación jurídica:** 32 h es requisito de producto y configuración de la sucursal; la validación jurídica/contractual está pendiente (AH2-004/AH2-014).
 - **Fichas reales:** las fichas PART faltantes o en 0 dejarán la semana en BORRADOR (`DATOS_HORAS_FICHA`) hasta completarlas. Revisar las fichas reales antes de publicar. Si una ficha supera 32 h, se planifica con 32 y se avisa.
-- **Prioridad de horas (AH2-020):** puede bajar la cobertura en picos (4 % de los escenarios sintéticos) y agrega sobrantes. Hoy solo se informa. Elegir la política (a), (b) o (c) es decisión del propietario.
-- **Costo de cálculo:** medir el impacto duplica el cálculo de la cascada (unos 70 ms adicionales en la semana 47).
+- **Prioridad de horas (AH2-020, B conjunta):** el multi-arranque es una heurística. Mejora sin regresiones frente al respaldo, pero no garantiza el óptimo: quedan casos «no encontrados» (escenario 100). Para certificarlos hace falta CP-SAT (#13).
+- **Costo de cálculo:** la generación pasa de unos 0,05 s a 0,3–0,6 s en dotaciones chicas y unos 2 s con 55 personas. Corre en el hilo del navegador (bloquea la UI durante ese tiempo). Presupuesto de 20 s con respaldo garantizado.
+- **Determinismo:** el resultado depende de presupuestos de tiempo (6 s en la pasada 1, 20 s en el multi-arranque). En máquinas muy lentas podrían omitirse estrategias; se informa en `multiArranque.omitidas`.
+- **UI:** la estrategia elegida y los candidatos viajan en `resultado.multiArranque`, pero todavía no se muestran en pantalla ni se persisten en el historial.
 - **Semanas guardadas antes de este PR:** se validan con el perfil histórico de 31 h, que es el correcto para ellas. Una edición manual que las lleve a 32 h se marcará como `NORM_HORAS_MAX`: hay que regenerarlas como versión nueva.
 - **Datos:** sin migraciones ni escrituras en Supabase; los campos nuevos viajan en el jsonb existente.
 
 ### Próxima tarea exacta
-**Decisión pendiente del propietario sobre AH2-020:** aprobar o no «B conjunta». Si se aprueba:
-1. Implementar el multi-arranque en `orquestador.ts`.
-2. Implementar los tres estados en `cumplimiento_horas` / `impacto_horas`.
-3. Regresión: los 200 escenarios del benchmark no deben empeorar la cobertura ni las horas frente a H1000.
-4. Preparar el benchmark de CP-SAT (#13) en Python offline sobre `escenariosSinteticos.ts`.
+**AH2-020 «B conjunta» implementada en PR #45 (borrador).** Pendiente del propietario:
+1. Revisar los resultados y riesgos. Merge, deploy, migraciones y Supabase siguen **no autorizados**.
+2. Decidir si se ejecuta el benchmark CP-SAT (#13) según `docs/proposals/AH2-020_BENCHMARK_CPSAT_ISSUE13.md` (offline; requiere Python y OR-Tools en un entorno de análisis).
+3. Opcional: mostrar en Nueva Semana la estrategia elegida y la mejora frente al respaldo.
 
-Después, el tramo B:
+**No avanzar al tramo B sin nueva autorización.** Después, el tramo B:
 
 #### Tramo B (Issue #44 / #12)
 Diseñar e implementar sin migración el modelo de **ciclo de planificación y publicación**:

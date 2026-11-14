@@ -4,6 +4,7 @@ import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, E
 import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
+import type { ContextoValidacionSemana } from '../utils/validacionSemana'
 import { recalcularSemanaTrasEdicion, type ContextoRecalculo } from '../utils/recalculoSemana'
 import { recalcularCumplimiento, avisosCumplimiento, esAvisoDeHoras } from '../algoritmo/contratos'
 
@@ -97,7 +98,7 @@ export function useAsignacion() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const generarHorarios = async (necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[], fechas?: string[], excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion) => {
+  const generarHorarios = async (necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[], fechas?: string[], excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion, contextoValidacion?: ContextoValidacionSemana) => {
     setLoading(true)
     setError(null)
     try {
@@ -106,7 +107,7 @@ export function useAsignacion() {
       if (!fechasAUsar || fechasAUsar.length === 0) {
         fechasAUsar = generarFechasSemanaActual()
       }
-      const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechasAUsar, excepciones, opciones)
+      const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechasAUsar, excepciones, opciones, contextoValidacion)
       setResultado(resultado)
       return resultado
     } catch (err) {

@@ -8,6 +8,8 @@
 //   H50/H10/H2  penalización menor (¿se pierden horas? ¿mejora la cobertura?)
 //   MS     multi-arranque: prioridad de horas partiendo de la solución A0 (warm start)
 //   MEJOR  mejor cobertura entre H1000 y MS que cumpla TODAS las horas objetivo
+//   PROD   camino productivo B conjunta (generarConMultiArranque): respaldo H1000 + estrategias
+//          desde-sin-prioridad, full-fijos, alternada-1 y alternada-2 con selección validada.
 // Clasificación (solo escenarios donde A0 y H1000 validan SIN violaciones):
 //   - factible encontrada: alguna estrategia cumple todas las horas y llega a la cobertura de A0;
 //   - inviable demostrada: una cota EXACTA por persona (relajando el tope de francos por día,
@@ -19,11 +21,13 @@ import { convertirInputAV2, convertirOutputDeV2 } from '../../adapter'
 import { ejecutarAlgoritmo } from '../../orquestador'
 import type { InputAlgoritmo, Jornada, ResultadoSemanal } from '../../types'
 import { validarResultadoSemana } from '../../../utils/validacionSemana'
-import { generarEscenario, type Escenario } from '../fixtures/escenariosSinteticos'
+import { generarConMultiArranque } from '../../../utils/generacionMultiArranque'
+import { escenarioSintetico, generarEscenario, type Escenario } from '../fixtures/escenariosSinteticos'
 import { AUX_S47, EVENTUALES_S47, OPERATIVA_S47 } from '../fixtures/semana47Anonimizada'
 
 const ACTIVO = process.env.AH2_BENCH === '1'
 const N = Number(process.env.AH2_BENCH_N ?? 150)
+const IDS = process.env.AH2_BENCH_IDS?.split(',').map(Number)
 
 const base = (e: Escenario): InputAlgoritmo => convertirInputAV2(e.necesidad, e.cajeros, AUX_S47, EVENTUALES_S47, e.excepciones, { ...OPERATIVA_S47 })
 const sinPrioridad = (inp: InputAlgoritmo): InputAlgoritmo => ({
@@ -56,7 +60,7 @@ export function evaluar(e: Escenario) {
   const h1000 = t(() => ejecutarAlgoritmo(inp))
   const h50 = corrida(50), h10 = corrida(10), h2 = corrida(2)
   const semillas: Record<string, Jornada[]> = { ...a0.r.jornadas_full, ...a0.r.jornadas_part }
-  const ms = t(() => ejecutarAlgoritmo({ ...inp, experimental: { semillas } }))
+  const ms = t(() => ejecutarAlgoritmo({ ...inp, semillas }))
   const resumen = (x: { r: ResultadoSemanal; ms: number }) => {
     const v = validar(e, x.r)
     const hp = horasPart(x.r)
@@ -65,9 +69,15 @@ export function evaluar(e: Escenario) {
       cumpleHoras: hp.reduce((a, b) => a + b, 0) >= objetivo - 1e-9, violaciones: v.violaciones.length, ms: x.ms,
     }
   }
-  const res = { A0: resumen(a0), H1000: resumen(h1000), H50: resumen(h50), H10: resumen(h10), H2: resumen(h2), MS: resumen(ms) }
+  let estrategiaProd = ''
+  const prod = t(() => {
+    const o = generarConMultiArranque({ input: inp, cajeros: e.cajeros, auxiliares: AUX_S47, eventuales: EVENTUALES_S47, contexto: { necesidad: e.necesidad, excepciones: e.excepciones, operativa: OPERATIVA_S47 }, presupuestoMs: 10 * 60 * 1000 })
+    estrategiaProd = o.seleccion.estrategia
+    return o.resultadoV2
+  })
+  const res = { A0: resumen(a0), H1000: resumen(h1000), H50: resumen(h50), H10: resumen(h10), H2: resumen(h2), MS: resumen(ms), PROD: { ...resumen(prod), estrategia: estrategiaProd } }
   const cotas = Object.keys(inp.contratos ?? {}).map(id => ({ id, cota: cotaHoras(inp, id), objetivo: (inp.contratos![id].objetivoSlots ?? 0) / 2 }))
-  const conHoras = [res.H1000, res.MS].filter(x => x.cumpleHoras && x.violaciones === 0)
+  const conHoras = [res.H1000, res.MS, res.PROD].filter(x => x.cumpleHoras && x.violaciones === 0)
   const mejor = conHoras.sort((a, b) => b.cobertura - a.cobertura)[0]
   const validos = res.A0.violaciones === 0 && res.H1000.violaciones === 0
   const brecha = res.A0.cobertura - res.H1000.cobertura
@@ -81,8 +91,8 @@ export function evaluar(e: Escenario) {
 
 describe.skipIf(!ACTIVO)('benchmark offline AH2-020', () => {
   it(`${N} escenarios sintéticos`, { timeout: 30 * 60 * 1000 }, () => {
-    const filas = Array.from({ length: N }, (_, i) => evaluar(generarEscenario(i)))
+    const filas = IDS ? IDS.map(i => evaluar(escenarioSintetico(i))) : Array.from({ length: N }, (_, i) => evaluar(generarEscenario(i)))
     if (process.env.AH2_BENCH_OUT) writeFileSync(process.env.AH2_BENCH_OUT, JSON.stringify(filas))
-    expect(filas.length).toBe(N)
+    expect(filas.length).toBe(IDS?.length ?? N)
   })
 })

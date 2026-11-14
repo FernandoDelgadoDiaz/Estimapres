@@ -34,7 +34,7 @@ import type {
   Colaborador,
   SesgoTurno,
 } from "./types";
-import type { ContratoSlots, CumplimientoHoras } from "./contratos";
+import { estadoObjetivoHoras, type ContratoSlots, type CumplimientoHoras } from "./contratos";
 import {
   CATALOGO_FULL_CORRIDAS,
   CATALOGO_FULL_CORTADAS,
@@ -136,11 +136,10 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   // FULLs primero (más restricciones estructurales), luego PARTs
   const orden: Colaborador[] = [...fulls, ...parts];
   const semanas = new Map<string, Jornada[] | null>();
-  // #7 · experimento AH2-020 (desactivado por defecto): penalización por media hora
-  // faltante y semanas iniciales (warm start) para medir óptimos locales.
+  // #7 · AH2-020: penalización experimental (offline) y semillas del multi-arranque.
   const PEN_HORA = input.experimental?.penalizacionHoraFaltante ?? PENALIZACION_HORA_FALTANTE;
   for (const colab of orden) {
-    const semilla = input.experimental?.semillas?.[colab.id];
+    const semilla = input.semillas?.[colab.id];
     if (!semilla) continue;
     aplicarSemana(semilla, cobertura, francos_full, francos_part, colab.rol === "FULL");
     semanas.set(colab.id, semilla);
@@ -215,7 +214,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     const asignadas = slotsSemana(sem) / 2;
     cumplimiento_horas.push({
       colab_id: c.id, nombre: c.nombre, tipo: "FULL", objetivoHoras: 48, maximoHoras: 48, asignadasHoras: asignadas,
-      diferenciaHoras: 48 - asignadas,
+      diferenciaHoras: 48 - asignadas, estadoObjetivo: estadoObjetivoHoras(48, asignadas),
       motivo: sem.length ? undefined : "Sin semana válida con las restricciones de la persona (composición FULL 48 h).",
     });
   }
@@ -235,6 +234,9 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
         ? "La ficha informa un valor de horas no válido: se planificó sin objetivo de horas."
         : "La ficha no informa horas semanales: se planificó sin objetivo de horas.";
     } else if (fila.diferenciaHoras! > 0) {
+      // AH2-020: cota individual exacta (demanda 0, sin francos de otros, tope de francos relajado).
+      const cota = optimizarSemanaPart(c, ceros, new Array(7).fill(0), new Array(7).fill(0), excepciones, SESGO_NEUTRO, 7, contrato);
+      fila.cotaHoras = cota ? slotsSemana(cota) / 2 : 0;
       // Máximo alcanzable por reglas: misma DP con utilidad de cobertura nula.
       const otros_ff = [...francos_full];
       const otros_fp = [...francos_part];
@@ -248,6 +250,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
           ? `Sus reglas permiten como máximo ${fila.factibleHoras} h esta semana (jornadas de 4–6 h, 1 franco, ≥2 mañanas, descanso 12 h${propias.length ? `; reglas propias: ${propias.join(", ")}` : ""}${cap_francos ? `; tope de ${cap_francos} francos por día` : ""}).`
           : "El motor no alcanzó el objetivo aunque las reglas lo permiten (límite de tiempo de optimización).";
     }
+    fila.estadoObjetivo = estadoObjetivoHoras(objetivo, asignadas, fila.cotaHoras);
     cumplimiento_horas.push(fila);
   }
 
