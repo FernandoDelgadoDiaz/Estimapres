@@ -1,5 +1,43 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## Publicación — #41 PDF operativo (caja / presencia) · 2026-11-14
+
+- **Publicado** con autorización del propietario.
+  - SHA autorizado: `864ed30`.
+  - Merge en `main`: **`c8d6fa8c469528835fe82d63a1b1c92e9c930522`** (base `d57227b`).
+- **Deploys de producción:**
+
+  | Sitio | Nuevo (commit `c8d6fa8`, estado ready) | Anterior (commit `f0fcdc2`) |
+  |---|---|---|
+  | al-iada | `6af893ecdb95b54e626df2f7` | `6af869b146e8e683320974d3` |
+  | prestify | `6af893ec4d673cd2e30bef07` | `6af869b1e0d88f43fb9e77a5` |
+
+- **Rollback verificado:** [PR #42](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/42), en borrador, que revierte `c8d6fa8`.
+  - El árbol resultante (`855a32c`) es idéntico al de `d57227b`.
+  - Sus deploy previews compilaron en al-iada y prestify.
+  - Si se fusiona, Netlify reconstruye producción desde `main`.
+  - **No fusionar salvo regresión crítica.** No fue necesario usarlo.
+- **Preflight:**
+  - SHA, base y checks (`test-build`, `browser`, previews) en verde.
+  - El diff solo toca el PDF, dos páginas (parámetro `presencia`), pruebas y documentación.
+  - Sin migraciones y sin cambios en `netlify/`.
+- **Verificación posterior:**
+  - Los dos sitios sirven el bundle nuevo: tienen los títulos «HORARIOS DE CAJA» y «HORARIOS DE PRESENCIA — PERSONAL DE APOYO», y ya no tienen «Asignaciones en caja» ni «Horarios Semanales».
+  - Funciones de pago:
+    - `create-payment` y `webhook-mp` tienen los mismos digests que antes (`3cf2a63e…` y `45dfe6a4…`).
+    - Responden OPTIONS 200 y GET 405, sin ejecutar transacciones.
+  - Smoke de navegador sin errores de consola y sin escrituras.
+  - Sobre `c8d6fa8`:
+    - TypeScript y build: OK.
+    - Vitest: 300 aprobadas y 2 omitidas.
+    - Playwright: 11/11.
+    - 8 PDF de QA en A4 horizontal, inspeccionados visualmente.
+- **Supabase:**
+  - Antes y después: mismos conteos y mismo hash en las 5 tablas (colaboradores 16, reglas 3, semanas 13, correcciones 37, aprendizajes 0).
+  - Las 12 semanas previas conservan el hash `ebaee487…`.
+  - La fila 13 es la semana 16–22/11 v4, generada por el propietario a las 14:30 después de #39. Incluye `configOperativa` y `disponibilidadSemana`, así que su PDF muestra la presencia registrada.
+  - No hubo escrituras ni migraciones.
+
 ## Retoma — rediseño operativo del PDF (caja / presencia) · 2026-11-14
 
 - **Rama:** `feat/ah2-pdf-caja-presencia`, desde `main@d57227b`. PR en borrador. Sin merge ni publicación hasta la autorización del propietario.
