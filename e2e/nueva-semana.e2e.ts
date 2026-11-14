@@ -107,6 +107,17 @@ test('genera a partir del POM y el patrón habitual sin cargar excepciones', asy
   await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
   await expect(page.getByTestId('estado-validacion')).not.toContainText('OP_APERTURA')
   await expect(page.getByText('Aux A', { exact: true }).first()).toBeVisible()
+  // #7 · AH2-020: la semana guardada conserva cómo se generó (jsonb existente, sin migración) y sobrevive a recargar.
+  const leerGeneracion = () => page.evaluate(() => {
+    const hs = JSON.parse(localStorage.getItem('aliada_historial_semanas::900') ?? '[]')
+    return hs[hs.length - 1]?.generacion
+  })
+  const g = await leerGeneracion()
+  expect(g).toMatchObject({ versionAlgoritmo: expect.stringMatching(/^ah2-/), validacion: 'valida', omitidas: [] })
+  expect(g.mejoraPp).toBeGreaterThanOrEqual(0)
+  expect(g.coberturaElegidaPct).toBeGreaterThanOrEqual(g.coberturaRespaldoPct)
+  await page.reload()
+  expect(await leerGeneracion()).toEqual(g)
   expect(externas).toEqual([])
 })
 

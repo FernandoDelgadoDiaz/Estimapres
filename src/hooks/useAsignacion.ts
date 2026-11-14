@@ -4,7 +4,10 @@ import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, E
 import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
+import type { ContextoValidacionSemana } from '../utils/validacionSemana'
 import { recalcularSemanaTrasEdicion, type ContextoRecalculo } from '../utils/recalculoSemana'
+import { recalcularCumplimiento, avisosCumplimiento, esAvisoDeHoras } from '../algoritmo/contratos'
+import { PREFIJO_AVISO_MULTI_ARRANQUE } from '../utils/generacionMultiArranque'
 
 /**
  * Aplica una edición manual de jornada sobre una lista de horarios y devuelve
@@ -56,10 +59,23 @@ export function aplicarEdicionConRecalculo(
   const eventualesFijos = esEventual
     ? [...new Set([...(prev.eventualesFijos ?? []), `${colaboradorId}|${dia}`])]
     : prev.eventualesFijos
-  const editado: ResultadoAsignacion = { ...prev, horarios, cajaEventual, eventualesFijos }
+  // #7: el cumplimiento de horas y sus avisos se recalculan desde las jornadas
+  // editadas; el impacto de la prioridad de horas describe la solución original
+  // del motor, así que se descarta (no se conservan resultados anteriores).
+  const horasDe = (id: string) => {
+    const h = horarios.find(x => x.colaboradorId === id)
+    return h ? minutosAsignados(h.jornadas) / 60 : undefined
+  }
+  const cumplimientoHoras = recalcularCumplimiento(prev.cumplimientoHoras, horasDe)
+  const alertas = [
+    // El aviso del multi-arranque describe la generación; tras editar, la validez la informa el validador.
+    ...prev.alertas.filter(a => !esAvisoDeHoras(a) && !a.startsWith(PREFIJO_AVISO_MULTI_ARRANQUE)),
+    ...avisosCumplimiento(cumplimientoHoras),
+  ]
+  const editado: ResultadoAsignacion = { ...prev, horarios, cajaEventual, eventualesFijos, cumplimientoHoras, impactoHoras: undefined, alertas }
   if (!recalculo) return editado
   const { avisos, ...rec } = recalcularSemanaTrasEdicion(editado, { ...recalculo, eventualesFijos })
-  return { ...editado, ...rec, alertas: [...new Set([...prev.alertas, ...avisos])] }
+  return { ...editado, ...rec, alertas: [...new Set([...alertas, ...avisos])] }
 }
 
 /** Refleja las ediciones de caja de eventuales en el anexo y la cobertura. */
@@ -84,7 +100,7 @@ export function useAsignacion() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const generarHorarios = async (necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[], fechas?: string[], excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion) => {
+  const generarHorarios = async (necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[], fechas?: string[], excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion, contextoValidacion?: ContextoValidacionSemana) => {
     setLoading(true)
     setError(null)
     try {
@@ -93,7 +109,7 @@ export function useAsignacion() {
       if (!fechasAUsar || fechasAUsar.length === 0) {
         fechasAUsar = generarFechasSemanaActual()
       }
-      const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechasAUsar, excepciones, opciones)
+      const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechasAUsar, excepciones, opciones, contextoValidacion)
       setResultado(resultado)
       return resultado
     } catch (err) {

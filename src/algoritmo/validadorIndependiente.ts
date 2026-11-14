@@ -10,6 +10,7 @@
 // está pendiente de validación (MASTER §3.A, decisiones D1–D3). No es una decisión.
 
 import type { ExcepcionSemanal, Franja, HorarioColaborador, AsignacionCajaColaborador } from '../types'
+import { PERFIL_HORAS_VIGENTE, PERFIL_HORAS_HISTORICO_31, perfilHorasDeSemana, type PerfilHorasContrato } from './contratos'
 
 // ======================= PERFIL =======================
 
@@ -37,22 +38,41 @@ export interface PerfilNormativo {
   estado: 'PROPUESTO' | 'VALIDADO'
   fuente: string
   descansoEntreJornadasHoras: number
+  /** Perfil de horas por contrato del que deriva (contratos.ts). */
+  perfilHorasId?: string
   contratos: { FULL: ReglasContrato; PART: ReglasContrato }
 }
 
-export const PERFIL_MOTOR_ACTUAL: PerfilNormativo = {
-  id: 'motor-actual-2026-07',
-  nombre: 'Reglas implementadas por el motor actual',
-  estado: 'PROPUESTO',
-  fuente: 'src/algoritmo/reglas.ts y catalogos.ts (H-F1..H-F7, H-P1..H-P5, H-D1). Sin validación jurídica (AH2-004, D1–D3).',
-  descansoEntreJornadasHoras: 12,
-  contratos: {
-    FULL: {
-      horasSemanaMax: 48, horasSemanaExactas: 48, francosSemana: 1, maxBloquesDia: 2, corteMinHoras: 4,
-      composicionHorasDia: [9, 9, 9, 8, 8, 5], jornadasCortadasExactas: 2,
+/**
+ * Perfil normativo a partir de un perfil de horas por contrato (#7): el máximo
+ * semanal FULL/PART sale de la MISMA definición que usa el motor (contratos.ts).
+ */
+export function perfilNormativoDesdeHoras(horas: PerfilHorasContrato): PerfilNormativo {
+  return {
+    id: `motor-${horas.id}`,
+    nombre: `Reglas del motor · ${horas.nombre}`,
+    estado: 'PROPUESTO',
+    fuente: `src/algoritmo/reglas.ts, catalogos.ts y contratos.ts (${horas.id}). Sin validación jurídica (AH2-004, D1–D3).`,
+    descansoEntreJornadasHoras: 12,
+    perfilHorasId: horas.id,
+    contratos: {
+      FULL: {
+        horasSemanaMax: horas.maximoHoras.FULL, horasSemanaExactas: 48, francosSemana: 1, maxBloquesDia: 2, corteMinHoras: 4,
+        composicionHorasDia: [9, 9, 9, 8, 8, 5], jornadasCortadasExactas: 2,
+      },
+      PART: { horasSemanaMax: horas.maximoHoras.PART, francosSemana: 1, maxBloquesDia: 1, corteMinHoras: 4, horasDiaMin: 4, horasDiaMax: 6 },
     },
-    PART: { horasSemanaMax: 31, francosSemana: 1, maxBloquesDia: 1, corteMinHoras: 4, horasDiaMin: 4, horasDiaMax: 6 },
-  },
+  }
+}
+
+/** Perfil vigente del motor (PART ≤ 32 h, requisito de producto AH2-004/AH2-014). */
+export const PERFIL_MOTOR_ACTUAL: PerfilNormativo = perfilNormativoDesdeHoras(PERFIL_HORAS_VIGENTE)
+/** Perfil con el que se generaron las semanas anteriores a #7 (PART ≤ 31 h). */
+export const PERFIL_MOTOR_HISTORICO_31: PerfilNormativo = perfilNormativoDesdeHoras(PERFIL_HORAS_HISTORICO_31)
+
+/** Perfil normativo de una semana guardada según el perfil de horas que registró (o el histórico). */
+export function perfilNormativoDeSemana(perfilHorasId?: string): PerfilNormativo {
+  return perfilNormativoDesdeHoras(perfilHorasDeSemana(perfilHorasId))
 }
 
 // ======================= ENTRADA / SALIDA =======================

@@ -18,6 +18,8 @@ import PanelAlertas from '../components/semana/PanelAlertas'
 import { generarPDF } from '../utils/exportPDF'
 import { validarResultadoSemana, estadoValidacion, type ContextoValidacionSemana } from '../utils/validacionSemana'
 import { getSucursalActual } from '../utils/sucursal'
+import { PERFIL_HORAS_VIGENTE, resolverContratoHoras } from '../algoritmo/contratos'
+import { registroGeneracion } from '../utils/generacionMultiArranque'
 import {
   reglasAExcepciones,
   demandaMinimaDeReglas,
@@ -226,19 +228,13 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       francoMedioCorridos: operativa.francoMedioCorridos,
     }
 
-    let res
-    try {
-      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones)
-    } catch {
-      // El hook expone el error en Revisar y permite reintentar.
-      return
-    }
-
-    // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación
+    // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación.
+    // #7 · AH2-020: se arma ANTES de generar para que el multi-arranque valide cada candidato
+    // con exactamente el mismo contexto que luego usa esta pantalla.
     const lunesPrevio = new Date(new Date(fechaLunes + 'T12:00:00').getTime() - 7 * 86_400_000).toISOString().slice(0, 10)
     const previas = historial.filter(h => h.fechaLunes === lunesPrevio)
     const previa = previas[previas.length - 1]
-    setCtxValidacion({
+    const ctx = {
       fechas,
       necesidad,
       excepciones: excepcionesTotales,
@@ -249,7 +245,16 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       eventuales: disponibilidad.eventuales,
       huecosSupervision: disponibilidad.huecosSupervision,
       operativa, // #38: estado efectivo de las reglas → el validador lo exige
-    })
+    }
+
+    let res
+    try {
+      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx)
+    } catch {
+      // El hook expone el error en Revisar y permite reintentar.
+      return
+    }
+    setCtxValidacion(ctx)
 
     // Capacidad 2: guardar la semana en el historial para la rotación futura
     if (res) {
@@ -267,6 +272,10 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         // Necesidad del PDF: para el panel de cobertura en vivo del editor
         necesidadFranjas: necesidad.map(f => [...f.necesidad]),
         configOperativa: operativa,
+        perfilHorasId: PERFIL_HORAS_VIGENTE.id,
+        cumplimientoHoras: res.cumplimientoHoras,
+        // #7 · AH2-020: versión del algoritmo, estrategia elegida y mejora frente al respaldo
+        generacion: res.multiArranque ? registroGeneracion(res.multiArranque) : undefined,
         disponibilidadSemana: Object.fromEntries(
           [...disponibilidad.auxiliares, ...disponibilidad.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
       })
@@ -307,6 +316,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         cajaAux: resultado.cajaAux,
         cajaEventual: resultado.cajaEventual,
         eventualesFijos: resultado.eventualesFijos,
+        cumplimientoHoras: resultado.cumplimientoHoras, // #7: recalculado tras cada edición
         coberturaFranjas: resultado.coberturaFranjas,
         faltantesFranjas: resultado.faltantesFranjas,
         porcentajeCobertura: resultado.porcentajeCobertura,
@@ -357,9 +367,10 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     0
   ) * 0.5 // Cada franja son 0.5h
 
+  // #7: capacidad con la MISMA definición de contrato que usa el motor (ficha acotada al máximo del perfil).
   const horasDisponibles = colaboradoresActivos.reduce((sum, col) => {
-    if (col.tipo === 'PART') return sum + 32 // Máximo para PART
-    return sum + col.horasSemanales
+    if (col.tipo === 'PART') return sum + resolverContratoHoras('PART', col.horasSemanales, PERFIL_HORAS_VIGENTE).topeHoras
+    return sum + (col.horasSemanales ?? 0)
   }, 0)
 
   return (
@@ -640,7 +651,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                           {col.tipo}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.horasSemanales}h</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.horasSemanales !== undefined ? `${col.horasSemanales}h` : 'Sin dato'}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           display: 'inline-flex',

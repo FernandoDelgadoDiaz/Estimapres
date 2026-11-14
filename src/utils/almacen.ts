@@ -203,7 +203,8 @@ interface FilaSemana {
   created_at: string
 }
 
-function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
+/** Exportada para pruebas de persistencia (#7). */
+export function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
   return {
     id: s.id,
     lunes_fecha: s.fechaLunes,
@@ -219,6 +220,9 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
       configOperativa: s.configOperativa,
       disponibilidadSemana: s.disponibilidadSemana,
       eventualesFijos: s.eventualesFijos,
+      perfilHorasId: s.perfilHorasId,
+      cumplimientoHoras: s.cumplimientoHoras,
+      generacion: s.generacion, // #7 · AH2-020 (jsonb existente, sin migración)
     },
     metricas: {
       resumenPorColaborador: s.resumenPorColaborador,
@@ -231,7 +235,8 @@ function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> {
   }
 }
 
-function filaASemana(f: FilaSemana): SemanaHistorial {
+/** Exportada para pruebas de persistencia (#7). */
+export function filaASemana(f: FilaSemana): SemanaHistorial {
   const h = f.horario_completo ?? {}
   const m = f.metricas ?? {}
   return {
@@ -248,6 +253,9 @@ function filaASemana(f: FilaSemana): SemanaHistorial {
     configOperativa: h.configOperativa as SemanaHistorial['configOperativa'],
     disponibilidadSemana: h.disponibilidadSemana as SemanaHistorial['disponibilidadSemana'],
     eventualesFijos: h.eventualesFijos as string[] | undefined,
+    perfilHorasId: h.perfilHorasId as string | undefined,
+    cumplimientoHoras: h.cumplimientoHoras as SemanaHistorial['cumplimientoHoras'],
+    generacion: h.generacion as SemanaHistorial['generacion'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,
@@ -679,13 +687,16 @@ function itemAFilaRoster(grupo: GrupoRoster, item: ItemRoster): FilaRoster {
   }
 }
 
-function filaAItemRoster(grupo: GrupoRoster, f: FilaRoster): ItemRoster {
+/** Exportada para pruebas de carga del roster (#7). */
+export function filaAItemRoster(grupo: GrupoRoster, f: FilaRoster): ItemRoster {
   if (grupo === 'cajero') {
     return {
       id: f.id,
       nombre: f.nombre,
       tipo: (f.tipo as Colaborador['tipo']) ?? 'FULL',
-      horasSemanales: f.horas_semanales ?? 48,
+      // #7: un PART sin horas registradas queda SIN dato (antes se asumían 48 h en
+      // silencio). FULL conserva 48 h: su contrato es fijo y no cambia en #7.
+      horasSemanales: f.horas_semanales ?? ((f.tipo ?? 'FULL') === 'FULL' ? 48 : undefined),
       activo: f.activo,
     }
   }

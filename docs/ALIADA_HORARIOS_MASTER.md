@@ -1,7 +1,7 @@
 # ALIADA HORARIOS 2.0 — FUENTE ÚNICA DE VERDAD
 
-**Estado:** propuesta de gobernanza en revisión (rama `docs/aliada-horarios-2-fase0`). Se convierte en normativa de desarrollo al aprobar/fusionar el PR correspondiente.
-**Actualizado:** 2026-11-12
+**Estado:** normativa vigente de producto, integrada en `main` (PR #2, `9909e87`). Toda decisión nueva se registra en §9 como APROBADO, PROPUESTO o PENDIENTE DE VALIDACIÓN (AH2-018).
+**Actualizado:** 2026-11-14 (arquitectura adaptativa §6.1 y contrato de horas PART, Issues #44 y #7)
 **Repositorio:** `FernandoDelgadoDiaz/Estimapres`
 **Propietario y autoridad de producto:** Fernando (aprueba cambios de alcance, reglas, migraciones, merges, despliegues y gastos).
 **Estado operacional y relevo entre modelos:** [`docs/CURRENT_WORK.md`](CURRENT_WORK.md).
@@ -60,7 +60,7 @@ El producto debe soportar perfiles versionados por país, convenio colectivo, ca
 
 **Requisitos expresados por el propietario (aceptados como objetivos de diseño; situación normativa pendiente de verificar):**
 - 12 horas mínimas de descanso entre fin e inicio de jornada; incluye cambio de domingo a lunes de semanas consecutivas.
-- PART: no superar **32 horas semanales** (el código actual restringe a 31).
+- PART: no superar **32 horas semanales**. Implementado como perfil de horas vigente (`src/algoritmo/contratos.ts`, AH2-014); el perfil histórico de 31 h se conserva para validar semanas anteriores.
 - FULL: no superar **48 horas semanales** (el código actual compone 48 exactas).
 - FULL: **un franco y medio** a la semana, cuya definición operativa/convencional debe verificarse; el motor actual representa un día franco y una jornada de 5 h.
 - PART: un franco semanal.
@@ -115,6 +115,15 @@ Equidad de turnos, rotación de cierres/fin de semana, aprendizajes de correccio
 - **Datos personales en el repositorio público:** roster semilla (`src/types/index.ts`) y fixtures de tests con nombres y horarios que parecen reales (Issue #23).
 - `npm ci` falla: `package-lock.json` no está sincronizado con `package.json`. Con `npm install --no-save`: `vitest run` 80/80 OK y `npm run build` OK. No hay CI (`.github/` no existe).
 
+### 4.1 Estado actualizado — 2026-11-14 (prevalece sobre las diferencias históricas de arriba)
+
+- Motor en tres pasadas corregido (#38/#39): apertura configurable, AUX en caja solo con déficit real, eventuales solo para el déficit residual.
+- Validador independiente real (`src/algoritmo/validadorIndependiente.ts` + `src/utils/validacionSemana.ts`): incluye descanso entre semanas, composición de apertura, supervisión H-A2 y cobertura duplicada. Estados VALIDADO / BORRADOR / SIN VERIFICAR.
+- Recálculo de la cascada tras ediciones manuales (`src/utils/recalculoSemana.ts`).
+- PDF operativo de dos cuadros, caja y presencia (#41).
+- **Contrato de horas único** (`src/algoritmo/contratos.ts`, #7): lo usan el adaptador, la pasada 1, H-P1, el validador, la UI y el PDF (AH2-014).
+- `ai/*`, `README.md` y partes de este §4 anteriores a esta fecha son antecedentes; el código es la evidencia del comportamiento real.
+
 ## 5. Base de datos y seguridad — verificación de solo lectura 2026-11-12
 
 Supabase proyecto **al-iada horarios**, estado `ACTIVE_HEALTHY` al momento de la revisión.
@@ -146,6 +155,52 @@ PDF POM / otra fuente de demanda
 ```
 
 Agente (fase posterior): herramientas de lectura, simulación, explicación y borradores; para cambios sensibles requerir permisos y aprobación humana. Desencadenamiento por evento/cron, no llamadas de IA permanentes; presupuestos y límites. **Aún no seleccionar modelo, SDK o despliegue definitivo.**
+
+### 6.1 Arquitectura de planificación adaptativa — Issue #44
+
+**Dirección aprobada por el propietario (14/11/2026).** El producto evoluciona de un generador semanal aislado a una planificación adaptativa que considera:
+- demanda POM por franja;
+- contratos y horas semanales por colaborador;
+- reglas obligatorias y configuración por sucursal;
+- disponibilidad, vacaciones, licencias y ausencias;
+- historial de horarios **efectivamente vigentes**;
+- continuidad y rotación por ciclo;
+- replanificación ante contingencias.
+
+Componentes (los formatos técnicos son **PROPUESTOS**):
+
+```text
+POM (snapshot inmutable, matriz día×franja)
+  + roster con IDs estables y contrato (objetivo y máximo de horas)       ← tramo A (este PR)
+  + reglas versionadas (normativa / operativa / preferencia, con vigencia)
+  + ausencias {empleadoId, desde, hasta, alcance, estado, auditoría}       ← tramo D
+  + horario publicado vigente y ciclo de planificación                    ← tramo B
+    → comparador de demanda POM (Δ por día/franja)                         ← tramo C
+    → optimizador determinista: reglas duras → cobertura ≥ objetivo
+      → estabilidad dentro del ciclo / rotación al cambiar de ciclo
+    → validador independiente + diferencias explicadas
+    → BORRADOR → aprobación humana → PUBLICADO (versionado)
+```
+
+Reglas de producto (APROBADAS, ver AH2-015…AH2-017):
+1. **Continuidad intramensual:** dentro de un mismo ciclo de planificación se minimizan los cambios de turno y franco frente al horario vigente. Se adapta solo lo que exige el POM.
+2. **Rotación intermensual:** al iniciar un nuevo ciclo se favorecen cambios visibles y equitativos de turno (mañana, tarde, cierre y fines de semana), contabilizados por semanas efectivas y no por PDF ni versiones. Las reglas individuales de turno fijo prevalecen.
+3. **Corte de ciclo explícito:** cada sucursal declara `cicloPlanificacionId` y su fecha de inicio. El cambio de ciclo nunca se deduce solo de que una semana cruce el día 1.
+4. **Contingencias:** una ausencia sobre un horario publicado solo replanifica el tramo futuro afectado. Lo ya trabajado nunca se reescribe, y se muestra un diff con mínima cantidad de cambios.
+5. **Cobertura objetivo configurable por sucursal:** 95 % en la 091. Es una meta operativa: no es contractual y nunca justifica violar una regla dura.
+6. **Aprobación humana antes de publicar.** Ningún agente publica.
+
+Tramos de entrega:
+
+| Tramo | Contenido | Estado |
+|---|---|---|
+| A | Contrato de horas PART coherente (PR #45; AH2-014, AH2-019…AH2-021) | EN REVISIÓN |
+| B | Publicación, vigencia, ciclo y versionado (#10/#12) | PENDIENTE |
+| C | Comparación de POM y continuidad/rotación; benchmark #13 | PENDIENTE |
+| D | Ausencias y replanificación parcial (#28) | PENDIENTE |
+| E | Aprendizaje/agente supervisado (#14) | PENDIENTE |
+
+Cada tramo se entrega en un PR aislado y verificable, sin migraciones ni publicación sin autorización.
 
 ## 7. Reglas de trabajo entre modelos (Astra / ChatGPT / Claude)
 
@@ -187,5 +242,15 @@ Agente (fase posterior): herramientas de lectura, simulación, explicación y bo
 | AH2-011 | Benchmark motor actual vs CP-SAT fuera de producción (Python offline sobre fixtures sintéticos); no se elige despliegue de CP-SAT hasta tener resultados | **PROPUESTO** — amplía AH2-006 |
 | AH2-012 | Reglas obligatorias (normativas y operativas) vigentes se cumplen **simultáneamente**: si son incompatibles es conflicto explícito, sin importar la prioridad. La prioridad ordena solo preferencias. Una operativa solo se aparta mediante **excepción autorizada** con vigencia acotada, motivo, autor y auditoría. Ninguna normativa se desactiva por preferencia ni excepción | **APROBADO por el propietario** (instrucción del 2026-11-12, implementado en PR #22) |
 | AH2-013 | Los grupos de colaboradores se cargan desde la cuenta y sucursal activas. Un grupo vacío permanece vacío y la apertura de pantallas no importa nóminas del dispositivo. Cualquier importación futura debe ser explícita y supervisada. | **APROBADO por el propietario** (2026-11-13) · [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30) |
+
+| AH2-014 | **Contrato de horas único** (`src/algoritmo/contratos.ts`), usado por motor, H-P1, validador, UI y PDF.<br>• Conceptos: `objetivoHoras` = ficha válida; `maximoHoras` = tope del perfil; tope del motor = min(objetivo, máximo), sin asignar por encima de la ficha; `asignadas`/`diferencia` con motivo si no se cumple.<br>• Perfil vigente: PART ≤ 32 h, FULL 48 h sin cambios.<br>• Perfil histórico: PART ≤ 31 h, para validar semanas anteriores.<br>• Si el objetivo no es factible, se informa el máximo factible y la causa; nunca se relajan reglas. La prioridad horas↔cobertura está en AH2-020. | **REQUISITO APROBADO (32 h, AH2-004) / DISEÑO TÉCNICO PROPUESTO / VALIDACIÓN JURÍDICA PENDIENTE** — Issue #7, tramo A, PR #45 |
+| AH2-015 | Arquitectura de planificación adaptativa (§6.1): POM + contratos + reglas + ausencias + historial vigente; continuidad intramensual, rotación intermensual, contingencias parciales y aprobación humana | **APROBADO como dirección por el propietario (14/11/2026)**; formatos técnicos PROPUESTOS — Issue #44 |
+| AH2-016 | El corte de ciclo mensual es explícito (`cicloPlanificacionId` y fecha de inicio por sucursal); no se deduce del día 1 del calendario | **APROBADO por el propietario (14/11/2026)** — Issue #44 |
+| AH2-017 | Cobertura objetivo configurable por sucursal (091: 95 %), operativa y subordinada a reglas duras | **APROBADO por el propietario** |
+| AH2-018 | Gobernanza: este MASTER es la única autoridad de producto; `CURRENT_WORK.md` solo registra estado operativo y relevo; `AGENTS.md`/`CLAUDE.md` remiten a ambos; Issues/PR enlazan, no duplican reglas | **APROBADO por el propietario (14/11/2026)** |
+| AH2-019 | Cada semana guardada registra el perfil de horas con que se generó (`perfilHorasId` en el jsonb existente, sin migración) y se valida con ese perfil.<br>• **Sin identificador** (semanas anteriores al registro): perfil histórico de 31 h.<br>• **Identificador desconocido**: no se adivina. Se informa como limitación y la semana queda «SIN VERIFICAR» (nunca VALIDADO). | **PROPUESTO** — tramo A, PR #45 |
+| AH2-020 | **Prioridad de las horas objetivo PART frente a la cobertura POM — «B conjunta».**<br>• **Decisión del propietario (14/11/2026, APROBADA como dirección de implementación) con condiciones:**<br>&nbsp;&nbsp;(1) Se mantienen todas las reglas obligatorias y las horas contractuales exigibles. **Nunca se reducen horas automáticamente para alcanzar el 95 %.**<br>&nbsp;&nbsp;(2) Multi-arranque para encontrar distribuciones que cumplan las horas y maximicen la cobertura POM.<br>&nbsp;&nbsp;(3) Se incluyen las estrategias comprobadas en el benchmark (en especial las de los escenarios 66 y 156). No se afirma recuperar escenarios que una estrategia faltante no cubra.<br>&nbsp;&nbsp;(4) Solo se eligen soluciones que superan la validación independiente. Entre las que cumplen horas y reglas: mayor cobertura y, después, menos sobrantes.<br>&nbsp;&nbsp;(5) El comportamiento anterior queda como **respaldo**: sin regresiones de cobertura ni de cumplimiento frente a él.<br>&nbsp;&nbsp;(6) Estados separados: «cumplido», «imposible demostrado» y «no encontrado». Una cota individual no demuestra el óptimo global.<br>&nbsp;&nbsp;(7) PR #45 en borrador; sin merge, deploy, migraciones, Supabase ni Prestify. CP-SAT (#13) solo como propuesta de benchmark.<br>• **Implementación (PR #45, tramo A):**<br>&nbsp;&nbsp;– `src/utils/generacionMultiArranque.ts`, usado por `asignarHorariosConIA`. Corre el respaldo (motor anterior en frío, sin cambios) y 6 estrategias con la misma entrada, reglas y prioridad lexicográfica de horas; solo cambian las semanas iniciales de la pasada 1 (`InputAlgoritmo.semillas`), que la DP re-optimiza en la primera pasada:<br>&nbsp;&nbsp;&nbsp;&nbsp;· `desde-sin-prioridad`;<br>&nbsp;&nbsp;&nbsp;&nbsp;· `full-fijos` (escenario 66);<br>&nbsp;&nbsp;&nbsp;&nbsp;· `alternada-1` / `alternada-2` desde el respaldo (escenario 156);<br>&nbsp;&nbsp;&nbsp;&nbsp;· `alternada-ms-1` / `alternada-ms-2` desde `desde-sin-prioridad` (escenario 130).<br>&nbsp;&nbsp;– Un candidato es elegible solo si valida con el mismo contexto que usa la pantalla, sin violaciones que el respaldo no tenga, y si **no baja las horas de ninguna persona** frente al respaldo. Orden de elección: cobertura, luego sobrantes; ante empate gana el respaldo. Presupuesto: 20 s; el respaldo siempre corre y las estrategias omitidas se informan.<br>&nbsp;&nbsp;– `cumplimiento_horas[].estadoObjetivo` toma uno de: `cumplido`, `imposible-demostrado` (cota individual exacta `cotaHoras` < objetivo, con demanda 0 y tope de francos relajado), `no-encontrado` o `sin-objetivo`.<br>&nbsp;&nbsp;– El impacto de la prioridad se mide sobre la solución elegida frente a la cascada sin prioridad.<br>• **Resultados (200 escenarios sintéticos, camino productivo, `AH2_BENCH=1`):**<br>&nbsp;&nbsp;– Cobertura media: 98,631 % → **98,756 %**. Escenarios bajo el 95 %: 7 → 6.<br>&nbsp;&nbsp;– 28 escenarios mejoran (+25,11 pp sumados).<br>&nbsp;&nbsp;– **0 regresiones** de cobertura y de horas frente al respaldo; 0 violaciones.<br>&nbsp;&nbsp;– De los 17 escenarios con brecha frente a «sin prioridad», 15 alcanzan esa cobertura con todas las horas exigibles.<br>&nbsp;&nbsp;– El 130 mejora en parte (98,97 → 99,49 %, frente a 100 % sin prioridad).<br>&nbsp;&nbsp;– El 100 queda **no encontrado** (95,93 % frente a 97,56 %).<br>&nbsp;&nbsp;– Escenario 121: 93,75 → 96,09 % con 32 h a todos.<br>&nbsp;&nbsp;– Tiempo por generación: p50 0,30 s y máximo 0,63 s (antes 0,05 s); con 55 personas, ≈ 2 s.<br>• **Penalización fija de 1.000:** no es la causa. Con 10 o 50 el resultado es idéntico; con 2 se pierden horas exigibles (no admisible). Se conserva.<br>• **Cierre de calidad (PR #45, sin cambiar prioridades ni estrategias):**<br>&nbsp;&nbsp;– **Trazabilidad:** cada semana guarda en `horario_completo.generacion` (jsonb existente, sin migración) la `versionAlgoritmo` (`ah2-v2.1-multiarranque-2026-11-14`), la estrategia elegida, la cobertura del respaldo y la elegida, la mejora en pp, las estrategias omitidas, `sinAlternativas` y la validez. Una semana anterior sin el campo se carga sin error.<br>&nbsp;&nbsp;– **«Elegible» ≠ «válido»:** elegible significa sin violaciones nuevas y sin bajar horas; válido, cero violaciones. Cada candidato informa `violacionesNuevas`, `violacionesPreexistentes` y `totalmenteValido`.<br>&nbsp;&nbsp;&nbsp;&nbsp;· Si la solución elegida hereda violaciones del respaldo, queda `validacion = con-violaciones-preexistentes`: aviso explícito, **BORRADOR** y nunca publicable (lo decide el validador independiente).<br>&nbsp;&nbsp;– **Omitidas:** si el presupuesto se agota antes de empezar, se informan todas las alternativas (`sinAlternativas = presupuesto-agotado`). Sin objetivo de horas: `sin-objetivo-horas`, sin omitidas.<br>&nbsp;&nbsp;– **Interfaz:** el cálculo bloquea el hilo de la interfaz.<br>&nbsp;&nbsp;&nbsp;&nbsp;· Medido en navegador: 0,5 s / 3,0 s (091, 9 cajeros, CPU 1× / 6×) y 3,3 s / 21,2 s (55 cajeros).<br>&nbsp;&nbsp;&nbsp;&nbsp;· Con 35 cajeros a 6× puede agotarse el presupuesto, y entonces el resultado depende del equipo.<br>&nbsp;&nbsp;&nbsp;&nbsp;· Mitigación incluida: se cede un cuadro para que se pinte «generando…».<br>&nbsp;&nbsp;&nbsp;&nbsp;· Solución de fondo **PROPUESTA** en otro PR: Web Worker con cancelación y, opcionalmente, corte por trabajo en lugar de por tiempo (`docs/proposals/AH2-020_WEB_WORKER_GENERACION.md`).<br>• **Pendiente:** certificar los «no encontrados» y la brecha real con CP-SAT (#13, propuesta en `docs/proposals/AH2-020_BENCHMARK_CPSAT_ISSUE13.md`; no productivo). | **APROBADO (dirección B conjunta con condiciones, 14/11/2026) / IMPLEMENTADO EN PR #45 BORRADOR / MERGE Y DEPLOY NO AUTORIZADOS** — Issue #7 |
+| AH2-021 | **Ficha PART sin horas o inválida.**<br>• Se distinguen tres casos: **faltante** (sin dato), **inválida** (0, negativa, no numérica) y **válida**.<br>• Faltante o inválida: no se asume ningún objetivo. Se planifica sin objetivo, hasta el máximo del perfil, y la validación marca `DATOS_HORAS_FICHA` (BORRADOR) con un mensaje distinto para cada caso.<br>• Válida por encima del máximo, o fuera de la grilla de 30 min: se ajusta y se avisa, sin bloquear.<br>• Al cargar desde Supabase, un PART sin horas ya no se convierte en 48 h. FULL conserva 48 h. | **PROPUESTO** — PR #45 |
+| AH2-022 | Incorporación de otras sucursales de la misma empresa: requisito **independiente** de los tramos de #44. No se modifican autenticación, aislamiento de sucursales ni permisos en los PR de horas. | **REQUISITO REGISTRADO / DISEÑO PENDIENTE** |
 
 **Cualquier decisión nueva se registra aquí y enlaza Issue/PR; no crear otros registros de decisiones independientes.**

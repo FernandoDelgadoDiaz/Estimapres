@@ -1,5 +1,324 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
+
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-022, en especial AH2-020 APROBADO), después esta sección y el PR de la rama activa.
+
+- **Responsable:** Claude (Claude Code), 2026-11-14.
+- **Issues:** #7 (perfiles y horas PART) y #44 (arquitectura adaptativa, tramo A).
+- **PR:** [#45](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/45), en borrador.
+- **Rama:** `feat/ah2-part-horas-contrato`.
+  - Base: `main@587192046cf59fcde22e62b14a41ce5bf22df9c5`.
+  - Commits de código: `e11ecc0` (tramo A), `cf6814a` (revisión final) `c34da2c385a56ac0eacad6b0b76412273750518b` (benchmark AH2-020) y el commit de «B conjunta» (AH2-020 aprobado). El HEAD exacto figura en el PR y en el reporte de entrega.
+- **Estado:** sin merge, sin deploy, sin migraciones, sin escrituras en Supabase. Producción sigue en `c8d6fa8` (#41). El PR #42 de rollback no se tocó.
+
+### Qué se hizo
+- **Defecto corregido.** El límite de 31 h estaba fijo en tres lugares, en lugar de seguir la ficha de 32 h:
+  - `pasada1-fullpart.ts` (`MAX_SLOTS_PART = 62`);
+  - H-P1 en `reglas.ts`;
+  - el perfil PART del validador.
+
+  Además, la UI sumaba 32 h de capacidad y el adaptador no le pasaba al motor las horas de ficha.
+- **Contrato único** en `src/algoritmo/contratos.ts`:
+  - `objetivoHoras` = ficha;
+  - `maximoHoras` = tope del perfil;
+  - tope del motor = min(ficha, máximo): nunca se asigna por encima de la ficha;
+  - `cumplimiento` con asignadas, diferencia, máximo factible y motivo.
+- **Perfiles:**
+  - vigente `horas-2026-11-part32` (PART ≤ 32 h, FULL 48 h sin cambios);
+  - histórico `horas-2026-07-part31`.
+- **Pasada 1:**
+  - tope por persona en la DP;
+  - las horas objetivo tienen prioridad lexicográfica sobre la cobertura (penalización 1000 por cada media hora faltante);
+  - si el objetivo no se alcanza, se calcula el máximo factible con las reglas de la persona y se informa el motivo;
+  - no se relaja ninguna regla.
+- **Validador:** `PERFIL_MOTOR_ACTUAL` (32 h) y `PERFIL_MOTOR_HISTORICO_31` derivan del mismo contrato.
+- **Semanas guardadas:**
+  - guardan `perfilHorasId` y `cumplimientoHoras` en el jsonb `horario_completo`, sin migración;
+  - Último Horario valida cada semana con su perfil;
+  - una semana sin perfil registrado se valida con el histórico de 31 h.
+- **UI:** la capacidad usa el contrato; el validador avisa «X h asignadas de Y h objetivo».
+- **Gobernanza:**
+  - MASTER §4.1, §6.1 y §9 (AH2-014…AH2-019);
+  - AGENTS.md y CLAUDE.md con la jerarquía MASTER → CURRENT_WORK → PR;
+  - esta sección pasa a ser el único punto de retoma (la anterior quedó como registro histórico).
+
+### Cierre de calidad del PR #45 · 2026-11-14 (sobre `86bb019`)
+Sin cambios en prioridades ni en estrategias de optimización. Es el mismo selector, con estos agregados:
+1. **Persistencia de la generación.**
+   - `SemanaHistorial.generacion` (`RegistroGeneracion`) guarda: `versionAlgoritmo` (`VERSION_ALGORITMO = ah2-v2.1-multiarranque-2026-11-14`), `estrategia`, `coberturaRespaldoPct`, `coberturaElegidaPct`, `mejoraPp`, `omitidas`, `sinAlternativas` y `validacion`.
+   - Viaja en `horario_completo.generacion`, el jsonb existente, sin migración.
+   - Nueva Semana lo guarda al generar. Describe la generación, así que no cambia con ediciones manuales (para eso está `editadoManualmente`).
+   - Pruebas:
+     - ida y vuelta por la fila de Supabase (`semanaAFila` / `filaASemana`) y por JSON (localStorage);
+     - presupuesto agotado;
+     - semana anterior sin el campo;
+     - E2E: guardado en el navegador y conservado tras recargar.
+2. **«Sin violaciones nuevas» ≠ «totalmente válido».**
+   - Cada candidato informa `violacionesNuevas`, `violacionesPreexistentes`, `elegible` y `totalmenteValido`. La selección informa `validacion` (`valida` / `con-violaciones-preexistentes`) y `violacionesElegida`.
+   - Si la solución elegida hereda violaciones del respaldo:
+     - aviso «Multi-arranque: … No es publicable: queda en BORRADOR»;
+     - el validador independiente la marca BORRADOR y `publicable = false`;
+     - tras una edición manual el aviso se retira, porque la validez pasa a informarla el validador.
+   - Prueba con 20 cajeros y el tope predeterminado de 2 francos por día, donde el respaldo ya deja personas sin semana.
+3. **Estrategias omitidas.**
+   - Si el presupuesto se agota antes de empezar las alternativas, se informan todas (`sinAlternativas = presupuesto-agotado`). Antes quedaba `omitidas: []`.
+   - Sin objetivo de horas: `sin-objetivo-horas`, sin omitidas.
+   - Prueba con reloj simulado: para 6 presupuestos, cada estrategia queda corrida u omitida, nunca en silencio, y las dependientes de una omitida también se omiten.
+4. **Navegador y equipos lentos.** `e2e/rendimiento.perf.ts` con `playwright.perf.config.ts`: build de producción, CPU ralentizada por CDP. No integra la suite E2E.
+   - Interfaz congelada (tarea larga máxima, en s), multi-arranque [respaldo solo]:
+
+     | Cajeros | 1× | 4× | 6× |
+     |---|---|---|---|
+     | 9 (091) | 0,5 [0,2] | 2,0 [0,5] | 3,0 [0,7] |
+     | 20 | 1,1 [0,3] | 4,7 [1,2] | 7,4 [1,9] |
+     | 35 | 3,2 [0,6] | 13,8 [2,3] | 20,6 [3,2] |
+     | 55 | 3,3 [0,7] | 13,8 [3,0] | 21,2 [4,5] |
+
+   - Antes de este cierre, el indicador «generando…» **no se pintaba**. Ahora `asignarHorariosConIA` cede un cuadro antes de calcular y se pinta en las 12 combinaciones.
+   - Con 35 cajeros a 6× se omitió `alternada-ms-2` en una de dos corridas: en equipos lentos el resultado puede depender del equipo, aunque queda registrado en `generacion.omitidas`.
+   - Reproducir: `VITE_SUPABASE_URL= VITE_SUPABASE_ANON_KEY= npm run build && PLAYWRIGHT_CHROMIUM_EXECUTABLE=<chromium> npx playwright test -c playwright.perf.config.ts` (opcional `AH2_PERF_OUT=<json>`).
+   - **Web Worker: PROPUESTO** en un PR separado (`docs/proposals/AH2-020_WEB_WORKER_GENERACION.md`). Recomendado antes de sucursales de 20 o más cajeros o de equipos lentos. Para la 091 no es imprescindible.
+5. **Verificación del cierre:**
+   - TypeScript: OK.
+   - Vitest: **366 aprobadas**, 3 omitidas (+9 pruebas nuevas, 23 en `generacionMultiArranque.test.ts`).
+   - Build: OK.
+   - Playwright: **11/11** (incluye la persistencia de `generacion` tras recargar).
+   - Rendimiento: 12/12 combinaciones.
+   - Benchmark de 200 escenarios: **idéntico** a `86bb019` (0 diferencias de cobertura, estrategia u horas). Cobertura media 98,756 % (respaldo 98,631 %); 0 regresiones; 0 violaciones.
+   - `npm run lint` sigue sin configuración (preexistente).
+
+### B conjunta implementada — AH2-020 APROBADO (dirección, con condiciones) · 2026-11-14
+- **Qué cambia en producción (al mergear, no autorizado aún):** `asignarHorariosConIA` ya no corre el motor una sola vez. Llama a `generarConMultiArranque` (`src/utils/generacionMultiArranque.ts`).
+  - **Respaldo:** el motor anterior en frío, sin cambios. Siempre corre y siempre es elegible.
+  - **6 estrategias,** con la misma entrada, reglas y prioridad lexicográfica de horas: `desde-sin-prioridad`, `full-fijos` (escenario 66), `alternada-1/2` (desde el respaldo; escenario 156) y `alternada-ms-1/2` (desde `desde-sin-prioridad`; escenario 130). Solo cambian las semanas iniciales de la pasada 1 (`InputAlgoritmo.semillas`, ahora formal), que la DP re-optimiza en la primera pasada.
+  - **Elegibilidad:** el candidato valida con `validarResultadoSemana` y el MISMO contexto que usa Nueva Semana (que ahora lo arma antes de generar), sin violaciones que el respaldo no tenga, y sin bajar las horas de ninguna persona frente al respaldo.
+  - **Elección:** mayor cobertura, luego menos sobrantes; ante empate, el respaldo.
+  - **Presupuesto:** 20 s. Las estrategias omitidas se informan en `resultado.multiArranque`, que se guarda sin tiempos para que el resultado sea reproducible.
+- **Motor:**
+  - `cumplimiento_horas[].estadoObjetivo` ∈ {`cumplido`, `imposible-demostrado`, `no-encontrado`, `sin-objetivo`}.
+  - `cotaHoras` es la cota individual exacta: demanda 0, sin francos de otros, tope de francos relajado. Prueba imposibilidad por persona, **no** el óptimo global.
+  - `compararImpactoHoras` mide el impacto sobre la solución elegida frente a la cascada sin prioridad. `omitir_impacto_horas` evita duplicar el cálculo.
+  - `experimental` conserva solo la penalización (análisis offline).
+- **Resultados, 200 escenarios por el camino productivo** (`AH2_BENCH=1 AH2_BENCH_N=200`, columna `PROD`, ≈ 2 min):
+  - Cobertura media: 98,631 → **98,756 %**. Escenarios bajo el 95 %: 7 → 6.
+  - 28 escenarios mejoran (+25,11 pp sumados).
+  - **0 regresiones** de cobertura y de horas; 0 violaciones.
+  - Estrategia elegida: actual 121, desde-sin-prioridad 37, full-fijos 22, alternada-1 11, alternada-ms-1 6, alternada-2 2, alternada-ms-2 1.
+  - De los 17 escenarios con brecha frente a «sin prioridad», 15 alcanzan esa cobertura con todas las horas exigibles.
+  - El 130 mejora en parte (98,97 → 99,49 %, frente a 100 %). El 100 queda **no encontrado** (95,93 % frente a 97,56 %). No se afirma recuperar los 17.
+  - Tiempo: p50 0,30 s y máximo 0,63 s (antes 0,05 s). Con 20, 35 y 55 personas: 0,9 s, 2,0 s y 2,0 s, sin violaciones ni estrategias omitidas.
+- **Pruebas nuevas:** `src/utils/__tests__/generacionMultiArranque.test.ts` (14).
+  - Escenarios 121, 66 (solo `full-fijos` lo logra), 156, 130 (parcial, sin afirmar el 100 %) y 100 (respaldo).
+  - Estados de horas.
+  - Presupuesto 0 → idéntico al motor anterior.
+  - Fichas sin dato → solo respaldo.
+  - Reproducibilidad.
+  - 40 escenarios sin regresión.
+  - Semana 47.
+  - Dotación grande.
+- **Pruebas adaptadas:**
+  - La semana 47 (`aperturaHelpers.generar`) corre ahora por el camino productivo; todas sus pruebas pasan.
+  - SEC-01 compara contra el multi-arranque determinístico.
+- **Verificación:** TypeScript OK; Vitest **357 aprobadas**, 3 omitidas; build OK; Playwright **11/11**. `npm run lint` no corre: el repo no tiene configuración de ESLint (preexistente).
+- **Propuesta separada CP-SAT (#13):** `docs/proposals/AH2-020_BENCHMARK_CPSAT_ISSUE13.md`. Offline, no productiva.
+
+### Benchmark de prioridad de horas vs cobertura (`c34da2c`) — AH2-020, evidencia previa a la aprobación
+- **Orientación del propietario:** se prefiere la alternativa B (cobertura), pero no se reducen automáticamente horas contractuales exigibles. El motor productivo **no cambió**.
+- **Método:** benchmark offline reproducible.
+  - Comando: `AH2_BENCH=1 AH2_BENCH_N=200 AH2_BENCH_OUT=<json> npx vitest run src/algoritmo/__tests__/benchmark/prioridadHoras.bench.test.ts`, unos 60 s.
+  - 200 escenarios sintéticos con semilla fija (`fixtures/escenariosSinteticos.ts`).
+  - En todos, la solución sin prioridad (A0) y la del motor actual (H1000) **validan sin violaciones**: ninguno tiene una persona infactible.
+  - Estrategias: A0, H1000, penalizaciones 50, 10 y 2, y multi-arranque desde A0 (MS).
+  - Para habilitarlas, la pasada 1 ganó parámetros `experimental` desactivados por defecto. Está probado que sin ellos el resultado es idéntico.
+- **Horas:**
+  - H1000 alcanza la meta de horas en 200/200.
+  - En 42 escenarios el objetivo de 32 h es **inviable demostrado**: una cota exacta por persona, que relaja solo el tope de francos por día, da 24 o 30 h.
+- **Cobertura:**
+  - 183 sin brecha.
+  - 13 «factible encontrada» con el mejor entre H1000 y MS.
+  - 2 más encontradas con estrategias extra (66: semanas FULL fijas; 156: arranques alternados).
+  - **2 no encontradas**, sin prueba de imposibilidad: escenario 100 (95,93 % frente a 97,56 %) y 130 (99,49 % frente a 100 %).
+  - Escenario 121: H1000 93,75 % → multi-arranque 96,09 %, con 32 h y validado. Es la prueba concluyente de que la pérdida era un óptimo local.
+- **Penalización de 1.000:** no es la causa.
+  - 10 y 50 dan el mismo resultado en los 200 escenarios.
+  - 2 pierde horas exigibles en 93 escenarios (782 h) y además empeora la cobertura media (−0,02 pp).
+- **Medias de cobertura:** H1000 98,63 %; mejor entre H1000 y MS 98,72 %. En los 18 escenarios donde mejora, +0,99 pp (máximo +2,34).
+- **Propuesta «B conjunta»** (MASTER AH2-020):
+  - horas exigibles como restricción (objetivo o cota probada);
+  - multi-arranque con selección del mejor validado (+60–80 ms);
+  - tres estados explícitos;
+  - aviso bajo el 95 % sin recortar horas;
+  - **benchmark de CP-SAT (#13)** para certificar los «no encontrados».
+- **Pruebas en CI:**
+  - `prioridadHorasOptimo.test.ts`: 6 casos.
+  - La prueba con P0 infactible quedó marcada como no concluyente.
+  - TypeScript y build: OK. Vitest: 343 aprobadas, 3 omitidas (incluido el benchmark). Playwright: 11/11.
+
+### Revisión final (`cf6814a`) — los cuatro puntos pedidos
+1. **Prioridad de horas PART frente a cobertura** (AH2-020, PROPUESTO; decisión del propietario pendiente).
+   - La prioridad no cambió.
+   - El orquestador corre además la misma cascada sin esa prioridad (`impacto_horas`). Informa la cobertura con y sin ella, las franjas que empeoran (marcando picos), los sobrantes agregados y si la cobertura cae bajo el 95 % solo por las horas.
+   - Búsqueda en 120 escenarios sintéticos:
+     - 5 bajan la cobertura (siempre en un pico);
+     - 1 cae de 95,59 % a 93,38 %;
+     - 116 agregan sobrantes.
+   - Los casos 59 y 95 quedaron como fixtures en `src/algoritmo/__tests__/fixtures/prioridadHorasAdversarial.ts`.
+   - Semana 47: la cobertura no baja; +0,5 h de sobrante (genera una página de alertas en el PDF).
+2. **Ficha PART** (AH2-021).
+   - Se distinguen tres casos: faltante, inválida (0, negativa, no numérica) y válida.
+   - Faltante o inválida: se planifica sin objetivo, hasta el máximo del perfil, con `DATOS_HORAS_FICHA` (BORRADOR) y un mensaje distinto por caso.
+   - Ficha de 36 h → se planifica con 32 y se avisa. Ficha de 31,75 h → 31,5 con aviso.
+   - Al cargar desde Supabase, un PART sin horas ya no se convierte en 48 h (FULL sigue en 48). Colaboradores muestra «Sin dato» y el formulario permite dejar el campo vacío.
+3. **Edición manual.**
+   - `aplicarEdicionConRecalculo` recalcula `cumplimientoHoras` desde las jornadas editadas: motivo «modificadas manualmente» y sin el factible anterior.
+   - Regenera los avisos «Horas PART» y descarta `impactoHoras`.
+   - Nueva Semana y Último Horario persisten el cumplimiento nuevo (probado ida y vuelta con `semanaAFila` y `filaASemana`).
+4. **Perfil de horas** (AH2-019).
+   - `resolverPerfilHorasSemana`: sin identificador → histórico 31 h; identificador conocido → ese perfil; desconocido → limitación, la semana queda «SIN VERIFICAR» (nunca VALIDADO).
+   - La validación de Último Horario lo resuelve vía `perfilHorasId`.
+
+**Defectos confirmados en el HEAD anterior `1f3fab4`** (worktree temporal):
+- Una ficha faltante o en 0 se convertía en 32 h y la semana salía VALIDADO.
+- Un perfil desconocido se validaba como 31 h sin aviso.
+- Tras editar a 31 h, el cumplimiento seguía diciendo 32 h.
+- No se informaba el costo de priorizar las horas.
+
+**Pruebas sobre `cf6814a`:**
+- TypeScript y build: OK.
+- Vitest: **337 aprobadas**, 2 omitidas.
+- Playwright: **11/11**.
+- `prioridadHorasRevision.test.ts`: 12 casos nuevos.
+
+**Fuera de alcance (sin cambios):** autenticación, aislamiento de sucursales y permisos. La incorporación de otras sucursales es un requisito independiente (AH2-022).
+
+### Archivos modificados
+- **Motor y contratos** (`src/algoritmo/`): `contratos.ts` (nuevo), `adapter.ts`, `pasada1-fullpart.ts`, `orquestador.ts`, `reglas.ts`, `types.ts`, `validadorIndependiente.ts`.
+- **Validación, tipos y persistencia:** `src/utils/validacionSemana.ts`, `src/utils/almacen.ts`, `src/types/index.ts`.
+- **Páginas:** `src/pages/NuevaSemanaPage.tsx`, `src/pages/UltimoHorarioPage.tsx`.
+- **Revisión final:**
+  - `src/hooks/useAsignacion.ts`;
+  - `src/components/colaboradores/FormColaborador.tsx` y `TablaColaboradores.tsx`;
+  - `src/utils/algoritmoAsignacion.ts`;
+  - `src/algoritmo/orquestador.ts` (impacto de la prioridad de horas);
+  - `src/utils/almacen.ts` (carga de PART sin horas; conversiones exportadas para pruebas).
+- **Pruebas:**
+  - `src/algoritmo/__tests__/contratoHorasPart.test.ts` (nuevo, 24 casos);
+  - `reglas.test.ts` y `validadorIndependiente.test.ts` (adaptadas al perfil vigente).
+- **Documentación:** `docs/ALIADA_HORARIOS_MASTER.md`, `AGENTS.md`, `CLAUDE.md`, este archivo.
+
+### Pruebas (sobre `e11ecc0`)
+- TypeScript: OK. Build: OK.
+- Vitest: **325 aprobadas**, 2 omitidas (locales).
+- Playwright: **11/11**.
+- `contratoHorasPart.test.ts`:
+  - 5 PART con 32 h en las 4 combinaciones apertura ON/OFF × franco y medio ON/OFF;
+  - VALIDADO completo (descansos, francos, apertura, H-A2);
+  - horas del PDF = jornadas;
+  - cobertura no menor que la del motor anterior;
+  - ficha de 31 h → 31;
+  - objetivo inalcanzable (regla «no después de 13:00» → máximo factible 24 h con motivo y aviso);
+  - imposible (ninguna semana válida → diagnóstico);
+  - semanas históricas válidas con su perfil;
+  - 32 h contra el perfil histórico → `NORM_HORAS_MAX`;
+  - edición a 32,5 h → violación; edición a 30 h → aviso.
+- **Detección del defecto:** con la implementación anterior, 14/24 de esas pruebas fallan (31 donde se esperan 32).
+
+### Comparación con el motor anterior (semana 47 anonimizada: 4 FULL, 5 PART con ficha de 32 h, 3 AUX, 3 eventuales)
+El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, que reproduce exactamente el comportamiento previo.
+
+#### apertura solo AUX ON · franco y medio corridos OFF
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 98.65 % | 98.65 % |
+| horas-caja faltantes | 5.5 | 5.5 |
+| horas-caja sobrantes | 1.5 | 2 |
+| horas AUX en caja / eventuales en caja | 32 / 23 | 30 / 20.5 |
+| tiempo de cálculo | 117 ms | 66 ms |
+- Franjas que mejoran: ninguna
+- Franjas que empeoran: ninguna
+- Faltantes que permanecen: Vie 08:00: 1, Sáb 08:00: 1, Vie 08:30: 1, Sáb 08:30: 1, Sáb 09:00: 2, Sáb 09:30: 1, Sáb 10:00: 1, Sáb 10:30: 1, Sáb 14:00: 1, Sáb 14:30: 1
+
+#### apertura solo AUX ON · franco y medio corridos ON
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 98.65 % | 99.01 % |
+| horas-caja faltantes | 5.5 | 4 |
+| horas-caja sobrantes | 1 | 0.5 |
+| horas AUX en caja / eventuales en caja | 31 / 23.5 | 28 / 22.5 |
+| tiempo de cálculo | 84 ms | 69 ms |
+- Franjas que mejoran: Sáb 09:00 (2→1), Sáb 14:00 (1→0), Sáb 14:30 (1→0)
+- Franjas que empeoran: ninguna
+- Faltantes que permanecen: Vie 08:00: 1, Sáb 08:00: 1, Vie 08:30: 1, Sáb 08:30: 1, Sáb 09:00: 1, Sáb 09:30: 1, Sáb 10:00: 1, Sáb 10:30: 1
+
+#### apertura solo AUX OFF · franco y medio corridos OFF
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 99.14 % | 99.51 % |
+| horas-caja faltantes | 3.5 | 2 |
+| horas-caja sobrantes | 0 | 0.5 |
+| horas AUX en caja / eventuales en caja | 28 / 27.5 | 29.5 / 23 |
+| tiempo de cálculo | 65 ms | 63 ms |
+- Franjas que mejoran: Sáb 09:00 (1→0), Sáb 09:30 (1→0), Sáb 14:00 (1→0), Sáb 14:30 (1→0)
+- Franjas que empeoran: Lun 14:30 (0→1)
+- Faltantes que permanecen: Vie 08:00: 1, Vie 08:30: 1, Sáb 10:00: 1, Lun 14:30: 1
+
+#### apertura solo AUX OFF · franco y medio corridos ON
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 98.89 % | 98.89 % |
+| horas-caja faltantes | 4.5 | 4.5 |
+| horas-caja sobrantes | 0.5 | 0.5 |
+| horas AUX en caja / eventuales en caja | 27 / 28 | 25 / 25 |
+| tiempo de cálculo | 72 ms | 69 ms |
+- Franjas que mejoran: ninguna
+- Franjas que empeoran: ninguna
+- Faltantes que permanecen: Sáb 08:00: 1, Sáb 08:30: 1, Sáb 09:00: 1, Sáb 09:30: 1, Sáb 10:00: 1, Sáb 10:30: 1, Vie 12:00: 1, Lun 14:00: 1, Lun 14:30: 1
+
+**Lectura:**
+- Se recuperan **5 h PART** (1 h por persona) en todas las configuraciones.
+- La cobertura **mejora** en 2 configuraciones (98,65 → 99,01 % y 99,14 → 99,51 %) y **se mantiene** en las otras 2. No empeora en ninguna.
+- Las horas recuperadas reemplazan horas de AUX y eventuales en caja.
+- Con apertura OFF y franco y medio OFF, una franja (lun 14:30) pasa de 0 a 1 faltante, mientras se eliminan 4 faltantes del sábado: el total baja de 3,5 a 2 h.
+- Con apertura ON, los faltantes de 08:00 del viernes y el sábado (demanda 2) son estructurales: la regla admite exactamente 1 AUX en la apertura.
+
+### Riesgos y pendientes
+- **Validación jurídica:** 32 h es requisito de producto y configuración de la sucursal; la validación jurídica/contractual está pendiente (AH2-004/AH2-014).
+- **Fichas reales:** las fichas PART faltantes o en 0 dejarán la semana en BORRADOR (`DATOS_HORAS_FICHA`) hasta completarlas. Revisar las fichas reales antes de publicar. Si una ficha supera 32 h, se planifica con 32 y se avisa.
+- **Prioridad de horas (AH2-020, B conjunta):** el multi-arranque es una heurística. Mejora sin regresiones frente al respaldo, pero no garantiza el óptimo: quedan casos «no encontrados» (escenario 100). Para certificarlos hace falta CP-SAT (#13).
+- **Costo de cálculo:** la generación pasa de unos 0,05 s a 0,3–0,6 s en dotaciones chicas y unos 2 s con 55 personas. Corre en el hilo del navegador (bloquea la UI durante ese tiempo). Presupuesto de 20 s con respaldo garantizado.
+- **Determinismo:** el resultado depende de presupuestos de tiempo (6 s en la pasada 1, 20 s en el multi-arranque). En máquinas muy lentas podrían omitirse estrategias; se informa en `multiArranque.omitidas`.
+- **UI:** la estrategia elegida se persiste (`generacion`), pero todavía no se muestra en pantalla.
+- **Bloqueo de interfaz:** entre 0,5 y 3 s en la 091 y hasta unos 21 s con 55 cajeros en equipos lentos. Ver la propuesta de Web Worker.
+- **Semanas guardadas antes de este PR:** se validan con el perfil histórico de 31 h, que es el correcto para ellas. Una edición manual que las lleve a 32 h se marcará como `NORM_HORAS_MAX`: hay que regenerarlas como versión nueva.
+- **Datos:** sin migraciones ni escrituras en Supabase; los campos nuevos viajan en el jsonb existente.
+
+### Próxima tarea exacta
+**AH2-020 «B conjunta» implementada en PR #45 (borrador).** Pendiente del propietario:
+1. Revisar los resultados y riesgos. Merge, deploy, migraciones y Supabase siguen **no autorizados**.
+2. Decidir si se ejecuta el benchmark CP-SAT (#13) según `docs/proposals/AH2-020_BENCHMARK_CPSAT_ISSUE13.md` (offline; requiere Python y OR-Tools en un entorno de análisis).
+3. Decidir si se autoriza el PR separado de **Web Worker** (`docs/proposals/AH2-020_WEB_WORKER_GENERACION.md`) y si se cambia el corte por tiempo por un corte por trabajo (afecta la reproducibilidad entre equipos).
+4. Opcional: mostrar en Nueva Semana y en Último Horario la estrategia elegida y la mejora (ya persistidas en `generacion`).
+
+**No avanzar al tramo B sin nueva autorización.** Después, el tramo B:
+
+#### Tramo B (Issue #44 / #12)
+Diseñar e implementar sin migración el modelo de **ciclo de planificación y publicación**:
+- `cicloPlanificacionId`, `vigenteDesde`/`vigenteHasta` y estado `BORRADOR → APROBADO → PUBLICADO`, dentro del jsonb de la semana;
+- detección de la semana vigente sin contar versiones repetidas;
+- tests de caracterización de 4 y 5 semanas por ciclo.
+
+Antes de implementar, proponer el formato en MASTER §9 como PROPUESTO.
+
+### Para retomar (Claude u OpenAI)
+1. `git fetch origin && git checkout feat/ah2-part-horas-contrato`
+2. `npm ci && npx tsc --noEmit -p . && npx vitest run && npm run build && PLAYWRIGHT_CHROMIUM_EXECUTABLE=<chromium> npx playwright test --trace off`
+3. Revisar el PR borrador de la rama. No fusionar ni publicar sin autorización expresa del propietario.
+
 ## Publicación — #41 PDF operativo (caja / presencia) · 2026-11-14
 
 - **Publicado** con autorización del propietario.
@@ -190,7 +509,7 @@
 - Pruebas locales: instalación limpia, TypeScript, build, Vitest 218/218 con POM y semana locales, Playwright 10/10 incluida recarga y reingreso con backend simulado. `npm run lint` falla también en la base por falta de configuración ESLint.
 - El candidato está para revisión en borrador. Próxima acción: revisar CI y evidencia visual, y probar una impresión al 100% y el reingreso en la cuenta 091 tras una publicación autorizada. Sin merge, deploy ni escrituras en Supabase.
 
-## PUNTO ÚNICO DE RETOMA — preparación del piloto 091 · 2026-11-13
+## Registro histórico — preparación del piloto 091 · 2026-11-13
 
 - **Rama de tarea:** `fix/ah2-desbloqueo-piloto`, desde `bb8753fa7f5d78e39af10a15040fa09dfc02e669`. El SHA definitivo del release y sus checks se registran en el [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30). La Entrega 1 en producción corresponde a `main@8aa104db17f87250661d7e2348af1190e9806759`.
 - **PDF:** se aplica la opción recomendada por PDF.js al abrir archivos en el navegador y en el lector Node que usa la validación local. Pruebas de regresión en `pdfSeguridad.test.ts`. La deuda de actualización queda en [Seguridad PDF y padrón](SEGURIDAD_ENTREGA2.md).

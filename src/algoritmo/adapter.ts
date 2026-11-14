@@ -14,6 +14,7 @@ import type {
   AsignacionCajaColaborador,
 } from '../types';
 import { HORAS_FRANJAS } from '../types';
+import { PERFIL_HORAS_VIGENTE, resolverContratoHoras, aSlots, avisosCumplimiento, type PerfilHorasContrato } from './contratos';
 
 import type {
   InputAlgoritmo,
@@ -172,6 +173,10 @@ export interface OpcionesGeneracion {
   sinAuxCierre?: boolean;
   supervisorJornadaCompleta?: boolean;
   francoMedioCorridos?: boolean;
+  // #7: perfil de horas por contrato (máximo PART/FULL). Default: perfil vigente (PART ≤ 32 h).
+  perfilHoras?: PerfilHorasContrato;
+  // #7: objetivo operativo de cobertura de la sucursal (091: 95 %), solo para informar.
+  coberturaObjetivoPct?: number;
 }
 
 export function convertirInputAV2(
@@ -208,9 +213,14 @@ export function convertirInputAV2(
   // 2. Colaboradores v2: solo FULL y PART desde cajeros (ids sin colisiones, ID-01)
   const ident = asignarIdentidadesV2(personasDelMotor(cajeros, auxiliares, eventuales));
   const colaboradores: ColaboradorV2[] = [];
+  // #7: contrato de horas por PART (objetivo = ficha; tope = min(ficha, máximo del perfil)).
+  const contratos: NonNullable<InputAlgoritmo['contratos']> = {};
+  const perfilHoras = opciones?.perfilHoras ?? PERFIL_HORAS_VIGENTE;
   for (const c of cajeros) {
     if (c.tipo === 'FULL' || c.tipo === 'PART') {
-      colaboradores.push({ id: ident.v2PorUi.get(c.id)!, nombre: c.nombre, rol: c.tipo });
+      const id = ident.v2PorUi.get(c.id)!;
+      colaboradores.push({ id, nombre: c.nombre, rol: c.tipo });
+      if (c.tipo === 'PART') contratos[id] = aSlots(resolverContratoHoras('PART', c.horasSemanales, perfilHoras));
     }
   }
 
@@ -257,6 +267,8 @@ export function convertirInputAV2(
     sin_aux_cierre: opciones?.sinAuxCierre,
     supervisor_jornada_completa: opciones?.supervisorJornadaCompleta,
     franco_medio_corridos: opciones?.francoMedioCorridos,
+    contratos,
+    cobertura_objetivo_pct: opciones?.coberturaObjetivoPct,
   };
 }
 
@@ -445,6 +457,10 @@ export function convertirOutputDeV2(
     ),
   ];
 
+  const cumplimientoHoras = (resultado.cumplimiento_horas ?? []).map(c => ({ ...c, colab_id: idMap[c.colab_id] ?? c.colab_id, nombre: nombreMap[c.colab_id] ?? c.nombre }));
+  // #7: objetivo de horas no alcanzado (con su motivo) y costo de la prioridad de horas.
+  alertas.push(...avisosCumplimiento(cumplimientoHoras), ...avisosImpactoHoras(resultado.impacto_horas));
+
   return {
     horarios,
     coberturaFranjas,
@@ -453,5 +469,32 @@ export function convertirOutputDeV2(
     porcentajeCobertura: resultado.metricas.cobertura_total_pct,
     cajaAux,
     cajaEventual,
+    cumplimientoHoras,
+    impactoHoras: resultado.impacto_horas,
   };
+}
+
+const DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+export const PREFIJO_IMPACTO_HORAS = 'Prioridad de horas PART:';
+
+/**
+ * #7 · AH2-020 (PROPUESTO): avisos sobre el costo de priorizar las horas objetivo.
+ * Solo informan; la decisión de invertir la prioridad es del propietario/supervisor.
+ */
+export function avisosImpactoHoras(i?: import('./contratos').ImpactoPrioridadHoras): string[] {
+  if (!i) return [];
+  const f = (n: number) => `${n.toFixed(2).replace('.', ',')} %`;
+  const out: string[] = [];
+  if (i.franjasPeores.length || i.coberturaConPrioridadPct < i.coberturaSinPrioridadPct - 1e-9) {
+    const lista = i.franjasPeores.slice(0, 8).map(x => `${DIAS_CORTOS[x.dia]} ${slotAHora(x.slot)}${x.pico ? ' (pico)' : ''}`).join(', ');
+    out.push(`${PREFIJO_IMPACTO_HORAS} cumplir las horas objetivo deja la cobertura en ${f(i.coberturaConPrioridadPct)}; sin esa prioridad sería ${f(i.coberturaSinPrioridadPct)}${lista ? `. Franjas con más faltante: ${lista}${i.franjasPeores.length > 8 ? '…' : ''}` : ''}.`);
+    if (i.franjasPeores.some(x => x.pico)) out.push(`${PREFIJO_IMPACTO_HORAS} la prioridad de horas afecta franjas pico de demanda. Revisar antes de aprobar.`);
+  }
+  if (i.coberturaConPrioridadPct < i.coberturaObjetivoPct && i.coberturaSinPrioridadPct >= i.coberturaObjetivoPct) {
+    out.push(`${PREFIJO_IMPACTO_HORAS} la cobertura queda por debajo del objetivo de ${i.coberturaObjetivoPct} % solo por cumplir las horas objetivo. Decisión del supervisor.`);
+  }
+  if (i.sobrantesConPrioridadHoras > i.sobrantesSinPrioridadHoras) {
+    out.push(`${PREFIJO_IMPACTO_HORAS} cumplir las horas objetivo agrega ${(i.sobrantesConPrioridadHoras - i.sobrantesSinPrioridadHoras).toString().replace('.', ',')} h de sobrante en caja.`);
+  }
+  return out;
 }

@@ -1,6 +1,6 @@
 # AGENTES Y ASISTENTES — ALIADA HORARIOS 2.0
 
-Este archivo rige por igual para **Astra (ChatGPT)**, **Claude** y cualquier implementador posterior. Ningún modelo tiene autoridad exclusiva sobre otro; el **propietario** decide.
+Este archivo rige por igual para **Astra / OpenAI (ChatGPT)**, **Claude** y cualquier implementador posterior. Ningún modelo tiene autoridad exclusiva sobre otro; el **propietario** decide.
 
 ## Orden obligatorio al retomar
 1. Identificar repositorio, rama activa, SHA y cambios/PR abiertos.
@@ -22,4 +22,4 @@ Este archivo rige por igual para **Astra (ChatGPT)**, **Claude** y cualquier imp
 ## Cierre de turno / transferencia
 Dejar CURRENT_WORK actualizado y el estado en GitHub. El siguiente modelo debe poder continuar sin pedir contexto al usuario. Si no hubo cambios, explicar por qué en la Issue.
 
-**Vigencia:** este contrato está integrado en `main` desde `9909e87` (PR #2, autorizado por el propietario). El punto de retoma es la sección «PUNTO ÚNICO DE RETOMA» de `docs/CURRENT_WORK.md` en `main`.
+**Vigencia:** este contrato está integrado en `main` desde `9909e87` (PR #2, autorizado por el propietario). Jerarquía (AH2-018): MASTER = única autoridad de producto; CURRENT_WORK = estado operativo y relevo (empezar por su primera sección, «PUNTO ÚNICO DE RETOMA»); Issues/PR = evidencia que enlaza, sin reglas propias.

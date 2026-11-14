@@ -1,6 +1,6 @@
 # CLAUDE / ASTRA — PUNTO DE ENTRADA A ALIADA HORARIOS 2.0
 
-Este archivo aplica a **Claude**. Las mismas reglas están en **[AGENTS.md](AGENTS.md)** para Astra (ChatGPT) y otros desarrolladores: **no hay una jerarquía entre modelos**. La autoridad de producto y autorizaciones sensibles corresponde al propietario.
+Este archivo aplica a **Claude**. Las mismas reglas están en **[AGENTS.md](AGENTS.md)** para Astra / OpenAI (ChatGPT) y otros desarrolladores: **no hay una jerarquía entre modelos**. La autoridad de producto y autorizaciones sensibles corresponde al propietario.
 
 ## Antes de tocar código o datos
 1. Verificar rama actual, SHA de HEAD, cambios abiertos y la Issue/PR.
@@ -14,4 +14,4 @@ Este archivo aplica a **Claude**. Las mismas reglas están en **[AGENTS.md](AGEN
 
 Los archivos `ai/architecture.md`, `ai/rules.md` y `ai/decisions.md` se conservan como **historia del proyecto**: describen arquitecturas y roles de 2026 que pueden estar desactualizados. No prevalecen sobre la nueva especificación aprobada.
 
-> Protocolo vigente en `main` desde `9909e87` (PR #2). Empezar por «PUNTO ÚNICO DE RETOMA» en `docs/CURRENT_WORK.md`.
+> Protocolo vigente en `main` desde `9909e87` (PR #2). Jerarquía (AH2-018): MASTER es la única autoridad de producto; CURRENT_WORK solo estado operativo y relevo — empezar por su primera sección, «PUNTO ÚNICO DE RETOMA» — y luego el PR de la rama activa.

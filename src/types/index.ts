@@ -2,7 +2,11 @@ export interface Colaborador {
   id: string
   nombre: string
   tipo: 'FULL' | 'PART' | 'AUX'
-  horasSemanales: number
+  /**
+   * Horas semanales de la ficha. #7: en un PART es su objetivo contractual; puede
+   * faltar (sin dato registrado) y la validación lo informa: nunca se asume un valor.
+   */
+  horasSemanales?: number
   activo: boolean
 }
 
@@ -55,6 +59,12 @@ export interface ResultadoAsignacion {
   cajaEventual?: AsignacionCajaColaborador[]
   // #38: celdas de eventuales fijadas a mano ("id|día"): el recálculo las respeta.
   eventualesFijos?: string[]
+  // #7: objetivo vs horas asignadas por contrato (FULL/PART), con motivo si no se cumple.
+  cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
+  // #7: costo de priorizar las horas objetivo (se descarta tras una edición manual).
+  impactoHoras?: import('../algoritmo/contratos').ImpactoPrioridadHoras
+  /** #7 · AH2-020: estrategia elegida por el multi-arranque y métricas de cada candidato. */
+  multiArranque?: import('../utils/generacionMultiArranque').SeleccionMultiArranque
 }
 
 export type DiaSemana = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom'
@@ -178,6 +188,15 @@ export interface SemanaHistorial {
   disponibilidadSemana?: Record<string, string[]>
   // #38: celdas de eventuales fijadas a mano ("id|día").
   eventualesFijos?: string[]
+  // #7: perfil de horas por contrato con que se generó (contratos.ts). Ausente en
+  // semanas anteriores: se validan con el perfil histórico del motor (PART ≤ 31 h).
+  perfilHorasId?: string
+  // #7: objetivo vs horas asignadas por contrato, tal como lo informó el motor.
+  cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
+  // #7 · AH2-020: cómo se generó (versión del algoritmo, estrategia multi-arranque elegida,
+  // mejora frente al respaldo, estrategias omitidas y validez). Ausente en semanas anteriores.
+  // Describe la GENERACIÓN: no cambia tras ediciones manuales (ver editadoManualmente).
+  generacion?: import('../utils/generacionMultiArranque').RegistroGeneracion
 }
 
 // ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================

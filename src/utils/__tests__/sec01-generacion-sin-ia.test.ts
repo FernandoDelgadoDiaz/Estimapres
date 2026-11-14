@@ -4,9 +4,10 @@ import { describe, expect, it, vi, afterEach } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { asignarHorariosConIA } from '../iaAsignacion'
-import { convertirInputAV2, convertirOutputDeV2 } from '../../algoritmo/adapter'
-import { ejecutarAlgoritmo } from '../../algoritmo/orquestador'
+import { convertirInputAV2 } from '../../algoritmo/adapter'
 import { normalizarExcepciones } from '../preferencias'
+import { generarConMultiArranque } from '../generacionMultiArranque'
+import { operativaEfectiva } from '../validacionSemana'
 import { HORAS_FRANJAS, type Colaborador, type Franja, type Auxiliar, type Eventual } from '../../types'
 
 // Datos sintéticos (sin personas reales).
@@ -39,10 +40,12 @@ describe('SEC-01: generación de horarios sin IA', () => {
 
     const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechas)
 
-    const esperado = convertirOutputDeV2(
-      ejecutarAlgoritmo(convertirInputAV2(necesidad, cajeros, auxiliares, eventuales, normalizarExcepciones([]))),
+    // #7 · AH2-020: el motor determinístico productivo es el multi-arranque con respaldo.
+    const esperado = generarConMultiArranque({
+      input: convertirInputAV2(necesidad, cajeros, auxiliares, eventuales, normalizarExcepciones([])),
       cajeros, auxiliares, eventuales,
-    )
+      contexto: { necesidad, excepciones: [], operativa: operativaEfectiva(undefined) },
+    }).resultado
     expect(fetchMock).not.toHaveBeenCalled()
     expect(resultado).toEqual(esperado)
     expect(resultado.horarios.length).toBeGreaterThan(0)

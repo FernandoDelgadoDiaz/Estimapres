@@ -102,6 +102,27 @@ export interface InputAlgoritmo {
   // de cada FULL debe ser adyacente a su franco completo (36h corridas de
   // descanso). Fallback: false (el día de 5h puede caer cualquier día).
   franco_medio_corridos?: boolean;
+
+  // #7 — Contrato de horas por colaborador PART (slots de 30 min): objetivo de la
+  // ficha y tope = min(objetivo, máximo del perfil). Sin dato: 62 slots (31 h,
+  // comportamiento histórico) para no alterar llamadas directas al motor.
+  contratos?: Record<string, import("./contratos").ContratoSlots>;
+  // #7: objetivo operativo de cobertura (091: 95 %), solo para informar el costo
+  // de priorizar las horas objetivo. No cambia prioridades ni reglas.
+  cobertura_objetivo_pct?: number;
+  // #7 · AH2-020 (APROBADO, B conjunta): semanas iniciales por colaborador para el
+  // multi-arranque de la pasada 1 (warm start de la búsqueda local). Cada semilla se
+  // re-optimiza en la primera pasada con las mismas reglas: nunca se acepta sin pasar
+  // por la DP. Ausente → arranque en frío (comportamiento de respaldo).
+  semillas?: Record<string, Jornada[]>;
+  // #7 · AH2-020: no correr la cascada sin prioridad de horas para medir el impacto
+  // (el selector multi-arranque ya la corre como candidata y lo calcula él).
+  omitir_impacto_horas?: boolean;
+  // #7 · EXPERIMENTAL (análisis offline): no lo usa la app. Ausente → comportamiento productivo.
+  experimental?: {
+    /** Penalización por media hora faltante al objetivo PART (productivo: 1000 = lexicográfica). */
+    penalizacionHoraFaltante?: number;
+  };
 }
 
 // Outputs del algoritmo
@@ -133,6 +154,10 @@ export interface ResultadoSemanal {
   asignacion_eventual: Record<string, AsignacionEv[][]>;  // [dia][slot]
   metricas: MetricasCobertura;
   reporte_reglas: ReporteReglas;
+  /** #7: objetivo vs horas asignadas por contrato (motivo si no se cumple). */
+  cumplimiento_horas?: import("./contratos").CumplimientoHoras[];
+  /** #7: costo de priorizar las horas objetivo frente a la misma cascada sin esa prioridad. */
+  impacto_horas?: import("./contratos").ImpactoPrioridadHoras;
 }
 
 // Helpers de tiempo

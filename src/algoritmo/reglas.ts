@@ -4,6 +4,7 @@
 // Referencia: ai/architecture.md §5.
 // Implementado en Prompt 1.
 
+import { PERFIL_HORAS_VIGENTE } from "./contratos";
 import type { Jornada, DiaSemana, RegulaViolada, Colaborador, AsignacionAux, AsignacionEv, MatrizPresencia, SlotIdx } from "./types";
 import { clasificarTurno } from "./catalogos";
 
@@ -96,7 +97,10 @@ export function validarSemanaFull(
 // H-P1 a H-P5 (PART)
 export function validarSemanaPart(
   colab_id: string,
-  jornadas_semana: Jornada[]
+  jornadas_semana: Jornada[],
+  // #7: tope semanal del contrato en slots (misma definición que el motor:
+  // contratos.ts). Default: máximo PART del perfil vigente (32 h).
+  maxSlots: number = PERFIL_HORAS_VIGENTE.maximoHoras.PART * 2
 ): RegulaViolada[] {
   const violaciones: RegulaViolada[] = [];
   // H-P2: exactamente 1 franco
@@ -109,15 +113,15 @@ export function validarSemanaPart(
     });
   }
 
-  // H-P1: suma ≤ 62 slots (31h)
+  // H-P1: suma ≤ tope del contrato (#7)
   const slotsTotales = jornadas_semana
     .map(j => j.bloques.reduce((sum, b) => sum + (b.slot_fin - b.slot_inicio), 0))
     .reduce((a, b) => a + b, 0);
-  if (slotsTotales > 62) {
+  if (slotsTotales > maxSlots) {
     violaciones.push({
       regla: "H-P1",
       colab_id,
-      detalle: `Suma ${slotsTotales} slots (${slotsTotales / 2}h), máximo 62 slots (31h)`,
+      detalle: `Suma ${slotsTotales} slots (${slotsTotales / 2}h), máximo ${maxSlots} slots (${maxSlots / 2}h)`,
     });
   }
 
