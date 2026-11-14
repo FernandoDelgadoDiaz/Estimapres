@@ -136,6 +136,15 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   // FULLs primero (más restricciones estructurales), luego PARTs
   const orden: Colaborador[] = [...fulls, ...parts];
   const semanas = new Map<string, Jornada[] | null>();
+  // #7 · experimento AH2-020 (desactivado por defecto): penalización por media hora
+  // faltante y semanas iniciales (warm start) para medir óptimos locales.
+  const PEN_HORA = input.experimental?.penalizacionHoraFaltante ?? PENALIZACION_HORA_FALTANTE;
+  for (const colab of orden) {
+    const semilla = input.experimental?.semillas?.[colab.id];
+    if (!semilla) continue;
+    aplicarSemana(semilla, cobertura, francos_full, francos_part, colab.rol === "FULL");
+    semanas.set(colab.id, semilla);
+  }
 
   const t0 = Date.now();
   for (let pasada = 0; pasada < MAX_PASADAS; pasada++) {
@@ -154,8 +163,8 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
       const contrato = contratoPart(input, colab.id);
       const nueva = es_full
         ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos)
-        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, contrato);
-      const penal = (sem: Jornada[]) => (es_full ? 0 : penalizacionHoras(sem, contrato));
+        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, contrato, PEN_HORA);
+      const penal = (sem: Jornada[]) => (es_full ? 0 : penalizacionHoras(sem, contrato, PEN_HORA));
 
       let elegida: Jornada[] | null = previa;
       if (nueva) {
@@ -254,9 +263,9 @@ function contratoPart(input: InputAlgoritmo, id: string): ContratoSlots {
   return input.contratos?.[id] ?? { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO };
 }
 
-function penalizacionHoras(semana: Jornada[], contrato: ContratoSlots): number {
+function penalizacionHoras(semana: Jornada[], contrato: ContratoSlots, pen = PENALIZACION_HORA_FALTANTE): number {
   if (contrato.objetivoSlots === null) return 0; // sin objetivo válido en la ficha: no se fuerzan horas
-  return PENALIZACION_HORA_FALTANTE * Math.max(0, Math.min(contrato.objetivoSlots, contrato.maximoSlots) - slotsSemana(semana));
+  return pen * Math.max(0, Math.min(contrato.objetivoSlots, contrato.maximoSlots) - slotsSemana(semana));
 }
 
 /** Peso de los slots de apertura cuando la abre un cajero (apertura_solo_aux OFF). */
@@ -698,7 +707,8 @@ function optimizarSemanaPart(
   excepciones: ExcepcionSemanal[],
   sesgo: SesgoTurno,
   cap_francos: number,
-  contrato: ContratoSlots = { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO }
+  contrato: ContratoSlots = { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO },
+  penHora: number = PENALIZACION_HORA_FALTANTE
 ): Jornada[] | null {
   const MAX_SLOTS_PART = Math.max(0, Math.floor(contrato.maximoSlots));
   const OBJETIVO = contrato.objetivoSlots === null ? 0 : Math.min(MAX_SLOTS_PART, Math.max(0, Math.floor(contrato.objetivoSlots)));
@@ -772,7 +782,7 @@ function optimizarSemanaPart(
     for (let usados = 0; usados <= MAX_SLOTS_PART; usados++) {
       const s = ((finB * 2 + 1) * 3 + 2) * USADOS + usados;
       if (cur[s] === -Infinity) continue;
-      const v = cur[s] - PENALIZACION_HORA_FALTANTE * Math.max(0, OBJETIVO - usados);
+      const v = cur[s] - penHora * Math.max(0, OBJETIVO - usados);
       if (v > mejor_u) {
         mejor_u = v;
         mejor_s = s;

@@ -110,6 +110,13 @@ export interface InputAlgoritmo {
   // #7: objetivo operativo de cobertura (091: 95 %), solo para informar el costo
   // de priorizar las horas objetivo. No cambia prioridades ni reglas.
   cobertura_objetivo_pct?: number;
+  // #7 · EXPERIMENTAL (AH2-020, análisis offline): no lo usa la app. Ausente → comportamiento productivo.
+  experimental?: {
+    /** Penalización por media hora faltante al objetivo PART (productivo: 1000 = lexicográfica). */
+    penalizacionHoraFaltante?: number;
+    /** Semanas iniciales por colaborador (warm start de la búsqueda local de la pasada 1). */
+    semillas?: Record<string, Jornada[]>;
+  };
 }
 
 // Outputs del algoritmo

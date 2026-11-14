@@ -26,7 +26,9 @@ const horasPart = (r: ResultadoAsignacion, cajeros: Colaborador[]) =>
   cajeros.filter(c => c.tipo === 'PART').map(c => r.horarios.find(h => h.colaboradorId === c.id)!.totalHoras)
 
 describe('1 · prioridad de horas PART frente a cobertura POM (AH2-020, PROPUESTO)', () => {
-  it('adversarial: cumplir las horas deja la cobertura bajo el 95 % (sin esa prioridad sería ≥ 95 %); se informa, con el pico afectado', () => {
+  // NO CONCLUYENTE para la política (contiene un PART infactible, P0): solo prueba que el aviso se emite.
+  // La evidencia concluyente está en prioridadHorasOptimo.test.ts (escenario 121, todo validable).
+  it('aviso: la cobertura informada cae bajo el 95 % y se señala el pico (caso con un PART infactible)', () => {
     const nec = aFranjas(DEMANDA_BAJO_95)
     const { v2, r } = correr(nec, CAJEROS_BAJO_95, EXCEPCIONES_BAJO_95)
     const i = v2.impacto_horas!
