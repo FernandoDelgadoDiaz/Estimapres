@@ -20,7 +20,7 @@ function horaAMin(hora: string): number {
 }
 
 /** Matriz de presencia 7×30 (PARADO/NO_PRESENTE) desde las jornadas de un AUX. */
-function presenciaDesdeJornadas(h: HorarioColaborador): MatrizPresencia {
+export function presenciaDesdeJornadas(h: HorarioColaborador): MatrizPresencia {
   const matriz: MatrizPresencia = Array.from({ length: 7 }, () =>
     Array(30).fill('NO_PRESENTE' as AsignacionAux)
   )

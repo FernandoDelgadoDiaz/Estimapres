@@ -111,15 +111,18 @@ export interface HuecoSupervision {
 const slotAHora = (s: number) => `${String(8 + Math.floor(s / 2)).padStart(2, '0')}:${s % 2 ? '30' : '00'}`
 
 /**
- * Diagnóstico ANTES de generar, con la misma semántica que el motor (H-A1: al menos un
- * AUX presente 08:00–09:00; H-A2: al menos un AUX presente cada media hora 09:00–22:00).
- * Si hay huecos, hoy la pasada 2 no asigna ningún AUX a caja en toda la semana: avisarlo
- * antes evita una semana generada sin supervisores en caja.
+ * Diagnóstico ANTES de generar, con la misma semántica que el motor (H-A1: con «apertura
+ * solo AUX» activa, al menos un AUX presente 08:00–09:00; H-A2: al menos un AUX presente
+ * cada media hora 09:00–22:00). Los huecos se informan y dejan la semana en BORRADOR; el
+ * motor asigna igual el resto de la semana (#38).
  */
-export function diagnosticarSupervision(auxiliares: Auxiliar[]): HuecoSupervision[] {
+export function diagnosticarSupervision(auxiliares: Auxiliar[], opciones: { aperturaSoloAux?: boolean } = {}): HuecoSupervision[] {
   const presencia = Object.fromEntries(auxiliares.filter(a => a.activo).map(a => [a.id, construirMatrizAux(a.horarioSemanal.map(h => horarioValido(h ?? '') ? h : ''))]))
   const huecos: HuecoSupervision[] = []
-  for (const v of validarPresenciaAux0809(presencia)) {
+  // #38: H-A1 (AUX en la apertura) solo existe con «apertura solo AUX» activa.
+  // Desactivada, la apertura la abre un FULL/PART y no se exige AUX 08:00–09:00.
+  const aperturaSoloAux = opciones.aperturaSoloAux ?? true
+  for (const v of aperturaSoloAux ? validarPresenciaAux0809(presencia) : []) {
     const d = v.dia ?? 0
     huecos.push({ dia: d, tipo: 'APERTURA', desde: '08:00', hasta: '09:00', detalle: `${DIAS[d]}: ningún supervisor (AUX) presente en la apertura 08:00–09:00.` })
   }
@@ -148,6 +151,7 @@ export function diagnosticarSupervision(auxiliares: Auxiliar[]): HuecoSupervisio
 /** Conveniencia: resuelve AUX y eventuales de la semana y diagnostica la supervisión. */
 export function prepararDisponibilidadSemana(
   auxiliares: Auxiliar[], eventuales: Eventual[], excepciones: ExcepcionDisponibilidad[], lunes: string,
+  opciones: { aperturaSoloAux?: boolean } = {},
 ) {
   const auxIds = new Set(auxiliares.map(a => a.id))
   const evIds = new Set(eventuales.map(e => e.id))
@@ -158,6 +162,6 @@ export function prepararDisponibilidadSemana(
     auxiliares: aux.personas, eventuales: ev.personas,
     origen: { ...aux.origen, ...ev.origen },
     errores: [...aux.errores, ...ev.errores],
-    huecosSupervision: diagnosticarSupervision(aux.personas),
+    huecosSupervision: diagnosticarSupervision(aux.personas, opciones),
   }
 }

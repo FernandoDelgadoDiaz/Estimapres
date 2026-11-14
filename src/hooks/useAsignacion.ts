@@ -4,8 +4,7 @@ import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, E
 import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
-import { recalcularCajaAux } from '../utils/recalculoAux'
-import type { ConfigOperativa } from '../utils/preferencias'
+import { recalcularSemanaTrasEdicion, type ContextoRecalculo } from '../utils/recalculoSemana'
 
 /**
  * Aplica una edición manual de jornada sobre una lista de horarios y devuelve
@@ -38,6 +37,29 @@ export function aplicarEdicionJornada(
       totalHoras: jornadas.reduce((s, j) => s + j.horas, 0),
     }
   })
+}
+
+/**
+ * #38 — Aplica una edición manual y mantiene coherentes las tres pasadas:
+ *  - la edición de un eventual queda FIJADA ("id|día") como decisión confirmada;
+ *  - con contexto, se recalculan CAJA de AUX (pasada 2), el resto de los
+ *    eventuales (pasada 3), cobertura, faltantes y %; sin contexto (no hay
+ *    demanda conocida) solo se aplica la edición y la validación lo informa.
+ */
+export function aplicarEdicionConRecalculo(
+  prev: ResultadoAsignacion, colaboradorId: string, dia: number, nueva: JornadaResumida, nombre: string,
+  recalculo?: Omit<ContextoRecalculo, 'eventualesFijos'>,
+): ResultadoAsignacion {
+  const esEventual = prev.horarios.some(h => h.colaboradorId === colaboradorId && h.rolGeneral === 'eventual_sector')
+  const horarios = aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva)
+  const cajaEventual = esEventual ? actualizarCajaEventual(prev.cajaEventual, colaboradorId, dia, nueva, nombre) : prev.cajaEventual
+  const eventualesFijos = esEventual
+    ? [...new Set([...(prev.eventualesFijos ?? []), `${colaboradorId}|${dia}`])]
+    : prev.eventualesFijos
+  const editado: ResultadoAsignacion = { ...prev, horarios, cajaEventual, eventualesFijos }
+  if (!recalculo) return editado
+  const { avisos, ...rec } = recalcularSemanaTrasEdicion(editado, { ...recalculo, eventualesFijos })
+  return { ...editado, ...rec, alertas: [...new Set([...prev.alertas, ...avisos])] }
 }
 
 /** Refleja las ediciones de caja de eventuales en el anexo y la cobertura. */
@@ -116,25 +138,11 @@ export function useAsignacion() {
    */
   const editarJornada = (
     colaboradorId: string, dia: number, nueva: JornadaResumida, nombre?: string,
-    // #38: si se edita la PRESENCIA de un AUX, sus bloques en CAJA se recalculan
-    // con la misma configuración operativa (nunca quedan CAJA fuera de presencia).
-    recalculo?: { necesidadFranjas: number[][]; nombrePorId: Record<string, string>; operativa: Partial<ConfigOperativa> },
+    // #38: contexto para recalcular la cascada (AUX y eventuales) con la misma
+    // configuración operativa con la que se generó la semana.
+    recalculo?: Omit<ContextoRecalculo, 'eventualesFijos'>,
   ) => {
-    setResultado(prev => {
-      if (!prev) return prev
-      const esEventual = prev.horarios.some(h => h.colaboradorId === colaboradorId && h.rolGeneral === 'eventual_sector')
-      const esAux = prev.horarios.some(h => h.colaboradorId === colaboradorId && h.rolGeneral === 'aux_supervisor')
-      const horarios = aplicarEdicionJornada(prev.horarios, colaboradorId, dia, nueva)
-      const cajaAux = esAux && recalculo
-        ? recalcularCajaAux(horarios, recalculo.necesidadFranjas, recalculo.nombrePorId, recalculo.operativa) ?? prev.cajaAux
-        : prev.cajaAux
-      return {
-        ...prev,
-        horarios,
-        cajaAux,
-        cajaEventual: esEventual ? actualizarCajaEventual(prev.cajaEventual, colaboradorId, dia, nueva, nombre ?? colaboradorId) : prev.cajaEventual,
-      }
-    })
+    setResultado(prev => (prev ? aplicarEdicionConRecalculo(prev, colaboradorId, dia, nueva, nombre ?? colaboradorId, recalculo) : prev))
   }
 
   return {

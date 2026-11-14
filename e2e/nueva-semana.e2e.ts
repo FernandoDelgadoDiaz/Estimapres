@@ -31,7 +31,7 @@ const eventual = {
   activo: true,
 }
 
-async function preparar(page: Page, auxiliarInvalido = false) {
+async function preparar(page: Page, auxiliarInvalido = false, extra: { auxiliares?: unknown[]; reglas?: unknown[] } = {}) {
   const externas: string[] = []
   await page.route('**/*', async route => {
     const url = new URL(route.request().url())
@@ -39,7 +39,7 @@ async function preparar(page: Page, auxiliarInvalido = false) {
     externas.push(url.origin)
     await route.abort()
   })
-  await page.addInitScript(({ cajeros, auxiliares, eventual, auxiliarInvalido }) => {
+  await page.addInitScript(({ cajeros, auxiliares, eventual, auxiliarInvalido, reglas }) => {
     if (auxiliarInvalido) auxiliares[0].horarioSemanal[0] = '08:15-16:00'
     if (sessionStorage.getItem('ah2-fixture')) return
     sessionStorage.setItem('ah2-fixture', '1')
@@ -47,7 +47,8 @@ async function preparar(page: Page, auxiliarInvalido = false) {
     localStorage.setItem('cajeros_colaboradores::900', JSON.stringify(cajeros))
     localStorage.setItem('aliada_auxiliares::900', JSON.stringify(auxiliares))
     localStorage.setItem('aliada_eventuales::900', JSON.stringify([eventual]))
-  }, { cajeros: CAJEROS_DE_PRUEBA, auxiliares: AUXILIARES_DE_PRUEBA, eventual, auxiliarInvalido })
+    if (reglas) localStorage.setItem('aliada_reglas_configurables::900', JSON.stringify(reglas))
+  }, { cajeros: CAJEROS_DE_PRUEBA, auxiliares: extra.auxiliares ?? AUXILIARES_DE_PRUEBA, eventual, auxiliarInvalido, reglas: extra.reglas })
   await page.goto('/nueva-semana')
   await page.locator('input[type=file]').setInputFiles({
     name: 'demanda-prueba.pdf',
@@ -106,6 +107,30 @@ test('genera a partir del POM y el patrón habitual sin cargar excepciones', asy
   await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
   await expect(page.getByTestId('estado-validacion')).not.toContainText('OP_APERTURA')
   await expect(page.getByText('Aux A', { exact: true }).first()).toBeVisible()
+  expect(externas).toEqual([])
+})
+
+test('#38 apertura OFF sin AUX de 08:00 a 09:00: no exige AUX en la apertura y pide un cajero FULL/PART', async ({ page }) => {
+  const externas = await preparar(page, false, {
+    auxiliares: [
+      { id: 'aux-x', nombre: 'Aux X', activo: true, horarioSemanal: Array(7).fill('09:00-16:00') },
+      { id: 'aux-y', nombre: 'Aux Y', activo: true, horarioSemanal: Array(7).fill('15:00-23:00') },
+    ],
+    reglas: [{ id: 'r-off', ambito: 'local', tipo: 'apertura_solo_aux', activa: false, descripcion: 'Apertura con cajero', creadaEl: '2026-11-01T00:00:00.000Z' }],
+  })
+  await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: DESACTIVADA (configurada en Reglas)')
+  await expect(page.getByText('Supervisión cubierta según las franjas que comprueba el motor.')).toBeVisible()
+  await expect(page.getByText(/ningún supervisor \(AUX\) presente en la apertura/)).toHaveCount(0)
+  await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
+  const estado = page.getByTestId('estado-validacion')
+  await expect(estado).toBeVisible()
+  await expect(estado).not.toContainText('ningún supervisor (AUX) presente en la apertura')
+  await expect(estado).not.toContainText('AUX en caja (la apertura la abre un FULL/PART)')
+  await expect(estado).not.toContainText('eventual(es) en caja')
+  // Con 2 FULL (las únicas jornadas que pueden abrir a las 08:00) no alcanza para 7 días:
+  // se informa la imposibilidad, sin sustituir por AUX/eventual ni forzar contratos.
+  await expect(estado).toContainText('BORRADOR')
+  await expect(estado).toContainText('ningún cajero FULL/PART abre dentro de su contrato')
   expect(externas).toEqual([])
 })
 

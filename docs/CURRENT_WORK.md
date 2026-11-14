@@ -2,45 +2,53 @@
 
 ## Retoma — #38 corrección del motor de asignación (apertura, AUX, eventuales) · 2026-11-14
 
-- **Rama:** `fix/ah2-38-apertura-aux`, desde `main@59e751e` (#37). [Issue #38](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/38). El PR borrador registra el SHA del candidato. **Sin merge, deploy, migraciones ni escrituras en Supabase.**
-- **Causa raíz del 2/1 (semana 16–22/11, v3):** con «apertura solo AUX» ON la pasada 1 deja toda la demanda de 08:00–09:00 en el déficit. La pasada 2 sentaba al AUX de apertura pero armaba el déficit para la pasada 3 **sin descontar** esa cobertura. La pasada 3 cubría ese déficit con el eventual disponible desde las 06:00, los seis días en que estaba disponible. El validador no revisaba la composición de la apertura, por eso figuraba VALIDADO.
-- **Corrección del motor:**
-  - **Pasada 1:**
-    - Default `apertura_solo_aux` = ON, igual que el negocio.
-    - OFF: los slots de apertura pesan ×8 para que los abra un FULL/PART con el catálogo vigente (cortadas FULL).
-    - No se cambió el catálogo de jornadas.
-  - **Pasada 2 (reescrita):**
-    - El AUX está presente PARADO por defecto y se sienta solo donde hay déficit real, dejando ≥1 parado.
-    - ON: exactamente 1 AUX abre y su cobertura se descuenta del déficit. Sin AUX → violación, sin sustituto. OFF: ningún AUX en la apertura.
-    - Los huecos H-A1/H-A2 se informan y ya no anulan la pasada entera.
-    - Se eliminaron el relleno y la extensión de bloques sin déficit.
-    - R3: el designado queda supervisando parado; solo abre si es el único AUX presente en la apertura obligatoria.
-  - **Pasada 3:** solo cubre el déficit residual, nunca la apertura.
-- **Reglas:** `resolverReglaOperativa` considera solo las filas aplicables a la semana. La vigencia acotada prevalece sobre la permanente; a igual especificidad, la más reciente. Los conflictos se informan; antes ganaba la primera fila. Nueva Semana muestra el estado efectivo y su origen. 091 tiene dos filas `supervisor_jornada_completa` activas en cuentas distintas; RLS hace que cada cuenta vea solo la suya, así que el valor efectivo no cambia. No se tocaron.
-- **Validador:** recibe `operativa` y bloquea:
+- **Rama:** `fix/ah2-38-apertura-aux` desde `main@59e751e` (#37). [PR borrador #39](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/39) · [Issue #38](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/38).
+- **Commits:**
+  - 1.ª entrega: `449d835`.
+  - Cierre: SHA registrado en el PR #39.
+- **Restricciones respetadas:** sin merge, deploy, migraciones ni escrituras en Supabase. Prestify, `netlify/` y sus funciones de pago no cambian.
+- **Causa del 2/1 (semana 16–22/11, v3):**
+  - Con apertura ON, la pasada 2 sentaba al AUX pero no descontaba su cobertura del déficit.
+  - La pasada 3 cubría la apertura con el eventual disponible desde las 06:00.
+  - El validador no revisaba la composición de la apertura.
+- **Decisiones del propietario aplicadas (PR #39):**
+  - R3 es presencia y supervisión continua, no caja continua.
+  - AUX en caja solo con déficit real, salvo la apertura obligatoria con ON. Se admiten bloques de 30 min.
+  - Con OFF abre un FULL/PART dentro de su contrato; no se modifica el catálogo laboral.
+  - Las semanas históricas se preservan. Si faltan datos, su estado es «SIN VERIFICAR», nunca VALIDADO.
+- **Motor:**
+  - Pasada 1: default ON. Con OFF prioriza abrir con FULL/PART (cortadas FULL del catálogo vigente).
+  - Pasada 2: AUX en caja solo con déficit, dejando ≥1 parado. ON = exactamente 1 AUX descontado; OFF = ningún AUX. Los huecos se informan sin anular la semana.
+  - Pasada 3: solo el déficit residual, nunca la apertura.
+- **Apertura configurable de punta a punta:**
+  - El diagnóstico previo (`diagnosticarSupervision`), la validación (H-A1), la generación, la edición y el PDF usan el estado efectivo. Con OFF no hay H-A1.
+  - Si con OFF no hay un cajero compatible, se informa «ningún cajero FULL/PART abre dentro de su contrato», sin sustituirlo.
+- **Recálculo integral tras una edición (`recalculoSemana.ts` + `aplicarEdicionConRecalculo`):**
+  - Cualquier edición de cajero, AUX o eventual re-ejecuta las pasadas 2 y 3 con la configuración y la disponibilidad guardadas, y actualiza cobertura, faltantes y %.
+  - Las celdas de eventuales editadas a mano quedan fijadas (`eventualesFijos`): no se pisan y se descuentan antes de recalcular.
+  - Los conflictos no resolubles quedan como BORRADOR con su causa: cobertura duplicada, apertura y disponibilidad.
+  - Si no hay disponibilidad guardada, los eventuales no se reasignan y se avisa.
+- **Reglas:** `resolverReglaOperativa` es determinística: vigencia acotada, luego la más reciente, con conflicto informado. Nueva Semana muestra el estado efectivo.
+- **Validador:** bloquea con los códigos:
   - `OP_APERTURA_COMPOSICION`
   - `OP_CATEGORIA`
   - `OP_AUX_FUERA_PRESENCIA`
   - `OP_EVENTUAL_FUERA_DISPONIBILIDAD`
   - `OP_AUX_CIERRE`
-  - `H-A2` sobre presencia real
+  - `H-A2`
   - `OP_SUPERVISOR_JORNADA`
   - `OP_COBERTURA_DUPLICADA`
-- **Persistencia y edición:**
-  - La semana guarda `configOperativa` y `disponibilidadSemana` en el jsonb `horario_completo` (sin migración).
-  - Último Horario valida completo, muestra el estado y exporta el PDF con VALIDADO o BORRADOR real.
-  - Editar la presencia de un AUX recalcula CAJA con la misma configuración, en las dos pantallas.
-- **Pruebas:**
+
+  Además informa `limitaciones`, que impiden VALIDADO; el PDF las lista como `SIN_VERIFICAR`.
+- **Persistencia sin migración:** el jsonb `horario_completo` guarda `configOperativa`, `disponibilidadSemana` y `eventualesFijos`.
+- **Pruebas del cierre:**
   - TypeScript y build: OK.
-  - Vitest 248 aprobadas y 2 omitidas (locales). Las 30 pruebas nuevas dan 23 rojas sobre `main` y 30 verdes con la corrección.
-  - Playwright 10/10.
+  - Vitest: 261 aprobadas y 2 omitidas (locales).
+  - Playwright: 11/11.
+  - Contra el candidato `449d835`: el archivo nuevo de recálculo y apertura OFF da 11/13 rojas, y el recorrido Playwright OFF falla.
+  - Contra `main`: las pruebas de la 1.ª entrega dan 23/30 rojas.
   - `npm run lint` sigue sin configuración ESLint (también en la base).
-- **Pendientes de decisión:**
-  1. Confirmar la nueva semántica de R3, que revierte `05ccf5f`.
-  2. OFF con PART o corridas desde 08:00 requiere autorización para cambiar el catálogo de jornadas.
-  3. Sin la extensión a 1 h, un AUX puede quedar en caja 30 min aislados.
-  4. Las semanas guardadas antes de #38 se revalidan con las reglas vigentes y sin verificar la disponibilidad de eventuales.
-- **Próxima acción:** revisión del propietario del PR borrador. Tras autorizarlo, regenerar en la 091 la semana 16–22/11 como versión nueva, sin modificar las guardadas.
+- **Próxima acción:** revisión final y autorización del propietario. Tras publicar, regenerar en la 091 la semana 16–22/11 como versión nueva, sin modificar las guardadas.
 
 ## Retoma — corrección de la operación real de la 091 · 2026-11-13
 

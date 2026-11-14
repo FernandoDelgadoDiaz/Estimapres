@@ -118,6 +118,8 @@ export interface ResultadoValidacion {
   publicable: boolean
   violaciones: Violacion[]
   advertencias?: string[]
+  /** #38: datos que faltaron para validar todo (p. ej. semanas históricas). Impiden VALIDADO. */
+  limitaciones?: string[]
   metricas?: MetricasValidacion
 }
 
@@ -471,7 +473,7 @@ function validarReglasOperativas(
       } else {
         if (a.length) problemas.push(`${h}: ${a.length} AUX en caja (la apertura la abre un FULL/PART)`)
         if (ev.length) problemas.push(`${h}: ${ev.length} eventual(es) en caja`)
-        if (demanda(d, s) > 0 && f < 1) problemas.push(`${h}: sin cajero FULL/PART`)
+        if (demanda(d, s) > 0 && f < 1) problemas.push(`${h}: ningún cajero FULL/PART abre dentro de su contrato (no se sustituye por AUX ni eventual)`)
       }
     }
     if (problemas.length) v.push({

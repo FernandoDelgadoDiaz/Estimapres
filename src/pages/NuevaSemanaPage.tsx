@@ -184,11 +184,17 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const cargandoDotacion = cargandoColaboradores || cargandoAuxiliares || cargandoEventuales
   const errorDotacion = errorColaboradores || errorAuxiliares || errorEventuales
   const fechasSemana = useMemo(() => esLunesISO(lunesSemana) ? fechasDeSemana(lunesSemana) : [], [lunesSemana])
+  // #38: estado efectivo de las reglas operativas de la semana elegida; el
+  // diagnóstico previo, la generación, la validación y el PDF usan el mismo.
+  const operativaSemana = useMemo(
+    () => fechasSemana.length ? configOperativaDeReglas(reglas, fechasSemana[0]) : null,
+    [reglas, fechasSemana]
+  )
   const disponibilidad = useMemo(
-    () => !cargandoDotacion && !errorDotacion && fechasSemana.length
-      ? prepararDisponibilidadSemana(auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana[0])
+    () => !cargandoDotacion && !errorDotacion && fechasSemana.length && operativaSemana
+      ? prepararDisponibilidadSemana(auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana[0], { aperturaSoloAux: operativaSemana.aperturaSoloAux })
       : null,
-    [auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana, cargandoDotacion, errorDotacion]
+    [auxiliaresActivos, eventualesActivos, excepcionesDisponibilidad, fechasSemana, cargandoDotacion, errorDotacion, operativaSemana]
   )
   const excepcionesDeLaSemana = excepcionesDisponibilidad.filter(x => fechasSemana.includes(x.fecha))
   const generacionDeshabilitada = loadingAsignacion || !disponibilidad || disponibilidad.errores.length > 0
@@ -206,7 +212,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
 
     // Capacidad 1: reglas configuradas → excepciones + demanda mínima + tope de francos
     const excepcionesTotales = [...excepciones, ...reglasAExcepciones(reglas, fechaLunes)]
-    const operativa = configOperativaDeReglas(reglas, fechaLunes)
+    const operativa = operativaSemana ?? configOperativaDeReglas(reglas, fechaLunes)
     const opciones = {
       preferenciasPorNombre: sesgosBlandos, // Capacidades 2 y 3 (preferencia blanda)
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
@@ -283,8 +289,11 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       antes: { esFranco: jornadaAnterior.esFranco, turnos: jornadaAnterior.turnos },
       despues: nueva,
     })
+    // #38: recalcular la cascada (AUX + eventuales + cobertura) con la configuración
+    // y la disponibilidad resuelta con que se generó la semana.
     editarJornada(colaboradorId, dia, nueva, nombrePorId[colaboradorId], ctxValidacion?.operativa ? {
       necesidadFranjas: necesidad.map(f => [...f.necesidad]), nombrePorId, operativa: ctxValidacion.operativa,
+      disponibilidad: Object.fromEntries([...ctxValidacion.auxiliares, ...ctxValidacion.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
     } : undefined)
     if (semanaGuardadaId) actualizarSemana(semanaGuardadaId, { editadoManualmente: true })
   }
@@ -297,6 +306,10 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         horarios: resultado.horarios,
         cajaAux: resultado.cajaAux,
         cajaEventual: resultado.cajaEventual,
+        eventualesFijos: resultado.eventualesFijos,
+        coberturaFranjas: resultado.coberturaFranjas,
+        faltantesFranjas: resultado.faltantesFranjas,
+        porcentajeCobertura: resultado.porcentajeCobertura,
         resumenPorColaborador: resumirTurnos(resultado.horarios, nombrePorId),
       })
     }

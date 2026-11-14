@@ -8,12 +8,11 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import { useCorrecciones } from '../hooks/useCorrecciones'
-import { aplicarEdicionJornada, actualizarCajaEventual } from '../hooks/useAsignacion'
+import { aplicarEdicionConRecalculo } from '../hooks/useAsignacion'
 import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
 import { getSucursalActual } from '../utils/sucursal'
-import { recalcularCajaAux } from '../utils/recalculoAux'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
 
@@ -75,7 +74,15 @@ export default function UltimoHorarioPage() {
     porcentajeCobertura: ultimaSemana.porcentajeCobertura ?? 0,
     cajaAux: ultimaSemana.cajaAux,
     cajaEventual: ultimaSemana.cajaEventual,
+    eventualesFijos: ultimaSemana.eventualesFijos,
   } : null, [ultimaSemana])
+
+  // #38: semanas históricas sin los datos necesarios → nunca VALIDADO; se explica qué falta.
+  const limitaciones = useMemo(() => !ultimaSemana ? [] : [
+    !ultimaSemana.configOperativa && 'La semana no registró su configuración operativa: se revisó con las reglas vigentes hoy.',
+    !ultimaSemana.disponibilidadSemana && 'La semana no registró la disponibilidad resuelta de AUX y eventuales: no se puede verificar que los eventuales estén dentro de su disponibilidad.',
+    !ultimaSemana.necesidadFranjas && 'La demanda del POM no se guardó: se reconstruyó en forma aproximada desde la cobertura.',
+  ].filter((x): x is string => !!x), [ultimaSemana])
 
   // #38: validación COMPLETA (no solo horas) tras cada edición y antes de exportar.
   const validacion = useMemo(() => {
@@ -91,9 +98,10 @@ export default function UltimoHorarioPage() {
         minimosCajeros: demandaMinimaDeReglas(reglas, ultimaSemana.fechaLunes),
         operativa,
         omitirDisponibilidadEventual: !disp,
+        limitaciones,
       },
     )
-  }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas])
+  }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])
   const avisosHoras = validacion?.advertencias ?? []
 
   // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el
@@ -109,7 +117,7 @@ export default function UltimoHorarioPage() {
       necesidadFranjas: ultimaSemana.necesidadFranjas,
       // #38: el PDF lleva el estado real; si hay violaciones sale como BORRADOR.
       validacion: validacion ?? undefined,
-      estado: validacion ? estadoValidacion(validacion) : 'BORRADOR: sin datos de demanda para validar',
+      estado: validacion ? estadoValidacion(validacion) : 'SIN VERIFICAR: la semana no tiene datos de demanda para validar',
     })
     pdf.save(`horarios-${ultimaSemana.descripcion.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
@@ -130,28 +138,26 @@ export default function UltimoHorarioPage() {
       despues: nueva,
     })
 
-    // Aplicar la edición y persistir la semana actualizada (Supabase + localStorage)
-    const horarios = aplicarEdicionJornada(ultimaSemana.horarios, colaboradorId, dia, nueva)
-
-    // Si se editó la PRESENCIA de un AUX, el snapshot de sus bloques en CAJA
-    // queda obsoleto: re-ejecutar la lógica de Pasada 2 sobre el horario
-    // modificado. Si el recálculo no es posible (sin necesidad del PDF o la
-    // presencia editada rompe precondiciones duras), se conserva el previo.
-    const filaEditada = ultimaSemana.horarios.find(h => h.colaboradorId === colaboradorId)
-    let cajaAux = ultimaSemana.cajaAux
-    if (filaEditada?.rolGeneral === 'aux_supervisor' && necesidadFranjas) {
-      const recalculada = recalcularCajaAux(horarios, necesidadFranjas, nombrePorId, operativa ?? undefined)
-      if (recalculada) cajaAux = recalculada
-      else console.warn('No se pudo recalcular CAJA de AUX; se conserva el snapshot previo.')
-    }
+    // Aplicar la edición y recalcular la cascada (#38): CAJA de AUX, eventuales no
+    // fijados a mano, cobertura y faltantes, con la configuración de la semana.
+    // Sin demanda conocida solo se aplica la edición (la validación lo informa).
+    if (!resultadoActual) return
+    const editado = aplicarEdicionConRecalculo(
+      resultadoActual, colaboradorId, dia, nueva, nombrePorId[colaboradorId] ?? colaboradorId,
+      necesidadFranjas && operativa
+        ? { necesidadFranjas, operativa, nombrePorId, disponibilidad: ultimaSemana.disponibilidadSemana }
+        : undefined,
+    )
 
     actualizarSemana(ultimaSemana.id, {
-      horarios,
-      cajaAux,
-      cajaEventual: filaEditada?.rolGeneral === 'eventual_sector'
-        ? actualizarCajaEventual(ultimaSemana.cajaEventual, colaboradorId, dia, nueva, nombrePorId[colaboradorId] ?? colaboradorId)
-        : ultimaSemana.cajaEventual,
-      resumenPorColaborador: resumirTurnos(horarios, nombrePorId),
+      horarios: editado.horarios,
+      cajaAux: editado.cajaAux,
+      cajaEventual: editado.cajaEventual,
+      eventualesFijos: editado.eventualesFijos,
+      coberturaFranjas: editado.coberturaFranjas,
+      faltantesFranjas: editado.faltantesFranjas,
+      porcentajeCobertura: editado.porcentajeCobertura,
+      resumenPorColaborador: resumirTurnos(editado.horarios, nombrePorId),
       editadoManualmente: true,
     })
   }
@@ -262,7 +268,7 @@ export default function UltimoHorarioPage() {
             color: validacion?.publicable ? 'var(--text)' : 'var(--danger, #b91c1c)',
           }}>
             <p style={{ fontWeight: 700 }}>
-              {validacion ? `${validacion.publicable ? '✅' : '⛔'} ${estadoValidacion(validacion)}` : '⛔ BORRADOR: sin datos de demanda para validar'}
+              {validacion ? `${validacion.publicable ? '✅' : '⛔'} ${estadoValidacion(validacion)}` : '⛔ SIN VERIFICAR: la semana no tiene datos de demanda para validar'}
             </p>
             {operativa && (
               <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>

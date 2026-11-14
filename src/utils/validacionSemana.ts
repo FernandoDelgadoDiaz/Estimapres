@@ -26,6 +26,12 @@ export interface ContextoValidacionSemana {
    * disponibilidad sin riesgo de falsos positivos y se omite ese control.
    */
   omitirDisponibilidadEventual?: boolean
+  /**
+   * #38 — Datos que faltan para una validación completa (semanas históricas).
+   * Si hay alguna, el resultado nunca es VALIDADO: queda «SIN VERIFICAR» con la
+   * limitación explicada, aunque no se detecten violaciones.
+   */
+  limitaciones?: string[]
 }
 
 export function operativaEfectiva(op?: Partial<ConfigOperativa>): ConfigOperativa {
@@ -65,24 +71,23 @@ export function validarResultadoSemana(
   const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales)
   // H-A2 (supervisión 09–22) ya la calcula el validador sobre la presencia real
   // (incluida la edición manual); del diagnóstico previo solo se agrega H-A1.
-  const huecos = (ctx.huecosSupervision ?? []).filter(h => h.tipo === 'APERTURA')
-  if (!huecos.length && !horas.violaciones.length) return { ...validacion, advertencias: horas.advertencias }
-
+  // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).
+  const op = operativaEfectiva(ctx.operativa)
+  const huecos = (ctx.huecosSupervision ?? []).filter(h => h.tipo === 'APERTURA' && op.aperturaSoloAux)
+  const limitaciones = ctx.limitaciones?.filter(Boolean) ?? []
+  const violaciones = [
+    ...validacion.violaciones,
+    ...horas.violaciones,
+    ...huecos.map(h => ({ codigo: 'H-A1', nivel: 'OPERATIVA' as const, dia: h.dia, detalle: h.detalle })),
+  ]
+  const publicable = validacion.publicable && violaciones.length === validacion.violaciones.length && !limitaciones.length
   return {
     ...validacion,
     advertencias: horas.advertencias,
-    ok: false,
-    publicable: false,
-    violaciones: [
-      ...validacion.violaciones,
-      ...horas.violaciones,
-      ...huecos.map(h => ({
-        codigo: h.tipo === 'APERTURA' ? 'H-A1' : 'H-A2',
-        nivel: 'OPERATIVA' as const,
-        dia: h.dia,
-        detalle: h.detalle,
-      })),
-    ],
+    ok: publicable,
+    publicable,
+    violaciones,
+    ...(limitaciones.length ? { limitaciones } : {}),
   }
 }
 
@@ -112,6 +117,8 @@ export function validarHorasAsignadas(
 export function estadoValidacion(v: ResultadoValidacion, perfil: PerfilNormativo = PERFIL_MOTOR_ACTUAL): string {
   const base = v.publicable
     ? 'VALIDADO: sin violaciones de reglas'
-    : `BORRADOR: ${v.violaciones.length} ${v.violaciones.length === 1 ? 'violación' : 'violaciones'} de reglas`
+    : v.violaciones.length === 0 && v.limitaciones?.length
+      ? `SIN VERIFICAR: ${v.limitaciones.join(' ')}`
+      : `BORRADOR: ${v.violaciones.length} ${v.violaciones.length === 1 ? 'violación' : 'violaciones'} de reglas${v.limitaciones?.length ? ` (además, ${v.limitaciones.length === 1 ? 'una limitación' : `${v.limitaciones.length} limitaciones`} de datos)` : ''}`
   return perfil.estado === 'VALIDADO' ? base : `${base} (perfil normativo pendiente de validación jurídica)`
 }
