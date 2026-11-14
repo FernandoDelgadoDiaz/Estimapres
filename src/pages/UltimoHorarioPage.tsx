@@ -1,18 +1,18 @@
-import { validarHorasAsignadas } from '../utils/validacionSemana'
+import { validarResultadoSemana, estadoValidacion } from '../utils/validacionSemana'
+import { useReglas } from '../hooks/useReglas'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { JornadaResumida, ResultadoAsignacion } from '../types'
+import { HORAS_FRANJAS, JornadaResumida, ResultadoAsignacion } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import { useCorrecciones } from '../hooks/useCorrecciones'
-import { aplicarEdicionJornada, actualizarCajaEventual } from '../hooks/useAsignacion'
-import { resumirTurnos } from '../utils/preferencias'
+import { aplicarEdicionConRecalculo } from '../hooks/useAsignacion'
+import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
 import { getSucursalActual } from '../utils/sucursal'
-import { recalcularCajaAux } from '../utils/recalculoAux'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
 
@@ -28,6 +28,7 @@ export default function UltimoHorarioPage() {
   const { auxiliaresActivos } = useAuxiliares()
   const { eventualesActivos } = useEventuales()
   const { agregarCorreccion } = useCorrecciones()
+  const { reglas } = useReglas()
 
   // La semana generada más recientemente (por fecha de generación, no por lunes:
   // regenerar una semana vieja también debe aparecer acá como "último horario").
@@ -58,27 +59,65 @@ export default function UltimoHorarioPage() {
     return cob.map((fila, fi) => fila.map((x, dia) => x + (falt[fi]?.[dia] ?? 0)))
   }, [ultimaSemana])
 
-  const controlHoras = validarHorasAsignadas(ultimaSemana?.horarios ?? [], colaboradoresActivos, eventualesActivos)
-  const avisosHoras = [...controlHoras.violaciones.map(v => v.detalle), ...controlHoras.advertencias]
+  // #38: configuración operativa con la que se generó la semana (o, si es una
+  // semana anterior a #38, la vigente hoy para ese lunes — se indica en pantalla).
+  const operativa = useMemo(() => {
+    if (!ultimaSemana) return null
+    return ultimaSemana.configOperativa ?? configOperativaDeReglas(reglas, ultimaSemana.fechaLunes)
+  }, [ultimaSemana, reglas])
+
+  const resultadoActual = useMemo<ResultadoAsignacion | null>(() => ultimaSemana ? {
+    horarios: ultimaSemana.horarios,
+    coberturaFranjas: ultimaSemana.coberturaFranjas ?? [],
+    faltantesFranjas: ultimaSemana.faltantesFranjas ?? [],
+    alertas: [],
+    porcentajeCobertura: ultimaSemana.porcentajeCobertura ?? 0,
+    cajaAux: ultimaSemana.cajaAux,
+    cajaEventual: ultimaSemana.cajaEventual,
+    eventualesFijos: ultimaSemana.eventualesFijos,
+  } : null, [ultimaSemana])
+
+  // #38: semanas históricas sin los datos necesarios → nunca VALIDADO; se explica qué falta.
+  const limitaciones = useMemo(() => !ultimaSemana ? [] : [
+    !ultimaSemana.configOperativa && 'La semana no registró su configuración operativa: se revisó con las reglas vigentes hoy.',
+    !ultimaSemana.disponibilidadSemana && 'La semana no registró la disponibilidad resuelta de AUX y eventuales: no se puede verificar que los eventuales estén dentro de su disponibilidad.',
+    !ultimaSemana.necesidadFranjas && 'La demanda del POM no se guardó: se reconstruyó en forma aproximada desde la cobertura.',
+  ].filter((x): x is string => !!x), [ultimaSemana])
+
+  // #38: validación COMPLETA (no solo horas) tras cada edición y antes de exportar.
+  const validacion = useMemo(() => {
+    if (!ultimaSemana || !resultadoActual || !necesidadFranjas || !operativa) return null
+    const disp = ultimaSemana.disponibilidadSemana
+    const conDisp = <T extends { id: string; horarioSemanal: string[] }>(p: T): T => (disp?.[p.id] ? { ...p, horarioSemanal: disp[p.id] } : p)
+    return validarResultadoSemana(
+      resultadoActual, colaboradoresActivos, auxiliaresActivos.map(conDisp), eventualesActivos.map(conDisp),
+      {
+        necesidad: HORAS_FRANJAS.map((hora, fi) => ({ hora, necesidad: necesidadFranjas[fi] ?? Array(7).fill(0) })),
+        excepciones: reglasAExcepciones(reglas, ultimaSemana.fechaLunes),
+        maxFrancosDia: capFrancosDeReglas(reglas, ultimaSemana.fechaLunes),
+        minimosCajeros: demandaMinimaDeReglas(reglas, ultimaSemana.fechaLunes),
+        operativa,
+        omitirDisponibilidadEventual: !disp,
+        limitaciones,
+      },
+    )
+  }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])
+  const avisosHoras = validacion?.advertencias ?? []
 
   // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el
   // snapshot de cobertura/CAJA guardado al generar (si existe).
   const handleExportarPDF = () => {
     if (!ultimaSemana) return
-    const resultado: ResultadoAsignacion = {
-      horarios: ultimaSemana.horarios,
-      coberturaFranjas: ultimaSemana.coberturaFranjas ?? [],
-      faltantesFranjas: ultimaSemana.faltantesFranjas ?? [],
-      alertas: avisosHoras,
-      porcentajeCobertura: ultimaSemana.porcentajeCobertura ?? 0,
-      cajaAux: ultimaSemana.cajaAux,
-      cajaEventual: ultimaSemana.cajaEventual,
-    }
+    if (!resultadoActual) return
+    const resultado: ResultadoAsignacion = { ...resultadoActual, alertas: avisosHoras }
     const pdf = generarPDF(resultado, colaboradoresActivos, ultimaSemana.descripcion, auxiliaresActivos, eventualesActivos, {
       sucursal: getSucursalActual(),
       fechas: esLunesISO(ultimaSemana.fechaLunes) ? fechasDeSemana(ultimaSemana.fechaLunes) : undefined,
       version: ultimaSemana.version,
       necesidadFranjas: ultimaSemana.necesidadFranjas,
+      // #38: el PDF lleva el estado real; si hay violaciones sale como BORRADOR.
+      validacion: validacion ?? undefined,
+      estado: validacion ? estadoValidacion(validacion) : 'SIN VERIFICAR: la semana no tiene datos de demanda para validar',
     })
     pdf.save(`horarios-${ultimaSemana.descripcion.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
@@ -99,28 +138,26 @@ export default function UltimoHorarioPage() {
       despues: nueva,
     })
 
-    // Aplicar la edición y persistir la semana actualizada (Supabase + localStorage)
-    const horarios = aplicarEdicionJornada(ultimaSemana.horarios, colaboradorId, dia, nueva)
-
-    // Si se editó la PRESENCIA de un AUX, el snapshot de sus bloques en CAJA
-    // queda obsoleto: re-ejecutar la lógica de Pasada 2 sobre el horario
-    // modificado. Si el recálculo no es posible (sin necesidad del PDF o la
-    // presencia editada rompe precondiciones duras), se conserva el previo.
-    const filaEditada = ultimaSemana.horarios.find(h => h.colaboradorId === colaboradorId)
-    let cajaAux = ultimaSemana.cajaAux
-    if (filaEditada?.rolGeneral === 'aux_supervisor' && necesidadFranjas) {
-      const recalculada = recalcularCajaAux(horarios, necesidadFranjas, nombrePorId)
-      if (recalculada) cajaAux = recalculada
-      else console.warn('No se pudo recalcular CAJA de AUX; se conserva el snapshot previo.')
-    }
+    // Aplicar la edición y recalcular la cascada (#38): CAJA de AUX, eventuales no
+    // fijados a mano, cobertura y faltantes, con la configuración de la semana.
+    // Sin demanda conocida solo se aplica la edición (la validación lo informa).
+    if (!resultadoActual) return
+    const editado = aplicarEdicionConRecalculo(
+      resultadoActual, colaboradorId, dia, nueva, nombrePorId[colaboradorId] ?? colaboradorId,
+      necesidadFranjas && operativa
+        ? { necesidadFranjas, operativa, nombrePorId, disponibilidad: ultimaSemana.disponibilidadSemana }
+        : undefined,
+    )
 
     actualizarSemana(ultimaSemana.id, {
-      horarios,
-      cajaAux,
-      cajaEventual: filaEditada?.rolGeneral === 'eventual_sector'
-        ? actualizarCajaEventual(ultimaSemana.cajaEventual, colaboradorId, dia, nueva, nombrePorId[colaboradorId] ?? colaboradorId)
-        : ultimaSemana.cajaEventual,
-      resumenPorColaborador: resumirTurnos(horarios, nombrePorId),
+      horarios: editado.horarios,
+      cajaAux: editado.cajaAux,
+      cajaEventual: editado.cajaEventual,
+      eventualesFijos: editado.eventualesFijos,
+      coberturaFranjas: editado.coberturaFranjas,
+      faltantesFranjas: editado.faltantesFranjas,
+      porcentajeCobertura: editado.porcentajeCobertura,
+      resumenPorColaborador: resumirTurnos(editado.horarios, nombrePorId),
       editadoManualmente: true,
     })
   }
@@ -225,6 +262,26 @@ export default function UltimoHorarioPage() {
               aproximado={!ultimaSemana.necesidadFranjas}
             />
           )}
+
+          <section data-testid="estado-validacion" aria-label="Estado de validación" style={{
+            background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '16px 24px',
+            color: validacion?.publicable ? 'var(--text)' : 'var(--danger, #b91c1c)',
+          }}>
+            <p style={{ fontWeight: 700 }}>
+              {validacion ? `${validacion.publicable ? '✅' : '⛔'} ${estadoValidacion(validacion)}` : '⛔ SIN VERIFICAR: la semana no tiene datos de demanda para validar'}
+            </p>
+            {operativa && (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Apertura solo AUX: {operativa.aperturaSoloAux ? 'activada' : 'desactivada'} · Sin AUX en caja al cierre: {operativa.sinAuxCierre ? 'activada' : 'desactivada'} · Supervisor de jornada completa: {operativa.supervisorJornadaCompleta ? 'activada' : 'desactivada'}
+                {!ultimaSemana.configOperativa && ' (semana generada antes de registrar su configuración: se usan las reglas vigentes)'}
+              </p>
+            )}
+            {!!validacion?.violaciones.length && (
+              <ul style={{ marginTop: '8px', fontSize: '13px' }}>
+                {validacion.violaciones.slice(0, 30).map((v, i) => <li key={i}>[{v.nivel}] {v.detalle}</li>)}
+              </ul>
+            )}
+          </section>
 
           {!!avisosHoras.length && (
             <section aria-label="Avisos de horas semanales" className="mb-4 rounded border border-amber-300 bg-amber-50 p-4 text-amber-950">

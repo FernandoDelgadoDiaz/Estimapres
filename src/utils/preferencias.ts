@@ -694,7 +694,7 @@ export const DEFAULTS_OPERATIVOS: Record<TipoReglaOperativa, boolean> = {
 export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; descripcion: string }> = {
   apertura_solo_aux: {
     titulo: 'Apertura con supervisor',
-    descripcion: 'De 08:00 a 09:00 no se asignan cajeros: la apertura la cubre sólo el supervisor (AUX).',
+    descripcion: 'De 08:00 a 09:00 la caja la abre exactamente un supervisor (AUX) presente: ningún cajero FULL/PART ni eventual. Desactivada, la abre un cajero FULL/PART (sin AUX ni eventuales).',
   },
   sin_aux_cierre: {
     titulo: 'Sin supervisor en caja después de las 22:00',
@@ -702,7 +702,7 @@ export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; 
   },
   supervisor_jornada_completa: {
     titulo: 'Supervisor de jornada completa',
-    descripcion: 'Si hay 2 o más supervisores presentes en el mismo turno, uno queda sentado en caja durante toda su jornada (de forma continua, sin rotar entre caja y parado).',
+    descripcion: 'Si hay 2 o más supervisores presentes a la vez, el de mayor presencia queda supervisando (parado) durante toda su jornada y no se sienta en caja; los demás cubren el déficit real. Única excepción: si es el único supervisor en la apertura obligatoria.',
   },
   franco_medio_corridos: {
     titulo: 'Franco y medio franco corridos',
@@ -717,19 +717,57 @@ export interface ConfigOperativa {
   francoMedioCorridos: boolean
 }
 
-/** Estado efectivo de un toggle operativo: la regla si existe (y está vigente), o su default. */
+export interface ResolucionReglaOperativa {
+  valor: boolean
+  origen: 'regla' | 'predeterminado'
+  /** Regla que decide el valor (si origen = 'regla'). */
+  reglaId?: string
+  /** Texto si hay varias reglas aplicables con valores distintos. */
+  conflicto?: string
+}
+
+/**
+ * #38 — Resolución determinística del estado efectivo de un toggle operativo.
+ * El valor del toggle es `activa` de la fila (ON/OFF). Precedencia:
+ *   1. Solo filas de ámbito local de ese tipo APLICABLES a la semana (sin
+ *      vigencia, o con vigencia que cubre algún día de la semana).
+ *   2. Ninguna aplicable → valor predeterminado del negocio.
+ *   3. Una regla con vigencia acotada prevalece sobre una permanente.
+ *   4. A igual especificidad, la más reciente (creadaEl); desempate por id.
+ * Si las aplicables discrepan, se informa el conflicto (nunca se elige en
+ * silencio). Antes se tomaba la PRIMERA fila (más antigua) e ignoraba las demás.
+ */
+export function resolverReglaOperativa(
+  reglas: ReglaConfigurable[],
+  tipo: TipoReglaOperativa,
+  fechaLunes: string
+): ResolucionReglaOperativa {
+  const aplicables = reglas
+    .filter(r => r.ambito === 'local' && r.tipo === tipo)
+    .filter(r => reglaVigenteEnSemana({ ...r, activa: true }, fechaLunes))
+  if (aplicables.length === 0) return { valor: DEFAULTS_OPERATIVOS[tipo], origen: 'predeterminado' }
+  const acotada = (r: ReglaConfigurable) => (r.vigenciaDesde || r.vigenciaHasta ? 1 : 0)
+  const ordenadas = [...aplicables].sort((a, b) =>
+    acotada(b) - acotada(a) || (b.creadaEl ?? '').localeCompare(a.creadaEl ?? '') || a.id.localeCompare(b.id))
+  const elegida = ordenadas[0]
+  const valores = new Set(aplicables.map(r => r.activa))
+  return {
+    valor: elegida.activa,
+    origen: 'regla',
+    reglaId: elegida.id,
+    conflicto: valores.size > 1
+      ? `«${ETIQUETAS_OPERATIVAS[tipo].titulo}»: ${aplicables.length} reglas con valores distintos; prevalece la ${acotada(elegida) ? 'de vigencia acotada' : 'más reciente'} (${elegida.activa ? 'activada' : 'desactivada'}).`
+      : undefined,
+  }
+}
+
+/** Estado efectivo de un toggle operativo (ver resolverReglaOperativa). */
 export function valorReglaOperativa(
   reglas: ReglaConfigurable[],
   tipo: TipoReglaOperativa,
   fechaLunes: string
 ): boolean {
-  const regla = reglas.find(r => r.ambito === 'local' && r.tipo === tipo)
-  if (!regla) return DEFAULTS_OPERATIVOS[tipo]
-  // Vigencia temporal opcional: fuera de vigencia, vuelve al default.
-  if ((regla.vigenciaDesde || regla.vigenciaHasta) && !reglaVigenteEnSemana({ ...regla, activa: true }, fechaLunes)) {
-    return DEFAULTS_OPERATIVOS[tipo]
-  }
-  return regla.activa
+  return resolverReglaOperativa(reglas, tipo, fechaLunes).valor
 }
 
 /** Configuración operativa efectiva para pasar al algoritmo. */
@@ -921,4 +959,10 @@ export function validarEdicionManual(
   }
 
   return avisos
+}
+
+/** #38 — Estado efectivo de cada toggle con su origen y conflictos, para mostrarlo en la UI. */
+export function resolucionOperativaDeReglas(reglas: ReglaConfigurable[], fechaLunes: string): Record<TipoReglaOperativa, ResolucionReglaOperativa> {
+  const tipos: TipoReglaOperativa[] = ['apertura_solo_aux', 'sin_aux_cierre', 'supervisor_jornada_completa', 'franco_medio_corridos']
+  return Object.fromEntries(tipos.map(t => [t, resolverReglaOperativa(reglas, t, fechaLunes)])) as Record<TipoReglaOperativa, ResolucionReglaOperativa>
 }

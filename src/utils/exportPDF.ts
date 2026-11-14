@@ -221,15 +221,19 @@ export function generarPDF(
 
   if (meta.validacion) {
     doc.addPage()
-    const { violaciones } = meta.validacion
+    const { violaciones, limitaciones = [] } = meta.validacion
     const titulo = 'Validación y faltantes'
     const detalle = metricas
       ? `Horas-caja faltantes: ${metricas.horasCajaFaltantes}  ·  sobrantes: ${metricas.horasCajaSobrantes}`
       : undefined
-    if (violaciones.length > 0) {
+    if (violaciones.length > 0 || limitaciones.length > 0) {
       tabla(titulo, {
         head: [['Nivel', 'Código', 'Día', 'Detalle']],
-        body: violaciones.map(x => [x.nivel, x.codigo, x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', x.detalle]),
+        body: [
+          ...violaciones.map(x => [x.nivel, x.codigo, x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', x.detalle]),
+          // #38: limitaciones de datos (semana histórica): no se declara VALIDADO.
+          ...limitaciones.map(l => ['DATOS', 'SIN_VERIFICAR', '', l]),
+        ],
         columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 59, fontSize: 8 }, 2: { cellWidth: 14 }, 3: { cellWidth: ancho - 103 } },
       }, detalle)
     } else {

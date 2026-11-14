@@ -53,6 +53,8 @@ export interface ResultadoAsignacion {
   // Horarios en CAJA de supervisores (AUX) y eventuales, para el PDF.
   cajaAux?: AsignacionCajaColaborador[]
   cajaEventual?: AsignacionCajaColaborador[]
+  // #38: celdas de eventuales fijadas a mano ("id|día"): el recálculo las respeta.
+  eventualesFijos?: string[]
 }
 
 export type DiaSemana = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom'
@@ -161,6 +163,21 @@ export interface SemanaHistorial {
   // Necesidad de cajas del PDF original [franja][dia]: referencia para el
   // panel de cobertura en tiempo real del editor.
   necesidadFranjas?: number[][]
+  // #38: estado EFECTIVO de las reglas operativas con el que se generó la semana
+  // (se revalida con él tras cada edición y antes de exportar). Ausente en
+  // semanas anteriores a #38: se usan los predeterminados del negocio.
+  configOperativa?: {
+    aperturaSoloAux: boolean
+    sinAuxCierre: boolean
+    supervisorJornadaCompleta: boolean
+    francoMedioCorridos: boolean
+  }
+  // #38: disponibilidad RESUELTA de la semana (patrón habitual + excepciones por
+  // fecha) por id de AUX/eventual, mismo formato que horarioSemanal. Permite
+  // revalidar presencia/disponibilidad tras ediciones y antes de exportar.
+  disponibilidadSemana?: Record<string, string[]>
+  // #38: celdas de eventuales fijadas a mano ("id|día").
+  eventualesFijos?: string[]
 }
 
 // ==================== CORRECCIONES Y APRENDIZAJE (Capacidad 3) ====================

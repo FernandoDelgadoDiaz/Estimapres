@@ -112,16 +112,25 @@ describe("R3 supervisor_jornada_completa", () => {
   });
   const cajaDelDia = (m: AsignacionAux[][], dia: number) => m[dia].filter(e => e === "CAJA").length;
 
-  it("ON: el designado permanece SENTADO en caja toda su jornada, de forma continua", () => {
+  it("ON (#38): el designado queda PARADO supervisando toda su jornada; el otro cubre el déficit", () => {
     const r = ejecutarPasada2({ ...input(), supervisor_jornada_completa: true }, p1Vacia(demanda()));
     // aux1 y aux2 tienen igual presencia → designado = aux1 (localeCompare)
     for (let dia = 0; dia < 7; dia++) {
-      // El designado (aux1) está en CAJA de forma continua en todo 09:00-22:00 (slots 2..27)
-      for (let slot = 2; slot <= 27; slot++) {
-        expect(r.asignacion_aux.aux1[dia][slot]).toBe("CAJA");
-      }
-      // El otro (aux2) queda parado/disponible, no se sienta
-      expect(cajaDelDia(r.asignacion_aux.aux2, dia)).toBe(0);
+      expect(r.supervisor_designado[dia]).toBe("aux1");
+      expect(cajaDelDia(r.asignacion_aux.aux1, dia)).toBe(0); // nunca se sienta (no es el único en la apertura)
+      for (let slot = 4; slot <= 20; slot++) expect(r.asignacion_aux.aux2[dia][slot]).toBe("CAJA"); // déficit real
+      for (const slot of [2, 3, 21, 22, 23, 24, 25, 26, 27]) expect(r.asignacion_aux.aux2[dia][slot]).toBe("PARADO"); // sin déficit no se sienta
+      expect(r.auxes_activados_08_09[dia]).toBe("aux2"); // la apertura ON la abre el no designado
+    }
+  });
+
+  it("ON (#38): si el designado es el único AUX en la apertura obligatoria, abre 08:00–09:00 y luego queda parado", () => {
+    const tarde = presenciaFullDay().map(f => f.map((e, s) => (s < 12 ? "NO_PRESENTE" : e)) as AsignacionAux[]);
+    const r = ejecutarPasada2({ ...input(), presencia_aux: { aux1: presenciaFullDay(), aux2: tarde }, supervisor_jornada_completa: true, apertura_solo_aux: true }, p1Vacia(demanda()));
+    for (let dia = 0; dia < 7; dia++) {
+      expect(r.supervisor_designado[dia]).toBe("aux1");
+      expect(r.asignacion_aux.aux1[dia].slice(0, 2)).toEqual(["CAJA", "CAJA"]);
+      expect(r.asignacion_aux.aux1[dia].slice(2).includes("CAJA")).toBe(false);
     }
   });
 

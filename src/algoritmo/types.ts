@@ -85,16 +85,18 @@ export interface InputAlgoritmo {
   // al motor). La app siempre pasa un valor explícito calculado desde las
   // reglas de la sucursal, con los defaults del negocio.
 
-  // R1 "Apertura con supervisor": si true, ningún cajero cubre 08:00-09:00
-  // (las cortadas no arrancan antes de las 09:00; sólo el AUX de apertura).
-  // Fallback: false (hoy las cortadas pueden cubrir la apertura).
+  // R1 "Apertura con supervisor": si true, 08:00-09:00 la cubre EXACTAMENTE un
+  // AUX presente (ningún FULL/PART ni eventual); si false, la abre un cajero
+  // FULL/PART (ningún AUX ni eventual en caja). Fallback: true (default del
+  // negocio, DEFAULTS_OPERATIVOS). #38.
   apertura_solo_aux?: boolean;
   // R2 "Sin AUX en caja después de 22:00": si true (fallback), los AUX no se
   // sientan en caja en 22:00-22:30 (slot 28); si false, sí pueden.
   sin_aux_cierre?: boolean;
   // R3 "Supervisor de jornada completa": si true, cuando hay 2+ AUX presentes
-  // a la vez en un día, el de mayor presencia queda PARADO todo el día (nunca
-  // se sienta en caja). Fallback: false.
+  // a la vez en un día, el de mayor presencia queda PARADO supervisando toda su
+  // jornada (no se sienta en caja; única excepción: si con R1 ON es el único
+  // AUX presente en la apertura). Fallback: false. #38 (criterio del propietario).
   supervisor_jornada_completa?: boolean;
   // R4 "Franco y medio franco corridos": si true, el día de 5h (medio franco)
   // de cada FULL debe ser adyacente a su franco completo (36h corridas de

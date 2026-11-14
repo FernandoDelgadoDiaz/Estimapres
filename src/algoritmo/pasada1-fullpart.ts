@@ -112,7 +112,12 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   // Criterios de cobertura aprendidos: peso por slot (default 1 = neutro).
   const pesos = input.pesos_franja;
   // Reglas operativas configurables (fallback = comportamiento histórico).
-  const aperturaSoloAux = input.apertura_solo_aux ?? false;
+  // #38: default del negocio = ON (DEFAULTS_OPERATIVOS.apertura_solo_aux).
+  const aperturaSoloAux = input.apertura_solo_aux ?? true;
+  // OFF: la apertura 08:00–09:00 la debe abrir un cajero FULL/PART (no AUX ni
+  // eventual). Se refuerza el peso de esos slots para que la optimización la
+  // cubra con las jornadas que el catálogo vigente permite (cortadas FULL).
+  const pesosEfectivos = aperturaSoloAux ? pesos : reforzarApertura(pesos);
   const francoMedioCorridos = input.franco_medio_corridos ?? false;
 
   const cobertura: number[][] = Array.from({ length: 7 }, () => new Array(30).fill(0));
@@ -136,7 +141,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
       // la demanda residual que dejan todos los demás.
       if (previa) quitarSemana(previa, cobertura, francos_full, francos_part, es_full);
 
-      const pre = prefijosUtilidad(demanda, cobertura, pesos);
+      const pre = prefijosUtilidad(demanda, cobertura, pesosEfectivos);
       const nueva = es_full
         ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos)
         : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos);
@@ -182,6 +187,15 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   );
 
   return { jornadas_full, jornadas_part, deficit_1, infactibles };
+}
+
+/** Peso de los slots de apertura cuando la abre un cajero (apertura_solo_aux OFF). */
+export const PESO_APERTURA_CAJERO = 8;
+function reforzarApertura(pesos?: number[]): number[] {
+  const out = Array.from({ length: 30 }, (_, s) => pesos?.[s] ?? 1);
+  out[0] *= PESO_APERTURA_CAJERO;
+  out[1] *= PESO_APERTURA_CAJERO;
+  return out;
 }
 
 // ============== UTILIDAD MARGINAL ==============

@@ -1,5 +1,6 @@
 // src/algoritmo/pasada3-eventuales.ts
-// Pasada 3: activacion de eventuales para cubrir deficit residual de Pasada 2.
+// Pasada 3: activacion de eventuales para cubrir SOLO el deficit residual real de la Pasada 2
+// (ya descontada la cobertura de AUX), dentro de su disponibilidad y fuera de la apertura.
 // Referencia: ai/architecture.md §7.1 Pasada 3.
 // Prompt 3.a.
 
@@ -20,6 +21,7 @@ export interface ResultadoPasada3 {
 
 const DIAS: DiaSemana[] = [0, 1, 2, 3, 4, 5, 6];
 const SLOTS_POR_DIA = 30;
+const SLOTS_APERTURA_EV = 2; // primer slot que puede cubrir un eventual (09:00)
 
 export function ejecutarPasada3(
   input: InputAlgoritmo,
@@ -44,7 +46,10 @@ export function ejecutarPasada3(
   // === PASO 4: Para cada dia, cubrir slots con deficit usando eventuales ===
   for (const dia of DIAS) {
     const slots_con_deficit: Array<{ slot: SlotIdx; deficit: number }> = [];
-    for (let slot = 0; slot < SLOTS_POR_DIA; slot++) {
+    // #38: la apertura 08:00–09:00 (slots 0 y 1) nunca la cubren eventuales:
+    // con «apertura solo AUX» la abre exactamente un AUX; sin ella, un cajero
+    // FULL/PART. El faltante queda informado, no se tapa con un eventual.
+    for (let slot = SLOTS_APERTURA_EV; slot < SLOTS_POR_DIA; slot++) {
       if (deficit_actual[dia][slot] > 0) {
         slots_con_deficit.push({ slot, deficit: deficit_actual[dia][slot] });
       }

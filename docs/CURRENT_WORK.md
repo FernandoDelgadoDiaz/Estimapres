@@ -1,5 +1,64 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## Retoma — #38 corrección del motor de asignación (apertura, AUX, eventuales) · 2026-11-14
+
+- **Rama:** `fix/ah2-38-apertura-aux` desde `main@59e751e` (#37). [PR borrador #39](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/39) · [Issue #38](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/38).
+- **Commits:**
+  - 1.ª entrega: `449d835`.
+  - Cierre: SHA registrado en el PR #39.
+- **Restricciones respetadas:** sin merge, deploy, migraciones ni escrituras en Supabase. Prestify, `netlify/` y sus funciones de pago no cambian.
+- **Causa del 2/1 (semana 16–22/11, v3):**
+  - Con apertura ON, la pasada 2 sentaba al AUX pero no descontaba su cobertura del déficit.
+  - La pasada 3 cubría la apertura con el eventual disponible desde las 06:00.
+  - El validador no revisaba la composición de la apertura.
+- **Decisiones del propietario aplicadas (PR #39):**
+  - R3 es presencia y supervisión continua, no caja continua.
+  - AUX en caja solo con déficit real, salvo la apertura obligatoria con ON. Se admiten bloques de 30 min.
+  - Con OFF abre un FULL/PART dentro de su contrato; no se modifica el catálogo laboral.
+  - Las semanas históricas se preservan. Si faltan datos, su estado es «SIN VERIFICAR», nunca VALIDADO.
+- **Motor:**
+  - Pasada 1: default ON. Con OFF prioriza abrir con FULL/PART (cortadas FULL del catálogo vigente).
+  - Pasada 2: AUX en caja solo con déficit, dejando ≥1 parado. ON = exactamente 1 AUX descontado; OFF = ningún AUX. Los huecos se informan sin anular la semana.
+  - Pasada 3: solo el déficit residual, nunca la apertura.
+- **Apertura configurable de punta a punta:**
+  - El diagnóstico previo (`diagnosticarSupervision`), la validación (H-A1), la generación, la edición y el PDF usan el estado efectivo. Con OFF no hay H-A1.
+  - Si con OFF no hay un cajero compatible, se informa «ningún cajero FULL/PART abre dentro de su contrato», sin sustituirlo.
+- **Recálculo integral tras una edición (`recalculoSemana.ts` + `aplicarEdicionConRecalculo`):**
+  - Cualquier edición de cajero, AUX o eventual re-ejecuta las pasadas 2 y 3 con la configuración y la disponibilidad guardadas, y actualiza cobertura, faltantes y %.
+  - Las celdas de eventuales editadas a mano quedan fijadas (`eventualesFijos`): no se pisan y se descuentan antes de recalcular.
+  - Los conflictos no resolubles quedan como BORRADOR con su causa: cobertura duplicada, apertura y disponibilidad.
+  - Si no hay disponibilidad guardada, los eventuales no se reasignan y se avisa.
+- **Reglas:** `resolverReglaOperativa` es determinística: vigencia acotada, luego la más reciente, con conflicto informado. Nueva Semana muestra el estado efectivo.
+- **Validador:** bloquea con los códigos:
+  - `OP_APERTURA_COMPOSICION`
+  - `OP_CATEGORIA`
+  - `OP_AUX_FUERA_PRESENCIA`
+  - `OP_EVENTUAL_FUERA_DISPONIBILIDAD`
+  - `OP_AUX_CIERRE`
+  - `H-A2`
+  - `OP_SUPERVISOR_JORNADA`
+  - `OP_COBERTURA_DUPLICADA`
+
+  Además informa `limitaciones`, que impiden VALIDADO; el PDF las lista como `SIN_VERIFICAR`.
+- **Persistencia sin migración:** el jsonb `horario_completo` guarda `configOperativa`, `disponibilidadSemana` y `eventualesFijos`.
+- **Pruebas del cierre:**
+  - TypeScript y build: OK.
+  - Vitest: 261 aprobadas y 2 omitidas (locales).
+  - Playwright: 11/11.
+  - Contra el candidato `449d835`: el archivo nuevo de recálculo y apertura OFF da 11/13 rojas, y el recorrido Playwright OFF falla.
+  - Contra `main`: las pruebas de la 1.ª entrega dan 23/30 rojas.
+  - `npm run lint` sigue sin configuración ESLint (también en la base).
+- **Último control (H-A2):**
+  - El validador ya no condiciona H-A2 a que exista presencia de AUX. Con cero AUX, cada día da H-A2 («no hay ningún supervisor (AUX) disponible») y BORRADOR, con cualquier valor de «apertura solo AUX».
+  - Diagnóstico previo, motor, validación final, edición y PDF coinciden en los días con H-A2.
+  - `supervisionHA2.test.ts` cubre 4 escenarios × ON/OFF: cero AUX, AUX solo en la apertura, AUX solo por la tarde y supervisión completa. También cubre la edición y el PDF.
+  - Contra `8931bbd` fallan los 5 casos de cero AUX.
+- **Pruebas del candidato final:**
+  - TypeScript y build: OK.
+  - Vitest: 289 aprobadas y 2 omitidas.
+  - Playwright: 11/11.
+- **Próxima acción:** autorización de publicación del propietario. Tras publicar, regenerar en la 091 la semana 16–22/11 como versión nueva, sin modificar las guardadas.
+
 ## Retoma — corrección de la operación real de la 091 · 2026-11-13
 
 - Base publicada `0460b706cf2b9f51dcf71c4d79db1dcb482fb882`, rama `fix/ah2-operacion-real`, [Issue #36](https://github.com/FernandoDelgadoDiaz/Estimapres/issues/36). El PR de la rama registra el SHA exacto del candidato.
