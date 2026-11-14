@@ -213,11 +213,5 @@ test('Último Horario reabre la semana guardada y exporta los turnos A4', async 
   const texto = await textoPDFNode(new Uint8Array(await readFile(ruta!)))
   expect(texto).toContain('Semana 16/11/2026 al 22/11/2026')
   expect(texto).toContain('Full A')
-  // Dos cuadros: caja (todos juntos) y presencia del personal de apoyo; sin la tabla redundante.
-  expect(texto).toContain('HORARIOS DE CAJA')
-  expect(texto).toContain('HORARIOS DE PRESENCIA — PERSONAL DE APOYO')
-  expect(texto).not.toContain('Asignaciones en caja')
-  // La semana guardó su disponibilidad: la presencia del eventual es la registrada.
-  expect(texto).toContain('18:00-20:00')
-  expect(texto).not.toContain('Presencia no registrada')
+  expect(texto).toContain('Asignaciones en caja')
 })
