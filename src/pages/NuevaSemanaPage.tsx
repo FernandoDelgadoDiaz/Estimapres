@@ -310,6 +310,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         cajaAux: resultado.cajaAux,
         cajaEventual: resultado.cajaEventual,
         eventualesFijos: resultado.eventualesFijos,
+        cumplimientoHoras: resultado.cumplimientoHoras, // #7: recalculado tras cada edición
         coberturaFranjas: resultado.coberturaFranjas,
         faltantesFranjas: resultado.faltantesFranjas,
         porcentajeCobertura: resultado.porcentajeCobertura,
@@ -363,7 +364,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   // #7: capacidad con la MISMA definición de contrato que usa el motor (ficha acotada al máximo del perfil).
   const horasDisponibles = colaboradoresActivos.reduce((sum, col) => {
     if (col.tipo === 'PART') return sum + resolverContratoHoras('PART', col.horasSemanales, PERFIL_HORAS_VIGENTE).topeHoras
-    return sum + col.horasSemanales
+    return sum + (col.horasSemanales ?? 0)
   }, 0)
 
   return (
@@ -644,7 +645,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                           {col.tipo}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.horasSemanales}h</td>
+                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.horasSemanales !== undefined ? `${col.horasSemanales}h` : 'Sin dato'}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           display: 'inline-flex',

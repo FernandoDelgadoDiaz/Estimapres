@@ -55,7 +55,7 @@ export default function TablaColaboradores({
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                {col.horasSemanales}h
+                {col.horasSemanales !== undefined ? `${col.horasSemanales}h` : 'Sin dato'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <span

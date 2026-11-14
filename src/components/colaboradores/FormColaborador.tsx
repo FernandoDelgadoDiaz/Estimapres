@@ -15,7 +15,7 @@ export default function FormColaborador({
   const [nombre, setNombre] = useState(colaborador?.nombre || '')
   const [tipo, setTipo] = useState<Colaborador['tipo']>(colaborador?.tipo || 'FULL')
   const [horasSemanales, setHorasSemanales] = useState(
-    colaborador?.horasSemanales.toString() || '48'
+    colaborador ? colaborador.horasSemanales?.toString() ?? '' : '48'
   )
 
   // Sincronizar estado cuando cambia el colaborador (edición)
@@ -23,7 +23,8 @@ export default function FormColaborador({
     if (colaborador) {
       setNombre(colaborador.nombre || '')
       setTipo(colaborador.tipo || 'FULL')
-      setHorasSemanales(colaborador.horasSemanales.toString() || '48')
+      // #7: una ficha sin horas se muestra vacía (no se completa con un valor supuesto).
+      setHorasSemanales(colaborador.horasSemanales?.toString() ?? '')
     } else {
       setNombre('')
       setTipo('FULL')
@@ -36,7 +37,7 @@ export default function FormColaborador({
     onSubmit({
       nombre,
       tipo,
-      horasSemanales: parseInt(horasSemanales, 10),
+      horasSemanales: horasSemanales.trim() === '' ? undefined : Number(horasSemanales),
     })
   }
 

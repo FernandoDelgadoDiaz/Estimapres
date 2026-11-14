@@ -1,6 +1,5 @@
 import { validarResultadoSemana, estadoValidacion } from '../utils/validacionSemana'
 import { useReglas } from '../hooks/useReglas'
-import { perfilNormativoDeSemana } from '../algoritmo/validadorIndependiente'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { HORAS_FRANJAS, JornadaResumida, ResultadoAsignacion } from '../types'
@@ -76,6 +75,7 @@ export default function UltimoHorarioPage() {
     cajaAux: ultimaSemana.cajaAux,
     cajaEventual: ultimaSemana.cajaEventual,
     eventualesFijos: ultimaSemana.eventualesFijos,
+    cumplimientoHoras: ultimaSemana.cumplimientoHoras,
   } : null, [ultimaSemana])
 
   // #38: semanas históricas sin los datos necesarios → nunca VALIDADO; se explica qué falta.
@@ -100,8 +100,9 @@ export default function UltimoHorarioPage() {
         operativa,
         omitirDisponibilidadEventual: !disp,
         limitaciones,
-        // #7: cada semana se valida con el perfil de horas con que se generó (histórico: PART ≤ 31 h).
-        perfil: perfilNormativoDeSemana(ultimaSemana.perfilHorasId),
+        // #7: cada semana se valida con el perfil de horas con que se generó: sin id →
+        // histórico (PART ≤ 31 h); id desconocido → limitación, nunca VALIDADO.
+        perfilHorasId: ultimaSemana.perfilHorasId,
       },
     )
   }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])
@@ -159,6 +160,7 @@ export default function UltimoHorarioPage() {
       cajaAux: editado.cajaAux,
       cajaEventual: editado.cajaEventual,
       eventualesFijos: editado.eventualesFijos,
+      cumplimientoHoras: editado.cumplimientoHoras, // #7: nunca se conserva el cumplimiento previo a la edición
       coberturaFranjas: editado.coberturaFranjas,
       faltantesFranjas: editado.faltantesFranjas,
       porcentajeCobertura: editado.porcentajeCobertura,

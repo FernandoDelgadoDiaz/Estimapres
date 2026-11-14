@@ -106,7 +106,10 @@ export interface InputAlgoritmo {
   // #7 — Contrato de horas por colaborador PART (slots de 30 min): objetivo de la
   // ficha y tope = min(objetivo, máximo del perfil). Sin dato: 62 slots (31 h,
   // comportamiento histórico) para no alterar llamadas directas al motor.
-  contratos?: Record<string, { objetivoSlots: number; maximoSlots: number }>;
+  contratos?: Record<string, import("./contratos").ContratoSlots>;
+  // #7: objetivo operativo de cobertura (091: 95 %), solo para informar el costo
+  // de priorizar las horas objetivo. No cambia prioridades ni reglas.
+  cobertura_objetivo_pct?: number;
 }
 
 // Outputs del algoritmo
@@ -140,6 +143,8 @@ export interface ResultadoSemanal {
   reporte_reglas: ReporteReglas;
   /** #7: objetivo vs horas asignadas por contrato (motivo si no se cumple). */
   cumplimiento_horas?: import("./contratos").CumplimientoHoras[];
+  /** #7: costo de priorizar las horas objetivo frente a la misma cascada sin esa prioridad. */
+  impacto_horas?: import("./contratos").ImpactoPrioridadHoras;
 }
 
 // Helpers de tiempo

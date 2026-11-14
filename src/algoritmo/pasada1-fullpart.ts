@@ -205,7 +205,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     const sem = jornadas_full[c.id];
     const asignadas = slotsSemana(sem) / 2;
     cumplimiento_horas.push({
-      colab_id: c.id, tipo: "FULL", objetivoHoras: 48, maximoHoras: 48, asignadasHoras: asignadas,
+      colab_id: c.id, nombre: c.nombre, tipo: "FULL", objetivoHoras: 48, maximoHoras: 48, asignadasHoras: asignadas,
       diferenciaHoras: 48 - asignadas,
       motivo: sem.length ? undefined : "Sin semana válida con las restricciones de la persona (composición FULL 48 h).",
     });
@@ -215,12 +215,17 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
     const contrato = contratoPart(input, c.id);
     const sem = jornadas_part[c.id];
     const asignadas = slotsSemana(sem) / 2;
+    const objetivo = contrato.objetivoSlots === null ? null : contrato.objetivoSlots / 2;
     const fila: CumplimientoHoras = {
-      colab_id: c.id, tipo: "PART",
-      objetivoHoras: contrato.objetivoSlots / 2, maximoHoras: contrato.maximoSlots / 2,
-      asignadasHoras: asignadas, diferenciaHoras: contrato.objetivoSlots / 2 - asignadas,
+      colab_id: c.id, nombre: c.nombre, tipo: "PART", estadoFicha: contrato.estadoFicha,
+      objetivoHoras: objetivo, maximoHoras: contrato.maximoSlots / 2,
+      asignadasHoras: asignadas, diferenciaHoras: objetivo === null ? null : objetivo - asignadas,
     };
-    if (fila.diferenciaHoras > 0) {
+    if (objetivo === null) {
+      fila.motivo = contrato.estadoFicha === "invalida"
+        ? "La ficha informa un valor de horas no válido: se planificó sin objetivo de horas."
+        : "La ficha no informa horas semanales: se planificó sin objetivo de horas.";
+    } else if (fila.diferenciaHoras! > 0) {
       // Máximo alcanzable por reglas: misma DP con utilidad de cobertura nula.
       const otros_ff = [...francos_full];
       const otros_fp = [...francos_part];
@@ -230,7 +235,7 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
       const propias = excepciones.filter(x => x.colaboradorNombre === c.nombre).map(x => x.descripcion || x.tipo);
       fila.motivo = !maxima
         ? "No existe ninguna semana PART válida con sus restricciones (franco, ≥2 mañanas, 4–6 h por día, descanso 12 h)."
-        : fila.factibleHoras < fila.objetivoHoras
+        : fila.factibleHoras < objetivo
           ? `Sus reglas permiten como máximo ${fila.factibleHoras} h esta semana (jornadas de 4–6 h, 1 franco, ≥2 mañanas, descanso 12 h${propias.length ? `; reglas propias: ${propias.join(", ")}` : ""}${cap_francos ? `; tope de ${cap_francos} francos por día` : ""}).`
           : "El motor no alcanzó el objetivo aunque las reglas lo permiten (límite de tiempo de optimización).";
     }
@@ -250,6 +255,7 @@ function contratoPart(input: InputAlgoritmo, id: string): ContratoSlots {
 }
 
 function penalizacionHoras(semana: Jornada[], contrato: ContratoSlots): number {
+  if (contrato.objetivoSlots === null) return 0; // sin objetivo válido en la ficha: no se fuerzan horas
   return PENALIZACION_HORA_FALTANTE * Math.max(0, Math.min(contrato.objetivoSlots, contrato.maximoSlots) - slotsSemana(semana));
 }
 
@@ -695,7 +701,7 @@ function optimizarSemanaPart(
   contrato: ContratoSlots = { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO }
 ): Jornada[] | null {
   const MAX_SLOTS_PART = Math.max(0, Math.floor(contrato.maximoSlots));
-  const OBJETIVO = Math.min(MAX_SLOTS_PART, Math.max(0, Math.floor(contrato.objetivoSlots)));
+  const OBJETIVO = contrato.objetivoSlots === null ? 0 : Math.min(MAX_SLOTS_PART, Math.max(0, Math.floor(contrato.objetivoSlots)));
   const NUM_ESTADOS_PART = NUM_BUCKETS_FIN * 2 * 3 * (MAX_SLOTS_PART + 1);
   const cands_por_dia: Candidato[][] = [];
   for (let d = 0; d < 7; d++) {

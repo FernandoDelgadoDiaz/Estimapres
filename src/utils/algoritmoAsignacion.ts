@@ -113,7 +113,7 @@ function validarFactibilidad(
 ): { valido: boolean; mensaje: string } {
   // Solo cajeros activos (FULL + PART) contribuyen a horas disponibles
   const cajerosActivos = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
-  const horasCajeros = cajerosActivos.reduce((sum, c) => sum + c.horasSemanales, 0)
+  const horasCajeros = cajerosActivos.reduce((sum, c) => sum + (c.horasSemanales ?? 0), 0)
 
   // Función para calcular horas disponibles de un horario semanal
   function horasDisponiblesDeHorario(horarioSemanal: string[]): number {

@@ -157,7 +157,9 @@ describe('PDF operativo — documento', () => {
     expect(todo).toContain('Horas presencia')
     for (const p of paginas) expect(p).toContain('Sucursal 000 · Semana 16/11/2026 al 22/11/2026 · Versión 4')
     expect(paginas.every(p => p.includes('Estado: VALIDADO'))).toBe(true)
-    expect(paginas.length).toBeLessThanOrEqual(4) // antes: 6 páginas
+    // Antes: 6 páginas. #7 agrega la página de alertas con el costo de la prioridad de horas PART.
+    expect(paginas.length).toBeLessThanOrEqual(5)
+    expect(todo).toContain('Prioridad de horas PART')
     // La caja del cuadro 1 aparece antes que la presencia del cuadro 2.
     expect(todo.indexOf(TITULO_CAJA)).toBeLessThan(todo.indexOf(TITULO_PRESENCIA))
   })

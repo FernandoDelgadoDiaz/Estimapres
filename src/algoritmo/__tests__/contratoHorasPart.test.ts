@@ -33,9 +33,9 @@ describe('contrato de horas: definición única', () => {
     const excesiva = resolverContratoHoras('PART', 36)
     expect(excesiva).toMatchObject({ objetivoHoras: 32, topeHoras: 32 })
     expect(excesiva.avisos[0]).toMatch(/36 h .* máximo PART del perfil es 32 h/)
-    expect(resolverContratoHoras('PART', 0).avisos[0]).toMatch(/Sin horas en la ficha/)
+    expect(resolverContratoHoras('PART', 0)).toMatchObject({ estadoFicha: 'invalida', objetivoHoras: null, topeHoras: 32 })
     expect(resolverContratoHoras('PART', 32, PERFIL_HORAS_HISTORICO_31)).toMatchObject({ objetivoHoras: 31, topeHoras: 31 })
-    expect(aSlots(resolverContratoHoras('PART', 32))).toEqual({ objetivoSlots: 64, maximoSlots: 64 })
+    expect(aSlots(resolverContratoHoras('PART', 32))).toEqual({ objetivoSlots: 64, maximoSlots: 64, estadoFicha: 'valida' })
   })
 
   it('motor, reglas y validador derivan del mismo perfil', () => {

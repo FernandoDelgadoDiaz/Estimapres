@@ -1,9 +1,9 @@
 // PUB-01 (#12, parte sin migración) — Validación de la semana generada/editada
 // para la UI y el PDF, usando el validador independiente (VAL-01).
 import type { Auxiliar, Colaborador, Eventual, ExcepcionSemanal, Franja, HorarioColaborador, ResultadoAsignacion } from '../types'
-import { PERFIL_MOTOR_ACTUAL, validarHorario, type PerfilNormativo, type ResultadoValidacion } from '../algoritmo/validadorIndependiente'
+import { PERFIL_MOTOR_ACTUAL, perfilNormativoDesdeHoras, validarHorario, type PerfilNormativo, type ResultadoValidacion } from '../algoritmo/validadorIndependiente'
 import { horasLegibles, minutosAsignados, resumenHoras } from './horasSemanales'
-import { PERFIL_HORAS_VIGENTE, perfilHorasDeSemana, resolverContratoHoras } from '../algoritmo/contratos'
+import { PERFIL_HORAS_VIGENTE, perfilHorasDeSemana, resolverContratoHoras, resolverPerfilHorasSemana } from '../algoritmo/contratos'
 import type { HuecoSupervision } from './disponibilidadHabitual'
 import { DEFAULTS_OPERATIVOS, normalizarExcepciones, type ConfigOperativa, type MinimoFranja } from './preferencias'
 
@@ -33,6 +33,12 @@ export interface ContextoValidacionSemana {
    * limitación explicada, aunque no se detecten violaciones.
    */
   limitaciones?: string[]
+  /**
+   * #7 — Semana guardada: perfil de horas con que se generó. Si la clave está presente
+   * (aunque sea undefined) se resuelve con resolverPerfilHorasSemana: sin id → histórico
+   * 31 h; id desconocido → limitación (nunca VALIDADO). Tiene prioridad sobre `perfil`.
+   */
+  perfilHorasId?: string | null
 }
 
 export function operativaEfectiva(op?: Partial<ConfigOperativa>): ConfigOperativa {
@@ -56,10 +62,17 @@ export function validarResultadoSemana(
     ...auxiliares.map(a => ({ id: a.id, nombre: a.nombre, contrato: 'AUX' as const, horarioSemanal: a.horarioSemanal })),
     ...eventuales.map(e => ({ id: e.id, nombre: e.nombre, contrato: 'EVENTUAL' as const, horarioSemanal: ctx.omitirDisponibilidadEventual ? undefined : e.horarioSemanal })),
   ]
+  let perfil = ctx.perfil ?? PERFIL_MOTOR_ACTUAL
+  const limitacionesPerfil: string[] = []
+  if ('perfilHorasId' in ctx) {
+    const r = resolverPerfilHorasSemana(ctx.perfilHorasId)
+    perfil = perfilNormativoDesdeHoras(r.perfil)
+    if (r.estado === 'desconocido') limitacionesPerfil.push(`La semana registró el perfil de horas «${ctx.perfilHorasId}», que esta versión no reconoce: no se pueden verificar los topes de horas por contrato.`)
+  }
   const validacion = validarHorario({
     horarios: resultado.horarios,
     roster,
-    perfil: ctx.perfil ?? PERFIL_MOTOR_ACTUAL,
+    perfil,
     excepciones: normalizarExcepciones(ctx.excepciones),
     maxFrancosDia: ctx.maxFrancosDia,
     necesidad: ctx.necesidad,
@@ -69,13 +82,13 @@ export function validarResultadoSemana(
     semanaAnterior: ctx.semanaAnterior,
     operativa: operativaEfectiva(ctx.operativa),
   })
-  const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales, (ctx.perfil ?? PERFIL_MOTOR_ACTUAL).perfilHorasId)
+  const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales, perfil.perfilHorasId)
   // H-A2 (supervisión 09–22) ya la calcula el validador sobre la presencia real
   // (incluida la edición manual); del diagnóstico previo solo se agrega H-A1.
   // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).
   const op = operativaEfectiva(ctx.operativa)
   const huecos = (ctx.huecosSupervision ?? []).filter(h => h.tipo === 'APERTURA' && op.aperturaSoloAux)
-  const limitaciones = ctx.limitaciones?.filter(Boolean) ?? []
+  const limitaciones = [...(ctx.limitaciones?.filter(Boolean) ?? []), ...limitacionesPerfil]
   const violaciones = [
     ...validacion.violaciones,
     ...horas.violaciones,
@@ -117,7 +130,13 @@ export function validarHorasAsignadas(
     const c = porId.get(h.colaboradorId)
     if (c?.tipo === 'PART') {
       const contrato = resolverContratoHoras('PART', c.horasSemanales, perfilHoras)
-      const faltan = Math.round(contrato.objetivoHoras * 60) - asignados
+      // #7: ficha sin dato o inválida → dato a corregir (bloquea publicación); nunca se asume un objetivo.
+      if (contrato.estadoFicha !== 'valida') violaciones.push({
+        codigo: 'DATOS_HORAS_FICHA', nivel: 'DATOS', colaboradorId: h.colaboradorId,
+        detalle: `${persona.nombre}: ${contrato.avisos[0]}`,
+      })
+      else for (const aviso of contrato.avisos) advertencias.push(`${persona.nombre}: ${aviso}`)
+      const faltan = contrato.objetivoHoras === null ? 0 : Math.round(contrato.objetivoHoras * 60) - asignados
       if (faltan > 0) advertencias.push(`${persona.nombre}: ${horasLegibles(asignados)} asignadas de ${contrato.objetivoHoras} h objetivo (faltan ${horasLegibles(faltan)}).`)
     }
   }

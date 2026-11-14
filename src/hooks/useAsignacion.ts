@@ -5,6 +5,7 @@ import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
 import { recalcularSemanaTrasEdicion, type ContextoRecalculo } from '../utils/recalculoSemana'
+import { recalcularCumplimiento, avisosCumplimiento, esAvisoDeHoras } from '../algoritmo/contratos'
 
 /**
  * Aplica una edición manual de jornada sobre una lista de horarios y devuelve
@@ -56,10 +57,22 @@ export function aplicarEdicionConRecalculo(
   const eventualesFijos = esEventual
     ? [...new Set([...(prev.eventualesFijos ?? []), `${colaboradorId}|${dia}`])]
     : prev.eventualesFijos
-  const editado: ResultadoAsignacion = { ...prev, horarios, cajaEventual, eventualesFijos }
+  // #7: el cumplimiento de horas y sus avisos se recalculan desde las jornadas
+  // editadas; el impacto de la prioridad de horas describe la solución original
+  // del motor, así que se descarta (no se conservan resultados anteriores).
+  const horasDe = (id: string) => {
+    const h = horarios.find(x => x.colaboradorId === id)
+    return h ? minutosAsignados(h.jornadas) / 60 : undefined
+  }
+  const cumplimientoHoras = recalcularCumplimiento(prev.cumplimientoHoras, horasDe)
+  const alertas = [
+    ...prev.alertas.filter(a => !esAvisoDeHoras(a)),
+    ...avisosCumplimiento(cumplimientoHoras),
+  ]
+  const editado: ResultadoAsignacion = { ...prev, horarios, cajaEventual, eventualesFijos, cumplimientoHoras, impactoHoras: undefined, alertas }
   if (!recalculo) return editado
   const { avisos, ...rec } = recalcularSemanaTrasEdicion(editado, { ...recalculo, eventualesFijos })
-  return { ...editado, ...rec, alertas: [...new Set([...prev.alertas, ...avisos])] }
+  return { ...editado, ...rec, alertas: [...new Set([...alertas, ...avisos])] }
 }
 
 /** Refleja las ediciones de caja de eventuales en el anexo y la cobertura. */

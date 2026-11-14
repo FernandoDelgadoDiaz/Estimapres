@@ -2,7 +2,11 @@ export interface Colaborador {
   id: string
   nombre: string
   tipo: 'FULL' | 'PART' | 'AUX'
-  horasSemanales: number
+  /**
+   * Horas semanales de la ficha. #7: en un PART es su objetivo contractual; puede
+   * faltar (sin dato registrado) y la validación lo informa: nunca se asume un valor.
+   */
+  horasSemanales?: number
   activo: boolean
 }
 
@@ -57,6 +61,8 @@ export interface ResultadoAsignacion {
   eventualesFijos?: string[]
   // #7: objetivo vs horas asignadas por contrato (FULL/PART), con motivo si no se cumple.
   cumplimientoHoras?: import('../algoritmo/contratos').CumplimientoHoras[]
+  // #7: costo de priorizar las horas objetivo (se descarta tras una edición manual).
+  impactoHoras?: import('../algoritmo/contratos').ImpactoPrioridadHoras
 }
 
 export type DiaSemana = 'Lun' | 'Mar' | 'Mié' | 'Jue' | 'Vie' | 'Sáb' | 'Dom'

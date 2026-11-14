@@ -8,6 +8,52 @@ import { ejecutarPasada1 } from './pasada1-fullpart';
 import { ejecutarPasada2 } from './pasada2-auxiliares';
 import { ejecutarPasada3 } from './pasada3-eventuales';
 import { calcularMetricasCobertura } from './validador';
+import type { ImpactoPrioridadHoras } from './contratos';
+
+const COBERTURA_OBJETIVO_PCT = 95; // 091 (AH2-017); configurable por sucursal
+
+function correrCascada(input: InputAlgoritmo) {
+  const p1 = ejecutarPasada1(input);
+  const p2 = ejecutarPasada2(input, p1);
+  const p3 = ejecutarPasada3(input, p2);
+  const metricas = calcularMetricasCobertura(input.demanda, p1.jornadas_full, p1.jornadas_part, p2.asignacion_aux, p3.asignacion_eventual, p3.deficit_3);
+  return { p1, p2, p3, metricas };
+}
+
+/**
+ * #7 · AH2-020 (PROPUESTO): la prioridad de las horas objetivo PART NO cambia, pero
+ * se mide su costo frente a la misma cascada SIN esa prioridad (mismas reglas, mismo
+ * tope). Se informa cobertura, faltantes, sobrantes y franjas (marcando picos) que
+ * empeoran, y si la cobertura queda bajo el objetivo operativo solo por las horas.
+ */
+function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correrCascada>): ImpactoPrioridadHoras | undefined {
+  const contratos = input.contratos ?? {};
+  if (!Object.values(contratos).some(c => c.objetivoSlots !== null)) return undefined;
+  const alt = correrCascada({
+    ...input,
+    contratos: Object.fromEntries(Object.entries(contratos).map(([id, c]) => [id, { ...c, objetivoSlots: null }])),
+  });
+  const suma = (m: number[][]) => m.flat().reduce((a, b) => a + b, 0) / 2;
+  const franjasPeores: ImpactoPrioridadHoras['franjasPeores'] = [];
+  for (let d = 0; d < 7; d++) {
+    const pico = Math.max(...input.demanda[d]);
+    for (let s = 0; s < 30; s++) {
+      const antes = alt.metricas.deficit_por_slot[d][s];
+      const despues = real.metricas.deficit_por_slot[d][s];
+      if (despues > antes) franjasPeores.push({ dia: d, slot: s, antes, despues, pico: pico > 0 && input.demanda[d][s] === pico });
+    }
+  }
+  return {
+    coberturaConPrioridadPct: real.metricas.cobertura_total_pct,
+    coberturaSinPrioridadPct: alt.metricas.cobertura_total_pct,
+    faltantesConPrioridadHoras: suma(real.metricas.deficit_por_slot),
+    faltantesSinPrioridadHoras: suma(alt.metricas.deficit_por_slot),
+    sobrantesConPrioridadHoras: suma(real.metricas.exceso_por_slot),
+    sobrantesSinPrioridadHoras: suma(alt.metricas.exceso_por_slot),
+    franjasPeores,
+    coberturaObjetivoPct: input.cobertura_objetivo_pct ?? COBERTURA_OBJETIVO_PCT,
+  };
+}
 
 /**
  * CASCADA DE PRIORIDAD (estricta) para cubrir la demanda del PDF:
@@ -31,25 +77,9 @@ import { calcularMetricasCobertura } from './validador';
  *     horas-caja acumuladas primero).
  */
 export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
-  // Pasada 1: FULL + PART
-  const p1 = ejecutarPasada1(input);
-
-  // Pasada 2: AUX
-  const p2 = ejecutarPasada2(input, p1);
-
-  // Pasada 3: EVENTUAL (se ejecuta incluso si hay violaciones de input en P2 —
-  // las violaciones se reportan pero no abortan el pipeline)
-  const p3 = ejecutarPasada3(input, p2);
-
-  // Metricas de cobertura
-  const metricas = calcularMetricasCobertura(
-    input.demanda,
-    p1.jornadas_full,
-    p1.jornadas_part,
-    p2.asignacion_aux,
-    p3.asignacion_eventual,
-    p3.deficit_3
-  );
+  const real = correrCascada(input);
+  const { p1, p2, p3, metricas } = real;
+  const impacto_horas = medirImpactoHoras(input, real);
 
   // Reporte de reglas
   const todasViolaciones = [...p2.violaciones_input];
@@ -69,5 +99,6 @@ export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
       ),
     },
     cumplimiento_horas: p1.cumplimiento_horas,
+    impacto_horas,
   };
 }
