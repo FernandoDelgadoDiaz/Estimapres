@@ -1,5 +1,156 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
+
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-019), después esta sección y el PR de la rama activa.
+
+- **Responsable:** Claude (Claude Code), 2026-11-14.
+- **Issues:** #7 (perfiles y horas PART) y #44 (arquitectura adaptativa, tramo A).
+- **PR:** borrador; su número y la evidencia están en el PR de la rama.
+- **Rama:** `feat/ah2-part-horas-contrato`.
+  - Base: `main@587192046cf59fcde22e62b14a41ce5bf22df9c5`.
+  - Commit de código: `e11ecc05eab9b127cae2d8e07b2600437261cfd7`. El HEAD exacto (este registro) figura en el PR.
+- **Estado:** sin merge, sin deploy, sin migraciones, sin escrituras en Supabase. Producción sigue en `c8d6fa8` (#41). El PR #42 de rollback no se tocó.
+
+### Qué se hizo
+- **Defecto corregido.** El límite de 31 h estaba fijo en tres lugares, en lugar de seguir la ficha de 32 h:
+  - `pasada1-fullpart.ts` (`MAX_SLOTS_PART = 62`);
+  - H-P1 en `reglas.ts`;
+  - el perfil PART del validador.
+
+  Además, la UI sumaba 32 h de capacidad y el adaptador no le pasaba al motor las horas de ficha.
+- **Contrato único** en `src/algoritmo/contratos.ts`:
+  - `objetivoHoras` = ficha;
+  - `maximoHoras` = tope del perfil;
+  - tope del motor = min(ficha, máximo): nunca se asigna por encima de la ficha;
+  - `cumplimiento` con asignadas, diferencia, máximo factible y motivo.
+- **Perfiles:**
+  - vigente `horas-2026-11-part32` (PART ≤ 32 h, FULL 48 h sin cambios);
+  - histórico `horas-2026-07-part31`.
+- **Pasada 1:**
+  - tope por persona en la DP;
+  - las horas objetivo tienen prioridad lexicográfica sobre la cobertura (penalización 1000 por cada media hora faltante);
+  - si el objetivo no se alcanza, se calcula el máximo factible con las reglas de la persona y se informa el motivo;
+  - no se relaja ninguna regla.
+- **Validador:** `PERFIL_MOTOR_ACTUAL` (32 h) y `PERFIL_MOTOR_HISTORICO_31` derivan del mismo contrato.
+- **Semanas guardadas:**
+  - guardan `perfilHorasId` y `cumplimientoHoras` en el jsonb `horario_completo`, sin migración;
+  - Último Horario valida cada semana con su perfil;
+  - una semana sin perfil registrado se valida con el histórico de 31 h.
+- **UI:** la capacidad usa el contrato; el validador avisa «X h asignadas de Y h objetivo».
+- **Gobernanza:**
+  - MASTER §4.1, §6.1 y §9 (AH2-014…AH2-019);
+  - AGENTS.md y CLAUDE.md con la jerarquía MASTER → CURRENT_WORK → PR;
+  - esta sección pasa a ser el único punto de retoma (la anterior quedó como registro histórico).
+
+### Archivos modificados
+- **Motor y contratos** (`src/algoritmo/`): `contratos.ts` (nuevo), `adapter.ts`, `pasada1-fullpart.ts`, `orquestador.ts`, `reglas.ts`, `types.ts`, `validadorIndependiente.ts`.
+- **Validación, tipos y persistencia:** `src/utils/validacionSemana.ts`, `src/utils/almacen.ts`, `src/types/index.ts`.
+- **Páginas:** `src/pages/NuevaSemanaPage.tsx`, `src/pages/UltimoHorarioPage.tsx`.
+- **Pruebas:**
+  - `src/algoritmo/__tests__/contratoHorasPart.test.ts` (nuevo, 24 casos);
+  - `reglas.test.ts` y `validadorIndependiente.test.ts` (adaptadas al perfil vigente).
+- **Documentación:** `docs/ALIADA_HORARIOS_MASTER.md`, `AGENTS.md`, `CLAUDE.md`, este archivo.
+
+### Pruebas (sobre `e11ecc0`)
+- TypeScript: OK. Build: OK.
+- Vitest: **325 aprobadas**, 2 omitidas (locales).
+- Playwright: **11/11**.
+- `contratoHorasPart.test.ts`:
+  - 5 PART con 32 h en las 4 combinaciones apertura ON/OFF × franco y medio ON/OFF;
+  - VALIDADO completo (descansos, francos, apertura, H-A2);
+  - horas del PDF = jornadas;
+  - cobertura no menor que la del motor anterior;
+  - ficha de 31 h → 31;
+  - objetivo inalcanzable (regla «no después de 13:00» → máximo factible 24 h con motivo y aviso);
+  - imposible (ninguna semana válida → diagnóstico);
+  - semanas históricas válidas con su perfil;
+  - 32 h contra el perfil histórico → `NORM_HORAS_MAX`;
+  - edición a 32,5 h → violación; edición a 30 h → aviso.
+- **Detección del defecto:** con la implementación anterior, 14/24 de esas pruebas fallan (31 donde se esperan 32).
+
+### Comparación con el motor anterior (semana 47 anonimizada: 4 FULL, 5 PART con ficha de 32 h, 3 AUX, 3 eventuales)
+El «anterior» es el mismo motor ejecutado con el perfil histórico de 31 h, que reproduce exactamente el comportamiento previo.
+
+#### apertura solo AUX ON · franco y medio corridos OFF
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 98.65 % | 98.65 % |
+| horas-caja faltantes | 5.5 | 5.5 |
+| horas-caja sobrantes | 1.5 | 2 |
+| horas AUX en caja / eventuales en caja | 32 / 23 | 30 / 20.5 |
+| tiempo de cálculo | 117 ms | 66 ms |
+- Franjas que mejoran: ninguna
+- Franjas que empeoran: ninguna
+- Faltantes que permanecen: Vie 08:00: 1, Sáb 08:00: 1, Vie 08:30: 1, Sáb 08:30: 1, Sáb 09:00: 2, Sáb 09:30: 1, Sáb 10:00: 1, Sáb 10:30: 1, Sáb 14:00: 1, Sáb 14:30: 1
+
+#### apertura solo AUX ON · franco y medio corridos ON
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 98.65 % | 99.01 % |
+| horas-caja faltantes | 5.5 | 4 |
+| horas-caja sobrantes | 1 | 0.5 |
+| horas AUX en caja / eventuales en caja | 31 / 23.5 | 28 / 22.5 |
+| tiempo de cálculo | 84 ms | 69 ms |
+- Franjas que mejoran: Sáb 09:00 (2→1), Sáb 14:00 (1→0), Sáb 14:30 (1→0)
+- Franjas que empeoran: ninguna
+- Faltantes que permanecen: Vie 08:00: 1, Sáb 08:00: 1, Vie 08:30: 1, Sáb 08:30: 1, Sáb 09:00: 1, Sáb 09:30: 1, Sáb 10:00: 1, Sáb 10:30: 1
+
+#### apertura solo AUX OFF · franco y medio corridos OFF
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 99.14 % | 99.51 % |
+| horas-caja faltantes | 3.5 | 2 |
+| horas-caja sobrantes | 0 | 0.5 |
+| horas AUX en caja / eventuales en caja | 28 / 27.5 | 29.5 / 23 |
+| tiempo de cálculo | 65 ms | 63 ms |
+- Franjas que mejoran: Sáb 09:00 (1→0), Sáb 09:30 (1→0), Sáb 14:00 (1→0), Sáb 14:30 (1→0)
+- Franjas que empeoran: Lun 14:30 (0→1)
+- Faltantes que permanecen: Vie 08:00: 1, Vie 08:30: 1, Sáb 10:00: 1, Lun 14:30: 1
+
+#### apertura solo AUX OFF · franco y medio corridos ON
+| métrica | anterior (31 h) | nuevo (32 h) |
+|---|---|---|
+| horas PART totales | 155 | 160 |
+| cobertura | 98.89 % | 98.89 % |
+| horas-caja faltantes | 4.5 | 4.5 |
+| horas-caja sobrantes | 0.5 | 0.5 |
+| horas AUX en caja / eventuales en caja | 27 / 28 | 25 / 25 |
+| tiempo de cálculo | 72 ms | 69 ms |
+- Franjas que mejoran: ninguna
+- Franjas que empeoran: ninguna
+- Faltantes que permanecen: Sáb 08:00: 1, Sáb 08:30: 1, Sáb 09:00: 1, Sáb 09:30: 1, Sáb 10:00: 1, Sáb 10:30: 1, Vie 12:00: 1, Lun 14:00: 1, Lun 14:30: 1
+
+**Lectura:**
+- Se recuperan **5 h PART** (1 h por persona) en todas las configuraciones.
+- La cobertura **mejora** en 2 configuraciones (98,65 → 99,01 % y 99,14 → 99,51 %) y **se mantiene** en las otras 2. No empeora en ninguna.
+- Las horas recuperadas reemplazan horas de AUX y eventuales en caja.
+- Con apertura OFF y franco y medio OFF, una franja (lun 14:30) pasa de 0 a 1 faltante, mientras se eliminan 4 faltantes del sábado: el total baja de 3,5 a 2 h.
+- Con apertura ON, los faltantes de 08:00 del viernes y el sábado (demanda 2) son estructurales: la regla admite exactamente 1 AUX en la apertura.
+
+### Riesgos y pendientes
+- **Validación jurídica:** 32 h es requisito de producto y configuración de la sucursal; la validación jurídica/contractual está pendiente (AH2-004/AH2-014).
+- **Configuración de fichas:** si una ficha PART supera 32 h, se planifica con 32 y se avisa. Fichas en 0 o vacías usan 32 h por defecto: revisar la configuración real.
+- **Prioridad de horas:** la prioridad lexicográfica de las horas objetivo puede agregar sobrantes en franjas de baja demanda (en la semana 47, como mucho +0,5 h).
+- **Semanas guardadas antes de este PR:** se validan con el perfil histórico de 31 h, que es el correcto para ellas. Una edición manual que las lleve a 32 h se marcará como `NORM_HORAS_MAX`: hay que regenerarlas como versión nueva.
+- **Datos:** sin migraciones ni escrituras en Supabase; los campos nuevos viajan en el jsonb existente.
+
+### Próxima tarea exacta (tramo B, Issue #44 / #12)
+Diseñar e implementar sin migración el modelo de **ciclo de planificación y publicación**:
+- `cicloPlanificacionId`, `vigenteDesde`/`vigenteHasta` y estado `BORRADOR → APROBADO → PUBLICADO`, dentro del jsonb de la semana;
+- detección de la semana vigente sin contar versiones repetidas;
+- tests de caracterización de 4 y 5 semanas por ciclo.
+
+Antes de implementar, proponer el formato en MASTER §9 como PROPUESTO.
+
+### Para retomar (Claude u OpenAI)
+1. `git fetch origin && git checkout feat/ah2-part-horas-contrato`
+2. `npm ci && npx tsc --noEmit -p . && npx vitest run && npm run build && PLAYWRIGHT_CHROMIUM_EXECUTABLE=<chromium> npx playwright test --trace off`
+3. Revisar el PR borrador de la rama. No fusionar ni publicar sin autorización expresa del propietario.
+
 ## Publicación — #41 PDF operativo (caja / presencia) · 2026-11-14
 
 - **Publicado** con autorización del propietario.
@@ -190,7 +341,7 @@
 - Pruebas locales: instalación limpia, TypeScript, build, Vitest 218/218 con POM y semana locales, Playwright 10/10 incluida recarga y reingreso con backend simulado. `npm run lint` falla también en la base por falta de configuración ESLint.
 - El candidato está para revisión en borrador. Próxima acción: revisar CI y evidencia visual, y probar una impresión al 100% y el reingreso en la cuenta 091 tras una publicación autorizada. Sin merge, deploy ni escrituras en Supabase.
 
-## PUNTO ÚNICO DE RETOMA — preparación del piloto 091 · 2026-11-13
+## Registro histórico — preparación del piloto 091 · 2026-11-13
 
 - **Rama de tarea:** `fix/ah2-desbloqueo-piloto`, desde `bb8753fa7f5d78e39af10a15040fa09dfc02e669`. El SHA definitivo del release y sus checks se registran en el [PR #30](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/30). La Entrega 1 en producción corresponde a `main@8aa104db17f87250661d7e2348af1190e9806759`.
 - **PDF:** se aplica la opción recomendada por PDF.js al abrir archivos en el navegador y en el lector Node que usa la validación local. Pruebas de regresión en `pdfSeguridad.test.ts`. La deuda de actualización queda en [Seguridad PDF y padrón](SEGURIDAD_ENTREGA2.md).
