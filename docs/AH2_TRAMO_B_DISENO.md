@@ -1,6 +1,6 @@
 # ALIADA HORARIOS 2.0 — TRAMO B: arquitectura de planificación por ciclos para 160 sucursales
 
-**Versión:** 3, final corregida (15/11/2026). Incorpora las 8 correcciones obligatorias de la «REVISIÓN FINAL DEL DISEÑO B» del propietario sobre la v2 del PR #46.
+**Versión:** 3.1, revisión de seguridad P2 (15/11/2026), sobre la v3. Incorpora las 8 correcciones obligatorias de la «REVISIÓN FINAL DEL DISEÑO B» del propietario sobre la v2 del PR #46.
 
 **Estado:**
 - **Dirección general APROBADA** por el propietario (15/11/2026).
@@ -284,7 +284,7 @@ generar/editar/replanificar
 | → BORRADOR | supervisor | Ninguna (AH2-008). |
 | BORRADOR → VALIDADO | sistema (validador) | 0 violaciones y sin limitaciones de datos. **Es validez técnica, no jurídica** (§5.6). |
 | VALIDADO → APROBADO | aprobador; el supervisor solo si `aprobacionPropiaPermitida` (D3) | Huella vigente. Ciclo válido. |
-| APROBADO → PUBLICADO | aprobador, director regional o admin de empresa, **solo por el servidor** | Function `publicar`:<br>1. verifica el JWT y la membresía;<br>2. **revalida** con el mismo validador versionado;<br>3. comprueba que las huellas coincidan;<br>4. llama a la RPC `publicar_version`, que en una transacción bloquea la sucursal, verifica estado, rol y numeración esperada (control optimista), crea `Publicacion` y `TramoVigencia`, recorta los tramos anteriores (§5.4) y registra los eventos;<br>5. la restricción de exclusión garantiza que no haya solapamientos (I1). |
+| APROBADO → PUBLICADO | aprobador, director regional o admin de empresa, **solo por el servidor** | Function `publicar`:<br>1. verifica el JWT y la membresía;<br>2. **revalida** con el mismo validador versionado;<br>3. comprueba que las huellas coincidan;<br>4. llama mediante credenciales exclusivas del servidor a la operación SQL privada/restringida `publicar_version` (según la vía elegida en §10.4); esa operación comprueba de nuevo actor humano y membresía/rol, bloquea la sucursal, verifica estado, huellas y numeración esperada (control optimista), crea `Publicacion` y `TramoVigencia`, recorta los tramos anteriores (§5.4) y registra los eventos;<br>5. la restricción de exclusión garantiza que no haya solapamientos (I1). |
 | Editar un PUBLICADO | — | Prohibido. Se crea una versión nueva (`basadaEn`, `replanificaDesde`). |
 | Agente o proceso automático | — | Prohibido (I8). |
 
@@ -543,12 +543,24 @@ Un usuario puede tener varias membresías y una sucursal puede tener varios supe
 - Las reglas normativas no se relajan.
 - La UI muestra el valor efectivo y su origen.
 
-### 10.4 Publicación oficial en el servidor (corrección 1)
+### 10.4 Publicación oficial en el servidor (corrección 1; revisión de seguridad P2)
 
-Ver §5.2 y §5.4.
-- **Function `publicar`:** usa el JWT del usuario, sin clave de servicio, así que las políticas de acceso aplican. **Revalida con el mismo validador versionado** (el código TypeScript compartido) y llama a la RPC transaccional.
-- **Costo:** unas 160 sucursales × pocas publicaciones semanales, dentro del plan actual de funciones.
-- Si la Function o la base no están disponibles, **no se publica**. No hay modo degradado oficial.
+Ver §5.2 y §5.4 y `docs/proposals/AH2_P2_RPC_PUBLICACION_SEGURA.md` (PR #47). **Corrección de la v3:** verificar el JWT del usuario **no implica** invocar `publicar_version` con ese mismo JWT. Si `authenticated` puede ejecutar la RPC por PostgREST, un cliente puede llamarla directamente y eludir la revalidación de la Function.
+
+**Flujo obligatorio:**
+1. La Netlify Function `publicar` verifica el JWT con Supabase Auth, obtiene la identidad real y verifica la membresía y el rol de la sucursal.
+2. Lee los datos persistidos con autorización verificada, vuelve a ejecutar el validador TypeScript versionado y **recalcula** la huella; no confía en una huella enviada por el navegador.
+3. Solo después llama a una operación transaccional de base mediante credenciales **exclusivas del servidor**, nunca presentes en el bundle ni expuestas al cliente.
+4. La operación SQL revalida en la misma transacción el actor humano recibido, su membresía/rol, estado APROBADO, huellas, revisión optimista, fecha mínima de reemplazo y días congelados; toma el bloqueo por sucursal, recorta/inserta los tramos y registra eventos. La restricción de exclusión impide solapamientos aun bajo concurrencia.
+
+**Dos rutas técnicas válidas para P2 (no implementar aquí):**
+- **RPC en esquema privado no expuesto por PostgREST:** la Function debe usar **conexión SQL directa** y segura (pooler/cliente PostgreSQL del lado servidor) para ejecutarla. Una llamada `supabase.rpc(...)` a través de PostgREST **no puede** alcanzar una función de un esquema no expuesto.
+- **RPC accesible mediante PostgREST, pero no ejecutable por clientes:** ubicar la RPC en un esquema expuesto y aplicar `REVOKE EXECUTE FROM PUBLIC, anon, authenticated`; conceder ejecución solo a un rol de servicio usado por la Function. La ruta HTTP puede existir, pero cualquier JWT ordinario, incluso de un aprobador, debe recibir rechazo. La RPC comprueba nuevamente el actor humano y permisos, porque un rol de servicio puede omitir RLS.
+
+La elección entre ambas requiere verificar permisos y conexiones en P0 y probar el diseño en Supabase local antes de P2. En ambos casos: `SECURITY DEFINER` con `search_path` restringido cuando corresponda, mínimos privilegios, secretos solo en variables de servidor sin prefijo `VITE_`, y pruebas negativas de llamada directa, membresía y concurrencia. No afirmar que el uso de una clave de servicio conserva automáticamente RLS: la autorización debe verificarse explícitamente en la Function y en SQL.
+
+- **Costo:** reutilizar Supabase y Netlify actuales; verificar límites efectivos y conectividad en P0 antes de afirmar capacidad para 160 sucursales.
+- Si la Function, la revalidación o la base no están disponibles, **no se publica**. No hay modo degradado oficial.
 
 ### 10.5 Generación escalable y reproducible (corrección 8)
 
@@ -744,6 +756,7 @@ La experiencia en la 091 antes de eso se limita a **prueba local** (U1).
   - la sucursal activa sale de las membresías;
   - reversión probada.
 - **P2:**
+  - invocar directamente la RPC desde el navegador con un JWT `authenticated` (incluso de aprobador) → rechazado; verificar que la Function sea la única vía autorizada y que ninguna credencial privilegiada figure en `dist/`;
   - escribir `PUBLICADO` o tramos sin RPC → rechazado;
   - publicación con validación falsificada → la Function la rechaza;
   - **dos publicaciones concurrentes** sobre intervalos que se solapan → una gana y la otra recibe un conflicto, sin solapamiento en la base (restricción de exclusión verificada);
