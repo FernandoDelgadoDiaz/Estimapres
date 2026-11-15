@@ -1,6 +1,81 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
+## PUNTO ÚNICO DE RETOMA — tramo B1: núcleo de planificación por ciclos y estados · 2026-11-15
+
+> **Contexto documental:** el diseño v3 y las decisiones AH2-023…AH2-034 están en el PR #46 (`claude/aliada-horarios-continuidad-7suuva`), **todavía no integrado**. B1 lo toma como referencia sin fusionarlo. Las secciones siguientes de este archivo en `main` son anteriores al merge del PR #45 y se actualizan en el PR #46.
+
+- **Responsable:** Claude (Claude Code), 2026-11-15.
+- **Autorización del propietario:** «AUTORIZACIÓN LIMITADA DEL TRAMO B1» (15/11/2026). Autoriza **solo** B1.
+  - Decisiones aplicadas:
+    · ciclos de lunes a domingo;
+    · modalidad semanal o mensual con ciclos explícitos;
+    · estados de revisión ligados a huellas;
+    · prueba local separada de la publicación oficial;
+    · semanas históricas preservadas sin publicarlas retroactivamente;
+    · vigencia parcial por fechas sin modificar el pasado;
+    · replanificación desde el día siguiente;
+    · ningún agente aprueba ni publica.
+- **Rama:** `feat/ah2-b1-planificacion`, creada desde `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. PR en borrador; el SHA exacto figura en el PR.
+- **Estado real:** `main` = `905cb75` (PR #45 integrado y publicado; deploy Netlify `6af8ee2d`). El PR #46 está abierto, en borrador y sin fusionar.
+
+### Qué se implementó (solo `src/planificacion/`, funciones puras)
+| Archivo | Contenido |
+|---|---|
+| `errores.ts` | `Resultado<T>` y `ErrorPlanificacion` con 31 códigos tipados. Nada lanza excepciones por reglas de negocio. |
+| `fechas.ts` | Aritmética de fechas civiles `YYYY-MM-DD` (lunes = 0), sin zona horaria ni reloj. |
+| `ciclos.ts` | `validarCiclo`, `validarCalendario` (lunes a domingo, semanal de 1 semana, mensual de 4 o 5, sin superposiciones ni huecos, ids únicos, una sucursal), `cicloDe`, `esPrimeraSemanaDelCiclo` y `semanasDelCiclo`. |
+| `huellas.ts` | `jsonCanonico` (claves ordenadas, rechaza NaN y ciclos), `sha256Hex` (SHA-256 puro y síncrono, comprobado contra `node:crypto`), `huellaDe` y `huellasDe` (horario, demanda, reglas, roster, contratos, configuración, ausencias y perfil). |
+| `estados.ts` | `transicionar` (validar, aprobar, publicar, descartar, editar, marcar reemplazo total), `validacionVigente`, `revisarCaducidad` y `versionDesdeLegado`. |
+| `vigencia.ts` | `aplicarPublicacion`: recorte sin reescritura, continuación del resto, tramos desde mañana como mínimo, control optimista por revisión. También `tramoEfectivoEn`, `verificarSinSolapamientos`, `vigenciaVacia` y `ultimaFechaVigente`. |
+| `semana.ts` | `SemanaPlan` sobre `HorarioColaborador` (tipo existente, sin cambios), `jornadasPorFecha` y `mismaJornada`. |
+| `historial.ts` | `historialEfectivo` por fecha: solo versiones oficiales publicadas o reemplazadas, solo fechas anteriores a hoy, ausencias descontadas mediante predicado, y legado presunto opcional y etiquetado. |
+| `diff.ts` | `diffHorarios` (francos, cambio de tipo de turno frente a ajuste de horario, desvío en minutos, horas, altas y bajas, rango) y `verificarDiasCongelados`. |
+| `index.ts` | Punto de entrada del módulo. |
+
+Detalle de lo que garantiza `estados.ts`:
+- la prueba local nunca llega a PUBLICADO;
+- publicar exige ámbito servidor y una revalidación hecha en el servidor con la misma huella;
+- las semanas legadas no se publican;
+- un agente o un proceso del sistema no aprueba, publica ni descarta;
+- la aprobación propia se configura por sucursal;
+- lo publicado es inmutable;
+- los mensajes nunca dicen «legal» ni «cumple la ley» (I13).
+
+**Además:** `docs/proposals/AH2_P2_RPC_PUBLICACION_SEGURA.md` documenta el riesgo de que la RPC de publicación se invoque desde el navegador y la solución recomendada para P2: esquema no expuesto, ejecución solo desde la Function, verificación del actor en la RPC y pruebas. **No se implementa en B1.**
+
+### Pruebas (sobre el HEAD de B1)
+- **`src/planificacion/__tests__`:** 42 casos.
+  - Ciclos de 1, 4 y 5 semanas, superposiciones, huecos y cambio de mes con y sin ciclo nuevo (#44 (b) y (e)).
+  - Flujo de estados completo; prueba local nunca publicada; caducidad por huella; agentes y roles; legado.
+  - Reemplazo desde el miércoles y de un solo día; anulación; fechas pasadas y de hoy rechazadas.
+  - Concurrencia simulada (conflicto y reintento).
+  - **Prueba de propiedad:** 200 secuencias aleatorias × 25 publicaciones, sin solapamientos y sin cambios en fechas transcurridas.
+  - Historial por fecha con versión reemplazada; exclusión de borradores, aprobados, descartados y prueba local; ausencias; legado.
+  - Diff y días congelados.
+  - Huellas (SHA-256 contra `node:crypto`).
+  - Textos sin afirmaciones jurídicas.
+- **Mutaciones de control:** aceptar fechas pasadas, publicar desde prueba local o contar el día de hoy en el historial hace fallar las pruebas.
+- **Resultados:**
+  - TypeScript: OK.
+  - Vitest: **408 aprobadas**, 3 omitidas.
+  - Build: OK.
+  - Playwright: **11/11**.
+  - **Benchmark de 200 escenarios: 0 diferencias** frente a `21695d9`, idéntico al árbol de `main` (cobertura media 98,756 %, 0 regresiones, 0 violaciones).
+- **Compatibilidad:** ningún archivo existente de `src/` cambió. Nada de la app importa `src/planificacion/`, así que el bundle de producción no lo incluye (verificado en `dist/`). Motor, UI, Supabase, Prestify y datos operativos sin cambios.
+
+### Pendiente (no autorizado)
+- B2 (ausencias), B3 (memoria), B4 (fuente de demanda), W1/W2, U1–U3, P0–P5, O1, C1, C2, D1 y S1.
+- Merge del PR #46 y de este PR.
+- Incorporar al diseño la corrección de §10.4 (RPC privada y Function con rol de servicio) cuando se integre el PR #46 o en P2.
+- **Conflicto previsible:** este archivo también cambia en el PR #46. Al integrar ambos, conservar las dos secciones de retoma.
+
+### Próximo paso recomendado
+1. El propietario revisa este PR de B1.
+2. Con autorización, el siguiente candidato es **W1** (Web Worker, no cambia el cálculo) o **P0** (inventario en solo lectura). Los dos son independientes de B1.
+
+## Registro histórico — tramo A (PR #45; integrado en `905cb75` el 14/11/2026)
+
+### (sección original) PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
 
 > Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-022, en especial AH2-020 APROBADO), después esta sección y el PR de la rama activa.
 
