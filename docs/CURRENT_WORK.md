@@ -1,6 +1,56 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
+## PUNTO ÚNICO DE RETOMA — tramo B: diseño de ciclos, aprobación y publicación · 2026-11-15
+
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9, en especial AH2-015, AH2-016, AH2-022 y AH2-023). Después `docs/AH2_TRAMO_B_DISENO.md`, esta sección y el PR documental de la rama activa.
+
+- **Responsable:** Claude (Claude Code), 2026-11-15.
+- **Issues:** #44 (tramo B) y #12 (PUB-01). Dependencia de acceso multisucursal: AH2-022.
+- **Rama:** `claude/aliada-horarios-continuidad-7suuva`, creada desde `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. El SHA exacto de la rama figura en el PR documental.
+- **Alcance:** **solo documentación.** No se implementa el tramo B; sin migraciones, Supabase, datos operativos, Prestify, motor, merge ni deploy.
+
+### Estado real verificado de producción (15/11/2026)
+- **PR #45:** `merged` por el propietario el 14/11/2026 a las 23:26 UTC. Commit de merge `905cb75`, con el mismo árbol que `21695d9`. `origin/main` = `905cb75`.
+- **CI `#39`** (push a main, `905cb75`): `success`.
+- **Netlify, sitio `al-iada`:** deploy de producción actual `6af8ee2dae9d7a3ca54d5aef`, `commit_ref = 905cb75`, `context = production`, `state = ready`, publicado el 14/11/2026 a las 23:27:02 UTC.
+- **Comprobación externa:** `https://al-iada.netlify.app` sirve `assets/index-QDVVeo70.js`, que contiene `ah2-v2.1-multiarranque-2026-11-14`.
+- Por lo tanto el tramo A está **en producción**. Las secciones siguientes que dicen «sin merge», «borrador» o «producción en `c8d6fa8`» son **históricas**.
+
+### Qué se hizo en esta etapa
+- **MASTER:** tramo A marcado como integrado y publicado (§4.1, §6.1, AH2-014, AH2-019, AH2-020 y AH2-021). Se agregan los hechos sin cambiar el estado aprobado o propuesto de ninguna decisión; AH2-019 y AH2-021 quedan para que el propietario los ratifique. Se agrega **AH2-023 (PROPUESTO)**.
+- **`docs/AH2_TRAMO_B_DISENO.md`:**
+  - estado actual verificado;
+  - conceptos;
+  - modelo de datos en TypeScript;
+  - máquina de estados;
+  - invariantes I1–I11;
+  - vigencia y ciclo;
+  - modalidades semanal y mensual de 4–5 semanas;
+  - semanas legadas;
+  - contrato `ContextoContinuidad` con el tramo C;
+  - experiencia del supervisor;
+  - arquitectura para 160 sucursales: herencia empresa → zona → sucursal, roles, volumen, despliegue gradual;
+  - plan B1–B4;
+  - dependencias;
+  - criterios de aceptación;
+  - decisiones D1–D8;
+  - riesgos.
+- **Hallazgo clave para la escala:** la política de acceso del repositorio para `semanas_historial` es por usuario (`local_id = auth.uid()`). No permite varios usuarios por sucursal ni un aprobador distinto del supervisor. B4 y el despliegue a escala dependen de AH2-022.
+- **Límite:** el «prompt anterior» con el alcance de las 160 sucursales no está en el repositorio ni en esta sesión. Si tiene requisitos adicionales, se incorporan antes de aprobar (D8).
+
+### Próxima tarea exacta
+1. El propietario revisa el PR documental y resuelve D1–D8.
+2. Si autoriza **B1** (módulo puro `src/planificacion/` con pruebas, sin cambios de UI ni migración): crear una rama desde `main` actualizado e implementar solo B1 con los criterios del §12.
+3. B2–B4 requieren cada uno su propia autorización. B4 requiere además AH2-022 y autorización de migración.
+
+### Para retomar (Claude u OpenAI)
+1. `git fetch origin && git checkout claude/aliada-horarios-continuidad-7suuva`
+2. Leer MASTER (AH2-023) y `docs/AH2_TRAMO_B_DISENO.md`.
+3. No implementar, fusionar ni publicar sin autorización expresa del propietario.
+
+## Registro histórico — tramo A: contrato de horas PART (PR #45, integrado el 14/11/2026 en `905cb75`)
+
+> **Histórico.** Lo que sigue describe el estado previo al merge. La situación actual está en el «PUNTO ÚNICO DE RETOMA» de arriba.
 
 > Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-022, en especial AH2-020 APROBADO), después esta sección y el PR de la rama activa.
 
