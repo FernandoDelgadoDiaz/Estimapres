@@ -1,51 +1,73 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — tramo B: diseño de ciclos, aprobación y publicación · 2026-11-15
+## PUNTO ÚNICO DE RETOMA — tramo B: arquitectura para 160 sucursales (diseño v2) · 2026-11-15
 
-> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9, en especial AH2-015, AH2-016, AH2-022 y AH2-023). Después `docs/AH2_TRAMO_B_DISENO.md`, esta sección y el PR documental de la rama activa.
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§4.1, §6.1 y §9, en especial AH2-023…AH2-028). Después `docs/AH2_TRAMO_B_DISENO.md` (v2), esta sección y el PR #46.
 
 - **Responsable:** Claude (Claude Code), 2026-11-15.
-- **Issues:** #44 (tramo B) y #12 (PUB-01). Dependencia de acceso multisucursal: AH2-022.
-- **Rama:** `claude/aliada-horarios-continuidad-7suuva`, creada desde `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. El SHA exacto de la rama figura en el PR documental.
-- **Alcance:** **solo documentación.** No se implementa el tramo B; sin migraciones, Supabase, datos operativos, Prestify, motor, merge ni deploy.
+- **Pedido del propietario:** «ALIADA HORARIOS 2.0 — DISEÑO DEL TRAMO B», del 15/11/2026. Autoriza **solo** investigación, diseño y documentación.
+- **Rama:** `claude/aliada-horarios-continuidad-7suuva`, creada desde `main@905cb75`. **PR documental:** [#46](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/46), en borrador. El SHA exacto figura en el PR.
+- **Alcance:** solo `docs/`. Sin código, migraciones, Supabase, datos operativos, Prestify, cambios al motor, merge, deploy ni servicios pagos. Los commits llevan `[skip netlify]`.
 
-### Estado real verificado de producción (15/11/2026)
-- **PR #45:** `merged` por el propietario el 14/11/2026 a las 23:26 UTC. Commit de merge `905cb75`, con el mismo árbol que `21695d9`. `origin/main` = `905cb75`.
-- **CI `#39`** (push a main, `905cb75`): `success`.
-- **Netlify, sitio `al-iada`:** deploy de producción actual `6af8ee2dae9d7a3ca54d5aef`, `commit_ref = 905cb75`, `context = production`, `state = ready`, publicado el 14/11/2026 a las 23:27:02 UTC.
-- **Comprobación externa:** `https://al-iada.netlify.app` sirve `assets/index-QDVVeo70.js`, que contiene `ah2-v2.1-multiarranque-2026-11-14`.
-- Por lo tanto el tramo A está **en producción**. Las secciones siguientes que dicen «sin merge», «borrador» o «producción en `c8d6fa8`» son **históricas**.
+### Estado real verificado (15/11/2026)
+- **`origin/main`:** `905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. Corresponde al merge del PR #45 (14/11/2026 23:26 UTC), con el mismo árbol que `21695d9`. Incluye el contrato PART y el motor «B conjunta».
+- **CI `#39` sobre `905cb75`:** `success`.
+- **Netlify, sitio `al-iada`:**
+  - deploy de producción actual `6af8ee2dae9d7a3ca54d5aef`, `commit_ref 905cb75`, `ready`, publicado el 14/11/2026 a las 23:27:02 UTC;
+  - el bundle público `index-QDVVeo70.js` contiene `ah2-v2.1-multiarranque-2026-11-14`;
+  - en ese deploy también están desplegadas `claude-proxy`, `create-payment` y `webhook-mp`. `claude-proxy` está cerrado en `main` (devuelve 405 o 503); las dos de pago pertenecen a Prestify y no se tocaron (D13).
+- **PR abiertos:** #46 (este) y los borradores históricos #42 (rollback, intacto), #34, #24, #21 y #20.
+- **Evidencia de la semana 47 real** (agregada, informada por el propietario): demanda 406 horas-caja, cobertura 99,14 %, faltantes 3,5, sobrantes 0,5, horas suplementarias PART 0. Coherencia demanda–plan, **sin** certificar optimalidad ni cumplimiento jurídico. Registrada en MASTER §4.1.
 
-### Qué se hizo en esta etapa
-- **MASTER:** tramo A marcado como integrado y publicado (§4.1, §6.1, AH2-014, AH2-019, AH2-020 y AH2-021). Se agregan los hechos sin cambiar el estado aprobado o propuesto de ninguna decisión; AH2-019 y AH2-021 quedan para que el propietario los ratifique. Se agrega **AH2-023 (PROPUESTO)**.
-- **`docs/AH2_TRAMO_B_DISENO.md`:**
-  - estado actual verificado;
-  - conceptos;
-  - modelo de datos en TypeScript;
-  - máquina de estados;
-  - invariantes I1–I11;
-  - vigencia y ciclo;
-  - modalidades semanal y mensual de 4–5 semanas;
-  - semanas legadas;
-  - contrato `ContextoContinuidad` con el tramo C;
-  - experiencia del supervisor;
-  - arquitectura para 160 sucursales: herencia empresa → zona → sucursal, roles, volumen, despliegue gradual;
-  - plan B1–B4;
-  - dependencias;
-  - criterios de aceptación;
-  - decisiones D1–D8;
-  - riesgos.
-- **Hallazgo clave para la escala:** la política de acceso del repositorio para `semanas_historial` es por usuario (`local_id = auth.uid()`). No permite varios usuarios por sucursal ni un aprobador distinto del supervisor. B4 y el despliegue a escala dependen de AH2-022.
-- **Límite:** el «prompt anterior» con el alcance de las 160 sucursales no está en el repositorio ni en esta sesión. Si tiene requisitos adicionales, se incorporan antes de aprobar (D8).
+### Qué contiene el diseño v2 (`docs/AH2_TRAMO_B_DISENO.md`)
+- §0. Arquitectura integrada: ciclo de vida por sucursal con memoria.
+- §1. Diagnóstico con 18 brechas para 160 sucursales. Las bloqueantes:
+  - acceso por usuario;
+  - falta de estructura organizacional;
+  - proyecto y sitio compartidos con Prestify.
+- §2–§3. Componentes y modelo de datos (TypeScript), con persistencia en dos etapas.
+- §4–§5. Ciclos explícitos con inicio y fin, y estados BORRADOR → VALIDADO (ligado a huella) → APROBADO → PUBLICADO, con REEMPLAZADO y DESCARTADO como estados históricos. Invariantes I1–I12.
+- §6. Continuidad y rotación con candidatos del multi-arranque existente, comparación de demanda y equidad por semanas efectivas.
+- §7. Ausencias y replanificación parcial desde una fecha, sin tocar el pasado.
+- §8. Política de horas PART y capacidad futura de horas suplementarias (separada, apagada por defecto, triple condición).
+- §9. Aprendizaje por sucursal: memoria compartida, preferencias confirmadas por personas y salvaguardas.
+- §10. Plataforma:
+  - roles y membresías;
+  - políticas de acceso verificables con pruebas en Supabase local;
+  - publicación revalidada en una Netlify Function;
+  - Web Worker y corte por trabajo;
+  - volumen;
+  - independencia de POM;
+  - despliegue gradual.
+- §11. Evidencia de la semana 47.
+- §12. Riesgos.
+- §13. Plan de PR por dependencia.
+- §14. Criterios de aceptación por PR.
+- §15. Decisiones D2–D7 y D9–D13 (D1 y D8 ya resueltas por el propietario).
+
+### MASTER
+- **Hechos agregados:** tramo A integrado y publicado; evidencia de la semana 47.
+- **Requisitos del propietario registrados como APROBADOS**, con su diseño técnico como **PROPUESTO**:
+  - AH2-024: política de horas PART;
+  - AH2-025: principio de aprendizaje;
+  - AH2-026: plataforma para 160 sucursales;
+  - AH2-027: independencia de la fuente de demanda;
+  - AH2-028: estados y publicación.
+- **AH2-023:** arquitectura integrada, PROPUESTA.
+- No se modificó ninguna decisión aprobada.
 
 ### Próxima tarea exacta
-1. El propietario revisa el PR documental y resuelve D1–D8.
-2. Si autoriza **B1** (módulo puro `src/planificacion/` con pruebas, sin cambios de UI ni migración): crear una rama desde `main` actualizado e implementar solo B1 con los criterios del §12.
-3. B2–B4 requieren cada uno su propia autorización. B4 requiere además AH2-022 y autorización de migración.
+1. El propietario revisa el PR #46 y resuelve las decisiones D2–D7 y D9–D13.
+2. Con autorización expresa, el primer PR de código es **B1**, que solo agrega `src/planificacion/` con funciones puras y pruebas. Sin UI, sin migración y sin cambios en el motor. Sus criterios están en el §14 del diseño.
+
+   En paralelo pueden autorizarse:
+   - **W1**, el Web Worker, que no cambia el cálculo;
+   - **P0**, el inventario del esquema real en solo lectura.
+3. Los PR con migración (P1–P5) y los que tocan el motor (W2, C1, C2, D1, S1) requieren cada uno una autorización específica.
 
 ### Para retomar (Claude u OpenAI)
 1. `git fetch origin && git checkout claude/aliada-horarios-continuidad-7suuva`
-2. Leer MASTER (AH2-023) y `docs/AH2_TRAMO_B_DISENO.md`.
+2. Leer MASTER (AH2-023…AH2-028) y `docs/AH2_TRAMO_B_DISENO.md`.
 3. No implementar, fusionar ni publicar sin autorización expresa del propietario.
 
 ## Registro histórico — tramo A: contrato de horas PART (PR #45, integrado el 14/11/2026 en `905cb75`)
