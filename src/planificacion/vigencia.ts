@@ -13,6 +13,9 @@
 import { type ErrorPlanificacion, type Resultado, falla, fallas, ok } from './errores'
 import { type Fecha, esFechaValida, maxFecha, seSolapan, sumarDias } from './fechas'
 
+/** Identificador de publicación: UUID o similar. «:» se reserva para los ids de tramo derivados. */
+export const FORMATO_ID_PUBLICACION = /^[A-Za-z0-9_-]{1,64}$/
+
 export interface TramoVigencia {
   id: string
   sucursalId: string
@@ -67,17 +70,20 @@ export function tramoEfectivoEn(tramos: readonly TramoVigencia[], sucursalId: st
   return tramos.find(t => t.sucursalId === sucursalId && tramoActivo(t) && t.desde <= fecha && fecha <= t.hastaEfectivo!) ?? null
 }
 
-/** I1: ningún par de tramos efectivos de una misma sucursal se solapa. */
+/**
+ * I1: ningún par de tramos efectivos de una misma sucursal se solapa.
+ * O(n log n): ordena por (sucursal, desde) y compara cada tramo con el máximo «hasta» previo.
+ */
 export function verificarSinSolapamientos(tramos: readonly TramoVigencia[]): Resultado<true> {
-  const activos = tramos.filter(tramoActivo)
+  const activos = tramos.filter(tramoActivo).sort((a, b) =>
+    a.sucursalId < b.sucursalId ? -1 : a.sucursalId > b.sucursalId ? 1 : a.desde < b.desde ? -1 : a.desde > b.desde ? 1 : 0)
   const errores: ErrorPlanificacion[] = []
-  for (let i = 0; i < activos.length; i++) {
-    for (let j = i + 1; j < activos.length; j++) {
-      const a = activos[i], b = activos[j]
-      if (a.sucursalId === b.sucursalId && seSolapan(a.desde, a.hastaEfectivo!, b.desde, b.hastaEfectivo!)) {
-        errores.push({ codigo: 'SOLAPAMIENTO_VIGENCIA', mensaje: `Los tramos ${a.id} y ${b.id} rigen días en común.`, detalle: { tramos: [a.id, b.id] } })
-      }
+  let previo: TramoVigencia | null = null
+  for (const t of activos) {
+    if (previo && previo.sucursalId === t.sucursalId && t.desde <= previo.hastaEfectivo!) {
+      errores.push({ codigo: 'SOLAPAMIENTO_VIGENCIA', mensaje: `Los tramos ${previo.id} y ${t.id} rigen días en común.`, detalle: { tramos: [previo.id, t.id] } })
     }
+    if (!previo || previo.sucursalId !== t.sucursalId || t.hastaEfectivo! > previo.hastaEfectivo!) previo = t
   }
   return errores.length ? fallas(errores) : ok(true)
 }
@@ -92,6 +98,18 @@ export function aplicarPublicacion(estado: EstadoVigencia, s: SolicitudPublicaci
     return falla('CONFLICTO_CONCURRENCIA', 'Otra publicación cambió la vigencia desde que se leyó: revisá y volvé a publicar.', { revisionEsperada: s.revisionEsperada, revisionActual: estado.revision })
   }
   if (!esFechaValida(s.hoy)) return falla('FECHA_INVALIDA', `Fecha de hoy inválida: ${s.hoy}.`)
+  // Identificadores: nunca se reutilizan ni se generan duplicados en silencio.
+  if (!FORMATO_ID_PUBLICACION.test(s.publicacionId)) {
+    return falla('ID_INVALIDO', `Identificador de publicación inválido: «${s.publicacionId}» (solo letras, números, «-» y «_»; «:» está reservado).`, { publicacionId: s.publicacionId })
+  }
+  const idsExistentes = new Set<string>()
+  for (const t of estado.tramos) {
+    if (idsExistentes.has(t.id)) return falla('ID_DUPLICADO', `El estado de vigencia contiene el tramo «${t.id}» repetido.`, { tramoId: t.id })
+    idsExistentes.add(t.id)
+  }
+  if (estado.tramos.some(t => t.publicacionId === s.publicacionId || t.id.startsWith(`${s.publicacionId}:`))) {
+    return falla('ID_DUPLICADO', `La publicación «${s.publicacionId}» ya fue aplicada: cada publicación necesita un identificador nuevo.`, { publicacionId: s.publicacionId })
+  }
   const manana = sumarDias(s.hoy, 1)
   const errores: ErrorPlanificacion[] = []
   for (const t of s.tramos) {
@@ -144,6 +162,11 @@ export function aplicarPublicacion(estado: EstadoVigencia, s: SolicitudPublicaci
   }))
   // Una continuación creada y anulada dentro de la misma publicación nunca rigió: no se guarda.
   const final = [...tramos.filter(t => !(continuaciones.has(t.id) && !tramoActivo(t))), ...creados]
+  const ids = new Set<string>()
+  for (const t of final) {
+    if (ids.has(t.id)) return falla('ID_DUPLICADO', `La publicación generaría el identificador de tramo «${t.id}» repetido.`, { tramoId: t.id })
+    ids.add(t.id)
+  }
   const sinSolapes = verificarSinSolapamientos(final)
   if (!sinSolapes.ok) return sinSolapes
   const versionesAntes = new Set(estado.tramos.filter(tramoActivo).map(t => t.versionId))

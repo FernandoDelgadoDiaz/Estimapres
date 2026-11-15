@@ -14,6 +14,7 @@ export type CodigoError =
   | 'HUECO_ENTRE_CICLOS'
   | 'SUCURSAL_DISTINTA'
   | 'ID_DUPLICADO'
+  | 'ID_INVALIDO'
   // Máquina de estados
   | 'TRANSICION_INVALIDA'
   | 'ACTOR_NO_HUMANO'

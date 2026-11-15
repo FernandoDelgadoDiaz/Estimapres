@@ -150,10 +150,24 @@ export function transicionar(v: VersionPlan, accion: Accion, ctx: ContextoTransi
       if (v.estado !== 'VALIDADO') return err('TRANSICION_INVALIDA', `Solo se aprueba una versión VALIDADA (estado actual: ${v.estado}).`, v)
       if (!persona(actor)) return err('ACTOR_NO_HUMANO', 'Solo una persona puede aprobar un horario.', v, { actor: actor.tipo })
       const propia = actor.id === v.creadaPor
-      const rolOk = actor.rol !== undefined && (ROLES_APROBAR.includes(actor.rol) || (actor.rol === 'supervisor' && ctx.politica.aprobacionPropiaPermitida))
-      if (!rolOk) return err('ROL_NO_AUTORIZADO', 'El rol del usuario no permite aprobar horarios en esta sucursal.', v, { rol: actor.rol })
-      if (propia && !ctx.politica.aprobacionPropiaPermitida) {
-        return err('APROBACION_PROPIA_NO_PERMITIDA', 'La sucursal no permite aprobar un horario creado por la misma persona.', v)
+      // D3: habilitar la aprobación propia NO da permiso para aprobar horarios ajenos.
+      //  - aprobador / director-regional / admin-empresa: aprueban horarios ajenos; los propios solo
+      //    si la sucursal lo permite;
+      //  - supervisor: SOLO su propia versión y SOLO si la sucursal lo permite;
+      //  - cualquier otro rol (auditor): nunca.
+      if (actor.rol !== undefined && ROLES_APROBAR.includes(actor.rol)) {
+        if (propia && !ctx.politica.aprobacionPropiaPermitida) {
+          return err('APROBACION_PROPIA_NO_PERMITIDA', 'La sucursal no permite aprobar un horario creado por la misma persona.', v)
+        }
+      } else if (actor.rol === 'supervisor') {
+        if (!propia) {
+          return err('ROL_NO_AUTORIZADO', 'Un supervisor solo puede aprobar su propio horario (si la sucursal lo permite); los horarios de otras personas requieren rol aprobador.', v, { rol: actor.rol })
+        }
+        if (!ctx.politica.aprobacionPropiaPermitida) {
+          return err('APROBACION_PROPIA_NO_PERMITIDA', 'La sucursal no permite aprobar un horario creado por la misma persona.', v)
+        }
+      } else {
+        return err('ROL_NO_AUTORIZADO', 'El rol del usuario no permite aprobar horarios en esta sucursal.', v, { rol: actor.rol })
       }
       if (!validacionVigente(v, accion.huellaActual)) return err('VALIDACION_CADUCADA', 'Las entradas cambiaron desde la validación: hay que volver a validar.', v)
       return ok({ version: { ...v, estado: 'APROBADO', aprobadaPor: actor.id }, evento: evento('APROBADO') })

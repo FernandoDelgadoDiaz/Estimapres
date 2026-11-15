@@ -48,7 +48,12 @@ const ESTADOS_OFICIALES = new Set(['PUBLICADO', 'REEMPLAZADO_TOTAL'])
 export function historialEfectivo(q: ConsultaHistorial): Resultado<DiaEfectivo[]> {
   if (!esFechaValida(q.desde) || !esFechaValida(q.hasta) || !esFechaValida(q.hoy)) return falla('FECHA_INVALIDA', 'Rango o fecha de hoy inválidos.')
   const ultimo = minFecha(q.hasta, sumarDias(q.hoy, -1))
-  const porId = new Map(q.versiones.map(v => [v.version.id, v]))
+  const porId = new Map<string, VersionConHorario>()
+  for (const v of [...q.versiones, ...(q.legadoPresunto ?? [])]) {
+    if (porId.has(v.version.id)) return falla('ID_DUPLICADO', `La versión «${v.version.id}» aparece repetida en la consulta del historial.`, { versionId: v.version.id })
+    porId.set(v.version.id, v)
+  }
+  for (const l of q.legadoPresunto ?? []) porId.delete(l.version.id) // el legado solo se usa como presunto
   const indices = new Map<string, ReturnType<typeof jornadasPorFecha>>()
   const legado = new Map<Fecha, VersionConHorario>()
   for (const l of q.legadoPresunto ?? []) {

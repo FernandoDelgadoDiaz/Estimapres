@@ -110,12 +110,37 @@ describe('B1 · actores y roles (I8, D3)', () => {
   })
 
   it('aprobación propia: permitida si la sucursal lo habilita (091); si no, rechazada', () => {
-    const val = hasta('VALIDADO')
+    const val = hasta('VALIDADO') // creada por sup-1
     expect(transicionar(val, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(SUP)).ok).toBe(true)
     const sinPropia = { aprobacionPropiaPermitida: false }
-    expect(codigo(transicionar(val, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(SUP, sinPropia)))).toBe('ROL_NO_AUTORIZADO')
+    expect(codigo(transicionar(val, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(SUP, sinPropia)))).toBe('APROBACION_PROPIA_NO_PERMITIDA')
     const aprobadorCreador: Actor = { tipo: 'persona', id: 'sup-1', rol: 'aprobador' }
     expect(codigo(transicionar(val, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(aprobadorCreador, sinPropia)))).toBe('APROBACION_PROPIA_NO_PERMITIDA')
+    expect(transicionar(val, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(aprobadorCreador)).ok).toBe(true)
+  })
+
+  it('habilitar la aprobación propia NO autoriza a un supervisor a aprobar horarios ajenos', () => {
+    const ajena = hasta('VALIDADO', version('v2', '2026-11-16', { creadaPor: 'sup-2' }))
+    for (const politica of [{ aprobacionPropiaPermitida: true }, { aprobacionPropiaPermitida: false }]) {
+      const r = transicionar(ajena, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(SUP, politica))
+      expect(codigo(r), JSON.stringify(politica)).toBe('ROL_NO_AUTORIZADO')
+      expect(r.ok ? null : r.errores[0].mensaje).toMatch(/solo puede aprobar su propio horario/)
+    }
+  })
+
+  it('matriz de permisos de aprobación (propia/ajena × rol × política)', () => {
+    const roles: Array<Actor['rol']> = ['supervisor', 'aprobador', 'director-regional', 'admin-empresa', 'auditor']
+    const esperado = (rol: Actor['rol'], propia: boolean, permitida: boolean): string => {
+      if (rol === 'auditor') return 'ROL_NO_AUTORIZADO'
+      if (rol === 'supervisor') return !propia ? 'ROL_NO_AUTORIZADO' : permitida ? 'OK' : 'APROBACION_PROPIA_NO_PERMITIDA'
+      return propia && !permitida ? 'APROBACION_PROPIA_NO_PERMITIDA' : 'OK'
+    }
+    for (const rol of roles) for (const propia of [true, false]) for (const permitida of [true, false]) {
+      const actor: Actor = { tipo: 'persona', id: 'yo', rol }
+      const v = hasta('VALIDADO', version('v', '2026-11-16', { creadaPor: propia ? 'yo' : 'otra-persona' }))
+      const r = transicionar(v, { tipo: 'aprobar', huellaActual: 'sha256:h1' }, ctx(actor, { aprobacionPropiaPermitida: permitida }))
+      expect(r.ok ? 'OK' : r.errores[0].codigo, `${rol} propia=${propia} permitida=${permitida}`).toBe(esperado(rol, propia, permitida))
+    }
   })
 
   it('auditor no aprueba ni publica; supervisor no publica', () => {

@@ -21,7 +21,7 @@
 ### Qué se implementó (solo `src/planificacion/`, funciones puras)
 | Archivo | Contenido |
 |---|---|
-| `errores.ts` | `Resultado<T>` y `ErrorPlanificacion` con 31 códigos tipados. Nada lanza excepciones por reglas de negocio. |
+| `errores.ts` | `Resultado<T>` y `ErrorPlanificacion` con 32 códigos tipados. Nada lanza excepciones por reglas de negocio. |
 | `fechas.ts` | Aritmética de fechas civiles `YYYY-MM-DD` (lunes = 0), sin zona horaria ni reloj. |
 | `ciclos.ts` | `validarCiclo`, `validarCalendario` (lunes a domingo, semanal de 1 semana, mensual de 4 o 5, sin superposiciones ni huecos, ids únicos, una sucursal), `cicloDe`, `esPrimeraSemanaDelCiclo` y `semanasDelCiclo`. |
 | `huellas.ts` | `jsonCanonico` (claves ordenadas, rechaza NaN y ciclos), `sha256Hex` (SHA-256 puro y síncrono, comprobado contra `node:crypto`), `huellaDe` y `huellasDe` (horario, demanda, reglas, roster, contratos, configuración, ausencias y perfil). |
@@ -62,6 +62,36 @@ Detalle de lo que garantiza `estados.ts`:
   - Playwright: **11/11**.
   - **Benchmark de 200 escenarios: 0 diferencias** frente a `21695d9`, idéntico al árbol de `main` (cobertura media 98,756 %, 0 regresiones, 0 violaciones).
 - **Compatibilidad:** ningún archivo existente de `src/` cambió. Nada de la app importa `src/planificacion/`, así que el bundle de producción no lo incluye (verificado en `dist/`). Motor, UI, Supabase, Prestify y datos operativos sin cambios.
+
+### Corrección de calidad del PR #47 (pedido del propietario, 15/11/2026; HEAD revisado `c282b36`)
+1. **CI `test-build` en FAILURE** (GitHub Actions, job `132943397824`).
+   - La prueba de propiedad (`vigencia.test.ts:84`) superó el timeout de 5 000 ms: 407 aprobadas, 1 fallida y 3 omitidas. El build no llegó a correr.
+   - **Causa medida:**
+     · el dominio tarda unos 0,5 s (`aplicarPublicacion` 72 ms, `verificarSinSolapamientos` 6 ms, recorridos de la prueba 0,41 s);
+     · los otros ~2,7 s eran **unas 750 000 llamadas a `expect`**, una por fecha y por paso;
+     · local aislado: 3,2 s; el runner es más lento y corre en paralelo con el resto de la suite.
+   - **Corrección:**
+     · los invariantes se verifican con lógica plana y un oráculo independiente (barrido de intervalos), se acumulan las violaciones y se afirma una vez por secuencia;
+     · se mantienen las **200 secuencias × 25 pasos** y todos los invariantes. Se agregan: la verificación simétrica de fechas transcurridas (no pierden ni ganan vigencia), la unicidad de ids y mínimos de cobertura de la prueba (más de 4 000 publicaciones, más de 400 conflictos, más de 150 000 verificaciones);
+     · `verificarSinSolapamientos` pasa de O(n²) a O(n log n), con un caso de intervalos anidados.
+   - **Resultado:** 3 163 ms → **~600–700 ms**. **No se modificó el timeout** (ni el global ni uno específico): el margen es más de 7 veces el tiempo medido.
+2. **Permisos (`estados.ts`):** con `aprobacionPropiaPermitida`, un supervisor podía aprobar horarios **ajenos**. Ahora:
+   - un supervisor solo aprueba **su propia** versión y solo si la sucursal lo habilita;
+   - las versiones ajenas requieren aprobador, director regional o admin de empresa;
+   - auditor, nunca;
+   - pruebas: matriz completa de 5 roles × propia o ajena × política.
+3. **Huellas (`huellas.ts`):** política canónica explícita.
+   - **Ausente ≠ nulo:** en la raíz, el token `undefined` (que ningún JSON produce); una propiedad `undefined` = ausente; `undefined` o huecos en arreglos se rechazan (antes colisionaban con `null`).
+   - Solo datos planos. Se rechazan con la ruta del valor: Date, Map, Set, RegExp, arreglos tipados, instancias de clases, primitivos envueltos, claves símbolo, getters, bigint, funciones, NaN e infinitos.
+   - Unicode **NFC** en claves y valores, con rechazo de claves que colisionan tras normalizar.
+   - Pruebas: colisiones semánticas (35 valores distintos sin huellas compartidas; ausente, nulo y vacío distintos en `EntradasHorario`), equivalencias (orden, −0, NFD/NFC), 16 tipos rechazados, 500 valores aleatorios iguales a una referencia con `node:crypto`, y estabilidad tras la ida y vuelta por JSON/jsonb.
+4. **Identificadores:**
+   - Antes, reutilizar un `publicacionId` generaba en silencio tramos `P1:0` repetidos. Ahora `ID_DUPLICADO`.
+   - `publicacionId` con formato validado (`ID_INVALIDO`; «:» reservado).
+   - Se rechaza un estado de entrada con ids repetidos.
+   - Control final de unicidad de todos los ids resultantes.
+   - En `historialEfectivo`, versiones con id repetido → `ID_DUPLICADO` (antes el `Map` se quedaba con la última).
+5. **Verificación:** ver la evidencia en el PR #47 (suite completa, TypeScript, build, Playwright, benchmark de 200 escenarios y checks `test-build` y `browser` en GitHub).
 
 ### Pendiente (no autorizado)
 - B2 (ausencias), B3 (memoria), B4 (fuente de demanda), W1/W2, U1–U3, P0–P5, O1, C1, C2, D1 y S1.

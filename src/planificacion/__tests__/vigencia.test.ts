@@ -77,34 +77,102 @@ describe('B1 · concurrencia simulada (control optimista)', () => {
       { id: 'c', sucursalId: 'otra', publicacionId: 'r', versionId: 'x', desde: '2026-11-16', hasta: '2026-11-22', hastaEfectivo: '2026-11-22' },
     ])
     expect(codigos(r)).toEqual(['SOLAPAMIENTO_VIGENCIA'])
+    // Anidados: B y C están dentro de A (dos solapamientos, aunque B termine antes que C empiece); contiguos no se solapan.
+    const t = (id: string, desde: string, hasta: string, hastaEfectivo: string | null = hasta) => ({ id, sucursalId: S, publicacionId: 'p', versionId: id, desde, hasta, hastaEfectivo })
+    expect(codigos(verificarSinSolapamientos([t('A', '2026-11-01', '2026-11-10'), t('B', '2026-11-02', '2026-11-03'), t('C', '2026-11-05', '2026-11-06')]))).toEqual(['SOLAPAMIENTO_VIGENCIA', 'SOLAPAMIENTO_VIGENCIA'])
+    expect(verificarSinSolapamientos([t('A', '2026-11-01', '2026-11-10'), t('B', '2026-11-11', '2026-11-12'), t('X', '2026-11-05', '2026-11-12', null)]).ok).toBe(true)
   })
 })
 
+describe('B1 · identificadores: nunca se duplican en silencio', () => {
+  const base = valor(pub(vigenciaVacia(S), 'P1', '2026-11-13', [{ versionId: 'V1', desde: '2026-11-16', hasta: '2026-11-22' }])).estado
+
+  it('reutilizar un id de publicación ya aplicado se rechaza (antes generaba «P1:0» repetido)', () => {
+    expect(codigos(pub(base, 'P1', '2026-11-17', [{ versionId: 'V2', desde: '2026-11-18', hasta: '2026-11-22' }]))).toEqual(['ID_DUPLICADO'])
+  })
+
+  it('ids de publicación con «:» (separador reservado), vacíos o demasiado largos se rechazan', () => {
+    for (const id of ['P1:0', 'P1:cont:0:P1:0', '', 'x'.repeat(65), 'con espacio']) {
+      expect(codigos(pub(base, id, '2026-11-17', [{ versionId: 'V2', desde: '2026-11-18', hasta: '2026-11-22' }])), id).toEqual(['ID_INVALIDO'])
+    }
+    expect(pub(base, '3f2b8c1e-9d4a-4c6b-8e2f-1a2b3c4d5e6f', '2026-11-17', [{ versionId: 'V2', desde: '2026-11-18', hasta: '2026-11-22' }]).ok).toBe(true)
+  })
+
+  it('un estado de entrada con ids de tramo repetidos se rechaza', () => {
+    const corrupto: EstadoVigencia = { ...base, tramos: [...base.tramos, { ...base.tramos[0] }] }
+    expect(codigos(pub(corrupto, 'P2', '2026-11-17', [{ versionId: 'V2', desde: '2026-11-18', hasta: '2026-11-22' }]))).toEqual(['ID_DUPLICADO'])
+  })
+
+  it('una misma publicación con dos tramos sobre el mismo tramo anterior genera continuaciones con ids distintos', () => {
+    const r = valor(pub(base, 'P2', '2026-11-13', [{ versionId: 'A', desde: '2026-11-17', hasta: '2026-11-17' }, { versionId: 'B', desde: '2026-11-19', hasta: '2026-11-19' }, { versionId: 'C', desde: '2026-11-21', hasta: '2026-11-21' }]))
+    const ids = r.estado.tramos.map(t => t.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(fechasEntre('2026-11-16', '2026-11-22').map(f => vigenteEn(r.estado, f))).toEqual(['V1', 'A', 'V1', 'B', 'V1', 'C', 'V1'])
+  })
+})
+
+/**
+ * Vigencia por fecha calculada con un barrido de intervalos (O(días cubiertos)), independiente de
+ * tramoEfectivoEn: sirve de oráculo para la prueba de propiedad.
+ */
+function mapaVigencia(e: EstadoVigencia): Map<string, string[]> {
+  const m = new Map<string, string[]>()
+  for (const t of e.tramos) {
+    if (t.hastaEfectivo === null || t.hastaEfectivo < t.desde) continue
+    for (const f of fechasEntre(t.desde, t.hastaEfectivo)) { const l = m.get(f); if (l) l.push(t.versionId); else m.set(f, [t.versionId]) }
+  }
+  return m
+}
+
 describe('B1 · propiedad: secuencias aleatorias de publicaciones y reemplazos', () => {
+  // Los invariantes se verifican con lógica plana y se acumulan las violaciones; se afirma una vez
+  // por secuencia. (La versión anterior hacía ~750 000 llamadas a expect: ese costo, no el del
+  // dominio, superaba los 5 s del timeout en CI.) Mismas 200 secuencias × 25 pasos y mismos invariantes.
   it('200 secuencias: nunca hay solapamientos, cada fecha tiene a lo sumo un tramo y lo transcurrido no cambia', () => {
+    let verificaciones = 0, publicadas = 0, conflictos = 0
     for (let semilla = 1; semilla <= 200; semilla++) {
       const r = prng(semilla)
+      const fallos: string[] = []
       let estado = vigenciaVacia(S)
       let hoy = '2026-11-01'
-      const primerLunes = '2026-11-02'
       for (let paso = 0; paso < 25; paso++) {
         hoy = sumarDias(hoy, Math.floor(r() * 3))
         const desde = sumarDias(hoy, 1 + Math.floor(r() * 20))
         const largo = Math.floor(r() * 10)
         const solicitud = { versionId: `V${semilla}-${paso}`, desde, hasta: sumarDias(desde, largo) }
-        const antes = new Map(fechasEntre(primerLunes, hoy).map(f => [f, vigenteEn(estado, f)]))
+        const antes = mapaVigencia(estado)
         // Ocasionalmente, una publicación con revisión vieja (otra pestaña): debe fallar sin efecto.
         const revision = r() < 0.15 ? estado.revision - 1 : estado.revision
         const res = pub(estado, `P${paso}`, hoy, [solicitud], revision)
-        if (revision !== estado.revision) { expect(codigos(res)).toContain('CONFLICTO_CONCURRENCIA'); continue }
-        estado = valor(res).estado
-        expect(verificarSinSolapamientos(estado.tramos).ok).toBe(true)
-        for (const [f, v] of antes) expect(vigenteEn(estado, f), `semilla ${semilla} paso ${paso} fecha ${f}`).toBe(v) // I4
-        for (const f of fechasEntre(solicitud.desde, solicitud.hasta)) expect(vigenteEn(estado, f)).toBe(solicitud.versionId)
-        for (const f of fechasEntre(primerLunes, sumarDias(hoy, 40))) {
-          expect(estado.tramos.filter(t => t.hastaEfectivo !== null && t.desde <= f && f <= t.hastaEfectivo).length).toBeLessThanOrEqual(1)
+        if (revision !== estado.revision) {
+          conflictos++
+          if (res.ok || !res.errores.some(e => e.codigo === 'CONFLICTO_CONCURRENCIA')) fallos.push(`paso ${paso}: revisión vieja aceptada`)
+          continue
+        }
+        if (!res.ok) { fallos.push(`paso ${paso}: publicación válida rechazada ${JSON.stringify(res.errores)}`); continue }
+        publicadas++
+        estado = res.valor.estado
+        const despues = mapaVigencia(estado)
+        if (!verificarSinSolapamientos(estado.tramos).ok) fallos.push(`paso ${paso}: verificarSinSolapamientos falló`)
+        if (new Set(estado.tramos.map(t => t.id)).size !== estado.tramos.length) fallos.push(`paso ${paso}: ids de tramo repetidos`)
+        for (const [f, vs] of despues) { verificaciones++; if (vs.length > 1) fallos.push(`paso ${paso}: ${f} con ${vs.length} tramos`) }
+        // I4: lo transcurrido (≤ hoy) no cambia, en ambos sentidos (ni se pierde ni se gana vigencia).
+        for (const f of new Set([...antes.keys(), ...despues.keys()])) {
+          if (f > hoy) continue
+          verificaciones++
+          if ((despues.get(f) ?? []).join() !== (antes.get(f) ?? []).join()) fallos.push(`paso ${paso}: cambió la fecha transcurrida ${f}`)
+        }
+        for (const f of fechasEntre(solicitud.desde, solicitud.hasta)) {
+          verificaciones++
+          if ((despues.get(f) ?? []).join() !== solicitud.versionId) fallos.push(`paso ${paso}: ${f} no quedó en ${solicitud.versionId}`)
+          if (tramoEfectivoEn(estado.tramos, S, f)?.versionId !== solicitud.versionId) fallos.push(`paso ${paso}: tramoEfectivoEn difiere en ${f}`)
         }
       }
+      expect(fallos, `semilla ${semilla}`).toEqual([])
     }
+    // La prueba debe ejercitar de verdad el dominio (no pasar en vacío).
+    expect(publicadas).toBeGreaterThan(4000)
+    expect(conflictos).toBeGreaterThan(400)
+    expect(verificaciones).toBeGreaterThan(150_000)
   })
 })

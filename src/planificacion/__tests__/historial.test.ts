@@ -69,4 +69,9 @@ describe('B1 · historial efectivo por fecha (AH2-031)', () => {
     const r = historialEfectivo({ sucursalId: S, desde: '2026-11-23', hasta: '2026-11-23', hoy: '2026-11-30', tramos: malo.tramos, versiones: [V1] })
     expect(r.ok ? null : r.errores[0].codigo).toBe('TRAMO_SIN_VERSION_PUBLICADA')
   })
+
+  it('versiones con id repetido en la consulta se rechazan (no se elige una en silencio)', () => {
+    const r = historialEfectivo({ sucursalId: S, desde: '2026-11-16', hasta: '2026-11-22', hoy: '2026-11-30', tramos: e2.tramos, versiones: [V1, V2, vh('V1', '2026-11-16', {}, 1)] })
+    expect(r.ok ? null : r.errores[0].codigo).toBe('ID_DUPLICADO')
+  })
 })

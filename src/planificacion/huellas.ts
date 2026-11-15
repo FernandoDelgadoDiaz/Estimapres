@@ -4,45 +4,82 @@
 import { type Resultado, falla, ok } from './errores'
 
 /**
- * JSON canónico: claves de objetos ordenadas, `undefined` omitido, arrays en su orden.
- * Rechaza valores no representables de forma estable (NaN, Infinity, funciones, símbolos,
- * bigint, ciclos).
+ * JSON canónico para huellas. Política explícita (todo lo no listado se RECHAZA con la ruta del
+ * valor, nunca se convierte en silencio):
+ *  - Datos admitidos: null, booleanos, números finitos (−0 se normaliza a 0), cadenas, arreglos y
+ *    objetos planos (prototipo Object.prototype o null).
+ *  - Cadenas y claves se normalizan a Unicode NFC (la misma palabra escrita con caracteres
+ *    combinados o precompuestos da la misma huella). Dos claves que coinciden tras normalizar se
+ *    rechazan (serían ambiguas).
+ *  - Claves de objetos ordenadas por código UTF-16 (orden de JS, estable entre Node y navegadores).
+ *  - AUSENTE ≠ NULO:
+ *      · una propiedad con valor `undefined` equivale a una propiedad ausente (como en JSON y en
+ *        el jsonb de Supabase), y se distingue de `null`;
+ *      · en la raíz, `undefined` se codifica con el token `undefined` (que ningún JSON puede
+ *        producir), distinto de `null`;
+ *      · en arreglos, `undefined` y los huecos se rechazan: JSON los convertiría en `null` y
+ *        colisionarían con un `null` explícito.
+ *  - Rechazados: NaN, ±Infinity, bigint, símbolos, funciones, Date, Map, Set, RegExp, arreglos
+ *    tipados, ArrayBuffer, primitivos envueltos (new String…), instancias de clases y objetos con
+ *    claves símbolo o getters. Quien tenga fechas debe pasarlas como texto (YYYY-MM-DD o ISO).
  */
 export function jsonCanonico(valor: unknown): Resultado<string> {
-  const vistos = new Set<unknown>()
+  if (valor === undefined) return ok('undefined')
+  const vistos = new Set<object>()
   let problema: string | null = null
-  const enc = (v: unknown): string | undefined => {
+  const fallar = (ruta: string, motivo: string) => { if (!problema) problema = `${ruta}: ${motivo}`; return '' }
+  const cadena = (x: string) => JSON.stringify(x.normalize('NFC'))
+  const enc = (v: unknown, ruta: string): string => {
     if (problema) return ''
     if (v === null) return 'null'
     switch (typeof v) {
-      case 'string': return JSON.stringify(v)
+      case 'string': return cadena(v)
       case 'boolean': return v ? 'true' : 'false'
       case 'number':
-        if (!Number.isFinite(v)) { problema = `número no finito (${v})`; return '' }
+        if (!Number.isFinite(v)) return fallar(ruta, `número no finito (${v})`)
         return JSON.stringify(Object.is(v, -0) ? 0 : v)
-      case 'undefined': return undefined
-      case 'object': {
-        if (vistos.has(v)) { problema = 'referencia circular'; return '' }
-        vistos.add(v)
-        let s: string
-        if (Array.isArray(v)) s = `[${v.map(x => enc(x) ?? 'null').join(',')}]`
-        else {
-          const partes: string[] = []
-          for (const k of Object.keys(v as object).sort()) {
-            const x = enc((v as Record<string, unknown>)[k])
-            if (x !== undefined) partes.push(`${JSON.stringify(k)}:${x}`)
-          }
-          s = `{${partes.join(',')}}`
-        }
-        vistos.delete(v)
-        return s
-      }
-      default: problema = `tipo no serializable (${typeof v})`; return ''
+      case 'undefined': return fallar(ruta, 'undefined fuera de una propiedad de objeto')
+      case 'bigint': return fallar(ruta, 'bigint no admitido')
+      case 'symbol': return fallar(ruta, 'símbolo no admitido')
+      case 'function': return fallar(ruta, 'función no admitida')
     }
+    const o = v as object
+    if (vistos.has(o)) return fallar(ruta, 'referencia circular')
+    if (Array.isArray(o)) {
+      if (Object.getPrototypeOf(o) !== Array.prototype) return fallar(ruta, 'subclase de Array no admitida')
+      vistos.add(o)
+      const partes: string[] = []
+      for (let k = 0; k < o.length; k++) {
+        if (!(k in o)) return fallar(`${ruta}[${k}]`, 'hueco en el arreglo')
+        if (o[k] === undefined) return fallar(`${ruta}[${k}]`, 'undefined en un arreglo (ambiguo con null)')
+        partes.push(enc(o[k], `${ruta}[${k}]`))
+      }
+      vistos.delete(o)
+      return `[${partes.join(',')}]`
+    }
+    const proto = Object.getPrototypeOf(o)
+    if (proto !== Object.prototype && proto !== null) {
+      const nombre = (proto && proto.constructor && proto.constructor.name) || 'desconocido'
+      return fallar(ruta, `objeto no plano (${nombre}) no admitido`)
+    }
+    if (Object.getOwnPropertySymbols(o).length) return fallar(ruta, 'claves símbolo no admitidas')
+    vistos.add(o)
+    const porClave = new Map<string, string>()
+    for (const k of Object.keys(o)) {
+      const desc = Object.getOwnPropertyDescriptor(o, k)!
+      if (!('value' in desc)) return fallar(`${ruta}.${k}`, 'propiedad con getter no admitida')
+      if (desc.value === undefined) continue // ausente
+      const kn = k.normalize('NFC')
+      if (porClave.has(kn)) return fallar(`${ruta}.${k}`, 'dos claves iguales tras normalizar Unicode')
+      porClave.set(kn, enc(desc.value, `${ruta}.${k}`))
+    }
+    vistos.delete(o)
+    const claves = [...porClave.keys()].sort()
+    return `{${claves.map(k => `${cadena(k)}:${porClave.get(k)}`).join(',')}}`
   }
-  const s = enc(valor)
-  if (problema) return falla('VALOR_NO_SERIALIZABLE', `No se puede calcular la huella: ${problema}.`)
-  return ok(s ?? 'null')
+  const s = enc(valor, '$')
+  if (problema) return falla('VALOR_NO_SERIALIZABLE', `No se puede calcular la huella: ${problema}.`, { motivo: problema })
+  return ok(s)
 }
 
 // ---------- SHA-256 (FIPS 180-4) ----------
