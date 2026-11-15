@@ -1,73 +1,51 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — tramo B: arquitectura para 160 sucursales (diseño v2) · 2026-11-15
+## PUNTO ÚNICO DE RETOMA — tramo B: diseño v3 final corregido · 2026-11-15
 
-> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§4.1, §6.1 y §9, en especial AH2-023…AH2-028). Después `docs/AH2_TRAMO_B_DISENO.md` (v2), esta sección y el PR #46.
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§4.1, §6.1 y §9, en especial AH2-023…AH2-034). Después `docs/AH2_TRAMO_B_DISENO.md` (v3), esta sección y el PR #46.
 
 - **Responsable:** Claude (Claude Code), 2026-11-15.
-- **Pedido del propietario:** «ALIADA HORARIOS 2.0 — DISEÑO DEL TRAMO B», del 15/11/2026. Autoriza **solo** investigación, diseño y documentación.
+- **Última instrucción del propietario:** «REVISIÓN FINAL DEL DISEÑO B» (15/11/2026).
+  - **Aprueba la dirección general** de la arquitectura.
+  - **No autoriza** implementación (B1 incluida), merge, deploy, migraciones, escrituras operativas ni cambios en Prestify.
+  - Pidió 8 correcciones obligatorias, que están incorporadas en la v3.
 - **Rama:** `claude/aliada-horarios-continuidad-7suuva`, creada desde `main@905cb75`. **PR documental:** [#46](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/46), en borrador. El SHA exacto figura en el PR.
-- **Alcance:** solo `docs/`. Sin código, migraciones, Supabase, datos operativos, Prestify, cambios al motor, merge, deploy ni servicios pagos. Los commits llevan `[skip netlify]`.
+- **Alcance:** solo `docs/`. Los commits llevan `[skip netlify]`.
 
-### Estado real verificado (15/11/2026)
-- **`origin/main`:** `905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. Corresponde al merge del PR #45 (14/11/2026 23:26 UTC), con el mismo árbol que `21695d9`. Incluye el contrato PART y el motor «B conjunta».
-- **CI `#39` sobre `905cb75`:** `success`.
-- **Netlify, sitio `al-iada`:**
-  - deploy de producción actual `6af8ee2dae9d7a3ca54d5aef`, `commit_ref 905cb75`, `ready`, publicado el 14/11/2026 a las 23:27:02 UTC;
-  - el bundle público `index-QDVVeo70.js` contiene `ah2-v2.1-multiarranque-2026-11-14`;
-  - en ese deploy también están desplegadas `claude-proxy`, `create-payment` y `webhook-mp`. `claude-proxy` está cerrado en `main` (devuelve 405 o 503); las dos de pago pertenecen a Prestify y no se tocaron (D13).
+### Estado real verificado (15/11/2026, sin cambios desde la v2)
+- **`origin/main`:** `905cb75`. Es el merge del PR #45 (contrato PART y «B conjunta»). CI `#39`: `success`.
+- **Netlify, sitio `al-iada`:** deploy de producción `6af8ee2d` (`commit_ref 905cb75`, `ready`, 14/11/2026 23:27 UTC). El bundle público contiene `ah2-v2.1-multiarranque-2026-11-14`.
 - **PR abiertos:** #46 (este) y los borradores históricos #42 (rollback, intacto), #34, #24, #21 y #20.
-- **Evidencia de la semana 47 real** (agregada, informada por el propietario): demanda 406 horas-caja, cobertura 99,14 %, faltantes 3,5, sobrantes 0,5, horas suplementarias PART 0. Coherencia demanda–plan, **sin** certificar optimalidad ni cumplimiento jurídico. Registrada en MASTER §4.1.
+- **Semana 47 real** (agregada, informada por el propietario): 406 horas-caja; cobertura 99,14 %; faltantes 3,5; sobrantes 0,5; horas suplementarias PART 0. Coherencia sin certificar optimalidad ni cumplimiento jurídico.
 
-### Qué contiene el diseño v2 (`docs/AH2_TRAMO_B_DISENO.md`)
-- §0. Arquitectura integrada: ciclo de vida por sucursal con memoria.
-- §1. Diagnóstico con 18 brechas para 160 sucursales. Las bloqueantes:
-  - acceso por usuario;
-  - falta de estructura organizacional;
-  - proyecto y sitio compartidos con Prestify.
-- §2–§3. Componentes y modelo de datos (TypeScript), con persistencia en dos etapas.
-- §4–§5. Ciclos explícitos con inicio y fin, y estados BORRADOR → VALIDADO (ligado a huella) → APROBADO → PUBLICADO, con REEMPLAZADO y DESCARTADO como estados históricos. Invariantes I1–I12.
-- §6. Continuidad y rotación con candidatos del multi-arranque existente, comparación de demanda y equidad por semanas efectivas.
-- §7. Ausencias y replanificación parcial desde una fecha, sin tocar el pasado.
-- §8. Política de horas PART y capacidad futura de horas suplementarias (separada, apagada por defecto, triple condición).
-- §9. Aprendizaje por sucursal: memoria compartida, preferencias confirmadas por personas y salvaguardas.
-- §10. Plataforma:
-  - roles y membresías;
-  - políticas de acceso verificables con pruebas en Supabase local;
-  - publicación revalidada en una Netlify Function;
-  - Web Worker y corte por trabajo;
-  - volumen;
-  - independencia de POM;
-  - despliegue gradual.
-- §11. Evidencia de la semana 47.
-- §12. Riesgos.
-- §13. Plan de PR por dependencia.
-- §14. Criterios de aceptación por PR.
-- §15. Decisiones D2–D7 y D9–D13 (D1 y D8 ya resueltas por el propietario).
+### Correcciones incorporadas en la v3
+1. **Prueba local frente a oficial** (AH2-029, §5.1).
+   - El ámbito `prueba-local` nunca llega a PUBLICADO y su PDF dice «PRUEBA LOCAL — NO OFICIAL».
+   - Lo oficial pasa solo por la Function `publicar` (JWT y revalidación) y la RPC transaccional (I0).
+2. **Vigencia parcial** (AH2-030, §5.4).
+   - Tramos de días con recorte (nunca reescritura); reemplazo desde mañana como mínimo.
+   - Restricción de exclusión `btree_gist`, bloqueo consultivo y control optimista; prueba de concurrencia.
+3. **Historial efectivo por fecha** (AH2-031, §6.4): la versión vigente en cada día, incluidas las reemplazadas después. Nunca borradores, prueba local, descartadas ni fechas futuras. «Planificado vigente» no es asistencia.
+4. **Continuidad sin sacrificar cobertura** (AH2-032, §6.2).
+   - Objetivo mínimo de 95 % en la 091 y franjas pico protegidas.
+   - **Tolerancia 0 hasta aprobar un valor con benchmark** (D9).
+5. **Validación técnica frente a jurídica** (AH2-033, §5.6): `PerfilNormativo.estadoJuridico` con fuentes; nunca «legal» sin validación (I13).
+6. **D1–D14:** criterio recomendado separado de la autorización expresa; todas las autorizaciones pendientes (§15). Se agrega D14: replanificación del día en curso.
+7. **Orden de los PR** (§13): la **publicación oficial O1** depende de P1 (membresías y políticas de acceso) y P2 (RPC, exclusión y Function). U1 queda como **prueba local**.
+8. **Corte por trabajo** (AH2-034, §10.5): unidades deterministas e interrupción registrada (`busqueda.completa = false`) y advertida. Hallazgo: hoy la pasada 1 corta a los 6 s **sin registrarlo** (`pasada1-fullpart.ts:152`).
 
-### MASTER
-- **Hechos agregados:** tramo A integrado y publicado; evidencia de la semana 47.
-- **Requisitos del propietario registrados como APROBADOS**, con su diseño técnico como **PROPUESTO**:
-  - AH2-024: política de horas PART;
-  - AH2-025: principio de aprendizaje;
-  - AH2-026: plataforma para 160 sucursales;
-  - AH2-027: independencia de la fuente de demanda;
-  - AH2-028: estados y publicación.
-- **AH2-023:** arquitectura integrada, PROPUESTA.
-- No se modificó ninguna decisión aprobada.
+Se mantienen los 10 entregables y las decisiones aprobadas anteriores (AH2-024…AH2-027).
 
 ### Próxima tarea exacta
-1. El propietario revisa el PR #46 y resuelve las decisiones D2–D7 y D9–D13.
-2. Con autorización expresa, el primer PR de código es **B1**, que solo agrega `src/planificacion/` con funciones puras y pruebas. Sin UI, sin migración y sin cambios en el motor. Sus criterios están en el §14 del diseño.
-
-   En paralelo pueden autorizarse:
-   - **W1**, el Web Worker, que no cambia el cálculo;
-   - **P0**, el inventario del esquema real en solo lectura.
-3. Los PR con migración (P1–P5) y los que tocan el motor (W2, C1, C2, D1, S1) requieren cada uno una autorización específica.
+1. El propietario revisa el PR #46 (v3) y decide:
+   - las **autorizaciones expresas** de §15 (D1 detalle, D2–D7 y D9–D14);
+   - si autoriza el merge del PR documental.
+2. **No implementar B1** ni ningún otro PR hasta recibir autorización expresa. Cuando llegue, el primer candidato es B1 (`src/planificacion/`, puro, con los criterios de §14).
+3. Las migraciones (P1–P5, S1), la publicación oficial (O1) y los cambios en el motor (W2, C1, C2, D1, S1) requieren cada uno una autorización específica.
 
 ### Para retomar (Claude u OpenAI)
 1. `git fetch origin && git checkout claude/aliada-horarios-continuidad-7suuva`
-2. Leer MASTER (AH2-023…AH2-028) y `docs/AH2_TRAMO_B_DISENO.md`.
+2. Leer MASTER (AH2-023…AH2-034) y `docs/AH2_TRAMO_B_DISENO.md` (v3).
 3. No implementar, fusionar ni publicar sin autorización expresa del propietario.
 
 ## Registro histórico — tramo A: contrato de horas PART (PR #45, integrado el 14/11/2026 en `905cb75`)
