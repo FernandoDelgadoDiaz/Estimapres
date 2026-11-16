@@ -61,6 +61,25 @@ productivo y el número de infracciones registradas por su validador.
 No usar datos reales ni subir roster, horarios individuales o PDFs reales.
 El exportador no hace lecturas ni escrituras de Supabase.
 
+
+**Validación cruzada (recién implementada):** en el benchmark se reutilizan las
+pasadas AUX/eventuales y `validarResultadoSemana` de Aliada para cada solución
+factible devuelta por CP-SAT. Como el submodelo es parcial, esto verifica la
+compatibilidad de candidatos, **no** la optimalidad del horario completo.
+
+```bash
+.venv-cpsat/bin/python tools/cpsat/solver.py tools/cpsat/fixtures/*.json --segundos 8 --salida tools/cpsat/resultados.json
+AH2_VALIDATE_CPSAT=1 npx vitest run src/algoritmo/__tests__/cpsat.validate.test.ts
+```
+
+**CI #4, 16/11/2026:** 6 pruebas Python y exportación de 8 fixtures aprobadas.
+Tres candidatos disponibles pasaron la validación TypeScript con cero
+violaciones. Con 8 s por escenario: 2 FEASIBLE, 1 OPTIMAL parcial, 1 INFEASIBLE,
+4 UNKNOWN. En la cobertura *final* tras AUX/EV, escenario 100 mejoró +2,44 pp;
+dotación -2 empeoró -7,51 pp; solo mañanas, pese al óptimo parcial, empeoró
+-2,09 pp. Estos resultados impiden recomendar reemplazar el motor actual y
+muestran que falta optimización conjunta de AUX/EV.
+
 ## Lectura de resultados
 
 - \`OPTIMAL\`: óptimo demostrado **dentro del modelo y objetivo implementado**.
