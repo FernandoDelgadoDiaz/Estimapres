@@ -1,5 +1,23 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## RETOMA ACTUAL — BENCH-01 / OR-Tools CP-SAT aislado · 16/11/2026
+
+**Rama activa:** `experiment/ah2-cpsat-bench13`, nacida de `main@3b74d9c3102124abf8c6f77d45154ee2f76ae786` (deploy Aliada `6afaf00277b0e34b044ff917`, declarado listo/bloqueado por el propietario). **Issue:** #13. **Estado:** prototipo independiente; PR en borrador, jamás fusionar ni publicar automáticamente.
+
+**Autorización de alcance del propietario:** desarrollar OR-Tools de manera aislada mientras se sigue utilizando el motor vigente en producción. No se autorizaron cambios a producción, al motor TS operativo, a Prestify, a datos o a infraestructura de despliegue.
+
+**Implementado solamente en rama:**
+- `tools/cpsat/solver.py`: modelo CP-SAT FULL/PART de 7 días × 30 slots, catálogos, 48 h FULL, 32 h PART configurables como objetivo exacto, descansos, francos, 2 cortadas, excepciones, apertura y función objetivo lexicográfica; retorna estado del solver, bound, métricas y jornadas.
+- `tools/cpsat/test_solver.py`, `requirements.txt` fijado a OR-Tools 9.15.6755, `README.md` y `.gitignore`.
+- `src/algoritmo/__tests__/cpsat.export.test.ts`: exporta bajo `AH2_EXPORT_CPSAT=1` ocho escenarios 100% sintéticos y el resultado de referencia del motor productivo; por defecto no corre, no accede a Supabase.
+- `.github/workflows/cpsat-offline.yml`: verifica Python independientemente, sin secretos.
+
+**Pruebas reales en GitHub (16/11/2026):** CI general #59 **success** y CI específico CP-SAT #4 **success**, ambos sobre `60ddbcd502e7cf258893c208aaa3975510bcb073`. Se instalaron OR-Tools y las dependencias de la app en runners aislados; pasaron 6/6 unittest Python, exportación de 8 escenarios sintéticos, solver 8 s por caso, y el validador independiente TypeScript sobre los 3 candidatos que devolvieron horarios. Artefacto JSON de la ejecución guardado por GitHub Actions. Python no se ejecutó localmente por bloqueo de pip del entorno, pero sí en CI.
+
+**Resultados de humo CP-SAT (8 s, NO benchmark final):** escenario 100 FEASIBLE (+2,44 pp cobertura final); dotación menos 2 FEASIBLE (−7,51 pp); solo mañanas OPTIMAL *solo FULL/PART* (−2,09 pp de cobertura total con AUX/EV); escenario 130 INFEASIBLE con contrato PART exacto; otros cuatro UNKNOWN. Candidatos disponibles con 0 violaciones TS. No se puede sostener que CP-SAT sea mejor aún: modela solo FULL/PART, no optimiza la cascada conjunta AUX/EV y exige horas PART exactas incluso en casos de imposibilidad individual. Antes de cualquier integración: cotas individuales, modelo conjunto, equidad, 60 s y 200 casos, homologación de validador. **Sin merge, sin despliegue, sin SQL, sin modificación de motor productivo o de Prestify.**
+
+### Historial anterior (conservar íntegramente)
+
 ## PUNTO ÚNICO DE RETOMA — simulación conjunta de #46, #47 y #48 · 2026-11-16
 
 ### Estado y evidencia
