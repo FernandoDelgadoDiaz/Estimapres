@@ -12,7 +12,9 @@
 - `src/algoritmo/__tests__/cpsat.export.test.ts`: exporta bajo `AH2_EXPORT_CPSAT=1` ocho escenarios 100% sintéticos y el resultado de referencia del motor productivo; por defecto no corre, no accede a Supabase.
 - `.github/workflows/cpsat-offline.yml`: verifica Python independientemente, sin secretos.
 
-**Gates y límites:** modelo parcial FULL/PART, todavía **NO** integra AUX/eventuales ni validación cruzada de los resultados CP-SAT contra el validador completo TS. Un `OPTIMAL` solo certifica el modelo parcial. No se corrió OR-Tools localmente porque el entorno no tiene el paquete y bloqueó la descarga de pip; comprobar CI de GitHub y no afirmar resultados de benchmark hasta ejecutarlos. El motor actual no se tocó. Cualquier reemplazo requiere nuevo alcance, pruebas y autorización expresa.
+**Pruebas reales en GitHub (16/11/2026):** CI general #59 **success** y CI específico CP-SAT #4 **success**, ambos sobre `60ddbcd502e7cf258893c208aaa3975510bcb073`. Se instalaron OR-Tools y las dependencias de la app en runners aislados; pasaron 6/6 unittest Python, exportación de 8 escenarios sintéticos, solver 8 s por caso, y el validador independiente TypeScript sobre los 3 candidatos que devolvieron horarios. Artefacto JSON de la ejecución guardado por GitHub Actions. Python no se ejecutó localmente por bloqueo de pip del entorno, pero sí en CI.
+
+**Resultados de humo CP-SAT (8 s, NO benchmark final):** escenario 100 FEASIBLE (+2,44 pp cobertura final); dotación menos 2 FEASIBLE (−7,51 pp); solo mañanas OPTIMAL *solo FULL/PART* (−2,09 pp de cobertura total con AUX/EV); escenario 130 INFEASIBLE con contrato PART exacto; otros cuatro UNKNOWN. Candidatos disponibles con 0 violaciones TS. No se puede sostener que CP-SAT sea mejor aún: modela solo FULL/PART, no optimiza la cascada conjunta AUX/EV y exige horas PART exactas incluso en casos de imposibilidad individual. Antes de cualquier integración: cotas individuales, modelo conjunto, equidad, 60 s y 200 casos, homologación de validador. **Sin merge, sin despliegue, sin SQL, sin modificación de motor productivo o de Prestify.**
 
 ### Historial anterior (conservar íntegramente)
 
