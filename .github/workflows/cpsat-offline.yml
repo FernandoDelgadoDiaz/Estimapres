@@ -6,6 +6,7 @@ on:
     paths:
       - 'tools/cpsat/**'
       - 'src/algoritmo/__tests__/cpsat.export.test.ts'
+      - 'src/algoritmo/__tests__/cpsat.validate.test.ts'
       - '.github/workflows/cpsat-offline.yml'
 
 permissions:
@@ -14,7 +15,7 @@ permissions:
 jobs:
   cpsat-synthetic:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,3 +27,26 @@ jobs:
         run: python -m pip install -r tools/cpsat/requirements.txt
       - name: Offline unit tests (no Supabase / Netlify)
         run: python -m unittest discover -s tools/cpsat -p 'test_*.py' -v
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install existing frontend test tooling (no deploy)
+        run: npm ci --no-audit --no-fund
+      - name: Export synthetic fixtures with current production motor
+        env:
+          AH2_EXPORT_CPSAT: '1'
+        run: npx vitest run src/algoritmo/__tests__/cpsat.export.test.ts
+      - name: CP-SAT synthetic smoke (8 cases; 8 seconds per scenario)
+        run: python tools/cpsat/solver.py tools/cpsat/fixtures/*.json --segundos 8 --salida tools/cpsat/resultados.json
+      - name: Cross-validate schedules with Aliada independent validator
+        env:
+          AH2_VALIDATE_CPSAT: '1'
+        run: npx vitest run src/algoritmo/__tests__/cpsat.validate.test.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ah2-cpsat-synthetic-smoke
+          path: tools/cpsat/resultados.json
+          retention-days: 7
+          if-no-files-found: ignore
