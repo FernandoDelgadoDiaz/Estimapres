@@ -1,6 +1,50 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
+## PUNTO ÚNICO DE RETOMA — W1 · Web Worker · 2026-11-16
+
+- **Alcance:** W1 autorizado como PR independiente en borrador. [PR #48](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/48), rama `feat/ah2-w1-web-worker`. Base `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. SHA del código y de las pruebas `5d0f4e9a99c1e960276b6a1fd1c68729fdb02ac2`. El PR registra el SHA de esta actualización y sus checks.
+- **Autoridad de producto:** [MASTER](ALIADA_HORARIOS_MASTER.md), en particular AH2-020. Referencias [diseño B en #46](https://github.com/FernandoDelgadoDiaz/Estimapres/blob/beaa8ab1a7a5d15f733fa1a23152f3266e196fb2/docs/AH2_TRAMO_B_DISENO.md#105-generación-escalable-y-reproducible-corrección-8) y [auditoría W1 en #47](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/47#issuecomment-6907418304). Ambos PR siguen en borrador; esta rama parte directamente de `main`.
+- **Código:** `src/workers/generacion.worker.ts` llama a `generarConMultiArranque` sin cambios a motor, contratos, validador ni presupuestos. `generacionCliente.ts` separa mensajes por ID, maneja inicio y errores y termina el Worker. `iaAsignacion.ts` mantiene el adaptador y el respaldo síncrono para navegadores sin Worker de módulo o con fallo de carga, con aviso de posible pausa.
+- **Flujo:** `useAsignacion.ts` invalida y cancela el trabajo al reiniciar, salir o cambiar entradas. `NuevaSemanaPage.tsx` guarda solo un resultado vigente y reparte el render del resumen y de las tablas entre cuadros. Un error tras iniciar permite reintento; un resultado tardío se descarta antes de modificar la UI o el historial.
+- **Operación:** Aliada y Prestify mantienen sus deployments de producción en `905cb75`, verificados vía Netlify. Se excluyeron merge, deploy de producción, migraciones y escrituras operativas de las pruebas. Archivos de configuración, Supabase y funciones de pago intactos. Los previews automáticos son independientes de producción.
+
+### Verificación
+
+| Prueba | Resultado local |
+|---|---|
+| TypeScript, Vitest y build | TypeScript y build OK. Vitest 368 aprobadas y 3 omitidas. |
+| Playwright Chromium | 15 aprobadas y un benchmark optativo, ejecutado aparte. Incluye PDF, guardado, edición, cancelar, reintentar, fallos de carga, reiniciar y cambiar de pantalla. |
+| Equivalencia Worker real ↔ hilo principal | Semana sintética 47 y los 200 escenarios AH2-020: 0 diferencias funcionales, 0 estrategias omitidas y 0 violaciones. Cobertura media 98,7563 % en los 200. La comparación incluye jornadas, horas, cobertura, selección y estado del validador. Se excluyen duraciones de diagnóstico. |
+| Benchmark offline de referencia | 200 escenarios con `AH2_BENCH=1`. Mismos resultados que `main` al excluir duraciones. |
+| Rendimiento en build de producción | 12/12 con Worker. 12/12 en modo compatible como referencia. Coincidieron las huellas de jornadas, horas por persona y cobertura/faltantes por franja, y coincidieron estrategia, validación y omitidas. Cancelación durante el cálculo en 55/6×: 12 ms al retirar el control y cero guardados. |
+
+Tarea más larga del hilo principal en milisegundos. Cada celda indica **Worker / modo compatible**. El modo compatible ejecuta el mismo cálculo en el hilo de la página.
+
+| Cajeros | CPU 1× | CPU 4× | CPU 6× |
+|---|---:|---:|---:|
+| 9 (tamaño 091) | <50 / 577 | 135 / 1.927 | 59 / 2.685 |
+| 20 | <50 / 817 | 53 / 2.462 | 75 / 4.354 |
+| 35 | <50 / 1.769 | 70 / 7.541 | 127 / 11.442 |
+| 55 | <50 / 1.703 | 181 / 8.333 | 168 / 10.086 |
+
+Chromium 141 en Linux. CDP ralentiza el hilo de la página; el tiempo del Worker corresponde al equipo de ensayo y no simula por sí solo un dispositivo físicamente 6 veces más lento. El resultado tardó 0,52–2,38 s con Worker y 0,66–11,75 s en modo compatible. El retraso máximo del temporizador durante la prueba Worker fue de 5 ms.
+
+### Cortes por tiempo heredados
+
+- **6 s, pasada 1.** La primera pasada completa su recorrido. El límite puede cortar una vuelta posterior y cambiar jornadas sin generar un indicador específico. En `w1-limites.test.ts`, el escenario 121 produce jornadas diferentes al adelantar el reloj a 6001 ms antes del segundo recorrido.
+- **20 s, multiarranque.** Controla si se empiezan más estrategias, conserva el respaldo e informa las omitidas. En el escenario 121, al simular 20.000 ms antes de evaluar alternativas, se omitieron las seis y quedó la menor cobertura del respaldo. En la matriz real de esta revisión ninguna combinación omitió estrategias y la huella funcional coincidió.
+- W1 conserva ambos cortes y la prioridad del motor. Una pérdida funcional reproducible atribuible al transporte por Worker bloquea su integración. La reproducibilidad cuando uno de los presupuestos se agota corresponde a W2, sujeta a autorización específica.
+
+### Reproducir y continuar
+
+1. `npm ci && npx tsc --noEmit && npm test && npm run build && npm run test:e2e`.
+2. `AH2_WORKER_BENCH=1 npx playwright test e2e/generacion-worker.e2e.ts`. Benchmark de referencia: `AH2_BENCH=1 AH2_BENCH_N=200 npx vitest run src/algoritmo/__tests__/benchmark/prioridadHoras.bench.test.ts`.
+3. `npx playwright test -c playwright.perf.config.ts` sobre el build sin credenciales. Repetir con `AH2_PERF_MODO=hilo`. Opcional: `AH2_PERF_OUT=<json>`.
+4. Revisar los checks del SHA final del PR #48. Cualquier integración requiere autorización y verificar los automatismos de Netlify de ambos sitios. Al integrar ramas con cambios en CURRENT_WORK, conservar el punto de retoma vigente y los registros históricos.
+
+> El tramo A de abajo documenta una sesión anterior a su integración. #45 ya está integrado en `905cb75`.
+
+## Registro histórico — tramo A, antes de integrar #45 · 2026-11-14
 
 > Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-022, en especial AH2-020 APROBADO), después esta sección y el PR de la rama activa.
 
