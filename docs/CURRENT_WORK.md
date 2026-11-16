@@ -1,5 +1,21 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
+## RETOMA ACTUAL — BENCH-01 / OR-Tools CP-SAT aislado · 16/11/2026
+
+**Rama activa:** `experiment/ah2-cpsat-bench13`, nacida de `main@3b74d9c3102124abf8c6f77d45154ee2f76ae786` (deploy Aliada `6afaf00277b0e34b044ff917`, declarado listo/bloqueado por el propietario). **Issue:** #13. **Estado:** prototipo independiente; PR en borrador, jamás fusionar ni publicar automáticamente.
+
+**Autorización de alcance del propietario:** desarrollar OR-Tools de manera aislada mientras se sigue utilizando el motor vigente en producción. No se autorizaron cambios a producción, al motor TS operativo, a Prestify, a datos o a infraestructura de despliegue.
+
+**Implementado solamente en rama:**
+- `tools/cpsat/solver.py`: modelo CP-SAT FULL/PART de 7 días × 30 slots, catálogos, 48 h FULL, 32 h PART configurables como objetivo exacto, descansos, francos, 2 cortadas, excepciones, apertura y función objetivo lexicográfica; retorna estado del solver, bound, métricas y jornadas.
+- `tools/cpsat/test_solver.py`, `requirements.txt` fijado a OR-Tools 9.15.6755, `README.md` y `.gitignore`.
+- `src/algoritmo/__tests__/cpsat.export.test.ts`: exporta bajo `AH2_EXPORT_CPSAT=1` ocho escenarios 100% sintéticos y el resultado de referencia del motor productivo; por defecto no corre, no accede a Supabase.
+- `.github/workflows/cpsat-offline.yml`: verifica Python independientemente, sin secretos.
+
+**Gates y límites:** modelo parcial FULL/PART, todavía **NO** integra AUX/eventuales ni validación cruzada de los resultados CP-SAT contra el validador completo TS. Un `OPTIMAL` solo certifica el modelo parcial. No se corrió OR-Tools localmente porque el entorno no tiene el paquete y bloqueó la descarga de pip; comprobar CI de GitHub y no afirmar resultados de benchmark hasta ejecutarlos. El motor actual no se tocó. Cualquier reemplazo requiere nuevo alcance, pruebas y autorización expresa.
+
+### Historial anterior (conservar íntegramente)
+
 ## PUNTO ÚNICO DE RETOMA — simulación conjunta de #46, #47 y #48 · 2026-11-16
 
 ### Estado y evidencia
