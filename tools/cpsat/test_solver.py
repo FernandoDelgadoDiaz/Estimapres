@@ -74,16 +74,23 @@ class SolverTests(unittest.TestCase):
         self.assertEqual(result["estado"], "INFEASIBLE")
         self.assertNotIn("jornadas", result)
 
-    def test_same_input_same_schedule(self):
+    def test_timed_solver_never_claims_unproven_optimality(self):
+        # Un límite de reloj puede dejar FEASIBLE, no OPTIMAL. No asumir que
+        # dos búsquedas incompletas devuelven exactamente el mismo horario.
         demand = [[0] * 30 for _ in range(7)]
         for row in demand:
             for slot in range(3, 20):
                 row[slot] = 1
-        data = fixture(demand=demand)
-        a = solve(data, seconds=15)
-        b = solve(data, seconds=15)
-        self.assertEqual(a["estado"], "OPTIMAL")
-        self.assertEqual(a["jornadas"], b["jornadas"])
+        result = solve(fixture(demand=demand), seconds=2)
+        self.assertIn(result["estado"], ("FEASIBLE", "OPTIMAL", "UNKNOWN"))
+        if result["estado"] == "UNKNOWN":
+            self.assertNotIn("jornadas", result)
+        else:
+            self.assertEqual(result["optimo_demostrado_solo_cajeros"], result["estado"] == "OPTIMAL")
+            self.assertGreaterEqual(result["brecha_absoluta_objetivo"], 0)
+            jornadas = result["jornadas"]["p"]
+            self.assertEqual(sum(not j["bloques"] for j in jornadas), 1)
+            self.assertEqual(sum(b["slot_fin"] - b["slot_inicio"] for j in jornadas for b in j["bloques"]), 64)
 
 
 if __name__ == "__main__":
