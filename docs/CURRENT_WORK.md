@@ -1,6 +1,6 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — aceptación de escritorio · 2026-11-16
+## PUNTO ÚNICO DE RETOMA — preparación de publicación piloto de Aliada · 2026-11-16
 
 `main` está en `3b74d9c3102124abf8c6f77d45154ee2f76ae786`. Su árbol exacto, `6ba9a518267f4d292b284160fea1c9ee4840b2b5`, coincide con el autorizado. Los tres PR están cerrados por merge commit.
 
@@ -20,6 +20,8 @@ El código de `create-payment` y `webhook-mp`, `netlify.toml`, dependencias y Su
 
 ### Aceptación de escritorio del árbol integrado
 
+**APTO PARA PREPARAR PUBLICACIÓN PILOTO BAJO EXCEPCIÓN DE PRUEBA FÍSICA, sujeto a verificar los controles de despliegue.** El propietario aceptó el 16/11/2026 el riesgo residual para este candidato y retiró la prueba en PC física como requisito previo. Sigue vigente AH2-035, con producto de escritorio y prioridad Chrome y Edge. La evidencia disponible es automatizada en Linux. Chrome Stable y Edge Stable en Windows físico quedan sin ensayar y su ausencia no bloquea el piloto.
+
 - Worktree aislado del SHA indicado. Instalación estricta del lockfile, TypeScript y build correctos. Vitest: 440 aprobadas y 3 optativas omitidas. Datos sintéticos y persistencia local, con Supabase real deshabilitado. El motor, el validador, el lockfile y las funciones/configuración Netlify de Prestify coinciden con la versión publicada.
 - Chrome for Testing Headless Shell oficial de Google 157.0.8103.78 en Linux. El flujo sobre el build pasó a 1366 × 768 y 1920 × 1080: POM sintético de semana 47 (406 horas-caja y pico de 7 cajas), Tab/Shift+Tab/Enter y clics, Worker real, validación, edición, PDF descargado y releído, y recuperación del horario editado tras recargar. Sin errores de consola de la aplicación ni solicitudes externas en esos dos recorridos.
 - Doce casos por resolución en el build: 9, 20, 35 y 55 cajeros a CPU 1×, 4× y 6× del hilo de la página por CDP. El indicador tuvo cuadros visibles en los 24 casos. Tarea larga máxima 114 ms y 119 ms, respectivamente. Para 55 cajeros a 6×, cancelar demoró 17 ms y 2 ms, dejó el historial vacío y el reintento guardó un solo resultado. Sin estrategias omitidas en la muestra.
@@ -27,12 +29,33 @@ El código de `create-payment` y `webhook-mp`, `netlify.toml`, dependencias y Su
 - Microsoft Edge Stable 157.0.4341.60 y Chrome Stable 157.0.8103.78 se descargaron de los proveedores. Los ejecutables de navegador completo abortaron en el entorno al crear un socket local de perfil (`process_singleton`, `Operation not permitted`). El resultado automatizado corresponde al shell de Google, no certifica Edge ni ejecución en Windows.
 - B1 no tiene imports en el flujo de generación. El aislamiento del cálculo W1 conserva los cortes de 6 y 20 s; la ralentización CDP de la página no caracteriza el hardware físico ni la velocidad del hilo del Worker.
 
-### Próximo paso
+### Publicación piloto de Aliada, pendiente de autorización
 
-- **NO APTO para publicar por aceptación de escritorio incompleta.** Completar la comprobación con Microsoft Edge Stable y Chrome Stable en PC, con prioridad a Edge y un equipo lento. Registrar versión del navegador, resoluciones, Worker, cancelación sin guardado seguida de reintento, validación, edición, recuperación y PDF. Usar el mismo SHA en local con datos sintéticos.
-- En Windows, en el worktree del SHA integrado, establecer `PLAYWRIGHT_CHROMIUM_EXECUTABLE` a la ruta de `msedge.exe` (ver `edge://version`) y ejecutar `npm ci` y `npm run test:e2e -- --headed`. Repetir el recorrido del POM sintético en ambas resoluciones con DevTools para observar el Worker y la consola. Para repetir rendimiento con el build sin credenciales, ejecutar `npm run build` seguido de `npx playwright test -c playwright.perf.config.ts --headed`; el fixture de ese ensayo cubre 9, 20, 35 y 55 cajeros. Para Chrome, usar su propio ejecutable.
-- AH2-035 y este relevo son el alcance del PR independiente de documentación `docs/ah2-escritorio-relevo`, sobre el árbol de `main` ya verificado. Solo cambia este archivo y el [MASTER](ALIADA_HORARIOS_MASTER.md#9-registro-único-de-decisiones). Se conserva a continuación el historial completo.
-- Mantener ambos deploys bloqueados. Revisar el snapshot candidato de Aliada ligado al SHA ensayado antes de decidir publicación. La publicación de Aliada requiere autorización independiente.
+| Uso | Deploy, estado y commit |
+|---|---|
+| Artefacto exacto para publicar y fijar | [Aliada `6afaf00277b0e34b044ff917`](https://app.netlify.com/projects/al-iada/deploys/6afaf00277b0e34b044ff917), `ready`, rama `main`, contexto `production`, SHA `3b74d9c3102124abf8c6f77d45154ee2f76ae786`, pendiente de publicación. [Preview inmutable del artefacto](https://6afaf00277b0e34b044ff917--al-iada.netlify.app/). |
+| Punto de recuperación de Aliada | [Aliada `6af8ee2dae9d7a3ca54d5aef`](https://app.netlify.com/projects/al-iada/deploys/6af8ee2dae9d7a3ca54d5aef), `ready`, activo y `locked: true`, SHA `905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. Su URL inmutable entrega el mismo HTML que el dominio activo. |
+| Producción de Prestify | [Prestify `6af8ee2d15984dc64ecb3e7d`](https://app.netlify.com/projects/prestify/deploys/6af8ee2d15984dc64ecb3e7d), `ready`, activo y `locked: true`, mismo SHA `905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. Proyecto independiente. |
+
+Se revalidaron GitHub y Netlify el 16/11/2026. `test-build` y `browser` aprobaron en el SHA del candidato. El panel de Aliada muestra el build exitoso, el permalink del candidato y `Publish deploy`. Se verificó por HTTP el preview y sus recursos estáticos, y se comparó el HTML del snapshot de recuperación con Aliada activo. La preparación fue de solo lectura en Netlify. Se reutilizaron las pruebas funcionales existentes.
+
+1. **Preflight.** Obtener autorización final para seleccionar y fijar ese ID de Aliada y, si corresponde, reponer el anterior ante un fallo. Consultar `GET /api/v1/sites/al-iada.netlify.app` y `GET /api/v1/sites/prestify.netlify.app`: ambos `published_deploy` deben coincidir con la tabla y estar `locked: true`. Verificar el SHA y los checks del candidato, su disponibilidad y la del rollback, y que el operador tenga permiso para publicar y fijar deploys en Aliada. La cuenta del panel pudo ver el control de publicación. Validar que siga disponible antes de usarlo.
+2. **Promoción por ID en Aliada.** Vía recomendada con acceso de escritura autenticado: [Netlify `lockDeploy`](https://open-api.netlify.com/#operation/lockDeploy), `POST /api/v1/deploys/6afaf00277b0e34b044ff917/lock`. La operación oficial publica y fija el deploy seleccionado. Si responde `202`, seguir el estado del deploy y del puntero de producción hasta confirmación, sin repetir la acción a ciegas. En el panel, la alternativa es `Publish deploy` en la ficha de ese mismo ID, si la operación permite mantener desactivada la publicación automática. Detenerse si la vía disponible exige `Unlock to start auto publishing` o carece de garantía de mantener la publicación automática desactivada. Usar solo el proyecto Aliada (ID `52ae0ab4-b27e-4010-93df-5eaaf1eb89df`). Prestify queda fijado al ID de la tabla.
+3. **Verificación inmediata.** En Netlify, Aliada debe mostrar el ID nuevo, SHA `3b74d9c…`, `ready` y `locked: true`. Prestify debe conservar ID, timestamp de publicación, SHA y `locked: true`. En `https://al-iada.netlify.app`, exigir 200 en `/`, `/nueva-semana`, `/ultimo-horario` y `/historial`, con HTML igual al permalink inmutable. Comparar también estado, tipo y bytes del JavaScript principal, CSS y ambos Workers indicados debajo. Exigir 200 y las mismas huellas de la portada de Prestify. En un perfil limpio, abrir la aplicación real y comprobar el arranque, la pantalla de acceso esperada y la consola, sin autenticar contra producción.
+4. **Comprobación funcional aislada.** Hacer un smoke dirigido, no repetir suites completas. Para ejercitar los bytes servidos con autenticación simulada, usar un perfil efímero con service workers bloqueados. Permitir por red solo GET de HTML y assets del dominio de Aliada y simular localmente auth y persistencia, con rechazo por defecto de cualquier otro request. Si falta ese aislamiento, ejecutar el flujo sintético con el build local del mismo SHA y Supabase deshabilitado y usar la comparación HTTP de bytes como evidencia separada de producción. Con el POM sintético de semana 47 comprobar 406 horas-caja y pico de 7, Worker real, cancelación sin historial y reintento con un solo resultado, validación, edición recuperada y PDF legible. El piloto no permite escrituras de prueba con una cuenta operativa.
+5. **Detención o reversión.** Antes de promover, detenerse por SHA, ID, checks, locks, permisos, snapshot de rollback o HTTP divergentes. Después de promover, detener el piloto ante puntero o lock incorrecto, HTML o assets divergentes, fallos de arranque, datos, Worker, cancelación, historial o PDF, o cualquier cambio en Prestify. Con autorización específica de recuperación, volver a fijar solo el snapshot de Aliada `6af8ee2dae9d7a3ca54d5aef` por la misma operación oficial `lockDeploy` aplicada al ID anterior, o republicarlo desde su ficha si el panel preserva el bloqueo. Confirmar `905cb75…`, ID anterior, `locked: true`, HTTP y huella anterior en Aliada y el mismo ID y lock en Prestify. No usar Git, migraciones ni restauración de datos para revertir el frontend.
+
+| Recurso verificado | SHA-256 del cuerpo |
+|---|---|
+| Preview candidato, HTML | `3ef4bcf420a4020f1e24c0b52cba63afb22c8f699ef65adbf36a7bdd3ce4b839` |
+| `/assets/index-CxNBzuVu.js` | `01e03df55b5c1215b0c39aac7c868eb7abde70bfe82406706632170eae0a857c` |
+| `/assets/index-B3oAJYNa.css` | `8ab5f2fd7766ab717b8a47a8e19f9ca55efb66e9cd4acec1836bd516dd229b17` |
+| `/assets/generacion.worker-DE2gBQMd.js` | `7081fc094527895b08689656e07956ea3e09c5941e6abc7f84e6d710bd5ef849` |
+| `/assets/pdf.worker.min-DKQKFyKK.js` | `feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b` |
+| Aliada activo y rollback, HTML | `a4c6d0eb9067952c2fe555f39249ec9445d484e5f84ce1fa091e57ed6a064ec8` |
+| Prestify activo, HTML | `1cb2e2dfd7b8afeef555b1ab11e8fa3aeb11b6a8f2a4de9159fffcd61b2f08f4` |
+
+**Próximo paso.** Esperar autorización explícita de publicación para Aliada por el ID indicado. El PR #49 documenta AH2-035 y esta aceptación. Su eventual merge tiene autorización independiente y no es un paso de la publicación piloto. Los apartados siguientes preservan el historial del proyecto.
 
 ## Registro histórico — simulación conjunta del 16/11/2026
 
