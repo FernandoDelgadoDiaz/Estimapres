@@ -8,7 +8,19 @@
 - La comparación preliminar con FULL/PART/AUX fijos reporta A y B 97,54 % / 10 h faltantes, C y D 96,80 % / 13 h faltantes. Son cifras informadas de una simulación parcial.
 - Benchmark real completo pendiente. Se localizaron el PDF de horarios y el documento de programación semanal, pero los documentos no acreditan el snapshot v8. Falta verificar dotación y fichas vigentes al generar, disponibilidades resueltas, excepciones, preferencias y pesos, reglas efectivas, matriz original y horarios del domingo anterior. No cargar datos personales en GitHub ni en CI.
 - Próximo paso: recuperar el snapshot v8 por un canal privado, verificar que A reproduzca la referencia original, ejecutar B/C/D con la misma entrada y las tres pasadas usando el multi-arranque vigente. Registrar estrategias y omisiones por tiempo, déficit y sobrantes por franja, picos, bloques de caja, asignaciones desde el corte, cumplimiento contractual, infracciones y tiempos. Si falta el domingo anterior, marcar el descanso intersemanal sin verificar.
-- TypeScript, Vitest, build y Playwright se verifican con los checks del PR. Sin cambios de main, Prestify, Netlify, datos operativos o migraciones.
+- [PR #51](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/51), en borrador. Candidato inicial `9cdba032d49be9887ca5e5a7ce2573f1e83de0f5`: [CI 62](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43981623042) pasó 448 tests Vitest (3 omitidos). TypeScript detectó una clave demasiado amplia en el compilador de toggles V2; se corrigió en el siguiente commit. Los checks del HEAD del PR son la referencia vigente. Sin cambios de main, Prestify, Netlify, datos operativos o migraciones.
+
+### Ejecutar la comparación real en privado
+
+Conservar el JSON de entrada y el informe fuera del repositorio. El JSON debe contener `sucursal`, `version`, `fechaLunes`, `cajeros`, `auxiliares`, `eventuales`, `opciones` y `contexto`. Usar los argumentos originales del generador (dotación activa, disponibilidad ya resuelta, opciones con sesgos/pesos y contexto con POM, reglas efectivas, excepciones y semana anterior). Una exportación posterior a la generación solo es válida si esos valores coinciden con los de v8.
+
+```powershell
+$env:AH2_091_SNAPSHOT = 'C:\\datos-privados\\aliada-091-v8.json'
+$env:AH2_091_RESULTADOS = 'C:\\datos-privados\\aliada-091-benchmark.json'
+npx vitest run src/algoritmo/__tests__/benchmark/cajaEventual091.bench.test.ts
+```
+
+El informe incluye huella del JSON, cuatro corridas completas y comparación con la referencia de A. Los picos son las franjas de demanda máxima de cada día. Las franjas registran horas-caja faltantes en intervalos de media hora. Los tiempos reflejan la ejecución real y el informe indica las estrategias omitidas por presupuesto.
 
 ## Registro anterior — simulación conjunta de #46, #47 y #48 · 2026-11-16
 

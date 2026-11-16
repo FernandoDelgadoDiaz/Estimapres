@@ -432,10 +432,10 @@ export function compilarParaMotor(res: ResolucionSemana, ctx: ContextoSemana): C
     supervisorJornadaCompleta: DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
     francoMedioCorridos: DEFAULTS_OPERATIVOS.franco_medio_corridos,
   }
-  const campo: Record<TipoReglaOperativa, keyof ConfigOperativa> = {
+  const campo = {
     apertura_solo_aux: 'aperturaSoloAux', sin_aux_cierre: 'sinAuxCierre',
     supervisor_jornada_completa: 'supervisorJornadaCompleta', franco_medio_corridos: 'francoMedioCorridos',
-  }
+  } as const satisfies Record<TipoReglaOperativa, keyof ConfigOperativa>
   const toggles = res.generales.filter(g => g.regla.parametros.tipo === 'toggle_operativo' && obligatoria(g.regla)).sort((a, b) => compararPrecedencia(a.regla, b.regla))
   const vistos = new Set<string>()
   for (const g of toggles) {
