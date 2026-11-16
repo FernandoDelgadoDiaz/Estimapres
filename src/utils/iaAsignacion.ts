@@ -2,6 +2,7 @@ import { Franja, Colaborador, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, E
 import { convertirInputAV2, type OpcionesGeneracion } from '../algoritmo/adapter'
 import { normalizarExcepciones } from './preferencias'
 import { generarConMultiArranque } from './generacionMultiArranque'
+import { ejecutarEnWorker } from '../workers/generacionCliente'
 import { operativaEfectiva, type ContextoValidacionSemana } from './validacionSemana'
 
 // SEC-01: las sugerencias con IA están deshabilitadas hasta disponer de
@@ -34,13 +35,9 @@ export async function asignarHorariosConIA(
   excepciones: ExcepcionSemanal[] = [],
   opciones?: OpcionesGeneracion,
   /** Contexto de validación de la semana (el mismo que usa la pantalla). Sin él, se arma desde la entrada. */
-  contextoValidacion?: ContextoValidacionSemana
+  contextoValidacion?: ContextoValidacionSemana,
+  ejecucion?: { signal: AbortSignal; avisarModoCompatible: () => void },
 ): Promise<ResultadoAsignacion> {
-  // #7 · AH2-020: el cálculo es síncrono y bloquea el hilo de la interfaz (de 1 a 20 s según
-  // dotación y equipo; ver CURRENT_WORK). Se cede un cuadro para que llegue a pintarse el
-  // indicador «generando…» antes de bloquear. La solución de fondo (Web Worker) es otro PR.
-  await cederUnCuadro()
-  // 1. Ejecutar algoritmo v2 (excepciones normalizadas: día textual → índice)
   const inputV2 = convertirInputAV2(
     necesidad, cajeros, auxiliares, eventuales,
     normalizarExcepciones(excepciones), opciones
@@ -53,12 +50,15 @@ export async function asignarHorariosConIA(
     minimosCajeros: opciones?.demandaMinima,
     operativa: operativaEfectiva(opciones),
   }
-  const { resultado } = generarConMultiArranque({ input: inputV2, cajeros, auxiliares, eventuales, contexto })
+  const entrada = { input: inputV2, cajeros, auxiliares, eventuales, contexto }
+  const resultado = await ejecutarEnWorker(entrada, ejecucion?.signal)
+  if (resultado) return resultado
 
-  // SEC-01: sin llamadas de red a modelos externos en esta fase.
-
-  // 2. Retornar resultado
-  return resultado
+  // Navegadores sin soporte o sin acceso al script del Worker.
+  ejecucion?.avisarModoCompatible()
+  await cederUnCuadro()
+  if (ejecucion?.signal.aborted) throw new DOMException('Generación cancelada', 'AbortError')
+  return generarConMultiArranque(entrada).resultado
 }
 
 // ==================== FUNCIONES AUXILIARES EXISTENTES ====================

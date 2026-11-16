@@ -1,6 +1,51 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — integración de #46 y #47 · 2026-11-16
+## PUNTO ÚNICO DE RETOMA — simulación conjunta de #46, #47 y #48 · 2026-11-16
+
+### Estado y evidencia
+
+Rama local aislada `audit/ah2-integration-46-47-48`. La auditoría conserva las ramas remotas y los deploys vigentes. Leer el [MASTER](ALIADA_HORARIOS_MASTER.md), el [diseño B](AH2_TRAMO_B_DISENO.md) y la [propuesta P2](proposals/AH2_P2_RPC_PUBLICACION_SEGURA.md). Los apartados posteriores son históricos.
+
+| Entrada | SHA verificado | Estado |
+|---|---|---|
+| `main` | `905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea` | Base y producción de ambos sitios |
+| [#46](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/46) | `beaa8ab1a7a5d15f733fa1a23152f3266e196fb2` | Borrador. [Actions aprobó test-build y browser](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43804608444) |
+| [#47](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/47) | `0499015e7d8a721a851d3322528f0ca07530608c` | Borrador. [Actions aprobó test-build y browser](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43804609800) |
+| [#48](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/48) | `db145b7422f9142aad4cd50b9e64ee9b8a8f897b` | Borrador. [Actions aprobó test-build y browser](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43806581600) |
+
+La simulación de #46 y #47 fue limpia. #48 tuvo un conflicto en `docs/CURRENT_WORK.md`. La resolución conserva el historial común una vez, más las secciones propias de Tramo B, B1 y W1. Las ocho combinaciones merge/squash dan el mismo árbol en cada etapa con esa resolución. Los árboles esperados de #46 y #47 son `19178da22095fd239def5c883be99479ab9ed8f0` y `dea4f57e7faa58f19caafc8e170d271b2f5de484`. Para el árbol final ejecutar `git rev-parse audit/ah2-integration-46-47-48^{tree}`. Los SHA de commit creados por GitHub dependen de los metadatos al integrar. Validar el árbol y registrar el SHA real después de cada paso. Los checks enlazados corresponden a los PR individuales. El candidato combinado se probó localmente.
+
+### Pruebas del candidato acumulado
+
+- `npm ci --no-audit --no-fund` en worktree limpio. TypeScript, build de producción sin credenciales y Vitest completos. 440 pruebas aprobadas, 3 omitidas por la suite.
+- Playwright Chromium estándar. 15 aprobadas y el benchmark optativo, corrido aparte. Incluye POM → horario → validación → exportar y releer PDF, edición y persistencia del historial al recargar, Worker real, arranque fallido con modo compatible, cancelación, reintento y respuesta tardía, reinicio y navegación.
+- Prueba de auditoría adicional sin cambio al repositorio. Cambiar el lunes durante el cálculo terminó el trabajo y descartó el mensaje tardío. Cero filas sintéticas guardadas.
+- Benchmark offline de 200 casos sobre `main` y el candidato. Cero diferencias funcionales al excluir tiempos, 98,7563 % de cobertura media y cero violaciones. En Chromium también coincidieron Worker e hilo principal en el fixture sintético 47 y en los 200 casos, incluidas jornadas, cobertura, selección, estado del validador y estrategias omitidas.
+- Rendimiento en build de producción. Las 12 combinaciones de 9/20/35/55 cajeros a 1×/4×/6× pasaron, con máximo de 195 ms del hilo principal. Cancelación real a 55/6× en 16 ms y cero guardados. CDP ralentizó el hilo de la página, no la CPU física del Worker.
+- WebKit WPE en Linux pasó las dos pruebas de escritorio. El perfil iPhone 13 a 390 px pasó la equivalencia de la semana 47 y, tocando el área visible, la cancelación, el descarte y el reintento. El menú lateral intercepta el centro de «Generar» tanto en el candidato como en `main`. Es una limitación de layout preexistente. Queda el smoke en Safari sobre un iPhone físico.
+- `src/planificacion/` conserva el contenido de #47 y no tiene importadores en la aplicación. El `dist/` local acumulado es idéntico byte a byte al de #48 por separado con el mismo entorno. El motor, validador, cortes de 6 s/20 s, contrato, dependencias, funciones de pago y configuración Netlify tienen el mismo contenido que en `main`. P2 sigue documental. La única incidencia cosmética de `git diff --check` frente a `main` es una línea vacía final heredada de #47 en `src/planificacion/diff.ts`.
+
+### Netlify y reversión
+
+Ambos proyectos apuntan a `FernandoDelgadoDiaz/Estimapres` con raíz del repo, builds activos, rama de producción `main`, deploy previews habilitados y publicación automática activa. Un cambio en `main` hace que ambos sitios construyan y publiquen automáticamente si el build termina bien. Prestify muestra comando vacío y directorio `/` en la configuración del panel. Los logs vigentes de los dos sitios muestran que el `netlify.toml` compartido aporta `npm run build`, `dist` y `netlify/functions`. Los dos empaquetan `claude-proxy`, `create-payment` y `webhook-mp`. El código de pago y el lockfile están intactos. Su ejecución depende del entorno de cada sitio y contexto de deploy. Mantener Prestify fijado a su deploy durante una publicación aislada de Aliada protege su proceso de cobro.
+
+| Sitio | Snapshot vigente y objetivo de rollback para esta integración | Versión anterior usada para comprobar el control |
+|---|---|---|
+| Aliada | [`6af8ee2dae9d7a3ca54d5aef`](https://app.netlify.com/projects/al-iada/deploys/6af8ee2dae9d7a3ca54d5aef) | [`6af893ecdb95b54e626df2f7`](https://app.netlify.com/projects/al-iada/deploys/6af893ecdb95b54e626df2f7) |
+| Prestify | [`6af8ee2d15984dc64ecb3e7d`](https://app.netlify.com/projects/prestify/deploys/6af8ee2d15984dc64ecb3e7d) | [`6af893ec4d673cd2e30bef07`](https://app.netlify.com/projects/prestify/deploys/6af893ec4d673cd2e30bef07) |
+
+Los dos snapshots vigentes están `ready` en producción, pertenecen a sitios distintos y sus URLs únicas responden HTTP 200 y entregan el mismo HTML que el dominio de producción respectivo. Las dos versiones anteriores mostraron `Publish deploy` y sus URLs únicas también respondieron 200. Se verificó la disponibilidad del control por sitio sin accionarlo. Se ensayó la reversión Git en un worktree separado con `git revert --no-commit -m 1` en orden inverso y se recuperó exactamente el árbol original de `main`. La republicación en Netlify quedó sin ensayo real dentro de la autorización de solo lectura. [Procedimiento de Netlify](https://docs.netlify.com/deploy/manage-deploys/manage-deploys-overview/#rollbacks).
+
+### Procedimiento sujeto a autorización expresa
+
+1. **Separar integración de publicación.** Confirmar el SHA y los checks de cada entrada de la tabla, `main`, los dos snapshots anteriores y que la cuenta operadora tiene acceso a ambos controles. Con autorización adicional activar `Lock to stop auto publishing` en los dos sitios sobre los deploys que hoy están publicados. Verificar ambos estados de bloqueo, los mismos IDs activos y que no haya una publicación concurrente. La autopublicación activa en ambos es bloqueo actual.
+2. **Integrar #46 y #47 en orden, por merge commit si está disponible.** Comparar el árbol de cada nuevo `main` con el valor ensayado. Esperar Actions `test-build` y `browser` del nuevo SHA, comprobar ambos punteros en Netlify y registrar el resultado antes de avanzar. Se ensayó squash y preserva los árboles. Si se elige, registrar sus SHA y adaptar la reversión al tipo de commit.
+3. **Preparar #48 contra el nuevo `main`.** Con autorización para actualizar esa rama, incorporar la base vigente y resolver solo `docs/CURRENT_WORK.md` con el archivo de esta rama de auditoría. Comparar el árbol resultante con el ensayado y exigir los checks del nuevo HEAD. Integrar #48 y volver a esperar los dos jobs sobre el SHA de `main`. Verificar que los candidatos de Netlify, si se construyen bajo bloqueo, correspondan a ese SHA y que producción siga en los snapshots registrados.
+4. **Prueba y publicación.** Con autorización de publicación aparte, probar primero el candidato de Aliada con POM y datos sintéticos. Confirmar generación en Worker, cancelación sin guardado, persistencia sintética, validación, PDF y un smoke en Safari/iOS físico. En Prestify verificar la portada y el empaquetado y contexto de las funciones, y usar el entorno de prueba de Mercado Pago para una prueba de pagos autorizada. No disparar cobros reales como smoke. Publicar únicamente el sitio autorizado por el operador y verificar SHA, URL, funciones y salud.
+5. **Revertir si falla la verificación.** Mantener bloqueada la autopublicación. Con autorización de reversión, elegir `Publish deploy` sobre el ID de `905cb75` del sitio afectado, verificar que vuelva ese ID y que el bloqueo siga activo. Si ambos sitios fueron afectados, repetir con el segundo ID y comprobar cada uno. Separadamente, preparar un PR de revert en Git, en orden #48 → #47 → #46 según el alcance de la incidencia. Para merge commits usar `git revert -m 1`. En el caso de squash revertir el commit simple correspondiente. El snapshot de Netlify no cambia `main` ni restablece variables o datos.
+6. **Cortar el avance** si cambia un SHA esperado, falta un check, el árbol difiere, falta un bloqueo, los punteros de producción cambian, el snapshot queda inaccesible o aparece una regresión del Worker, PDF o pago. Mantener el estado comprobado de producción hasta aclarar la discrepancia.
+
+## Registro histórico — preparación de #46 y #47 · 2026-11-16
 
 Leer el [MASTER](ALIADA_HORARIOS_MASTER.md), en especial §6.1 y §9. El [diseño B v3.1](AH2_TRAMO_B_DISENO.md) se incorpora con #46. Los PR registran sus SHA vigentes y la evidencia de Actions asociada a cada uno.
 
@@ -156,6 +201,50 @@ Detalle de lo que garantiza `estados.ts`:
    - Control final de unicidad de todos los ids resultantes.
    - En `historialEfectivo`, versiones con id repetido → `ID_DUPLICADO` (antes el `Map` se quedaba con la última).
 5. **Verificación:** ver la evidencia en el PR #47 (suite completa, TypeScript, build, Playwright, benchmark de 200 escenarios y checks `test-build` y `browser` en GitHub).
+
+## Registro histórico — W1 · Web Worker · 2026-11-16
+
+- **Alcance:** W1 autorizado como PR independiente en borrador. [PR #48](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/48), rama `feat/ah2-w1-web-worker`. Base `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. SHA del código y de las pruebas `5d0f4e9a99c1e960276b6a1fd1c68729fdb02ac2`. El PR registra el SHA de esta actualización y sus checks.
+- **Autoridad de producto:** [MASTER](ALIADA_HORARIOS_MASTER.md), en particular AH2-020. Referencias [diseño B en #46](https://github.com/FernandoDelgadoDiaz/Estimapres/blob/beaa8ab1a7a5d15f733fa1a23152f3266e196fb2/docs/AH2_TRAMO_B_DISENO.md#105-generación-escalable-y-reproducible-corrección-8) y [auditoría W1 en #47](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/47#issuecomment-6907418304). Ambos PR siguen en borrador; esta rama parte directamente de `main`.
+- **Código:** `src/workers/generacion.worker.ts` llama a `generarConMultiArranque` sin cambios a motor, contratos, validador ni presupuestos. `generacionCliente.ts` separa mensajes por ID, maneja inicio y errores y termina el Worker. `iaAsignacion.ts` mantiene el adaptador y el respaldo síncrono para navegadores sin Worker de módulo o con fallo de carga, con aviso de posible pausa.
+- **Flujo:** `useAsignacion.ts` invalida y cancela el trabajo al reiniciar, salir o cambiar entradas. `NuevaSemanaPage.tsx` guarda solo un resultado vigente y reparte el render del resumen y de las tablas entre cuadros. Un error tras iniciar permite reintento; un resultado tardío se descarta antes de modificar la UI o el historial.
+- **Operación:** Aliada y Prestify mantienen sus deployments de producción en `905cb75`, verificados vía Netlify. Se excluyeron merge, deploy de producción, migraciones y escrituras operativas de las pruebas. Archivos de configuración, Supabase y funciones de pago intactos. Los previews automáticos son independientes de producción.
+
+### Verificación
+
+| Prueba | Resultado local |
+|---|---|
+| TypeScript, Vitest y build | TypeScript y build OK. Vitest 368 aprobadas y 3 omitidas. |
+| Playwright Chromium | 15 aprobadas y un benchmark optativo, ejecutado aparte. Incluye PDF, guardado, edición, cancelar, reintentar, fallos de carga, reiniciar y cambiar de pantalla. |
+| Equivalencia Worker real ↔ hilo principal | Semana sintética 47 y los 200 escenarios AH2-020: 0 diferencias funcionales, 0 estrategias omitidas y 0 violaciones. Cobertura media 98,7563 % en los 200. La comparación incluye jornadas, horas, cobertura, selección y estado del validador. Se excluyen duraciones de diagnóstico. |
+| Benchmark offline de referencia | 200 escenarios con `AH2_BENCH=1`. Mismos resultados que `main` al excluir duraciones. |
+| Rendimiento en build de producción | 12/12 con Worker. 12/12 en modo compatible como referencia. Coincidieron las huellas de jornadas, horas por persona y cobertura/faltantes por franja, y coincidieron estrategia, validación y omitidas. Cancelación durante el cálculo en 55/6×: 12 ms al retirar el control y cero guardados. |
+
+Tarea más larga del hilo principal en milisegundos. Cada celda indica **Worker / modo compatible**. El modo compatible ejecuta el mismo cálculo en el hilo de la página.
+
+| Cajeros | CPU 1× | CPU 4× | CPU 6× |
+|---|---:|---:|---:|
+| 9 (tamaño 091) | <50 / 577 | 135 / 1.927 | 59 / 2.685 |
+| 20 | <50 / 817 | 53 / 2.462 | 75 / 4.354 |
+| 35 | <50 / 1.769 | 70 / 7.541 | 127 / 11.442 |
+| 55 | <50 / 1.703 | 181 / 8.333 | 168 / 10.086 |
+
+Chromium 141 en Linux. CDP ralentiza el hilo de la página; el tiempo del Worker corresponde al equipo de ensayo y no simula por sí solo un dispositivo físicamente 6 veces más lento. El resultado tardó 0,52–2,38 s con Worker y 0,66–11,75 s en modo compatible. El retraso máximo del temporizador durante la prueba Worker fue de 5 ms.
+
+### Cortes por tiempo heredados
+
+- **6 s, pasada 1.** La primera pasada completa su recorrido. El límite puede cortar una vuelta posterior y cambiar jornadas sin generar un indicador específico. En `w1-limites.test.ts`, el escenario 121 produce jornadas diferentes al adelantar el reloj a 6001 ms antes del segundo recorrido.
+- **20 s, multiarranque.** Controla si se empiezan más estrategias, conserva el respaldo e informa las omitidas. En el escenario 121, al simular 20.000 ms antes de evaluar alternativas, se omitieron las seis y quedó la menor cobertura del respaldo. En la matriz real de esta revisión ninguna combinación omitió estrategias y la huella funcional coincidió.
+- W1 conserva ambos cortes y la prioridad del motor. Una pérdida funcional reproducible atribuible al transporte por Worker bloquea su integración. La reproducibilidad cuando uno de los presupuestos se agota corresponde a W2, sujeta a autorización específica.
+
+### Reproducir y continuar
+
+1. `npm ci && npx tsc --noEmit && npm test && npm run build && npm run test:e2e`.
+2. `AH2_WORKER_BENCH=1 npx playwright test e2e/generacion-worker.e2e.ts`. Benchmark de referencia: `AH2_BENCH=1 AH2_BENCH_N=200 npx vitest run src/algoritmo/__tests__/benchmark/prioridadHoras.bench.test.ts`.
+3. `npx playwright test -c playwright.perf.config.ts` sobre el build sin credenciales. Repetir con `AH2_PERF_MODO=hilo`. Opcional: `AH2_PERF_OUT=<json>`.
+4. Revisar los checks del SHA final del PR #48. Cualquier integración requiere autorización y verificar los automatismos de Netlify de ambos sitios. Al integrar ramas con cambios en CURRENT_WORK, conservar el punto de retoma vigente y los registros históricos.
+
+> El tramo A de abajo documenta una sesión anterior a su integración. #45 ya está integrado en `905cb75`.
 
 ## Registro histórico — tramo A: contrato de horas PART (PR #45, integrado el 14/11/2026 en `905cb75`)
 

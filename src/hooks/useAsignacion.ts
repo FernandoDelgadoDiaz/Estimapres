@@ -1,5 +1,5 @@
 import { minutosDesdeMedianoche } from '../utils/timeUtils'
-import { useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual, JornadaResumida, HorarioColaborador } from '../types'
 import { minutosAsignados } from '../utils/horasSemanales'
 import { asignarHorariosConIA } from '../utils/iaAsignacion'
@@ -100,50 +100,63 @@ export function useAsignacion() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const generarHorarios = async (necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[], fechas?: string[], excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion, contextoValidacion?: ContextoValidacionSemana) => {
+  const [modoCompatible, setModoCompatible] = useState(false)
+  const activa = useRef<AbortController | null>(null)
+
+  const cancelarGeneracion = useCallback(() => {
+    if (!activa.current) return
+    const ejecucion = activa.current
+    activa.current = null
+    ejecucion.abort()
+    setLoading(false)
+    setModoCompatible(false)
+  }, [])
+
+  useLayoutEffect(() => () => {
+    const ejecucion = activa.current
+    activa.current = null
+    ejecucion?.abort()
+  }, [])
+
+  const generarHorarios = async (
+    necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[],
+    fechas: string[], excepciones: ExcepcionSemanal[], opciones: OpcionesGeneracion,
+    contextoValidacion: ContextoValidacionSemana, alCompletar: (resultado: ResultadoAsignacion) => void,
+  ) => {
+    if (activa.current) return
+    const ejecucion = new AbortController()
+    activa.current = ejecucion
     setLoading(true)
     setError(null)
     try {
-      // Si no se proporcionan fechas, generar fechas de la semana actual (lunes a domingo)
-      let fechasAUsar = fechas
-      if (!fechasAUsar || fechasAUsar.length === 0) {
-        fechasAUsar = generarFechasSemanaActual()
-      }
-      const resultado = await asignarHorariosConIA(necesidad, cajeros, auxiliares, eventuales, fechasAUsar, excepciones, opciones, contextoValidacion)
-      setResultado(resultado)
-      return resultado
+      const generado = await asignarHorariosConIA(
+        necesidad, cajeros, auxiliares, eventuales, fechas, excepciones, opciones, contextoValidacion,
+        {
+          signal: ejecucion.signal,
+          avisarModoCompatible: () => {
+            if (activa.current === ejecucion) setModoCompatible(true)
+          },
+        },
+      )
+      if (activa.current !== ejecucion) return
+      // Guardar y mostrar el mismo resultado dentro de la comprobación de vigencia.
+      alCompletar(generado)
+      setResultado(generado)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error en asignación'
-      // SEC-01: la generación no usa IA ni claves; no pedir API keys al usuario.
-      if (message.includes('conexión') || message.includes('network')) {
-        setError('Error de conexión, intentá de nuevo.')
-      } else {
-        setError(message)
+      if (activa.current === ejecucion) {
+        setError(err instanceof Error ? err.message : 'No se pudo generar el horario. Volvé a intentarlo.')
       }
-      throw err
     } finally {
-      setLoading(false)
+      if (activa.current === ejecucion) {
+        activa.current = null
+        setLoading(false)
+        setModoCompatible(false)
+      }
     }
-  }
-
-  function generarFechasSemanaActual(): string[] {
-    const hoy = new Date()
-    const lunes = new Date(hoy)
-    // Ajustar al lunes más reciente (0 = domingo, 1 = lunes)
-    const diaSemana = hoy.getDay() // 0 domingo, 1 lunes, ..., 6 sábado
-    const diff = diaSemana === 0 ? -6 : 1 - diaSemana // si es domingo, retroceder 6 días; sino, ajustar a lunes
-    lunes.setDate(hoy.getDate() + diff)
-    lunes.setHours(0, 0, 0, 0)
-    const fechas: string[] = []
-    for (let i = 0; i < 7; i++) {
-      const fecha = new Date(lunes)
-      fecha.setDate(lunes.getDate() + i)
-      fechas.push(fecha.toISOString().split('T')[0]) // YYYY-MM-DD
-    }
-    return fechas
   }
 
   const reset = () => {
+    cancelarGeneracion()
     setResultado(null)
     setError(null)
   }
@@ -166,6 +179,8 @@ export function useAsignacion() {
     loading,
     error,
     generarHorarios,
+    cancelarGeneracion,
+    modoCompatible,
     editarJornada,
     reset,
   }
