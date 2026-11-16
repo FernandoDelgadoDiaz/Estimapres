@@ -1,6 +1,40 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — simulación conjunta de #46, #47 y #48 · 2026-11-16
+## PUNTO ÚNICO DE RETOMA — aceptación de escritorio · 2026-11-16
+
+`main` está en `3b74d9c3102124abf8c6f77d45154ee2f76ae786`. Su árbol exacto, `6ba9a518267f4d292b284160fea1c9ee4840b2b5`, coincide con el autorizado. Los tres PR están cerrados por merge commit.
+
+| PR | SHA de `main` después del merge | GitHub Actions sobre ese SHA |
+|---|---|---|
+| [#46](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/46) | `32655c1aa44b9f23405dd93811760528981922d2` | [`test-build` y `browser` aprobados](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43861228014) |
+| [#47](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/47) | `42a2ace2db35dcb7df53530a2f1f5dfebfefd273` | [`test-build` y `browser` aprobados](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43861825186) |
+| [#48](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/48) | `3b74d9c3102124abf8c6f77d45154ee2f76ae786` | [`test-build` y `browser` aprobados](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43862467395) |
+
+Para #48 se incorporó `main` en la rama W1 conservando su HEAD anterior. El único conflicto fue el relevo. El blob resuelto `0ab24487624347ea8e30b93655b8278a4c8a329e` coincide con el ensayado y mantiene el historial. El nuevo HEAD `49dacb447e7e3f2e85360014343702e1ca8e9ff9` pasó [CI antes del merge](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43862134383).
+
+### Producción
+
+Aliada `6af8ee2dae9d7a3ca54d5aef` y Prestify `6af8ee2d15984dc64ecb3e7d` siguen publicados, `ready` y con `locked: true` en Netlify. Ambos sirven `905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. Los IDs, las marcas de publicación y el contenido HTTP se verificaron después de cada merge. Antes del primer merge estaban habilitados por separado los controles de restauración. La ejecución de una restauración requiere autorización.
+
+El código de `create-payment` y `webhook-mp`, `netlify.toml`, dependencias y Supabase coincide con el de `905cb75`. W1 conserva el optimizador, el validador y los presupuestos de 6 y 20 segundos. La evidencia de la simulación se conserva debajo.
+
+### Aceptación de escritorio del árbol integrado
+
+- Worktree aislado del SHA indicado. Instalación estricta del lockfile, TypeScript y build correctos. Vitest: 440 aprobadas y 3 optativas omitidas. Datos sintéticos y persistencia local, con Supabase real deshabilitado. El motor, el validador, el lockfile y las funciones/configuración Netlify de Prestify coinciden con la versión publicada.
+- Chrome for Testing Headless Shell oficial de Google 157.0.8103.78 en Linux. El flujo sobre el build pasó a 1366 × 768 y 1920 × 1080: POM sintético de semana 47 (406 horas-caja y pico de 7 cajas), Tab/Shift+Tab/Enter y clics, Worker real, validación, edición, PDF descargado y releído, y recuperación del horario editado tras recargar. Sin errores de consola de la aplicación ni solicitudes externas en esos dos recorridos.
+- Doce casos por resolución en el build: 9, 20, 35 y 55 cajeros a CPU 1×, 4× y 6× del hilo de la página por CDP. El indicador tuvo cuadros visibles en los 24 casos. Tarea larga máxima 114 ms y 119 ms, respectivamente. Para 55 cajeros a 6×, cancelar demoró 17 ms y 2 ms, dejó el historial vacío y el reintento guardó un solo resultado. Sin estrategias omitidas en la muestra.
+- Playwright habitual con el benchmark optativo: 16 aprobadas. Se cubrieron respuesta tardía, reinicio, navegación, reintento tras error y modo compatible. En 200 escenarios Worker/hilo resultaron iguales los horarios y la validación, sin violaciones ni estrategias omitidas. PDF.js emitió advertencias de fuentes en el extractor de texto de Node; el contenido de los PDF se verificó.
+- Microsoft Edge Stable 157.0.4341.60 y Chrome Stable 157.0.8103.78 se descargaron de los proveedores. Los ejecutables de navegador completo abortaron en el entorno al crear un socket local de perfil (`process_singleton`, `Operation not permitted`). El resultado automatizado corresponde al shell de Google, no certifica Edge ni ejecución en Windows.
+- B1 no tiene imports en el flujo de generación. El aislamiento del cálculo W1 conserva los cortes de 6 y 20 s; la ralentización CDP de la página no caracteriza el hardware físico ni la velocidad del hilo del Worker.
+
+### Próximo paso
+
+- **NO APTO para publicar por aceptación de escritorio incompleta.** Completar la comprobación con Microsoft Edge Stable y Chrome Stable en PC, con prioridad a Edge y un equipo lento. Registrar versión del navegador, resoluciones, Worker, cancelación sin guardado seguida de reintento, validación, edición, recuperación y PDF. Usar el mismo SHA en local con datos sintéticos.
+- En Windows, en el worktree del SHA integrado, establecer `PLAYWRIGHT_CHROMIUM_EXECUTABLE` a la ruta de `msedge.exe` (ver `edge://version`) y ejecutar `npm ci` y `npm run test:e2e -- --headed`. Repetir el recorrido del POM sintético en ambas resoluciones con DevTools para observar el Worker y la consola. Para repetir rendimiento con el build sin credenciales, ejecutar `npm run build` seguido de `npx playwright test -c playwright.perf.config.ts --headed`; el fixture de ese ensayo cubre 9, 20, 35 y 55 cajeros. Para Chrome, usar su propio ejecutable.
+- AH2-035 y este relevo son el alcance del PR independiente de documentación `docs/ah2-escritorio-relevo`, sobre el árbol de `main` ya verificado. Solo cambia este archivo y el [MASTER](ALIADA_HORARIOS_MASTER.md#9-registro-único-de-decisiones). Se conserva a continuación el historial completo.
+- Mantener ambos deploys bloqueados. Revisar el snapshot candidato de Aliada ligado al SHA ensayado antes de decidir publicación. La publicación de Aliada requiere autorización independiente.
+
+## Registro histórico — simulación conjunta del 16/11/2026
 
 ### Estado y evidencia
 
