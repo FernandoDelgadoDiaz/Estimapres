@@ -1,6 +1,16 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — simulación conjunta de #46, #47 y #48 · 2026-11-16
+## PUNTO ÚNICO DE RETOMA — límites de caja de eventuales · 2026-11-16
+
+- Rama `feat/ah2-reglas-caja-eventuales`, base verificada `3b74d9c3102124abf8c6f77d45154ee2f76ae786`. El historial anterior queda debajo.
+- Implementación en la pasada 3, adaptación de entrada, gestión y revisiones por sucursal, snapshot semanal, recálculo tras edición y validador independiente. Sin valores por defecto para ambas reglas. Una edición manual incompatible queda informada por la validación. Cambios y pruebas en el diff de la rama.
+- AUX favorece continuidad y luego equidad en horas acumuladas. No hay máximo diario de bloques en esa pasada. Falta confirmación del alcance de POM para AUX. No cambió la pasada 2.
+- La comparación preliminar con FULL/PART/AUX fijos reporta A y B 97,54 % / 10 h faltantes, C y D 96,80 % / 13 h faltantes. Son cifras informadas de una simulación parcial.
+- Benchmark real completo pendiente. Se localizaron el PDF de horarios y el documento de programación semanal, pero los documentos no acreditan el snapshot v8. Falta verificar dotación y fichas vigentes al generar, disponibilidades resueltas, excepciones, preferencias y pesos, reglas efectivas, matriz original y horarios del domingo anterior. No cargar datos personales en GitHub ni en CI.
+- Próximo paso: recuperar el snapshot v8 por un canal privado, verificar que A reproduzca la referencia original, ejecutar B/C/D con la misma entrada y las tres pasadas usando el multi-arranque vigente. Registrar estrategias y omisiones por tiempo, déficit y sobrantes por franja, picos, bloques de caja, asignaciones desde el corte, cumplimiento contractual, infracciones y tiempos. Si falta el domingo anterior, marcar el descanso intersemanal sin verificar.
+- TypeScript, Vitest, build y Playwright se verifican con los checks del PR. Sin cambios de main, Prestify, Netlify, datos operativos o migraciones.
+
+## Registro anterior — simulación conjunta de #46, #47 y #48 · 2026-11-16
 
 ### Estado y evidencia
 

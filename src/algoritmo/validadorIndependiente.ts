@@ -12,6 +12,8 @@
 import type { ExcepcionSemanal, Franja, HorarioColaborador, AsignacionCajaColaborador } from '../types'
 import { PERFIL_HORAS_VIGENTE, PERFIL_HORAS_HISTORICO_31, perfilHorasDeSemana, type PerfilHorasContrato } from './contratos'
 
+import { esMaxBloquesCajaEventual, slotLimiteCajaEventual } from './reglasCajaEventual'
+
 // ======================= PERFIL =======================
 
 export interface ReglasContrato {
@@ -118,6 +120,8 @@ export interface EntradaValidacion {
 }
 
 export interface OperativaValidacion {
+  maxBloquesCajaEventualDia?: number
+  eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
   sinAuxCierre?: boolean
   supervisorJornadaCompleta?: boolean
@@ -466,13 +470,26 @@ function validarReglasOperativas(
     }
   }
 
-  // Eventual en caja fuera de su disponibilidad
+  const maxBloques = op.maxBloquesCajaEventualDia
+  const limite = slotLimiteCajaEventual(op.eventualesCajaHoraLimite)
+  if ((maxBloques !== undefined && !esMaxBloquesCajaEventual(maxBloques)) ||
+      (op.eventualesCajaHoraLimite !== undefined && limite === undefined)) {
+    v.push({ codigo: 'DATOS_REGLA_CAJA_EVENTUAL', nivel: 'DATOS', detalle: 'Los límites configurados para caja de eventuales no son válidos.' })
+  }
   for (const a of evCaja) {
     const hs = porId.get(a.colaboradorId)?.horarioSemanal
-    if (!hs) continue
-    const disp = matrizDeHorarioSemanal(hs)
+    const disp = hs ? matrizDeHorarioSemanal(hs) : undefined
     for (let d = 0; d < 7; d++) {
-      const fuera = (a.slotsCajaPorDia[d] ?? []).flatMap((x, s) => (x && !disp[d][s] ? [horaDeSlot(s)] : []))
+      const fila = a.slotsCajaPorDia[d] ?? []
+      const bloques = fila.filter((enCaja, s) => enCaja && !fila[s - 1]).length
+      if (esMaxBloquesCajaEventual(maxBloques) && bloques > maxBloques) {
+        v.push({ codigo: 'OP_EVENTUAL_MAX_BLOQUES', nivel: 'OPERATIVA', colaboradorId: a.colaboradorId, dia: d, detalle: `${nombre(a.colaboradorId)}: ${bloques} bloques de caja el ${DIAS[d]} (máximo ${maxBloques}).` })
+      }
+      const cierre = limite === undefined ? [] : fila.flatMap((enCaja, s) => enCaja && s >= limite ? [horaDeSlot(s)] : [])
+      if (cierre.length) {
+        v.push({ codigo: 'OP_EVENTUAL_CIERRE', nivel: 'OPERATIVA', colaboradorId: a.colaboradorId, dia: d, detalle: `${nombre(a.colaboradorId)}: en caja el ${DIAS[d]} desde el límite ${op.eventualesCajaHoraLimite} (${cierre.join(', ')}).` })
+      }
+      const fuera = disp ? fila.flatMap((x, s) => x && !disp[d][s] ? [horaDeSlot(s)] : []) : []
       if (fuera.length) v.push({ codigo: 'OP_EVENTUAL_FUERA_DISPONIBILIDAD', nivel: 'OPERATIVA', colaboradorId: a.colaboradorId, dia: d, detalle: `${nombre(a.colaboradorId)}: en caja el ${DIAS[d]} fuera de su disponibilidad (${fuera.join(', ')}).` })
     }
   }

@@ -140,7 +140,11 @@ export function recalcularSemanaTrasEdicion(r: ResultadoAsignacion, ctx: Context
       const disp = matrizHorario(ctx.disponibilidad![id])
       return [id, DIAS.map(d => disp[d].map(ok => (ok && !fijos.has(`${id}|${d}`) ? 'NO_USADO' : 'NO_DISPONIBLE') as AsignacionEv))]
     }))
-    const p3 = ejecutarPasada3({ demanda, colaboradores: [], presencia_aux: {}, disponibilidad_eventual }, p2)
+    const p3 = ejecutarPasada3({
+      demanda, colaboradores: [], presencia_aux: {}, disponibilidad_eventual,
+      max_bloques_caja_eventual_dia: ctx.operativa.maxBloquesCajaEventualDia,
+      eventuales_caja_hora_limite: ctx.operativa.eventualesCajaHoraLimite,
+    }, p2)
     cajaEventual = idsEv.map(id => {
       const prev = cajaEvPrev.get(id)
       return {

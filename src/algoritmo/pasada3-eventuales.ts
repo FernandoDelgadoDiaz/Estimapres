@@ -11,6 +11,7 @@ import type {
   SlotIdx,
   ResultadoSemanal,
 } from "./types";
+import { esMaxBloquesCajaEventual, slotLimiteCajaEventual } from "./reglasCajaEventual";
 import type { ResultadoPasada2 } from "./pasada2-auxiliares";
 
 export interface ResultadoPasada3 {
@@ -44,12 +45,15 @@ export function ejecutarPasada3(
   const deficit_actual: number[][] = resultado_pasada2.deficit_2.map(fila => [...fila]);
 
   // === PASO 4: Para cada dia, cubrir slots con deficit usando eventuales ===
+  const limite = slotLimiteCajaEventual(input.eventuales_caja_hora_limite) ?? SLOTS_POR_DIA;
+  const maxBloques = input.max_bloques_caja_eventual_dia;
   for (const dia of DIAS) {
+    const bloques = new Map<string, number>();
     const slots_con_deficit: Array<{ slot: SlotIdx; deficit: number }> = [];
     // #38: la apertura 08:00–09:00 (slots 0 y 1) nunca la cubren eventuales:
     // con «apertura solo AUX» la abre exactamente un AUX; sin ella, un cajero
     // FULL/PART. El faltante queda informado, no se tapa con un eventual.
-    for (let slot = SLOTS_APERTURA_EV; slot < SLOTS_POR_DIA; slot++) {
+    for (let slot = SLOTS_APERTURA_EV; slot < limite; slot++) {
       if (deficit_actual[dia][slot] > 0) {
         slots_con_deficit.push({ slot, deficit: deficit_actual[dia][slot] });
       }
@@ -63,7 +67,10 @@ export function ejecutarPasada3(
       // Eventuales disponibles = aquellos con NO_USADO en este slot
       const disponibles: string[] = [];
       for (const [evId, matriz] of Object.entries(asignacion_eventual)) {
-        if (matriz[dia][slot] === "NO_USADO") {
+        const fila = matriz[dia];
+        if (fila[slot] !== "NO_USADO") continue;
+        const cambioBloques = 1 - Number(fila[slot - 1] === "CAJA") - Number(fila[slot + 1] === "CAJA");
+        if (!esMaxBloquesCajaEventual(maxBloques) || (bloques.get(evId) ?? 0) + cambioBloques <= maxBloques) {
           disponibles.push(evId);
         }
       }
@@ -82,7 +89,10 @@ export function ejecutarPasada3(
 
       for (let i = 0; i < n_activar; i++) {
         const evElegido = disponibles[i];
-        asignacion_eventual[evElegido][dia][slot] = "CAJA";
+        const fila = asignacion_eventual[evElegido][dia];
+        const cambioBloques = 1 - Number(fila[slot - 1] === "CAJA") - Number(fila[slot + 1] === "CAJA");
+        bloques.set(evElegido, (bloques.get(evElegido) ?? 0) + cambioBloques);
+        fila[slot] = "CAJA";
         horas_caja_por_eventual[evElegido] += 0.5;
         deficit_actual[dia][slot] = Math.max(0, deficit_actual[dia][slot] - 1);
       }

@@ -710,7 +710,11 @@ export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; 
   },
 }
 
+export type TipoReglaCajaEventual = 'max_bloques_caja_eventual_dia' | 'eventuales_caja_hora_limite'
+
 export interface ConfigOperativa {
+  maxBloquesCajaEventualDia?: number
+  eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
   sinAuxCierre: boolean
   supervisorJornadaCompleta: boolean
@@ -770,9 +774,23 @@ export function valorReglaOperativa(
   return resolverReglaOperativa(reglas, tipo, fechaLunes).valor
 }
 
+/** La última revisión prevalece a igual vigencia. Una revisión inactiva desactiva el límite. */
+export function reglaCajaEventualVigente(
+  reglas: ReglaConfigurable[], tipo: TipoReglaCajaEventual, fechaLunes?: string
+): ReglaConfigurable | undefined {
+  const acotada = (r: ReglaConfigurable) => Number(Boolean(r.vigenciaDesde || r.vigenciaHasta))
+  return reglas.filter(r => r.ambito === 'local' && r.tipo === tipo &&
+    (fechaLunes ? reglaVigenteEnSemana({ ...r, activa: true }, fechaLunes) : !acotada(r)))
+    .sort((a, b) => acotada(b) - acotada(a) || (b.creadaEl ?? '').localeCompare(a.creadaEl ?? '') || a.id.localeCompare(b.id))[0]
+}
+
 /** Configuración operativa efectiva para pasar al algoritmo. */
 export function configOperativaDeReglas(reglas: ReglaConfigurable[], fechaLunes: string): ConfigOperativa {
+  const bloques = reglaCajaEventualVigente(reglas, 'max_bloques_caja_eventual_dia', fechaLunes)
+  const cierre = reglaCajaEventualVigente(reglas, 'eventuales_caja_hora_limite', fechaLunes)
   return {
+    ...(bloques?.activa ? { maxBloquesCajaEventualDia: bloques.cantidad ?? 0 } : {}),
+    ...(cierre?.activa ? { eventualesCajaHoraLimite: cierre.hora ?? '' } : {}),
     aperturaSoloAux: valorReglaOperativa(reglas, 'apertura_solo_aux', fechaLunes),
     sinAuxCierre: valorReglaOperativa(reglas, 'sin_aux_cierre', fechaLunes),
     supervisorJornadaCompleta: valorReglaOperativa(reglas, 'supervisor_jornada_completa', fechaLunes),
