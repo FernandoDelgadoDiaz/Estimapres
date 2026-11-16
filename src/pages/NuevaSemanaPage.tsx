@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
@@ -42,14 +42,29 @@ import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
 import { es } from 'date-fns/locale'
 
 type Paso = 'upload' | 'revisar' | 'resultado'
+const VistaDemanda = memo(PreviewNecesidad)
 
 export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string }) {
   const [paso, setPaso] = useState<Paso>('upload')
+  const [tablasVisibles, setTablasVisibles] = useState(0)
+
+  useEffect(() => {
+    if (paso !== 'resultado') return
+    // Repartir el armado de las dos tablas en cuadros distintos del resumen.
+    let cuadro = requestAnimationFrame(() => {
+      setTablasVisibles(1)
+      cuadro = requestAnimationFrame(() => setTablasVisibles(2))
+    })
+    return () => cancelAnimationFrame(cuadro)
+  }, [paso])
   const { necesidad, loading: loadingPDF, error: errorPDF, parsearPDF, reset: resetPDF } = usePDFParser()
-  const { colaboradores, colaboradoresActivos, loading: cargandoColaboradores, errorCarga: errorColaboradores } = useColaboradores()
-  const { auxiliaresActivos, loading: cargandoAuxiliares, errorCarga: errorAuxiliares } = useAuxiliares()
-  const { eventualesActivos, loading: cargandoEventuales, errorCarga: errorEventuales } = useEventuales()
-  const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, editarJornada, reset: resetAsignacion } = useAsignacion()
+  const { colaboradores, loading: cargandoColaboradores, errorCarga: errorColaboradores } = useColaboradores()
+  const { auxiliares, loading: cargandoAuxiliares, errorCarga: errorAuxiliares } = useAuxiliares()
+  const { eventuales, loading: cargandoEventuales, errorCarga: errorEventuales } = useEventuales()
+  const colaboradoresActivos = useMemo(() => colaboradores.filter(c => c.activo), [colaboradores])
+  const auxiliaresActivos = useMemo(() => auxiliares.filter(a => a.activo), [auxiliares])
+  const eventualesActivos = useMemo(() => eventuales.filter(e => e.activo), [eventuales])
+  const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, cancelarGeneracion, modoCompatible, editarJornada, reset: resetAsignacion } = useAsignacion()
   const { reglas, reglasActivas } = useReglas()
   const { historial, agregarSemana, actualizarSemana } = useHistorial()
   const { correcciones, agregarCorreccion } = useCorrecciones()
@@ -201,7 +216,13 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const excepcionesDeLaSemana = excepcionesDisponibilidad.filter(x => fechasSemana.includes(x.fecha))
   const generacionDeshabilitada = loadingAsignacion || !disponibilidad || disponibilidad.errores.length > 0
 
-  const handleGenerarHorarios = async () => {
+  // Si cambian entradas mientras hay cálculo, se invalida el snapshot.
+  useLayoutEffect(() => {
+    cancelarGeneracion()
+  }, [cancelarGeneracion, necesidad, lunesSemana, excepciones, excepcionesDisponibilidad,
+    colaboradores, auxiliares, eventuales, reglas, historial, correcciones])
+
+  const handleGenerarHorarios = () => {
     // POM-01 (#8): fechas de la semana del PDF (o la confirmada por el supervisor), nunca del reloj.
     if (!esLunesISO(lunesSemana)) {
       setAvisoSemana('La fecha elegida no es un lunes. Corregila antes de generar.')
@@ -247,17 +268,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       operativa, // #38: estado efectivo de las reglas → el validador lo exige
     }
 
-    let res
-    try {
-      res = await generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx)
-    } catch {
-      // El hook expone el error en Revisar y permite reintentar.
-      return
-    }
-    setCtxValidacion(ctx)
-
-    // Capacidad 2: guardar la semana en el historial para la rotación futura
-    if (res) {
+    void generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx, res => {
+      setCtxValidacion(ctx)
+      // Guardar la semana terminada en el historial para la rotación futura.
       const semana = agregarSemana({
         fechaLunes,
         descripcion: semanaDesc || `Semana del ${fechaLunes}`,
@@ -280,8 +293,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
           [...disponibilidad.auxiliares, ...disponibilidad.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
       })
       setSemanaGuardadaId(semana.id)
-    }
-    setPaso('resultado')
+      setPaso('resultado')
+    })
   }
 
   // Capacidad 3: edición manual del resultado + registro de la corrección
@@ -358,6 +371,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     setCtxValidacion(null)
     setMostrarExcepciones(false)
     setSemanaGuardadaId(null)
+    setTablasVisibles(0)
     setPaso('upload')
   }
 
@@ -557,7 +571,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 {avisosPOM.map(a => <li key={a}>{a}</li>)}
               </ul>
             )}
-            <PreviewNecesidad necesidad={necesidad} />
+            <VistaDemanda necesidad={necesidad} />
           </div>
 
           {fechasSemana.length > 0 && (
@@ -1070,7 +1084,19 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               </p>
             )}
             {errorAsignacion && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAsignacion}</p>}
-            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end' }}>
+            {loadingAsignacion && (
+              <p role="status" style={{ color: 'var(--text-muted)' }}>
+                {modoCompatible
+                  ? 'Modo compatible: la pantalla puede pausarse mientras se calcula el horario.'
+                  : 'Aliada está generando el horario…'}
+              </p>
+            )}
+            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+              {loadingAsignacion && (
+                <button type="button" className="btn-secondary" onClick={cancelarGeneracion}>
+                  Cancelar generación
+                </button>
+              )}
               <button
                 onClick={handleGenerarHorarios}
                 disabled={generacionDeshabilitada || horasNecesariasEstimadas === 0}
@@ -1093,7 +1119,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 {loadingAsignacion ? (
                   <>
                     <span style={{ marginRight: '8px', animation: 'spin 1s linear infinite' }}>⟳</span>
-                    Aliada IA está generando el horario óptimo...
+                    Generando…
                   </>
                 ) : (
                   <>
@@ -1109,7 +1135,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
 
       {/* Paso 3: Resultado */}
       {paso === 'resultado' && resultado && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        <div data-testid="resultado-generacion" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{
@@ -1214,20 +1240,28 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             porcentajeCobertura={resultado.porcentajeCobertura}
           />
 
-          <TablaCobertura
-            coberturaFranjas={resultado.coberturaFranjas}
-            faltantesFranjas={resultado.faltantesFranjas}
-            necesidadFranjas={necesidad.map(f => f.necesidad)}
-          />
+          {tablasVisibles >= 1 && (
+            <div style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 450px' }}>
+              <TablaCobertura
+                coberturaFranjas={resultado.coberturaFranjas}
+                faltantesFranjas={resultado.faltantesFranjas}
+                necesidadFranjas={necesidad.map(f => f.necesidad)}
+              />
+            </div>
+          )}
 
-          <TablaHorarios
-            horarios={resultado.horarios}
-            colaboradores={colaboradoresActivos}
-            auxiliares={auxiliaresActivos}
-            eventuales={eventualesActivos}
-            editable
-            onEditarJornada={handleEditarJornada}
-          />
+          {tablasVisibles >= 2 && (
+            <div data-testid="horarios-completos" style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 450px' }}>
+              <TablaHorarios
+                horarios={resultado.horarios}
+                colaboradores={colaboradoresActivos}
+                auxiliares={auxiliaresActivos}
+                eventuales={eventualesActivos}
+                editable
+                onEditarJornada={handleEditarJornada}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

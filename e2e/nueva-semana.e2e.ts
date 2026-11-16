@@ -232,3 +232,100 @@ test('Último Horario reabre la semana guardada y exporta los turnos A4', async 
   expect(texto).toContain('18:00-20:00')
   expect(texto).not.toContain('Presencia no registrada')
 })
+
+function historialGuardado(page: Page) {
+  return page.evaluate(() => JSON.parse(localStorage.getItem('aliada_historial_semanas::900') ?? '[]').length as number)
+}
+
+async function controlarWorker(page: Page) {
+  await page.addInitScript(() => {
+    const WorkerOriginal = window.Worker
+    let iniciados = 0
+    let terminados = 0
+    const pendientes: Array<(respuesta: 'error' | 'otro-id' | 'resultado') => void> = []
+    Object.assign(window, { w1Control: { estado: () => ({ iniciados, terminados }), pendientes } })
+    window.Worker = new Proxy(WorkerOriginal, {
+      construct(target, args) {
+        if (!String(args[0]).includes('generacion.worker') || iniciados >= 2) return Reflect.construct(target, args)
+        const worker = {
+          onmessage: null as ((event: MessageEvent) => void) | null,
+          postMessage({ id }: { id: number }) {
+            iniciados++
+            const listener = worker.onmessage
+            pendientes.push(respuesta => {
+              const data = respuesta === 'resultado'
+                ? { tipo: 'resultado', id, resultado: { horarios: [], coberturaFranjas: [], faltantesFranjas: [] } }
+                : { tipo: 'error', id: respuesta === 'error' ? id : id - 1 }
+              listener?.(new MessageEvent('message', { data }))
+            })
+          },
+          terminate() { terminados++ },
+        }
+        queueMicrotask(() => worker.onmessage?.(new MessageEvent('message', { data: { tipo: 'listo' } })))
+        return worker
+      },
+    })
+  })
+}
+
+type RespuestaW1 = 'error' | 'otro-id' | 'resultado'
+type ControlW1 = { estado: () => { iniciados: number; terminados: number }; pendientes: Array<(respuesta: RespuestaW1) => void> }
+const estadoWorker = (page: Page) => page.evaluate(() => (window as Window & { w1Control?: ControlW1 }).w1Control!.estado())
+const responderWorker = (page: Page, index: number, respuesta: RespuestaW1 = 'resultado') =>
+  page.evaluate(({ index, respuesta }) => (window as Window & { w1Control?: ControlW1 }).w1Control!.pendientes[index](respuesta), { index, respuesta })
+
+test('cancelar invalida mensajes tardíos y permite reintentar tras un error', async ({ page }) => {
+  await controlarWorker(page)
+  await preparar(page)
+  const generar = page.getByRole('button', { name: 'Generar horarios automáticamente' })
+  const cancelar = page.getByRole('button', { name: 'Cancelar generación' })
+  await generar.click()
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 1, terminados: 0 })
+  await cancelar.click()
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 1, terminados: 1 })
+  await expect(generar).toBeEnabled()
+  await generar.click()
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 1 })
+  await responderWorker(page, 0)
+  await responderWorker(page, 1, 'otro-id')
+  await expect(cancelar).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  await responderWorker(page, 1, 'error')
+  await expect(page.getByRole('alert')).toContainText('Volvé a intentarlo')
+  await expect(generar).toBeEnabled()
+  expect(await historialGuardado(page)).toBe(0)
+  await generar.click()
+  await expect(page.getByRole('heading', { name: 'Horarios generados' })).toBeVisible()
+  expect(await historialGuardado(page)).toBe(1)
+  await responderWorker(page, 0)
+  expect(await historialGuardado(page)).toBe(1)
+})
+
+test('reiniciar y cambiar de pantalla terminan el trabajo activo sin guardar', async ({ page }) => {
+  await controlarWorker(page)
+  await preparar(page)
+  const generar = page.getByRole('button', { name: 'Generar horarios automáticamente' })
+  await generar.click()
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 1, terminados: 0 })
+  await page.getByRole('button', { name: '← Nueva semana' }).click()
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 1, terminados: 1 })
+  await responderWorker(page, 0)
+  await page.locator('input[type=file]').setInputFiles({ name: 'demanda-prueba.pdf', mimeType: 'application/pdf', buffer: pdfPom() })
+  await expect(generar).toBeEnabled()
+  await generar.click()
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 1 })
+  await page.getByRole('link', { name: 'Colaboradores' }).click()
+  await expect(page).toHaveURL(/\/colaboradores$/)
+  await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 2 })
+  await responderWorker(page, 1)
+  expect(await historialGuardado(page)).toBe(0)
+})
+
+test('un fallo al cargar el Worker usa el motor en modo compatible', async ({ page }) => {
+  await preparar(page)
+  await page.route('**/generacion.worker.ts*', route => route.abort())
+  await page.getByRole('button', { name: 'Generar horarios automáticamente' }).click()
+  await expect(page.getByRole('heading', { name: 'Horarios generados' })).toBeVisible()
+  await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
+  expect(await historialGuardado(page)).toBe(1)
+})
