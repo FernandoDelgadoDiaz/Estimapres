@@ -16,7 +16,6 @@ from typing import Any
 from ortools.sat.python import cp_model
 
 DAYS, SLOTS = 7, 30
-FULL_COUNTS = {"r9": 1, "r8": 2, "r5": 1, "c9": 2, "c8": 0}
 CORTADAS = (("c9", ((8, 10), (10, 8))), ("c8", ((8, 8),)))
 KNOWN_EXC = {"franco_dia", "no_antes_de", "no_despues_de", "siempre_cierre", "solo_matutino", "solo_nocturno"}
 
@@ -237,7 +236,9 @@ def solve(data: dict[str, Any], seconds: float = 60.0, seed: int = 20261114) -> 
             coverage = sum(x for p in persons for shift, x in choices[p["id"], d] if shift.covers(s))
             shortage = model.NewIntVar(0, demand[d][s], f"def_{d}_{s}")
             excess = model.NewIntVar(0, len(persons), f"exc_{d}_{s}")
-            model.Add(coverage + shortage - excess == demand[d][s])
+            # Igualdades exactas: no permitir faltante y sobrante simultáneos.
+            model.AddMaxEquality(shortage, [demand[d][s] - coverage, 0])
+            model.AddMaxEquality(excess, [coverage - demand[d][s], 0])
             missing.append(weights[s] * shortage)
             excesses.append(excess)
 
