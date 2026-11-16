@@ -74,4 +74,20 @@ describe('B1 · historial efectivo por fecha (AH2-031)', () => {
     const r = historialEfectivo({ sucursalId: S, desde: '2026-11-16', hasta: '2026-11-22', hoy: '2026-11-30', tramos: e2.tramos, versiones: [V1, V2, vh('V1', '2026-11-16', {}, 1)] })
     expect(r.ok ? null : r.errores[0].codigo).toBe('ID_DUPLICADO')
   })
+
+  it('rechaza dos tramos efectivos de la misma sucursal para un día consultado', () => {
+    const tramos = [...e1.tramos, ...e2.tramos.filter(t => t.versionId === 'V2')]
+    const consulta = { sucursalId: S, desde: '2026-11-16', hasta: '2026-11-22', hoy: '2026-11-30', tramos, versiones: [V1, V2] }
+    const r = historialEfectivo(consulta)
+    expect(r.ok ? null : r.errores[0].codigo).toBe('SOLAPAMIENTO_VIGENCIA')
+    expect(valor(historialEfectivo({ ...consulta, hasta: '2026-11-17' })).map(d => d.versionId)).toEqual(['V1', 'V1'])
+  })
+
+  it('rechaza un horario cuyo lunes no coincide con el de su versión', () => {
+    const r = historialEfectivo({
+      sucursalId: S, desde: '2026-11-16', hasta: '2026-11-16', hoy: '2026-11-30',
+      tramos: e2.tramos, versiones: [{ ...V1, semana: semana('2026-11-23') }, V2],
+    })
+    expect(r.ok ? null : r.errores[0].codigo).toBe('SEMANA_VERSION_INCONSISTENTE')
+  })
 })

@@ -1,6 +1,70 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — tramo B1: núcleo de planificación por ciclos y estados · 2026-11-15
+## PUNTO ÚNICO DE RETOMA — integración de #46 y #47 · 2026-11-16
+
+Leer el [MASTER](ALIADA_HORARIOS_MASTER.md), en especial §6.1 y §9. El [diseño B v3.1](AH2_TRAMO_B_DISENO.md) se incorpora con #46. Los PR registran sus SHA vigentes y la evidencia de Actions asociada a cada uno.
+
+| PR y rama | SHA al iniciar la auditoría | Alcance de la preparación |
+|---|---|---|
+| [#46](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/46), `claude/aliada-horarios-continuidad-7suuva` | `c58784189ca4c1f147c01d3212a9a1cd8da94473` | Diseño, MASTER, relevo y propuesta P2. |
+| [#47](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/47), `feat/ah2-b1-planificacion` | `eb06151b7d175e7c9852d2700397e4880cc7ef2f` | B1 puro. `historial.ts` rechaza vigencias ambiguas e inconsistencias entre el lunes del horario y el de su versión. `errores.ts` tipa la inconsistencia. Dos regresiones en `__tests__/historial.test.ts`. |
+
+### Evidencia de preparación
+
+- **Base:** `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea` integra #45 y tiene el mismo árbol que `21695d9e6a1ccd4e1a5d166fdb70a6972ed4ca6b`. [CI del push a main](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/43653262961) exitoso.
+- **Integración:** el conflicto original en `docs/CURRENT_WORK.md` se resuelve con el mismo contenido en ambas ramas. La propuesta P2 también es común y deja de requerir un enlace cruzado a un archivo ausente. Conservar los registros históricos de abajo y las discusiones originales de los PR.
+- **Pruebas locales:** TypeScript y build correctos en ambos candidatos. Vitest 366 aprobadas y 3 omitidas en #46, 438 aprobadas y 3 omitidas en #47. Benchmark AH2-020 de 200 escenarios sobre #47 y `main`: 0 diferencias funcionales excluyendo tiempos, cobertura media 98,7563 % y 0 violaciones. La suite Playwright del workflow y los checks de cada SHA se registran en los PR.
+- **Producción al inicio de la revisión:** Netlify devolvió `ready` y `context: production` para [Aliada](https://app.netlify.com/projects/al-iada/deploys/6af8ee2dae9d7a3ca54d5aef) y [Prestify](https://app.netlify.com/projects/prestify/deploys/6af8ee2d15984dc64ecb3e7d), ambos sobre ese `main`. Los previews de #46 y #47 son automáticos. Aliada y Prestify comparten repositorio, configuración de build y directorio de funciones. Aislar Prestify sigue siendo parte de P0/D13. El rollback #42 queda disponible según su alcance histórico.
+- **P2:** la Function verifica el JWT y vuelve a validar. La ejecución SQL se reserva a una credencial de servidor y la transacción comprueba permisos, versión, huellas y revisión. La vía SQL en esquema no expuesto es la preferida. P0 debe comprobar la conectividad y el aislamiento. O1 queda condicionado a P1, P2 y las autorizaciones de §15 del diseño.
+- **Alcance ejecutado:** revisión y preparación de #46/#47. Las diferencias de código se limitan a `src/planificacion/`, que la app actual no importa. No hubo merge, deploy de producción, migración ni escritura operativa en Supabase.
+
+### Próximo paso
+
+1. Una vez autorizado, integrar #46. Verificar de nuevo el SHA base y el diff de #47 contra el nuevo `main`; esperar los checks válidos para esa base antes de integrar #47. Coordinar cualquier automatismo de Netlify antes de autorizar cambios en `main`.
+2. W1 es el siguiente PR aislado, sujeto a autorización separada. La [propuesta existente](proposals/AH2-020_WEB_WORKER_GENERACION.md) y la auditoría de integración en #47 detallan la equivalencia y la cancelación. W2 conserva su propia autorización (D12).
+3. B2–B4, U1–U3, P0–P5, O1, C1, C2, D1 y S1 requieren autorización propia. Las decisiones de activación y publicación se consultan en MASTER y en §15 del diseño.
+
+## Registro histórico — diseño B del 15/11/2026 (#46)
+
+> Estado archivado antes de la preparación conjunta. El punto de retoma vigente está arriba.
+
+> Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§4.1, §6.1 y §9, en especial AH2-023…AH2-034). Después `docs/AH2_TRAMO_B_DISENO.md` (v3), esta sección y el PR #46.
+
+- **Responsable:** Claude (Claude Code), 2026-11-15.
+- **Última instrucción del propietario:** «REVISIÓN FINAL DEL DISEÑO B» (15/11/2026).
+  - **Aprueba la dirección general** de la arquitectura.
+  - **No autoriza** implementación (B1 incluida), merge, deploy, migraciones, escrituras operativas ni cambios en Prestify.
+  - Pidió 8 correcciones obligatorias, que están incorporadas en la v3.
+- **Rama:** `claude/aliada-horarios-continuidad-7suuva`, creada desde `main@905cb75`. **PR documental:** [#46](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/46), en borrador. El SHA exacto figura en el PR.
+- **Alcance:** solo `docs/`. Los commits llevan `[skip netlify]`.
+
+#### Estado real verificado (15/11/2026, sin cambios desde la v2)
+- **`origin/main`:** `905cb75`. Es el merge del PR #45 (contrato PART y «B conjunta»). CI `#39`: `success`.
+- **Netlify, sitio `al-iada`:** deploy de producción `6af8ee2d` (`commit_ref 905cb75`, `ready`, 14/11/2026 23:27 UTC). El bundle público contiene `ah2-v2.1-multiarranque-2026-11-14`.
+- **PR abiertos:** #46 (este) y los borradores históricos #42 (rollback, intacto), #34, #24, #21 y #20.
+- **Semana 47 real** (agregada, informada por el propietario): 406 horas-caja; cobertura 99,14 %; faltantes 3,5; sobrantes 0,5; horas suplementarias PART 0. Coherencia sin certificar optimalidad ni cumplimiento jurídico.
+
+#### Correcciones incorporadas en la v3
+1. **Prueba local frente a oficial** (AH2-029, §5.1).
+   - El ámbito `prueba-local` nunca llega a PUBLICADO y su PDF dice «PRUEBA LOCAL — NO OFICIAL».
+   - Lo oficial pasa solo por la Function `publicar` (JWT y revalidación) y la RPC transaccional (I0).
+2. **Vigencia parcial** (AH2-030, §5.4).
+   - Tramos de días con recorte (nunca reescritura); reemplazo desde mañana como mínimo.
+   - Restricción de exclusión `btree_gist`, bloqueo consultivo y control optimista; prueba de concurrencia.
+3. **Historial efectivo por fecha** (AH2-031, §6.4): la versión vigente en cada día, incluidas las reemplazadas después. Nunca borradores, prueba local, descartadas ni fechas futuras. «Planificado vigente» no es asistencia.
+4. **Continuidad sin sacrificar cobertura** (AH2-032, §6.2).
+   - Objetivo mínimo de 95 % en la 091 y franjas pico protegidas.
+   - **Tolerancia 0 hasta aprobar un valor con benchmark** (D9).
+5. **Validación técnica frente a jurídica** (AH2-033, §5.6): `PerfilNormativo.estadoJuridico` con fuentes; nunca «legal» sin validación (I13).
+6. **D1–D14:** criterio recomendado separado de la autorización expresa; todas las autorizaciones pendientes (§15). Se agrega D14: replanificación del día en curso.
+7. **Orden de los PR** (§13): la **publicación oficial O1** depende de P1 (membresías y políticas de acceso) y P2 (RPC, exclusión y Function). U1 queda como **prueba local**.
+8. **Corte por trabajo** (AH2-034, §10.5): unidades deterministas e interrupción registrada (`busqueda.completa = false`) y advertida. Hallazgo: hoy la pasada 1 corta a los 6 s **sin registrarlo** (`pasada1-fullpart.ts:152`).
+
+Se mantienen los 10 entregables y las decisiones aprobadas anteriores (AH2-024…AH2-027).
+
+## Registro histórico — B1 del 15/11/2026 (#47)
+
+> Estado archivado antes de la preparación conjunta. El punto de retoma vigente está arriba.
 
 > **Contexto documental:** el diseño v3 y las decisiones AH2-023…AH2-034 están en el PR #46 (`claude/aliada-horarios-continuidad-7suuva`), **todavía no integrado**. B1 lo toma como referencia sin fusionarlo. Las secciones siguientes de este archivo en `main` son anteriores al merge del PR #45 y se actualizan en el PR #46.
 
@@ -18,7 +82,7 @@
 - **Rama:** `feat/ah2-b1-planificacion`, creada desde `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. PR en borrador; el SHA exacto figura en el PR.
 - **Estado real:** `main` = `905cb75` (PR #45 integrado y publicado; deploy Netlify `6af8ee2d`). El PR #46 está abierto, en borrador y sin fusionar.
 
-### Qué se implementó (solo `src/planificacion/`, funciones puras)
+#### Qué se implementó (solo `src/planificacion/`, funciones puras)
 | Archivo | Contenido |
 |---|---|
 | `errores.ts` | `Resultado<T>` y `ErrorPlanificacion` con 32 códigos tipados. Nada lanza excepciones por reglas de negocio. |
@@ -43,7 +107,7 @@ Detalle de lo que garantiza `estados.ts`:
 
 **Además:** `docs/proposals/AH2_P2_RPC_PUBLICACION_SEGURA.md` documenta el riesgo de que la RPC de publicación se invoque desde el navegador y la solución recomendada para P2: esquema no expuesto, ejecución solo desde la Function, verificación del actor en la RPC y pruebas. **No se implementa en B1.**
 
-### Pruebas (sobre el HEAD de B1)
+#### Pruebas (sobre el HEAD de B1)
 - **`src/planificacion/__tests__`:** 42 casos.
   - Ciclos de 1, 4 y 5 semanas, superposiciones, huecos y cambio de mes con y sin ciclo nuevo (#44 (b) y (e)).
   - Flujo de estados completo; prueba local nunca publicada; caducidad por huella; agentes y roles; legado.
@@ -63,7 +127,7 @@ Detalle de lo que garantiza `estados.ts`:
   - **Benchmark de 200 escenarios: 0 diferencias** frente a `21695d9`, idéntico al árbol de `main` (cobertura media 98,756 %, 0 regresiones, 0 violaciones).
 - **Compatibilidad:** ningún archivo existente de `src/` cambió. Nada de la app importa `src/planificacion/`, así que el bundle de producción no lo incluye (verificado en `dist/`). Motor, UI, Supabase, Prestify y datos operativos sin cambios.
 
-### Corrección de calidad del PR #47 (pedido del propietario, 15/11/2026; HEAD revisado `c282b36`)
+#### Corrección de calidad del PR #47 (pedido del propietario, 15/11/2026; HEAD revisado `c282b36`)
 1. **CI `test-build` en FAILURE** (GitHub Actions, job `132943397824`).
    - La prueba de propiedad (`vigencia.test.ts:84`) superó el timeout de 5 000 ms: 407 aprobadas, 1 fallida y 3 omitidas. El build no llegó a correr.
    - **Causa medida:**
@@ -93,19 +157,9 @@ Detalle de lo que garantiza `estados.ts`:
    - En `historialEfectivo`, versiones con id repetido → `ID_DUPLICADO` (antes el `Map` se quedaba con la última).
 5. **Verificación:** ver la evidencia en el PR #47 (suite completa, TypeScript, build, Playwright, benchmark de 200 escenarios y checks `test-build` y `browser` en GitHub).
 
-### Pendiente (no autorizado)
-- B2 (ausencias), B3 (memoria), B4 (fuente de demanda), W1/W2, U1–U3, P0–P5, O1, C1, C2, D1 y S1.
-- Merge del PR #46 y de este PR.
-- Incorporar al diseño la corrección de §10.4 (RPC privada y Function con rol de servicio) cuando se integre el PR #46 o en P2.
-- **Conflicto previsible:** este archivo también cambia en el PR #46. Al integrar ambos, conservar las dos secciones de retoma.
+## Registro histórico — tramo A: contrato de horas PART (PR #45, integrado el 14/11/2026 en `905cb75`)
 
-### Próximo paso recomendado
-1. El propietario revisa este PR de B1.
-2. Con autorización, el siguiente candidato es **W1** (Web Worker, no cambia el cálculo) o **P0** (inventario en solo lectura). Los dos son independientes de B1.
-
-## Registro histórico — tramo A (PR #45; integrado en `905cb75` el 14/11/2026)
-
-### (sección original) PUNTO ÚNICO DE RETOMA — tramo A: contrato de horas PART · 2026-11-14
+> **Histórico.** Lo que sigue describe el estado previo al merge. La situación actual está en el «PUNTO ÚNICO DE RETOMA» de arriba.
 
 > Leer primero `docs/ALIADA_HORARIOS_MASTER.md` (§6.1 y §9 AH2-014…AH2-022, en especial AH2-020 APROBADO), después esta sección y el PR de la rama activa.
 

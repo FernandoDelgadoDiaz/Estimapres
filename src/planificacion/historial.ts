@@ -13,7 +13,7 @@ import { type ErrorPlanificacion, type Resultado, falla, fallas, ok } from './er
 import { type Fecha, esFechaValida, fechasEntre, lunesDe, minFecha, sumarDias } from './fechas'
 import type { VersionPlan } from './estados'
 import { type SemanaPlan, jornadasPorFecha } from './semana'
-import { type TramoVigencia, tramoEfectivoEn } from './vigencia'
+import { type TramoVigencia, tramoActivo, tramoEfectivoEn, verificarSinSolapamientos } from './vigencia'
 
 export interface VersionConHorario { version: VersionPlan; semana: SemanaPlan }
 
@@ -48,6 +48,11 @@ const ESTADOS_OFICIALES = new Set(['PUBLICADO', 'REEMPLAZADO_TOTAL'])
 export function historialEfectivo(q: ConsultaHistorial): Resultado<DiaEfectivo[]> {
   if (!esFechaValida(q.desde) || !esFechaValida(q.hasta) || !esFechaValida(q.hoy)) return falla('FECHA_INVALIDA', 'Rango o fecha de hoy inválidos.')
   const ultimo = minFecha(q.hasta, sumarDias(q.hoy, -1))
+  const tramos = q.tramos.filter(t => t.sucursalId === q.sucursalId && tramoActivo(t) && t.desde <= ultimo && t.hastaEfectivo! >= q.desde)
+  if (q.desde <= ultimo) {
+    const vigencia = verificarSinSolapamientos(tramos)
+    if (!vigencia.ok) return vigencia
+  }
   const porId = new Map<string, VersionConHorario>()
   for (const v of [...q.versiones, ...(q.legadoPresunto ?? [])]) {
     if (porId.has(v.version.id)) return falla('ID_DUPLICADO', `La versión «${v.version.id}» aparece repetida en la consulta del historial.`, { versionId: v.version.id })
@@ -64,7 +69,7 @@ export function historialEfectivo(q: ConsultaHistorial): Resultado<DiaEfectivo[]
   const errores: ErrorPlanificacion[] = []
   const dias: DiaEfectivo[] = []
   for (const fecha of fechasEntre(q.desde, ultimo)) {
-    const tramo = tramoEfectivoEn(q.tramos, q.sucursalId, fecha)
+    const tramo = tramoEfectivoEn(tramos, q.sucursalId, fecha)
     let fuente: DiaEfectivo['fuente'] = 'oficial'
     let vh: VersionConHorario | undefined
     if (tramo) {
@@ -84,6 +89,14 @@ export function historialEfectivo(q: ConsultaHistorial): Resultado<DiaEfectivo[]
       fuente = 'legado-presunto'
     }
     if (!vh) continue
+    if (vh.semana.fechaLunes !== vh.version.fechaLunes) {
+      errores.push({
+        codigo: 'SEMANA_VERSION_INCONSISTENTE',
+        mensaje: `El horario de la versión ${vh.version.id} corresponde a otra semana.`,
+        detalle: { versionId: vh.version.id, lunesVersion: vh.version.fechaLunes, lunesHorario: vh.semana.fechaLunes },
+      })
+      continue
+    }
     let idx = indices.get(vh.version.id)
     if (!idx) { idx = jornadasPorFecha(vh.semana); indices.set(vh.version.id, idx) }
     const jornadas: DiaEfectivo['jornadas'] = []
