@@ -5,7 +5,7 @@
 **Estado:**
 - **Dirección general APROBADA** por el propietario (15/11/2026).
 - **Detalle técnico PROPUESTO.**
-- **Implementación, merge, migraciones y publicación NO AUTORIZADOS.** Aprobar la dirección no autoriza ningún PR de código, migración ni publicación: cada uno requiere una autorización expresa (§15).
+- **Ejecución autorizada:** B1 y la preparación de integración de #46 y #47. Las demás implementaciones, los merges, las migraciones y la publicación requieren autorización expresa (§15).
 
 **Base:** `main@905cb7546ab65b0cc7e9d40f808d0c6fb4a8e6ea`. En producción: deploy Netlify `6af8ee2d`, PR #45 integrado (contrato PART y motor «B conjunta»).
 
@@ -283,7 +283,7 @@ generar/editar/replanificar
 |---|---|---|
 | → BORRADOR | supervisor | Ninguna (AH2-008). |
 | BORRADOR → VALIDADO | sistema (validador) | 0 violaciones y sin limitaciones de datos. **Es validez técnica, no jurídica** (§5.6). |
-| VALIDADO → APROBADO | aprobador; el supervisor solo si `aprobacionPropiaPermitida` (D3) | Huella vigente. Ciclo válido. |
+| VALIDADO → APROBADO | aprobador, director regional o admin de empresa. El supervisor solo aprueba su propia versión si `aprobacionPropiaPermitida` (D3). | Huella vigente. Ciclo válido. La aprobación propia de cualquier rol exige que la sucursal la habilite. |
 | APROBADO → PUBLICADO | aprobador, director regional o admin de empresa, **solo por el servidor** | Function `publicar`:<br>1. verifica el JWT y la membresía;<br>2. **revalida** con el mismo validador versionado;<br>3. comprueba que las huellas coincidan;<br>4. llama mediante credenciales exclusivas del servidor a la operación SQL privada/restringida `publicar_version` (según la vía elegida en §10.4); esa operación comprueba de nuevo actor humano y membresía/rol, bloquea la sucursal, verifica estado, huellas y numeración esperada (control optimista), crea `Publicacion` y `TramoVigencia`, recorta los tramos anteriores (§5.4) y registra los eventos;<br>5. la restricción de exclusión garantiza que no haya solapamientos (I1). |
 | Editar un PUBLICADO | — | Prohibido. Se crea una versión nueva (`basadaEn`, `replanificaDesde`). |
 | Agente o proceso automático | — | Prohibido (I8). |
@@ -526,7 +526,7 @@ Un usuario puede tener varias membresías y una sucursal puede tener varios supe
 ### 10.2 Aislamiento verificable
 
 - **Función** `aliada.tiene_acceso(p_sucursal uuid, p_roles text[])`: `security definer` con `search_path` fijo; resuelve la membresía directa, por región o por empresa.
-- **Políticas por tabla.** `eventos_auditoria` no admite UPDATE ni DELETE. `tramos_vigencia` y el estado `PUBLICADO` **no se escriben directamente**: solo mediante la RPC (`revoke` sobre insert y update para los roles del cliente).
+- **Políticas por tabla.** Las publicaciones, los tramos y los eventos se escriben por las operaciones autorizadas de servidor. El cliente no puede modificar versiones publicadas ni escribir directamente estados privilegiados, aprobadores o evidencias de validación. Los permisos para guardar borradores se limitan a datos editables y a la sucursal autorizada.
 - **Pruebas automatizadas de las políticas:**
   - sobre Supabase local (CLI gratuita) en CI;
   - escenario de 2 empresas, 2 regiones, 4 sucursales y todos los roles;
@@ -545,17 +545,17 @@ Un usuario puede tener varias membresías y una sucursal puede tener varios supe
 
 ### 10.4 Publicación oficial en el servidor (corrección 1; revisión de seguridad P2)
 
-Ver §5.2 y §5.4 y `docs/proposals/AH2_P2_RPC_PUBLICACION_SEGURA.md` (PR #47). **Corrección de la v3:** verificar el JWT del usuario **no implica** invocar `publicar_version` con ese mismo JWT. Si `authenticated` puede ejecutar la RPC por PostgREST, un cliente puede llamarla directamente y eludir la revalidación de la Function.
+Ver §5.2, §5.4 y la [propuesta de seguridad P2](proposals/AH2_P2_RPC_PUBLICACION_SEGURA.md). La Function usa el JWT para autenticar al actor. La ejecución de `publicar_version` queda reservada a una credencial de servidor.
 
 **Flujo obligatorio:**
 1. La Netlify Function `publicar` verifica el JWT con Supabase Auth, obtiene la identidad real y verifica la membresía y el rol de la sucursal.
 2. Lee los datos persistidos con autorización verificada, vuelve a ejecutar el validador TypeScript versionado y **recalcula** la huella; no confía en una huella enviada por el navegador.
 3. Solo después llama a una operación transaccional de base mediante credenciales **exclusivas del servidor**, nunca presentes en el bundle ni expuestas al cliente.
-4. La operación SQL revalida en la misma transacción el actor humano recibido, su membresía/rol, estado APROBADO, huellas, revisión optimista, fecha mínima de reemplazo y días congelados; toma el bloqueo por sucursal, recorta/inserta los tramos y registra eventos. La restricción de exclusión impide solapamientos aun bajo concurrencia.
+4. Con el bloqueo por sucursal, la operación SQL verifica en la misma transacción el actor humano recibido, su membresía/rol, estado APROBADO, fecha mínima de reemplazo y días congelados. Contrasta las huellas y revisiones de las entradas persistidas con las que leyó y revalidó la Function. Si cambiaron entradas o vigencias, rechaza sin escribir. Después recorta/inserta y audita. La restricción de exclusión impide solapamientos aun bajo concurrencia.
 
 **Dos rutas técnicas válidas para P2 (no implementar aquí):**
-- **RPC en esquema privado no expuesto por PostgREST:** la Function debe usar **conexión SQL directa** y segura (pooler/cliente PostgreSQL del lado servidor) para ejecutarla. Una llamada `supabase.rpc(...)` a través de PostgREST **no puede** alcanzar una función de un esquema no expuesto.
-- **RPC accesible mediante PostgREST, pero no ejecutable por clientes:** ubicar la RPC en un esquema expuesto y aplicar `REVOKE EXECUTE FROM PUBLIC, anon, authenticated`; conceder ejecución solo a un rol de servicio usado por la Function. La ruta HTTP puede existir, pero cualquier JWT ordinario, incluso de un aprobador, debe recibir rechazo. La RPC comprueba nuevamente el actor humano y permisos, porque un rol de servicio puede omitir RLS.
+- **Vía preferida, esquema privado sin exposición a la Data API:** la Function usa PostgreSQL con conexión segura (directa o pooler) y un rol dedicado con `USAGE` y `EXECUTE` acotados. `supabase.rpc(...)` requiere un esquema expuesto.
+- **Alternativa sujeta a evaluación en P0:** operación accesible vía Data API y ejecutable solo con rol exclusivo de servidor. Revocar ejecución a `PUBLIC`, `anon` y `authenticated` y verificar permisos efectivos. Cualquier JWT ordinario, incluso de un aprobador, debe recibir rechazo. Si se evalúa `service_role`, considerar su capacidad de omitir RLS en un proyecto compartido y verificar identidad y alcance explícitamente.
 
 La elección entre ambas requiere verificar permisos y conexiones en P0 y probar el diseño en Supabase local antes de P2. En ambos casos: `SECURITY DEFINER` con `search_path` restringido cuando corresponda, mínimos privilegios, secretos solo en variables de servidor sin prefijo `VITE_`, y pruebas negativas de llamada directa, membresía y concurrencia. No afirmar que el uso de una clave de servicio conserva automáticamente RLS: la autorización debe verificarse explícitamente en la Function y en SQL.
 
@@ -794,7 +794,7 @@ La experiencia en la 091 antes de eso se limita a **prueba local** (U1).
 
 ## 15. Decisiones: criterio recomendado frente a autorización expresa (corrección 6)
 
-**Aprobar la dirección general (15/11/2026) no autoriza** implementación, migraciones, publicación oficial ni merge. Cada fila separa el **criterio de diseño recomendado** (sugerencia técnica) de la **autorización expresa del propietario**, que hoy está **pendiente en todas**.
+**Alcance de la autorización de B1 (15/11/2026):** el núcleo puro puede usar ciclos explícitos de lunes a domingo, estados ligados a huellas, pruebas locales separadas, legados sin publicación retroactiva y vigencia parcial desde el día siguiente. La tabla conserva las decisiones para activación operativa y publicación oficial.
 
 | ID | Tema | Criterio de diseño recomendado | Autorización expresa del propietario | Estado |
 |---|---|---|---|---|
@@ -813,8 +813,8 @@ La experiencia en la 091 antes de eso se limita a **prueba local** (U1).
 | D13 | Aislamiento respecto de Prestify | Separar proyecto, esquema y sitio antes de comercializar; P0 primero | Decisión y autorización (afecta a otro producto) | **Pendiente** |
 | D14 | Replanificación del día en curso | No en la primera versión: `F` ≥ mañana | Aprobar o pedir alternativa | **Pendiente** |
 
-**Autorizaciones de ejecución, todas pendientes:**
-- cada PR de código (B1…S1);
+**Autorizaciones de ejecución pendientes:**
+- cada PR de código posterior a B1 (incluido W1);
 - cada migración (P1–P5, S1);
 - la habilitación de la publicación oficial por sucursal (O1 y despliegues siguientes);
 - el merge de este PR documental.
