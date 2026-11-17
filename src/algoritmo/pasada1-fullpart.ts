@@ -141,6 +141,8 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   for (const colab of orden) {
     const semilla = input.semillas?.[colab.id];
     if (!semilla) continue;
+    const minimoLunes = input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0;
+    if (semilla.some(j => j.dia === 0 && j.bloques.length > 0 && j.bloques[0].slot_inicio < minimoLunes)) continue;
     aplicarSemana(semilla, cobertura, francos_full, francos_part, colab.rol === "FULL");
     semanas.set(colab.id, semilla);
   }
