@@ -21,7 +21,7 @@ const horario = (fila: string[], ausente: string) => fila.flatMap((v, s) => {
   return [`${hora(s)}-${hora(fin)}`]
 }).join('|')
 
-type InputSerie = InputAlgoritmo & { semana: string; colaboradores: (InputAlgoritmo['colaboradores'][number] & { horasSemanales?: number })[] }
+type InputSerie = Omit<InputAlgoritmo, 'colaboradores'> & { semana: string; colaboradores: (InputAlgoritmo['colaboradores'][number] & { horasSemanales?: number })[] }
 type Caso = {
   escenario: string
   input: InputSerie
