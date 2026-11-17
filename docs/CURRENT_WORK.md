@@ -1,6 +1,16 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — domingo programado y modo prueba (PR #53) · 2026-11-17
+## PUNTO ÚNICO DE RETOMA — continuidad y rotación offline · 2026-11-17
+
+- Rama `feat/ah2-ciclos-stability` desde el candidato integrado del PR #54 (`a88a6f3d88ef628e6d630438ef273f5e1d23d862`). Sin cambios a #52, #53, #54, main o producción.
+- `generarConCiclo` usa calendario explícito B1 y `historialEfectivo` oficial por fecha (#44, AH2-015, AH2-016, AH2-031). Explora una alternativa que prefiere conservar clase/franco durante el ciclo o evitar repetir clases al abrir otro. Mide medias horas cambiadas, clases, francos y exposiciones de fin de semana. Conteos sobre planificación efectiva, no sobre asistencia comprobada.
+- Respaldo del multi-arranque intacto. La alternativa exige validador independiente, mismas horas individuales, exceso no mayor y déficit no mayor por franja (AH2-020/AH2-032). Es una búsqueda heurística, sin certificación de máximo global. Sin calendario/historial efectivo no hay comparación temporal. Sin conexión a UI ni persistencia productiva.
+- Reproducir con `AH2_CICLOS_ORIGEN=/ruta/series200 AH2_CICLOS_DESTINO=/tmp/serie-regenerada npm test -- src/algoritmo/__tests__/benchmark/ciclos.export.test.ts`. El ZIP histórico contiene la entrada sintética; el exportador regenera las 200 referencias y aplica el descanso del domingo correcto. El perfil PART de 36 h es experimental y no modifica la política de 091. Por diseño, cien casos cruzan ciclo declarado y cien quedan dentro del mismo ciclo.
+- Corrida regenerada: 200 escenarios y dos cohortes de 100. A eligió la alternativa en 46 intraciclo (46 redujeron medias horas cambiadas) y 28 al cambiar de ciclo (27 redujeron el puntaje de repetición). Mediana total de A: 308 ms en Node. La evaluación independiente común de A y B está en el [PR #1 del optimizador](https://github.com/FernandoDelgadoDiaz/aliada-optimizer/pull/1).
+- Cadena sintética de cuatro semanas con dos ciclos declarados y aumento de POM de tarde/cierre el 23/11. Reproducir con `AH2_CICLOS_CADENA=/tmp/cadena` además de `AH2_CICLOS_ORIGEN`. Las dos vías reciben el mismo historial encadenado generado por A. No equivale a una comparación de dos trayectorias independientes.
+- El protocolo experimental y la evidencia comparativa de CP-SAT se registran en la rama de trabajo de `FernandoDelgadoDiaz/aliada-optimizer`. Próximo paso: evaluar secuencias encadenadas de varios ciclos con historial oficial e incorporar la política al flujo de planificación cuando esté habilitado.
+
+## Registro anterior — domingo programado y modo prueba (PR #53) · 2026-11-17
 
 - Base `a7006e48476226976d8b698881ac5274eb568a7d`. Auditoría de CI 66: las cinco fallas de navegador esperaban historial automático o VALIDADO sin antecedente. Se conservaron los recorridos con confirmación explícita donde corresponde y se añadió cobertura del caso sin antecedente.
 - Las salidas programadas se confirman en pantalla por cajero, o mediante JSON con sucursal, fecha e IDs completos. Nunca se toma la última versión del historial automáticamente. El motor y la verificación independiente comparten los límites.
