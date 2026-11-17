@@ -61,7 +61,7 @@ async function preparar(page: Page, auxiliarInvalido = false, extra: { auxiliare
 }
 
 async function confirmarDomingo(page: Page, guardar = false) {
-  for (const c of CAJEROS_DE_PRUEBA) {
+  for (const c of CAJEROS_DE_PRUEBA.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')) {
     await page.getByLabel(`Última salida de ${c.nombre}`, { exact: true }).selectOption('18:00')
   }
   await page.getByRole('button', { name: 'Confirmar salidas programadas' }).click()
@@ -220,7 +220,7 @@ test('la edición nominal interpreta intervalos y actualiza horas antes de guard
   await page.getByRole('button', { name: /^Guardar (?:cambio|de todos modos)$/ }).click()
   await expect(celda).toContainText('08:00 - 13:00')
   await expect(celda).toContainText('17:00 - 22:00')
-  await expect(page.getByTestId('estado-validacion')).not.toContainText('Estado: VALIDADO')
+  await expect(page.getByTestId('estado-validacion')).toContainText(/BORRADOR|SIN VERIFICAR/)
   expect(await historialGuardado(page)).toBe(0)
   expect(await page.evaluate(() => localStorage.getItem('aliada_correcciones_manuales::900'))).toBeNull()
   if (process.env.AH2_CAPTURAS) await page.screenshot({ path: process.env.AH2_CAPTURAS + '/edicion-horario.png' })
