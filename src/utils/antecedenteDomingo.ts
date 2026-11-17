@@ -8,6 +8,7 @@ import type { Colaborador } from '../types'
 export interface AntecedenteDomingo {
   lunes: string
   domingo: string
+  sucursal: string
   finPorId: Record<string, string | null>
 }
 
@@ -22,11 +23,12 @@ export function domingoAnteriorISO(lunes: string): string {
 }
 
 export function leerAntecedenteDomingo(
-  archivo: unknown, lunes: string, cajeros: Colaborador[],
+  archivo: unknown, lunes: string, cajeros: Colaborador[], sucursal: string,
 ): AntecedenteDomingo {
   const domingo = domingoAnteriorISO(lunes)
   if (!archivo || typeof archivo !== 'object' || Array.isArray(archivo)) throw new Error('Archivo JSON inválido.')
   const obj = archivo as Record<string, unknown>
+  if (obj.sucursal !== sucursal) throw new Error('El antecedente pertenece a otra sucursal o no indica su sucursal.')
   if (obj.lunes !== lunes || obj.domingo !== domingo) {
     throw new Error(`El antecedente debe indicar domingo ${domingo} y lunes ${lunes}.`)
   }
@@ -52,7 +54,7 @@ export function leerAntecedenteDomingo(
     }
     finPorId[c.id] = fin
   }
-  return { lunes, domingo, finPorId }
+  return { lunes, domingo, sucursal, finPorId }
 }
 
 /** Primera entrada admisible el lunes en slots desde las 08:00. */

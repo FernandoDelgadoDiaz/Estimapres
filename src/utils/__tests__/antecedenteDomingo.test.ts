@@ -15,13 +15,14 @@ const cajeros: Colaborador[] = [
 describe('Antecedente del domingo planificado, separado de simulaciones', () => {
   it('valida fecha, identidad y completitud FULL/PART sin incluir apoyo', () => {
     expect(domingoAnteriorISO('2026-11-23')).toBe('2026-11-22')
-    const original = { lunes: '2026-11-23', domingo: '2026-11-22', finPorId: { 'full-a': '22:00', 'part-b': null } }
-    const a = leerAntecedenteDomingo(original, '2026-11-23', cajeros)
+    const original = { sucursal: '900', lunes: '2026-11-23', domingo: '2026-11-22', finPorId: { 'full-a': '22:00', 'part-b': null } }
+    const a = leerAntecedenteDomingo(original, '2026-11-23', cajeros, '900')
+    expect(() => leerAntecedenteDomingo(original, '2026-11-23', cajeros, '901')).toThrow(/sucursal/)
     expect(a.finPorId).toEqual({ 'full-a': '22:00', 'part-b': null })
-    expect(() => leerAntecedenteDomingo({ ...original, domingo: '2026-11-15' }, '2026-11-23', cajeros)).toThrow()
-    expect(() => leerAntecedenteDomingo({ ...original, finPorId: { 'full-a': '22:00' } }, '2026-11-23', cajeros)).toThrow()
-    expect(() => leerAntecedenteDomingo({ ...original, finPorId: { ...original.finPorId, 'aux-x': '22:00' } }, '2026-11-23', cajeros)).toThrow()
-    expect(() => leerAntecedenteDomingo({ ...original, finPorId: { 'full-a': '22:15', 'part-b': null } }, '2026-11-23', cajeros)).toThrow()
+    expect(() => leerAntecedenteDomingo({ ...original, domingo: '2026-11-15' }, '2026-11-23', cajeros, '900')).toThrow()
+    expect(() => leerAntecedenteDomingo({ ...original, finPorId: { 'full-a': '22:00' } }, '2026-11-23', cajeros, '900')).toThrow()
+    expect(() => leerAntecedenteDomingo({ ...original, finPorId: { ...original.finPorId, 'aux-x': '22:00' } }, '2026-11-23', cajeros, '900')).toThrow()
+    expect(() => leerAntecedenteDomingo({ ...original, finPorId: { 'full-a': '22:15', 'part-b': null } }, '2026-11-23', cajeros, '900')).toThrow()
   })
 
   it('calcula el inicio mínimo del lunes sin extender la jornada', () => {

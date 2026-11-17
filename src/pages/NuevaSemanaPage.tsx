@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
@@ -75,9 +75,10 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const [lunesSemana, setLunesSemana] = useState('')
   const [origenSemana, setOrigenSemana] = useState<'pdf' | 'manual'>('manual')
   const [avisoSemana, setAvisoSemana] = useState<string | null>(null)
-  const [antecedenteDomingo, setAntecedenteDomingo] = useState<AntecedenteDomingo | null>(null)
+  const [domingoCargado, setAntecedenteDomingo] = useState<AntecedenteDomingo | null>(null)
   const [errorAntecedente, setErrorAntecedente] = useState<string | null>(null)
-  const [historialConfirmado, setHistorialConfirmado] = useState(false)
+  const revisionImportacion = useRef(0)
+  const [salidasDomingo, setSalidasDomingo] = useState<Record<string, string>>({})
   const [modoPrueba, setModoPrueba] = useState(true)
   const [avisosPOM, setAvisosPOM] = useState<string[]>([])
   // PUB-01 (#12): contexto con el que se generó la semana, para validarla (y revalidarla tras ediciones).
@@ -94,7 +95,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     setOrigenSemana(origen)
     setAntecedenteDomingo(null)
     setErrorAntecedente(null)
-    setHistorialConfirmado(false)
+    revisionImportacion.current++
+    setSalidasDomingo({})
     const f = new Date(lunes + 'T12:00:00')
     setSemanaDesc(`Semana ${format(f, 'w', { locale: es })} - ${format(f, 'MMMM yyyy', { locale: es })}`)
   }
@@ -182,20 +184,21 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     [colaboradoresActivos, auxiliaresActivos, eventualesActivos]
   )
 
-  // Preferencias blandas: rotación (historial) + aprendizaje (correcciones)
-  const sesgosBlandos = useMemo(
-    () => combinarSesgos(
-      calcularSesgoRotacion(historial),
-      calcularSesgoAprendizaje(derivarAprendizajes(correcciones))
-    ),
-    [historial, correcciones]
-  )
-  // Cuando existe un domingo operativo separado, las versiones anteriores de prueba
-  // no deben contaminar la rotación o los criterios de cobertura de esta generación.
-  const sesgosGeneracion = useMemo(
-    () => antecedenteDomingo ? combinarSesgos(calcularSesgoRotacion([]), calcularSesgoAprendizaje(derivarAprendizajes([]))) : sesgosBlandos,
-    [antecedenteDomingo, sesgosBlandos]
-  )
+  const sucursal = getSucursalActual()
+  const cajerosDomingo = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
+  const antecedenteDomingo = domingoCargado?.lunes === lunesSemana && domingoCargado.sucursal === sucursal &&
+    cajerosDomingo.length === Object.keys(domingoCargado.finPorId).length &&
+    cajerosDomingo.every(c => Object.prototype.hasOwnProperty.call(domingoCargado.finPorId, c.id))
+    ? domingoCargado : null
+  // Solo las generaciones elegidas para el historial tienen procedencia operativa.
+  const semanasOperativas = useMemo(() => historial.filter(h => h.antecedenteDomingo?.sucursal === sucursal), [historial, sucursal])
+  const correccionesOperativas = useMemo(() => {
+    const ids = new Set(semanasOperativas.map(h => h.id))
+    return correcciones.filter(c => ids.has(c.semanaId))
+  }, [correcciones, semanasOperativas])
+  const sesgosGeneracion = useMemo(() => combinarSesgos(
+    calcularSesgoRotacion(semanasOperativas), calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)),
+  ), [semanasOperativas, correccionesOperativas])
   const frasesPreferencias = useMemo(() => explicarSesgos(sesgosGeneracion), [sesgosGeneracion])
   const conflictosReglas = useMemo(
     () => validarConflictosReglas(reglas, colaboradores),
@@ -204,8 +207,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   // Criterios de cobertura del supervisor: los activos ponderan el score.
   // Se pasan las semanas para fechar cada señal por su lunes real (decay temporal).
   const criteriosCobertura = useMemo(
-    () => derivarCriteriosCobertura(correcciones, { semanas: historial }),
-    [correcciones, historial]
+    () => derivarCriteriosCobertura(correccionesOperativas, { semanas: semanasOperativas }),
+    [correccionesOperativas, semanasOperativas]
   )
   const criteriosActivos = useMemo(
     () => criteriosCobertura.filter(c => c.estado === 'activo'),
@@ -234,7 +237,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   useLayoutEffect(() => {
     cancelarGeneracion()
   }, [cancelarGeneracion, necesidad, lunesSemana, excepciones, excepcionesDisponibilidad,
-    colaboradores, auxiliares, eventuales, reglas, historial, correcciones, antecedenteDomingo, historialConfirmado, modoPrueba])
+    colaboradores, auxiliares, eventuales, reglas, historial, correcciones, antecedenteDomingo, sucursal, modoPrueba])
 
   const handleGenerarHorarios = () => {
     // POM-01 (#8): fechas de la semana del PDF (o la confirmada por el supervisor), nunca del reloj.
@@ -255,7 +258,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
       maxFrancosDia: capFrancosDeReglas(reglas, fechaLunes),
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
-      pesosFranja: antecedenteDomingo ? undefined : pesosFranjaDeCriterios(criteriosCobertura),
+      pesosFranja: pesosFranjaDeCriterios(criteriosCobertura),
       // Reglas operativas de la sucursal (con defaults del negocio)
       ...operativa,
     }
@@ -263,23 +266,18 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación.
     // #7 · AH2-020: se arma ANTES de generar para que el multi-arranque valide cada candidato
     // con exactamente el mismo contexto que luego usa esta pantalla.
-    const lunesPrevio = new Date(new Date(fechaLunes + 'T12:00:00').getTime() - 7 * 86_400_000).toISOString().slice(0, 10)
-    const previas = historial.filter(h => h.fechaLunes === lunesPrevio)
-    const previa = previas[previas.length - 1]
-    if (!modoPrueba && !antecedenteDomingo && !(historialConfirmado && previa)) {
-      setErrorAntecedente('Para guardar una semana, importá el domingo real anterior o confirmá expresamente un horario operativo anterior.')
+    if (!modoPrueba && !antecedenteDomingo) {
+      setErrorAntecedente('Para guardar una semana, confirmá las salidas programadas del domingo anterior.')
       return
     }
-    const sinReferencia = !antecedenteDomingo && !(historialConfirmado && previa)
     const ctx = {
       fechas,
       necesidad,
       excepciones: excepcionesTotales,
       maxFrancosDia: opciones.maxFrancosDia,
       minimosCajeros: opciones.demandaMinima,
-      semanaAnterior: historialConfirmado && !antecedenteDomingo ? previa?.horarios : undefined,
       finDomingoAnteriorPorId: antecedenteDomingo?.finPorId,
-      ...(sinReferencia ? { limitaciones: ['Sin antecedente dominical confirmado: no se puede comprobar el descanso de domingo a lunes.'] } : {}),
+      ...(!antecedenteDomingo ? { limitaciones: ['Sin antecedente dominical confirmado: no se puede comprobar el descanso de domingo a lunes.'] } : {}),
       auxiliares: disponibilidad.auxiliares,
       eventuales: disponibilidad.eventuales,
       huecosSupervision: disponibilidad.huecosSupervision,
@@ -302,6 +300,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       // Guardar solamente una generación operativa elegida por el supervisor.
       const semana = agregarSemana({
         fechaLunes,
+        antecedenteDomingo: antecedenteDomingo ?? undefined,
         descripcion: semanaDesc || `Semana del ${fechaLunes}`,
         horarios: res.horarios,
         resumenPorColaborador: resumirTurnos(res.horarios, nombrePorId),
@@ -333,8 +332,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     const jornadaAnterior = horario?.jornadas.find(j => j.dia === dia)
     if (!jornadaAnterior) return
 
-    if (!modoPrueba) agregarCorreccion({
-      semanaId: semanaGuardadaId ?? '',
+    if (semanaGuardadaId) agregarCorreccion({
+      semanaId: semanaGuardadaId,
       colaboradorNombre: nombrePorId[colaboradorId] ?? colaboradorId,
       dia,
       antes: { esFranco: jornadaAnterior.esFranco, turnos: jornadaAnterior.turnos },
@@ -378,8 +377,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
 
   const handleExportarPDF = () => {
     if (!resultado) return
-    const pdf = generarPDF(resultado, colaboradoresActivos, modoPrueba ? `${semanaDesc} · PRUEBA NO GUARDADA` : semanaDesc, ctxValidacion?.auxiliares ?? auxiliaresActivos, ctxValidacion?.eventuales ?? eventualesActivos, {
+    const pdf = generarPDF(resultado, colaboradoresActivos, semanaDesc, ctxValidacion?.auxiliares ?? auxiliaresActivos, ctxValidacion?.eventuales ?? eventualesActivos, {
       sucursal: getSucursalActual(),
+      marcaNoGuardado: semanaGuardadaId ? undefined : modoPrueba ? 'PRUEBA NO GUARDADA' : 'BORRADOR NO GUARDADO',
       fechas: ctxValidacion?.fechas,
       version: historial.find(s => s.id === semanaGuardadaId)?.version,
       validacion: validacion ?? undefined,
@@ -400,7 +400,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     setCtxValidacion(null)
     setAntecedenteDomingo(null)
     setErrorAntecedente(null)
-    setHistorialConfirmado(false)
+    revisionImportacion.current++
+    setSalidasDomingo({})
     setModoPrueba(true)
     setMostrarExcepciones(false)
     setSemanaGuardadaId(null)
@@ -632,22 +633,24 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             }}>
               <h3 style={{ fontWeight: 700, marginBottom: '8px' }}>Antecedente planificado del domingo {domingoAnteriorISO(fechasSemana[0])}</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                Importá un JSON con la última salida del domingo anterior de cada cajero FULL/PART.
-                Se usa solo en esta generación para las 12 horas de descanso; no se modifica el historial.
-                No incluir AUX ni eventuales.
+                Seleccioná la última salida programada o Franco para cada cajero y confirmá la lista.
+                También podés importar un JSON de esta sucursal. AUX y eventuales conservan su disponibilidad.
               </p>
               <input data-testid="archivo-domingo" type="file" accept=".json,application/json" disabled={cargandoDotacion}
                 onChange={async e => {
                   const input = e.currentTarget
                   const archivo = input.files?.[0]
                   if (!archivo) return
+                  const revision = ++revisionImportacion.current
                   try {
                     const contenido: unknown = JSON.parse(await archivo.text())
-                    const domingo = leerAntecedenteDomingo(contenido, fechasSemana[0], colaboradoresActivos)
+                    if (revision !== revisionImportacion.current) return
+                    const domingo = leerAntecedenteDomingo(contenido, fechasSemana[0], cajerosDomingo, sucursal)
                     setAntecedenteDomingo(domingo)
-                    setHistorialConfirmado(false)
+                    setSalidasDomingo(Object.fromEntries(Object.entries(domingo.finPorId).map(([id, fin]) => [id, fin ?? 'franco'])))
                     setErrorAntecedente(null)
                   } catch (err) {
+                    if (revision !== revisionImportacion.current) return
                     setAntecedenteDomingo(null)
                     setErrorAntecedente(err instanceof Error ? err.message : 'No se pudo importar el antecedente.')
                   } finally {
@@ -666,13 +669,36 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 </div>
               )}
               {errorAntecedente && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAntecedente}</p>}
+              <div aria-label="Salidas del domingo" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBlock: 12 }}>
+                {cajerosDomingo.map(c => (
+                  <label key={c.id}>{c.nombre}
+                    <select aria-label={`Última salida de ${c.nombre}`} value={salidasDomingo[c.id] ?? ''} onChange={e => {
+                      revisionImportacion.current++
+                      const valor = e.target.value
+                      setSalidasDomingo(prev => ({ ...prev, [c.id]: valor }))
+                      setAntecedenteDomingo(null)
+                      setErrorAntecedente(null)
+                    }}>
+                      <option value="">Sin confirmar</option>
+                      <option value="franco">Franco</option>
+                      {Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
+                        .map(hora => <option key={hora} value={hora}>{hora}</option>)}
+                    </select>
+                  </label>
+                ))}
+              </div>
+              <button type="button" onClick={() => {
+                try {
+                  setAntecedenteDomingo(leerAntecedenteDomingo({
+                    sucursal, lunes: lunesSemana, domingo: domingoAnteriorISO(lunesSemana),
+                    finPorId: Object.fromEntries(cajerosDomingo.map(c => [c.id, salidasDomingo[c.id] === 'franco' ? null : salidasDomingo[c.id]])),
+                  }, lunesSemana, cajerosDomingo, sucursal))
+                  setErrorAntecedente(null)
+                } catch (err) {
+                  setErrorAntecedente(err instanceof Error ? err.message : 'No se pudo confirmar el domingo.')
+                }
+              }}>Confirmar salidas programadas</button>
               {!antecedenteDomingo && (
-                <label style={{ display: 'block', marginTop: '12px', fontSize: '13px' }}>
-                  <input type="checkbox" checked={historialConfirmado} onChange={e => setHistorialConfirmado(e.target.checked)} />
-                  {' '}Confirmo que la última versión guardada de la semana previa es un horario OPERATIVO real.
-                </label>
-              )}
-              {!antecedenteDomingo && !historialConfirmado && (
                 <p style={{ fontSize: '13px', color: 'var(--danger)', marginTop: '8px' }}>
                   Sin domingo confirmado, la prueba quedará SIN VERIFICAR. No se utilizará una versión experimental como antecedente.
                 </p>
