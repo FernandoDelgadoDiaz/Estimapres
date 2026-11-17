@@ -1,7 +1,7 @@
 # ALIADA HORARIOS 2.0 — FUENTE ÚNICA DE VERDAD
 
 **Estado:** normativa vigente de producto, integrada en `main` (PR #2, `9909e87`). Toda decisión nueva se registra en §9 como APROBADO, PROPUESTO o PENDIENTE DE VALIDACIÓN (AH2-018).
-**Actualizado:** 2026-11-16 (diseño B v3.1 PROPUESTO, AH2-023…AH2-034; alcance autorizado limitado a B1 y preparación de integración de #46 y #47). El tramo A está integrado y publicado (§4.1).
+**Actualizado:** 2026-11-17 (requisito de experiencia esencial AH2-035 registrado; diseño B v3.1 y AH2-023…AH2-034 permanecen según su estado; sin cambios en autorización de integración/publicación). El tramo A está integrado y publicado (§4.1).
 **Repositorio:** `FernandoDelgadoDiaz/Estimapres`
 **Propietario y autoridad de producto:** Fernando (aprueba cambios de alcance, reglas, migraciones, merges, despliegues y gastos).
 **Estado operacional y relevo entre modelos:** [`docs/CURRENT_WORK.md`](CURRENT_WORK.md).
@@ -34,6 +34,30 @@ No confundir:
 - El sistema valida todas las restricciones obligatorias **antes de permitir publicación oficial**; si la cobertura completa es imposible, muestra el **mejor resultado factible y un reporte claro de déficit**, sin inventar trabajadores ni transgredir restricciones. El supervisor puede decidir alternativas autorizadas; las reglas normativas no pueden ignorarse.
 - El control diario de plantilla, reglas y disponibilidad puede configurarse **fuera de ese recorrido semanal**; no imponer una configuración completa cada vez que se sube un PDF.
 - Un agente, si se incorpora, es **invisible u opcional** en el flujo normal: el supervisor no necesita conversar con IA ni escribir prompts para recibir el horario.
+
+### Experiencia esencial del supervisor — requisito de producto AH2-035
+
+**Principio aprobado por el propietario (17/11/2026): cuanto más potente sea la optimización, más simple debe resultar el uso diario para el supervisor.** Aliada es una herramienta operativa, no una consola de algoritmos. Una persona nueva en la función debe poder generar, revisar y aprobar una planificación con capacitación mínima, sin conocer motores, CP-SAT, heurísticas, parámetros matemáticos, prompts ni infraestructura.
+
+**Flujo habitual obligatorio:**
+1. **Preparar:** cargar el POM y utilizar automáticamente dotación, contratos, reglas, ciclo e historial vigente de la sucursal; indicar solo los datos realmente faltantes o inconsistentes, sin repetir configuraciones cada semana.
+2. **Generar:** una única acción principal visible (por ejemplo, «Generar mejores horarios»). El motor determinístico puede entregar una primera propuesta validada mientras el optimizador avanzado busca una mejora; no pedir al supervisor que elija un motor ni administrar presupuestos de cálculo.
+3. **Revisar:** mostrar **un horario recomendado**, íntegro y legible, con cobertura, faltantes y sobrantes por franja, horas por persona, francos y alertas accionables. Comunicar en lenguaje operativo cualquier restricción que impida mayor cobertura. Si un motor falla o no mejora, conservar la propuesta válida y no bloquear la tarea.
+4. **Aprobar y exportar:** revisión y aprobación **explícitas** por una persona autorizada. Ninguna optimización posterior modifica silenciosamente un horario aprobado; toda alternativa se ofrece para revisión como nueva versión. El PDF sigue el resultado validado y aprobado.
+
+**Simplicidad sin ocultar riesgos:** las violaciones, datos incompletos, franjas sin cubrir y límites de validez se muestran claramente. No presentar un horario parcial o no validado como publicable ni afirmar «óptimo» sin certificación del modelo. No declarar conformidad jurídica cuando solo existe validación técnica (AH2-033).
+
+**Separación de experiencias:** vista habitual operativa y sencilla; diagnóstico de algoritmos, puntajes, trazas, estados de solver y configuraciones avanzadas solo en una vista técnica secundaria para perfiles autorizados. La IA/agente, si existe, trabaja detrás de escena o es opcional, nunca es un requisito para la generación semanal.
+
+**Criterios de aceptación verificables:**
+- Un supervisor puede completar **POM → generar → revisar → aprobar/exportar** sin comprender ni seleccionar motores y sin transcribir horarios por persona.
+- La pantalla tiene una acción principal inequívoca y presenta un resultado recomendado, no una lista de propuestas técnicas que el supervisor deba comparar manualmente.
+- Durante el cálculo se informa progreso/estado comprensible; la aplicación sigue respondiendo. Un fallo, timeout o falta de mejora del motor avanzado no bloquea el resultado válido disponible.
+- Las diferencias entre propuesta inicial y mejora se explican en términos de cobertura, sobrantes y cambios relevantes; no se sustituye silenciosamente ninguna propuesta que ya tenga aprobación.
+- Un déficit o error importante permanece visible y comprensible, con franja afectada, causa conocida y acción disponible cuando exista; si la causa no está demostrada, no inventarla.
+- Pruebas de interfaz y usabilidad con escenarios normales y de error; evaluar con supervisores reales antes de declarar el requisito cumplido. **No hay umbral cuantitativo de capacitación o tiempo aprobado todavía.**
+
+**Estado de implementación:** requisito de producto **APROBADO**; diseño detallado, pruebas de usabilidad e integración al híbrido **PENDIENTES DE VALIDACIÓN E IMPLEMENTACIÓN**. Esta decisión no autoriza deploy, merge, migración ni activar CP-SAT en producción.
 
 **POM aprobado vs salida nueva:** el horario ya incluido en la primera página de POM es referencia comparativa, **nunca** reemplaza el horario optimizado de Aliada. La exportación de Aliada debe producir su propio documento.
 
@@ -281,6 +305,7 @@ Cada tramo se entrega en un PR aislado y verificable, sin migraciones ni publica
 | AH2-032 | **Continuidad sin sacrificar cobertura.** Se conserva el objetivo mínimo de 95 % en la 091 y se protegen en especial las **franjas de demanda pico**. La tolerancia se decide con benchmarks.<br>• Diseño: la continuidad solo es aceptable si alcanza el objetivo cuando el mejor candidato lo alcanza, si no supera el déficit del mejor en ninguna franja pico, y si queda dentro de la tolerancia. La tolerancia es **0 hasta que el propietario apruebe un valor basado en benchmark**: mientras tanto, la continuidad solo desempata. | **REQUISITO APROBADO por el propietario (15/11/2026)** / diseño **PROPUESTO**; valor de tolerancia **PENDIENTE** (D9) |
 | AH2-033 | **Validación técnica frente a validación jurídica.** La validación técnica del horario se separa de la validación jurídica de los perfiles laborales. **No se declara conformidad legal sin fuentes normativas y contractuales verificadas.**<br>• Diseño: `PerfilNormativo.estadoJuridico` (requisito-producto, en-revisión, validado-jurídicamente, rechazado) con fuentes. UI y PDF dicen «validado técnicamente contra el perfil X» junto con el estado jurídico del perfil, y nunca usan «legal» ni «cumple la ley» sin validación (I13). Estado actual de los perfiles: requisito de producto (AH2-004). | **REQUISITO APROBADO por el propietario (15/11/2026)** / diseño **PROPUESTO** |
 | AH2-034 | **Corte por trabajo reproducible.** Cualquier interrupción por límite de seguridad queda registrada y no se presenta como búsqueda completa.<br>• Diseño: unidades de trabajo deterministas; ninguna decisión depende del reloj; orden estable; límite de seguridad por tiempo solo como guardia, con `busqueda.completa = false`, motivo y lo omitido, más aviso en UI, PDF y registro del ciclo.<br>• Hallazgo: hoy la pasada 1 corta a los 6 s **sin registrarlo**.<br>• Pruebas de JSON idéntico en Node, Chromium 1× y Chromium 6×. Implementación (W2) sujeta a D12. | **REQUISITO APROBADO por el propietario (15/11/2026)** / diseño **PROPUESTO**; implementación **no autorizada** |
+| AH2-035 | **Experiencia esencial de supervisor: sofisticación invisible.** Un flujo semanal con POM → una única acción de generación → un horario recomendado, claro y validado → revisión, aprobación humana y PDF. Motores y parámetros matemáticos no son necesarios para operar; el híbrido trabaja detrás de escena y conserva la referencia válida ante fallos. Mostrar cobertura, faltantes, sobrantes, horas, francos, alertas y causas verificables; no ocultar errores ni modificar horarios aprobados silenciosamente. Diagnóstico avanzado solo para perfiles autorizados. Criterios y flujo detallados en §1 (AH2-035). | **REQUISITO ESENCIAL APROBADO por el propietario (17/11/2026)** / diseño, usabilidad e integración **PENDIENTES**. No autoriza merge, deploy ni cambios productivos. |
 | Límites POM de eventuales (091) | Dos reglas operativas independientes y versionadas por sucursal. Para 091, máximo dos bloques diarios continuos de caja por eventual y corte de caja desde las 22:00 (incluida la franja 22:00–22:30). No cambian la presencia sectorial ni la demanda POM. Sin regla configurada se conserva la asignación previa. Alcance AUX pendiente de confirmación. | **APROBADO para implementación y ensayo por el propietario (16/11/2026).** Publicación y activación pendientes. |
 
 **Cualquier decisión nueva se registra aquí y enlaza Issue/PR; no crear otros registros de decisiones independientes.**
