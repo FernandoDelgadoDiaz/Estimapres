@@ -193,7 +193,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   // Cuando existe un domingo operativo separado, las versiones anteriores de prueba
   // no deben contaminar la rotación o los criterios de cobertura de esta generación.
   const sesgosGeneracion = useMemo(
-    () => antecedenteDomingo ? combinarSesgos(calcularSesgoAprendizaje(derivarAprendizajes([]))) : sesgosBlandos,
+    () => antecedenteDomingo ? combinarSesgos(calcularSesgoRotacion([]), calcularSesgoAprendizaje(derivarAprendizajes([]))) : sesgosBlandos,
     [antecedenteDomingo, sesgosBlandos]
   )
   const frasesPreferencias = useMemo(() => explicarSesgos(sesgosGeneracion), [sesgosGeneracion])
@@ -288,6 +288,12 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
 
     void generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx, res => {
       setCtxValidacion(ctx)
+      if (!modoPrueba && !validarResultadoSemana(res, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, ctx).publicable) {
+        // Mostrar resultado y motivos, pero impedir su incorporación al historial.
+        setSemanaGuardadaId(null)
+        setPaso('resultado')
+        return
+      }
       if (modoPrueba) {
         setSemanaGuardadaId(null)
         setPaso('resultado')
@@ -624,7 +630,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px',
               padding: '20px 24px', color: 'var(--text)',
             }}>
-              <h3 style={{ fontWeight: 700, marginBottom: '8px' }}>Antecedente real del domingo {domingoAnteriorISO(fechasSemana[0])}</h3>
+              <h3 style={{ fontWeight: 700, marginBottom: '8px' }}>Antecedente planificado del domingo {domingoAnteriorISO(fechasSemana[0])}</h3>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
                 Importá un JSON con la última salida del domingo anterior de cada cajero FULL/PART.
                 Se usa solo en esta generación para las 12 horas de descanso; no se modifica el historial.
@@ -650,9 +656,14 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 }}
               />
               {antecedenteDomingo && (
-                <p data-testid="domingo-confirmado" style={{ marginTop: '8px', fontWeight: 600 }}>
-                  Domingo {antecedenteDomingo.domingo}: {Object.keys(antecedenteDomingo.finPorId).length} cajeros comprobados.
-                </p>
+                <div data-testid="domingo-confirmado" style={{ marginTop: '8px', fontWeight: 600 }}>
+                  <p>Domingo {antecedenteDomingo.domingo}: {Object.keys(antecedenteDomingo.finPorId).length} cajeros cargados. Revisá las salidas:</p>
+                  <ul style={{ fontSize: '12px', fontWeight: 400, columns: 2 }}>
+                    {colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART').map(c => (
+                      <li key={c.id}>{c.nombre}: {antecedenteDomingo.finPorId[c.id] ?? 'FRANCO'}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
               {errorAntecedente && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAntecedente}</p>}
               {!antecedenteDomingo && (
@@ -1277,9 +1288,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             </div>
           </div>
 
-          {modoPrueba && (
+          {!semanaGuardadaId && (
             <p data-testid="resultado-prueba" role="status" style={{ fontWeight: 700, color: 'var(--text)' }}>
-              PRUEBA NO GUARDADA — este resultado no fue incorporado al historial de operación.
+              {modoPrueba ? 'PRUEBA NO GUARDADA' : 'BORRADOR NO GUARDADO'} — este resultado no fue incorporado al historial de operación.
             </p>
           )}
           {errorAsignacion && (
