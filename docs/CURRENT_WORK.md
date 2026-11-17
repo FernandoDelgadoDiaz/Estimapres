@@ -1,6 +1,14 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — límites de caja de eventuales · 2026-11-16
+## PUNTO ÚNICO DE RETOMA — domingo programado y modo prueba (PR #53) · 2026-11-17
+
+- Base `a7006e48476226976d8b698881ac5274eb568a7d`. Auditoría de CI 66: las cinco fallas de navegador esperaban historial automático o VALIDADO sin antecedente. Se conservaron los recorridos con confirmación explícita donde corresponde y se añadió cobertura del caso sin antecedente.
+- Las salidas programadas se confirman en pantalla por cajero, o mediante JSON con sucursal, fecha e IDs completos. Nunca se toma la última versión del historial automáticamente. El motor y la verificación independiente comparten los límites.
+- Correcciones sin semana guardada son transitorias, aun en borrador operativo rechazado. PDF muestra marca de prueba/borrador. Al guardar un resultado operativo se registra el antecedente en el JSON existente, para auditar una reapertura. No se reescribieron históricos. Rotación y correcciones automáticas se limitan a registros de este flujo con procedencia registrada.
+- Sucursal 091: consulta SELECT confirmó 8/8 IDs y salidas contra la dotación activa (4 FULL de 48 h y 4 PART de 32 h). El antecedente del 22/11 es programado, aplicable solo a semana que empieza el 23/11. AUX y eventuales mantienen sus patrones.
+- Sin POM del 23–29 en las entradas verificadas, queda pendiente la generación operativa de esa semana. Rollback de aplicación: conservar el deploy productivo vigente de Aliada antes de autorizar cambios, y usar Publish deploy sobre ese deploy si hay que revertir. Identificar y verificar el ID en Netlify antes de una publicación. Sin migraciones ni escrituras productivas.
+
+## Registro anterior — límites de caja de eventuales · 2026-11-16
 
 - Rama `feat/ah2-reglas-caja-eventuales`, base verificada `3b74d9c3102124abf8c6f77d45154ee2f76ae786`. El historial anterior queda debajo.
 - Implementación en la pasada 3, adaptación de entrada, gestión y revisiones por sucursal, snapshot semanal, recálculo tras edición y validador independiente. Sin valores por defecto para ambas reglas. Una edición manual incompatible queda informada por la validación. Cambios y pruebas en el diff de la rama.
