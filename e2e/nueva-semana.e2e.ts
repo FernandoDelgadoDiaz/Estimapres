@@ -348,13 +348,23 @@ test('un fallo al cargar el Worker usa el motor en modo compatible', async ({ pa
 })
 
 test('una semana sin antecedente no se guarda ni toma el último historial automáticamente', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('aliada_historial_semanas::900')) return
+    localStorage.setItem('aliada_historial_semanas::900', JSON.stringify([{
+      id: 'simulacion-v9', version: 9, fechaLunes: '2026-11-09', descripcion: 'Simulación V9',
+      generadoEl: '2026-11-10T12:00:00Z', resumenPorColaborador: {}, horarios: [], editadoManualmente: false,
+    }]))
+  })
   await preparar(page)
+  const leerHistorial = () => page.evaluate(() => localStorage.getItem('aliada_historial_semanas::900'))
+  const previo = await leerHistorial()
+  expect(previo).toContain('simulacion-v9')
   await page.getByTestId('modo-prueba').uncheck()
   await page.getByRole('button', { name: 'Generar horarios automáticamente' }).click()
   await expect(page.getByRole('alert')).toContainText('confirmá las salidas')
-  expect(await historialGuardado(page)).toBe(0)
+  expect(await leerHistorial()).toBe(previo)
   await page.getByTestId('modo-prueba').check()
   await page.getByRole('button', { name: 'Generar horarios automáticamente' }).click()
   await expect(page.getByTestId('estado-validacion')).toContainText('SIN VERIFICAR')
-  expect(await historialGuardado(page)).toBe(0)
+  expect(await leerHistorial()).toBe(previo)
 })

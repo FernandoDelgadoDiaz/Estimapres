@@ -12,6 +12,10 @@
 
 La integración conserva el selector de cierre y aplica el límite del lunes al generar y validar. Conflicto documental resuelto conservando ambas evidencias. Los PR originales mantienen sus bases.
 
+- A/B repetido con 406 h-caja del 16–22, bajo los mismos supuestos de la prueba anterior. Ensayo controlado del selector: 97,54 % → 98,15 %, faltantes 10 → 7,5 h-caja, cierre 3 → 0,5 h-caja, cero sobrantes y cero infracciones observables. Con la limitación del domingo 15 declarada al selector, el flujo real conserva 97,54 % en ambos casos. La limitación también fue registrada al auditar independientemente ambos ensayos.
+- Semana del 23–29: antecedente del 22 confirmado solo como restricción programada. Las salidas de 22:00 y 22:30 implican entradas no anteriores a 10:00 y 10:30 respectivamente. La POM del 23–29 sigue pendiente. No reutilizar la del 16–22.
+- Rollback de Aliada identificado por lectura de Netlify: deploy publicado y fijado `6afba0e1c0b8e64caa476f2c`, commit `a7006e48476226976d8b698881ac5274eb568a7d`. Conservarlo y republicarlo manualmente si fuera necesario después de una publicación autorizada.
+
 ## Evidencia del PR #52 — cobertura de cierre FULL/PART · 2026-11-17
 
 - Rama `feat/ah2-cobertura-cierre`, base de `main` verificada `a7006e48476226976d8b698881ac5274eb568a7d` (#51).
