@@ -16,13 +16,17 @@
 // Selección: solo candidatos que pasan la validación independiente sin violaciones que
 // el respaldo no tenga y que no bajan las horas de NINGUNA persona frente al respaldo.
 // Entre ellos: mayor cobertura; a igual cobertura, menos sobrantes; empate → respaldo.
+// Con corte de eventuales se prueba un refinamiento sobre esa solución,
+// sin aumentar el déficit en ningún slot y con validación independiente estricta.
+import { slotLimiteCajaEventual } from '../algoritmo/reglasCajaEventual'
 import { convertirOutputDeV2 } from '../algoritmo/adapter'
-import { compararImpactoHoras, ejecutarAlgoritmo, inputSinPrioridadHoras, tieneObjetivoHoras } from '../algoritmo/orquestador'
+import { compararImpactoHoras, ejecutarAlgoritmo, evaluarSemanasFullPart, inputSinPrioridadHoras, tieneObjetivoHoras } from '../algoritmo/orquestador'
+import { desplazamientosCierre } from '../algoritmo/pasada1-fullpart'
 import type { InputAlgoritmo, Jornada, ResultadoSemanal } from '../algoritmo/types'
 import type { Auxiliar, Colaborador, Eventual, ResultadoAsignacion } from '../types'
 import { validarResultadoSemana, type ContextoValidacionSemana } from './validacionSemana'
 
-export type EstrategiaMultiArranque = 'actual' | 'desde-sin-prioridad' | 'full-fijos' | 'alternada-1' | 'alternada-2' | 'alternada-ms-1' | 'alternada-ms-2'
+export type EstrategiaMultiArranque = 'actual' | 'desde-sin-prioridad' | 'full-fijos' | 'alternada-1' | 'alternada-2' | 'alternada-ms-1' | 'alternada-ms-2' | 'anticipar-cierre'
 export const ESTRATEGIAS_MULTI_ARRANQUE: EstrategiaMultiArranque[] = ['actual', 'desde-sin-prioridad', 'full-fijos', 'alternada-1', 'alternada-2', 'alternada-ms-1', 'alternada-ms-2']
 /** Cada estrategia que necesita a otra como punto de partida. */
 const DEPENDE_DE: Partial<Record<EstrategiaMultiArranque, EstrategiaMultiArranque>> = {
@@ -125,6 +129,8 @@ export interface EntradaMultiArranque {
   presupuestoMs?: number
   /** Solo pruebas: restringe las estrategias corridas (el respaldo siempre corre). */
   estrategias?: EstrategiaMultiArranque[]
+  /** Comparación offline contra la selección anterior. */
+  omitirAnticipacionCierre?: boolean
   /** Solo pruebas: reloj en ms (para simular el agotamiento del presupuesto). */
   reloj?: () => number
 }
@@ -190,7 +196,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
       const aSem = ejecutarAlgoritmo({ ...sinPrioridad, semillas: semanas(desde) })
       return ejecutarAlgoritmo({ ...base, semillas: semanas(aSem) })
     }
-    const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual'>, () => ResultadoSemanal> = {
+    const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual' | 'anticipar-cierre'>, () => ResultadoSemanal> = {
       'desde-sin-prioridad': () => ejecutarAlgoritmo({ ...base, semillas: semanas(a0!) }),
       'full-fijos': () => ejecutarAlgoritmo({ ...base, semillas: { ...respaldo.r.jornadas_full } }),
       'alternada-1': () => alternar(respaldo.r),
@@ -202,7 +208,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
     const necesarias = new Set<EstrategiaMultiArranque>()
     for (const n of pedidas) for (let k: EstrategiaMultiArranque | undefined = n; k; k = DEPENDE_DE[k]) necesarias.add(k)
     for (const nombre of ESTRATEGIAS_MULTI_ARRANQUE) {
-      if (nombre === 'actual' || !necesarias.has(nombre)) continue
+      if (nombre === 'actual' || nombre === 'anticipar-cierre' || !necesarias.has(nombre)) continue
       const previa = DEPENDE_DE[nombre]
       if (!hayTiempo() || (previa && !resultados.has(previa))) { if (pedidas.has(nombre)) omitidas.push(nombre); continue }
       const t = ahora()
@@ -217,6 +223,44 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   for (const c of elegibles) {
     if (c.coberturaPct > elegido.coberturaPct + EPS) elegido = c
     else if (Math.abs(c.coberturaPct - elegido.coberturaPct) <= EPS && c.sobrantesHoras < elegido.sobrantesHoras - EPS) elegido = c
+  }
+  const referencia = resultados.get(elegido.estrategia)!
+  const limite = slotLimiteCajaEventual(base.eventuales_caja_hora_limite)
+  if (!e.omitirAnticipacionCierre && limite !== undefined &&
+      referencia.metricas.deficit_por_slot.some(fila => fila.slice(limite).some(Boolean))) {
+    if (!hayTiempo()) omitidas.push('anticipar-cierre')
+    else {
+      const inicioCierre = ahora()
+      let mejor = referencia
+      let agotado = false
+      let sinMejora = 'ningún desplazamiento aceptable'
+      // Cada movimiento aprobado se convierte en el nuevo piso de cobertura.
+      // Una mejora estricta del déficit de cierre acota las iteraciones.
+      for (;;) {
+        const baseSemanas = semanas(mejor)
+        let siguiente = mejor
+        for (const jornada of desplazamientosCierre(base, baseSemanas, mejor.metricas.deficit_por_slot, limite)) {
+          if (!hayTiempo()) { agotado = true; break }
+          const propuestas = { ...baseSemanas, [jornada.colab_id]: baseSemanas[jornada.colab_id].map(j => j.dia === jornada.dia ? jornada : j) }
+          const propuesta = evaluarSemanasFullPart(base, propuestas)
+          const validacion = validar(propuesta)
+          const motivo = motivoDescarteCierre(base, limite, mejor, propuesta, validacion.publicable)
+          if (!motivo && suma(propuesta.metricas.deficit_por_slot) < suma(siguiente.metricas.deficit_por_slot)) siguiente = propuesta
+          else if (motivo) sinMejora = motivo
+        }
+        if (siguiente === mejor) break
+        mejor = siguiente
+        if (agotado) break
+      }
+      if (agotado) omitidas.push('anticipar-cierre')
+      const v = validar(mejor)
+      candidatos.push(ficha('anticipar-cierre', { r: mejor, ms: ahora() - inicioCierre }, v.violaciones.length,
+        v.violaciones.filter(w => !permitidas.has(claveViolacion(w))).length, mejor === referencia ? sinMejora : undefined))
+      if (mejor !== referencia) {
+        resultados.set('anticipar-cierre', mejor)
+        elegido = candidatos[candidatos.length - 1]
+      }
+    }
   }
   const final = resultados.get(elegido.estrategia)!
   const resultadoV2: ResultadoSemanal = {
@@ -233,7 +277,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
     violacionesElegida: elegido.violaciones,
     candidatos, tiempoMs: ahora() - t0,
     versionAlgoritmo: base.max_bloques_caja_eventual_dia !== undefined || base.eventuales_caja_hora_limite !== undefined
-      ? `${VERSION_ALGORITMO}+caja-eventual-v1`
+      ? `${VERSION_ALGORITMO}+caja-eventual-v1${elegido.estrategia === 'anticipar-cierre' ? '+cierre-v1' : ''}`
       : VERSION_ALGORITMO,
   }
   // En el resultado visible se omiten los tiempos: la generación debe ser reproducible
@@ -247,4 +291,33 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   }
   const resultado = { ...salida, multiArranque }
   return { resultadoV2, resultado, seleccion }
+}
+
+/** Compara cascadas completas por slot: un faltante en otra franja no se compensa. */
+function motivoDescarteCierre(
+  input: InputAlgoritmo, limite: number, antes: ResultadoSemanal, despues: ResultadoSemanal, valido: boolean,
+): string | undefined {
+  if (!valido) return 'el candidato de cierre no supera la validación independiente'
+  const jornadas = semanas(despues)
+  const previas = semanas(antes)
+  for (const persona of input.colaboradores) {
+    if (persona.rol !== 'FULL' && persona.rol !== 'PART') continue
+    const contrato = input.contratos?.[persona.id]
+    const objetivo = persona.rol === 'PART' ? contrato?.objetivoSlots : undefined
+    const asignado = slots(jornadas[persona.id])
+    if (asignado !== slots(previas[persona.id]) || (objetivo != null && asignado !== objetivo)) {
+      return 'el candidato de cierre no conserva todas las horas contractuales'
+    }
+  }
+  const faltantes = antes.metricas.deficit_por_slot
+  const nuevos = despues.metricas.deficit_por_slot
+  if (nuevos.some((fila, d) => fila.some((n, s) => n > faltantes[d][s]))) {
+    return 'el candidato de cierre traslada faltantes a otra franja'
+  }
+  if (suma(despues.metricas.exceso_por_slot) > suma(antes.metricas.exceso_por_slot)) {
+    return 'el candidato de cierre aumenta los sobrantes'
+  }
+  if (!nuevos.some((fila, d) => fila.some((n, s) => s >= limite && n < faltantes[d][s]))) {
+    return 'el candidato no mejora la cobertura de cierre'
+  }
 }

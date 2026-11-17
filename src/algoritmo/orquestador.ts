@@ -12,8 +12,8 @@ import type { ImpactoPrioridadHoras } from './contratos';
 
 const COBERTURA_OBJETIVO_PCT = 95; // 091 (AH2-017); configurable por sucursal
 
-function correrCascada(input: InputAlgoritmo) {
-  const p1 = ejecutarPasada1(input);
+function correrCascada(input: InputAlgoritmo, reoptimizar = true) {
+  const p1 = ejecutarPasada1(input, reoptimizar);
   const p2 = ejecutarPasada2(input, p1);
   const p3 = ejecutarPasada3(input, p2);
   const metricas = calcularMetricasCobertura(input.demanda, p1.jornadas_full, p1.jornadas_part, p2.asignacion_aux, p3.asignacion_eventual, p3.deficit_3);
@@ -90,7 +90,16 @@ function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correr
  *     horas-caja acumuladas primero).
  */
 export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
-  const real = correrCascada(input);
+  return construirResultado(input, correrCascada(input));
+}
+
+/** Evalúa una planificación FULL/PART del catálogo con las pasadas reales de apoyo. */
+export function evaluarSemanasFullPart(input: InputAlgoritmo, semillas: NonNullable<InputAlgoritmo['semillas']>): ResultadoSemanal {
+  const fijo = { ...input, semillas, omitir_impacto_horas: true };
+  return construirResultado(fijo, correrCascada(fijo, false));
+}
+
+function construirResultado(input: InputAlgoritmo, real: ReturnType<typeof correrCascada>): ResultadoSemanal {
   const { p1, p2, p3, metricas } = real;
   const impacto_horas = medirImpactoHoras(input, real);
 
