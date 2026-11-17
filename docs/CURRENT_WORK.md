@@ -1,6 +1,14 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — laboratorio híbrido A · 2026-11-17
+## PUNTO ÚNICO DE RETOMA — calidad híbrida offline · 2026-11-17
+
+- Rama `feat/ah2-calidad-hibrida` desde el [PR #56](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/56), SHA verificado `17aeade4d0de731ce0eaab9aa7b6193cf1c27561`. Los candidatos previos conservan sus SHA.
+- Refinamiento explícito de laboratorio: desplazar jornadas ya previstas dentro de su catálogo diario, recalcular la asignación de apoyo y aceptar solo menos sobrante con cobertura íntegra por media hora, horas contractuales y validación independiente. No altera el flujo operativo. Se mantienen AH2-015/016/020/026/031/032.
+- Con el mismo banco sintético de 200, 163 referencias A válidas comparables, 14 cambios, 7 h-caja de sobrante evitadas y ningún faltante adicional por media hora. Build y 458 Vitest aprobados localmente, con 7 omitidas en la corrida predeterminada. Los dos exportadores se ejecutaron explícitamente donde correspondía.
+- El puente de laboratorio distingue `efectivo-simulado` del historial oficial y verifica la sucursal. La ejecución encadenada está en el repositorio independiente del optimizador. Para repetir el banco: `AH2_CICLOS_CALIDAD=1 AH2_CICLOS_ORIGEN=/ruta/series200 AH2_CICLOS_DESTINO=/tmp/calidad npm test -- src/algoritmo/__tests__/benchmark/ciclos.export.test.ts`.
+- Próximo paso exacto para 091: disponer del PDF POM del 23–29/11, validar su extracción local y armar el snapshot autorizado con la dotación, los contratos, el ciclo, las reglas y el historial efectivo hasta el domingo 22. El POM del 16–22 no corresponde a ese ensayo. Sin operaciones sobre producción.
+
+## Registro anterior — laboratorio híbrido A · 2026-11-17
 
 - Rama `feat/ah2-hibrido-offline`, base exacta #55 `8585a734aa7d85d608aacf9b65f91ac1fe8e95bc`, #54 y PR productivos intactos.
 - Se agregó preferencia por la forma del bloque y el franco en el ciclo, y acumulación de exposiciones a turnos y fines de semana al salir de un ciclo. El selector conserva la cobertura por media hora y valida las horas individuales exactas antes de proponer el resultado a B (AH2-015/016/020/031/032).
