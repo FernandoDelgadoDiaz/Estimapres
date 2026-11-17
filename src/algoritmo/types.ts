@@ -46,6 +46,9 @@ export type MatrizDisponibilidad = AsignacionEv[][]; // 7 x 30, por eventual
 // negativo = evitar. Magnitudes pequeñas (±12) frente a la utilidad de
 // demanda (~decenas-cientos por jornada): desempatan, no mandan.
 export interface SesgoDia {
+  /** Preferencia de forma del bloque en la búsqueda de ciclos offline. */
+  patron?: Bloque[]
+  trabajo?: number
   manana?: number;
   tarde?: number;
   cierre?: number;

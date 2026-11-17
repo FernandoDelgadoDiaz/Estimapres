@@ -84,6 +84,8 @@ function normalizarSesgo(s?: Partial<SesgoTurno>): SesgoTurno {
         tarde: clampSesgo(sd.tarde),
         cierre: clampSesgo(sd.cierre),
         franco: clampSesgo(sd.franco),
+        patron: sd.patron,
+        trabajo: clampSesgo(sd.trabajo),
       };
     }
   }
@@ -97,14 +99,24 @@ function normalizarSesgo(s?: Partial<SesgoTurno>): SesgoTurno {
 // Cada jornada suma el sesgo GLOBAL del turno + el sesgo FINO de ese día.
 function sesgoDeJornada(bloques: Bloque[], sesgo: SesgoTurno, dia: number): number {
   const sd = sesgo.porDia?.[dia];
-  if (bloques.length === 0) return sd?.franco ?? 0;
+  const patron = sd?.patron;
+  let delta = 0;
+  if (patron) {
+    for (let slot = 0; slot < 30; slot++) {
+      const en = (periodos: Bloque[]) => periodos.some(b => b.slot_inicio <= slot && slot < b.slot_fin);
+      delta += Number(en(patron) !== en(bloques));
+    }
+  }
+  // La preferencia guía la búsqueda. La aceptación compara cobertura y horas antes del ciclo.
+  const forma = -delta * SESGO_MAX / 30;
+  if (bloques.length === 0) return (sd?.franco ?? 0) + forma;
   const fin = bloques[bloques.length - 1].slot_fin;
   const esManana = bloques.length === 1 && bloques[0].slot_inicio >= 2 && bloques[0].slot_inicio <= 6;
   let s: number;
   if (fin >= 28) s = sesgo.cierre + (sd?.cierre ?? 0);
   else if (esManana) s = sesgo.manana + (sd?.manana ?? 0);
   else s = sesgo.tarde + (sd?.tarde ?? 0);
-  return s;
+  return s + forma + (sd?.trabajo ?? 0);
 }
 
 // ============== FUNCIÓN PRINCIPAL ==============
