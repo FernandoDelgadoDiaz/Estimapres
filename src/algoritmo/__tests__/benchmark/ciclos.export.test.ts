@@ -8,7 +8,7 @@ import { normalizarId } from '../../adapter'
 import { HORAS_FRANJAS, type Auxiliar, type Colaborador, type Eventual, type HorarioColaborador } from '../../../types'
 import { manifiestoHistorial } from '../../../utils/historialIntercambio'
 import { historialEfectivo } from '../../../planificacion/historial'
-import { generarConCiclo } from '../../../utils/optimizacionCiclos'
+import { generarConCiclo, type DiaSimulado } from '../../../utils/optimizacionCiclos'
 import { sumarDias } from '../../../planificacion/fechas'
 import type { CicloPlanificacion } from '../../../planificacion/ciclos'
 
@@ -28,6 +28,8 @@ type Caso = {
   escenario: string
   input: InputSerie
   profile: { branch_id: string; version: number }
+  simulated?: boolean
+  absences?: { id: string; date: string }[]
   history: { branch_id: string; week: string; replacement?: Record<string,Jornada[]>; jornadas: Record<string, Jornada[]> }[]
 }
 
@@ -82,10 +84,24 @@ function exportar(caso: Caso, i: number, inicioDeclarado?: string) {
       : [tramo(0,h.week,sumarDias(h.week,6))]
   })
   const historial = { versiones, tramos, desde: calendario[0].inicio, hasta: sumarDias(lunes,-1), hoy: lunes }
-  const ctxCiclo = { sucursalId, lunes, calendario, historial }
-  const efectivo = historialEfectivo({ ...historial, sucursalId })
-  if (!efectivo.ok) throw Error('fixture de historial inválido')
-  const domingo = efectivo.valor.find(d => d.fecha === sumarDias(lunes,-1))
+  const calidadOffline = process.env.AH2_CICLOS_CALIDAD === '1'
+  if (caso.simulated && (!sucursalId.startsWith('lab-') || history.some(h => h.branch_id !== sucursalId))) throw Error('Simulación fuera de su sucursal')
+  const diasSimulados: DiaSimulado[] | undefined = caso.simulated ? tramos.flatMap(t => {
+    const semana = versiones.find(v => v.version.id === t.versionId)!.semana
+    return Array.from({ length: 7 }, (_, d) => sumarDias(semana.fechaLunes, d))
+      .filter(f => f >= t.desde && f <= t.hastaEfectivo).map(fecha => {
+        const ausentes = (caso.absences ?? []).filter(a => a.date === fecha).map(a => a.id)
+        return { fecha, fuente: 'efectivo-simulado', versionId: t.versionId, tramoId: t.id, ausentes,
+          jornadas: semana.horarios.filter(h => !ausentes.includes(h.colaboradorId)).flatMap(h =>
+            h.jornadas.filter(j => sumarDias(semana.fechaLunes,j.dia) === fecha)
+              .map(jornada => ({ colaboradorId: h.colaboradorId, jornada }))) }
+      })
+  }) : undefined
+  const ctxCiclo = { sucursalId, lunes, calendario, calidadOffline, diasSimulados,
+    historial: diasSimulados ? { ...historial, versiones: [], tramos: [] } : historial }
+  const resHistorial = historialEfectivo({ ...ctxCiclo.historial, sucursalId })
+  if (!resHistorial.ok) throw Error('fixture de historial inválido')
+  const domingo = (diasSimulados ?? resHistorial.valor).find(d => d.fecha === sumarDias(lunes,-1))
   const fins = Object.fromEntries((domingo?.jornadas ?? []).filter(x => cajeros.some(c => c.id === x.colaboradorId)).map(({ colaboradorId, jornada }) => [
     colaboradorId, jornada.turnos[jornada.turnos.length - 1]?.fin ?? null,
   ]))
@@ -107,7 +123,14 @@ function exportar(caso: Caso, i: number, inicioDeclarado?: string) {
   return {
     escenario: caso.escenario, profile, baseline_ms, cicloA: a.ciclo, referencia_validada_a: a.elegibleHibrido,
     input: { ...input, fin_domingo_anterior: finDomingo, cycle: { id: inicio, start: inicio, end: sumarDias(inicio,27), previous_id: sumarDias(inicio,-28) } },
-    history_segments: manifiestoHistorial(ctxCiclo, new Map(versiones.flatMap(v => v.semana.horarios.map(h => [h.colaboradorId,h.colaboradorId] as const)))),
+    history_segments: caso.simulated ? {
+      kind: 'simulated', branch_id: sucursalId, as_of: lunes, absences: caso.absences ?? [],
+      versions: oficiales.flatMap(h => (h.replacement ? [h.jornadas,h.replacement] : [h.jornadas]).map((jornadas, i) => ({
+        id: `${h.week}-${i}`, branch_id: sucursalId, week: h.week, cycle_id: idAnterior(h.week),
+        scope: 'offline', state: 'SIMULADA_EFECTIVA', jornadas,
+      }))),
+      segments: tramos.map(t => ({ branch_id: sucursalId, version_id: t.versionId, start: t.desde, effective_end: t.hastaEfectivo })),
+    } : manifiestoHistorial(ctxCiclo, new Map(versiones.flatMap(v => v.semana.horarios.map(h => [h.colaboradorId,h.colaboradorId] as const)))),
     baseline: { jornadas_full: r.jornadas_full, jornadas_part: r.jornadas_part, asignacion_aux: r.asignacion_aux, asignacion_eventual: r.asignacion_eventual },
   }
 }
@@ -121,6 +144,14 @@ it.skipIf(!origen || !destino)('regenera referencias A con los mismos escenarios
     writeFileSync(join(destino!, archivo), JSON.stringify(exportar(caso, i)))
   }
 }, 240_000)
+
+const peticion = process.env.AH2_CICLOS_PETICION
+const respuesta = process.env.AH2_CICLOS_RESPUESTA
+it.skipIf(!peticion || !respuesta)('genera una semana offline a partir de su propio historial efectivo simulado', () => {
+  const { caso, inicio } = JSON.parse(readFileSync(peticion!, 'utf8')) as { caso: Caso; inicio: string }
+  expect(caso.simulated).toBe(true)
+  writeFileSync(respuesta!, JSON.stringify(exportar(caso, 0, inicio)))
+}, 60_000)
 
 const cadena = process.env.AH2_CICLOS_CADENA
 it.skipIf(!origen || !cadena)('ejecuta 16 semanas encadenadas con cuatro ciclos explícitos', () => {

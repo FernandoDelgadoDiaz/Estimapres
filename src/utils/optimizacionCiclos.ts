@@ -1,5 +1,7 @@
-import { asignarIdentidadesV2 } from '../algoritmo/adapter'
-import type { Bloque, Jornada, SesgoTurno } from '../algoritmo/types'
+import { asignarIdentidadesV2, convertirOutputDeV2 } from '../algoritmo/adapter'
+import { evaluarSemanasFullPart } from '../algoritmo/orquestador'
+import { desplazamientosConSobrante } from '../algoritmo/pasada1-fullpart'
+import type { Bloque, Jornada, MetricasCobertura, SesgoTurno } from '../algoritmo/types'
 import { cicloDe, validarCalendario, type CicloPlanificacion } from '../planificacion/ciclos'
 import { esLunes, sumarDias, type Fecha } from '../planificacion/fechas'
 import { historialEfectivo, type ConsultaHistorial, type DiaEfectivo } from '../planificacion/historial'
@@ -25,7 +27,12 @@ export interface ContextoCiclos {
   sucursalId: string
   calendario: readonly CicloPlanificacion[]
   historial: Omit<ConsultaHistorial, 'sucursalId' | 'legadoPresunto'>
+  calidadOffline?: boolean
+  diasSimulados?: readonly DiaSimulado[]
 }
+
+export type DiaSimulado = Omit<DiaEfectivo, 'fuente'> & { fuente: 'efectivo-simulado' }
+type DiaHistorico = DiaEfectivo | DiaSimulado
 
 export function prepararCiclo(ctx: ContextoCiclos) {
   if (!esLunes(ctx.lunes) || ctx.calendario.some(c => c.sucursalId !== ctx.sucursalId)) throw Error('Ciclo o sucursal inválidos')
@@ -35,7 +42,9 @@ export function prepararCiclo(ctx: ContextoCiclos) {
   if (!ciclo) throw Error('La semana no pertenece a un ciclo explícito')
   const h = historialEfectivo({ ...ctx.historial, sucursalId: ctx.sucursalId })
   if (!h.ok) throw Error('Historial efectivo inválido')
-  const historia = h.valor.filter(d => d.fuente === 'oficial' && d.fecha < ctx.lunes)
+  if (ctx.diasSimulados && (ctx.historial.versiones.length || ctx.historial.tramos.length)) throw Error('Historial real y simulado son excluyentes')
+  const historia = ctx.diasSimulados?.filter(d => d.fecha < ctx.lunes)
+    ?? h.valor.filter(d => d.fuente === 'oficial' && d.fecha < ctx.lunes)
   const referencia = ctx.lunes === ciclo.inicio ? cicloDe(c.valor, sumarDias(ciclo.inicio, -1)) : ciclo
   return {
     rotacion: ctx.lunes === ciclo.inicio,
@@ -46,7 +55,7 @@ export function prepararCiclo(ctx: ContextoCiclos) {
   }
 }
 
-function observaciones(dias: DiaEfectivo[], lunes: Fecha, rotacion: boolean) {
+function observaciones(dias: DiaHistorico[], lunes: Fecha, rotacion: boolean) {
   const patrones = new Map<string, Bloque[]>()
   const conteos = new Map<string, Conteo>()
   for (const d of dias) {
@@ -64,7 +73,7 @@ function observaciones(dias: DiaEfectivo[], lunes: Fecha, rotacion: boolean) {
   return { patrones, conteos }
 }
 
-export function medirCiclo(jornadas: Record<string, Jornada[]>, historia: DiaEfectivo[], lunes: Fecha, rotacion: boolean) {
+export function medirCiclo(jornadas: Record<string, Jornada[]>, historia: DiaHistorico[], lunes: Fecha, rotacion: boolean) {
   const { patrones, conteos } = observaciones(historia, lunes, rotacion)
   let mediasHorasCambiadas = 0
   let cambiosClase = 0
@@ -85,6 +94,28 @@ export function medirCiclo(jornadas: Record<string, Jornada[]>, historia: DiaEfe
     }
   }
   return { mediasHorasCambiadas, cambiosClase, cambiosFranco, repeticion }
+}
+
+const total = (m: number[][]) => m.flat().reduce((x, y) => x + y, 0)
+const preservaCobertura = (base: MetricasCobertura, propuesta: MetricasCobertura) =>
+  propuesta.deficit_por_slot.every((fila, d) => fila.every((n, s) => n <= base.deficit_por_slot[d][s]))
+
+function refinarSobrantes(e: EntradaMultiArranque, referencia: ReturnType<typeof generarConMultiArranque>) {
+  const original = referencia.resultadoV2
+  const semanas = { ...original.jornadas_full, ...original.jornadas_part }
+  let mejor = referencia
+  // Una vecindad por semana, sin tocar el catálogo ni las horas de nadie.
+  for (const jornada of desplazamientosConSobrante(e.input, semanas, original.metricas.exceso_por_slot)) {
+    const candidata = evaluarSemanasFullPart(e.input, {
+      ...semanas, [jornada.colab_id]: semanas[jornada.colab_id].map(j => j.dia === jornada.dia ? jornada : j),
+    })
+    const anterior = mejor.resultadoV2.metricas
+    if (!preservaCobertura(anterior, candidata.metricas) ||
+        total(candidata.metricas.exceso_por_slot) >= total(anterior.exceso_por_slot)) continue
+    const salida = { ...mejor, resultadoV2: candidata, resultado: convertirOutputDeV2(candidata, e.cajeros, e.auxiliares, e.eventuales) }
+    if (referenciaValidada(e, salida)) mejor = salida
+  }
+  return mejor
 }
 
 export function generarConCiclo(e: EntradaMultiArranque, ctx: ContextoCiclos) {
@@ -116,12 +147,15 @@ export function generarConCiclo(e: EntradaMultiArranque, ctx: ContextoCiclos) {
     }))])), ciclo.historia, ctx.lunes, ciclo.rotacion)
   const antes = medir(referencia)
   const referenciaElegible = referenciaValidada(e, referencia)
-  if (!patrones.size) return { ...referencia, elegibleHibrido: referenciaElegible, ciclo: { id: ciclo.cicloId, aplicada: false, antes, despues: antes } }
+  const finalizar = (r: typeof referencia, valida: boolean, aplicada: boolean) => {
+    const salida = valida && ctx.calidadOffline ? refinarSobrantes(e, r) : r
+    return { ...salida, elegibleHibrido: valida, ciclo: { id: ciclo.cicloId, aplicada, antes, despues: medir(salida) } }
+  }
+  if (!patrones.size) return finalizar(referencia, referenciaElegible, false)
   const alternativa = generarConMultiArranque({ ...e, input: { ...e.input, preferencias_turno: preferencias } })
   const a = referencia.resultadoV2.metricas, b = alternativa.resultadoV2.metricas
-  const total = (m: number[][]) => m.flat().reduce((x, y) => x + y, 0)
   const valido = referenciaValidada(e, alternativa)
-  const protegida = b.deficit_por_slot.every((fila, d) => fila.every((n, s) => n <= a.deficit_por_slot[d][s])) &&
+  const protegida = preservaCobertura(a, b) &&
     total(b.exceso_por_slot) <= total(a.exceso_por_slot)
   const despues = medir(alternativa)
   const mejorCiclo = ciclo.rotacion ? despues.repeticion < antes.repeticion
@@ -130,7 +164,7 @@ export function generarConCiclo(e: EntradaMultiArranque, ctx: ContextoCiclos) {
   const aplicada = valido && (!referenciaElegible || (protegida &&
     (total(b.deficit_por_slot) < total(a.deficit_por_slot) ||
     total(b.exceso_por_slot) < total(a.exceso_por_slot) || mejorCiclo)))
-  return { ...(aplicada ? alternativa : referencia), elegibleHibrido: aplicada || referenciaElegible, ciclo: { id: ciclo.cicloId, aplicada, antes, despues: aplicada ? despues : antes } }
+  return finalizar(aplicada ? alternativa : referencia, aplicada || referenciaElegible, aplicada)
 }
 
 /** Un borrador puede seguir visible en A, pero jamás pasa como respaldo válido a B. */

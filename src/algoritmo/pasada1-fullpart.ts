@@ -875,3 +875,31 @@ export function* desplazamientosCierre(
     }
   }
 }
+
+/** Vecindad offline: misma duración y composición, en el catálogo de ese día. */
+export function* desplazamientosConSobrante(
+  input: InputAlgoritmo, semanas: Record<string, Jornada[]>, exceso: number[][],
+): Generator<Jornada> {
+  const pre = Array.from({ length: 7 }, () => Array<number>(31).fill(0))
+  const excepciones = input.excepciones ?? []
+  for (const colab of input.colaboradores) {
+    if (colab.rol !== 'FULL' && colab.rol !== 'PART') continue
+    const sesgo = normalizarSesgo(input.preferencias_turno?.[colab.id])
+    for (const jornada of semanas[colab.id] ?? []) {
+      const { bloques, dia } = jornada
+      if (!bloques.length) continue
+      const desplazamientos = [-1, 1].filter(delta => bloques.some(b =>
+        exceso[dia][delta === 1 ? b.slot_inicio : b.slot_fin - 1] > 0))
+      if (!desplazamientos.length) continue
+      const catalogo = colab.rol === 'FULL'
+        ? candidatosDiaFull(colab, dia, pre, excepciones, false, 0, sesgo, input.apertura_solo_aux ?? true)
+        : candidatosDiaPart(colab, dia, pre, excepciones, false, 0, sesgo)
+      for (const delta of desplazamientos) {
+        const eraManana = bloques.length === 1 && bloques[0].slot_inicio <= 6
+        const vecino = catalogo.find(c => c.es_manana === eraManana && c.bloques.length === bloques.length && c.bloques.every((b, i) =>
+          b.slot_inicio === bloques[i].slot_inicio + delta && b.slot_fin === bloques[i].slot_fin + delta))
+        if (vecino) yield { ...jornada, bloques: vecino.bloques }
+      }
+    }
+  }
+}
