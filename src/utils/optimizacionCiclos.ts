@@ -115,20 +115,22 @@ export function generarConCiclo(e: EntradaMultiArranque, ctx: ContextoCiclos) {
       bloques: j.turnos.map(t => ({ slot_inicio: (minutos(t.inicio) - 480) / 30, slot_fin: (minutos(t.fin) - 480) / 30 })),
     }))])), ciclo.historia, ctx.lunes, ciclo.rotacion)
   const antes = medir(referencia)
-  if (!patrones.size) return { ...referencia, elegibleHibrido: referenciaValidada(e, referencia), ciclo: { id: ciclo.cicloId, aplicada: false, antes, despues: antes } }
+  const referenciaElegible = referenciaValidada(e, referencia)
+  if (!patrones.size) return { ...referencia, elegibleHibrido: referenciaElegible, ciclo: { id: ciclo.cicloId, aplicada: false, antes, despues: antes } }
   const alternativa = generarConMultiArranque({ ...e, input: { ...e.input, preferencias_turno: preferencias } })
   const a = referencia.resultadoV2.metricas, b = alternativa.resultadoV2.metricas
   const total = (m: number[][]) => m.flat().reduce((x, y) => x + y, 0)
   const valido = referenciaValidada(e, alternativa)
-  const protegida = valido &&
-    b.deficit_por_slot.every((fila, d) => fila.every((n, s) => n <= a.deficit_por_slot[d][s])) &&
+  const protegida = b.deficit_por_slot.every((fila, d) => fila.every((n, s) => n <= a.deficit_por_slot[d][s])) &&
     total(b.exceso_por_slot) <= total(a.exceso_por_slot)
   const despues = medir(alternativa)
   const mejorCiclo = ciclo.rotacion ? despues.repeticion < antes.repeticion
     : despues.mediasHorasCambiadas < antes.mediasHorasCambiadas
-  const aplicada = protegida && (total(b.deficit_por_slot) < total(a.deficit_por_slot) ||
-    total(b.exceso_por_slot) < total(a.exceso_por_slot) || mejorCiclo)
-  return { ...(aplicada ? alternativa : referencia), elegibleHibrido: aplicada || referenciaValidada(e, referencia), ciclo: { id: ciclo.cicloId, aplicada, antes, despues: aplicada ? despues : antes } }
+  // Una referencia inválida no fija cotas de calidad para un horario válido.
+  const aplicada = valido && (!referenciaElegible || (protegida &&
+    (total(b.deficit_por_slot) < total(a.deficit_por_slot) ||
+    total(b.exceso_por_slot) < total(a.exceso_por_slot) || mejorCiclo)))
+  return { ...(aplicada ? alternativa : referencia), elegibleHibrido: aplicada || referenciaElegible, ciclo: { id: ciclo.cicloId, aplicada, antes, despues: aplicada ? despues : antes } }
 }
 
 /** Un borrador puede seguir visible en A, pero jamás pasa como respaldo válido a B. */

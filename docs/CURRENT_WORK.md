@@ -4,6 +4,7 @@
 
 - Rama `feat/ah2-hibrido-offline`, base exacta #55 `8585a734aa7d85d608aacf9b65f91ac1fe8e95bc`, #54 y PR productivos intactos.
 - Se agregó preferencia por la forma del bloque y el franco en el ciclo, y acumulación de exposiciones a turnos y fines de semana al salir de un ciclo. El selector conserva la cobertura por media hora y valida las horas individuales exactas antes de proponer el resultado a B (AH2-015/016/020/031/032).
+- Una referencia preliminar inválida no fija cotas para una candidata válida. La prueba de regresión cubre el reemplazo cuando ambas empatan en cobertura.
 - A exporta un manifiesto por sucursal con versiones oficiales, tramos efectivos y ausencias. El domingo previo se resuelve por día antes de generar. B vuelve a resolverlo por separado. El manifiesto distingue planificación vigente de asistencia.
 - El Worker de ciclo es un punto de entrada offline probado con Playwright. Los puntos de entrada productivos no lo invocan. AH2-026 se maneja en la cola de laboratorio del repositorio independiente, sin servicios ni escrituras reales.
 - Regeneración emparejada: `AH2_CICLOS_ORIGEN=/ruta/series200 AH2_CICLOS_DESTINO=/tmp/serie AH2_CICLOS_CADENA=/tmp/cadena npm test -- src/algoritmo/__tests__/benchmark/ciclos.export.test.ts`. La cadena aplica cuatro ciclos de cuatro semanas, variaciones de POM y cambio de dotación. La última referencia válida de A pasa como antecedente común de la semana siguiente.
