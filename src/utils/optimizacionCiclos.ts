@@ -40,7 +40,9 @@ export function prepararCiclo(ctx: ContextoCiclos) {
   return {
     rotacion: ctx.lunes === ciclo.inicio,
     cicloId: ciclo.id,
-    historia: referencia ? historia.filter(d => d.fecha >= referencia.inicio && d.fecha <= referencia.fin) : [],
+    historia: referencia ? historia.filter(d => ctx.lunes === ciclo.inicio
+      ? cicloDe(c.valor, d.fecha) !== null && d.fecha < ciclo.inicio
+      : d.fecha >= referencia.inicio && d.fecha <= referencia.fin) : [],
   }
 }
 
@@ -89,19 +91,22 @@ export function generarConCiclo(e: EntradaMultiArranque, ctx: ContextoCiclos) {
   const ciclo = prepararCiclo(ctx)
   const referencia = generarConMultiArranque(e)
   const { patrones, conteos } = observaciones(ciclo.historia, ctx.lunes, ciclo.rotacion)
-  const ids = asignarIdentidadesV2([...e.cajeros, ...e.auxiliares, ...e.eventuales]).v2PorUi
-  const preferencias = Object.fromEntries(e.cajeros.map(({ id }) => {
+  const cajeros = e.cajeros.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
+  const ids = asignarIdentidadesV2([...cajeros, ...e.auxiliares.filter(a => a.activo), ...e.eventuales.filter(v => v.activo)]).v2PorUi
+  const preferencias = Object.fromEntries(cajeros.map(({ id }) => {
     const porDia: NonNullable<SesgoTurno['porDia']> = {}
     for (let dia = 0; dia < 7; dia++) {
       const previa = patrones.get(`${id}|${dia}`)
       const c = conteos.get(id)
-      if (!ciclo.rotacion && previa) porDia[dia] = { [clase(previa)]: 12 }
+      if (!ciclo.rotacion && previa) porDia[dia] = { [clase(previa)]: 8, patron: previa }
       else if (ciclo.rotacion && c) {
         const maximo = Math.max(1, ...clases.map(k => c[k]))
-        porDia[dia] = Object.fromEntries(clases.map(k => [k, -(12 * c[k]) / maximo]))
+        porDia[dia] = { ...Object.fromEntries(clases.map(k => [k, -(12 * c[k]) / maximo])),
+          trabajo: dia >= 5 ? -(12 * c.finSemana) / Math.max(maximo, c.finSemana) : 0 }
       }
     }
-    return [ids.get(id), { porDia }]
+    const motorId = ids.get(id)!
+    return [motorId, { ...e.input.preferencias_turno?.[motorId], porDia }]
   }))
   const medir = (r: typeof referencia) => medirCiclo(Object.fromEntries(r.resultado.horarios
     .filter(h => h.rolGeneral === 'cajero')
@@ -110,20 +115,28 @@ export function generarConCiclo(e: EntradaMultiArranque, ctx: ContextoCiclos) {
       bloques: j.turnos.map(t => ({ slot_inicio: (minutos(t.inicio) - 480) / 30, slot_fin: (minutos(t.fin) - 480) / 30 })),
     }))])), ciclo.historia, ctx.lunes, ciclo.rotacion)
   const antes = medir(referencia)
-  if (!patrones.size) return { ...referencia, ciclo: { id: ciclo.cicloId, aplicada: false, antes, despues: antes } }
+  const referenciaElegible = referenciaValidada(e, referencia)
+  if (!patrones.size) return { ...referencia, elegibleHibrido: referenciaElegible, ciclo: { id: ciclo.cicloId, aplicada: false, antes, despues: antes } }
   const alternativa = generarConMultiArranque({ ...e, input: { ...e.input, preferencias_turno: preferencias } })
   const a = referencia.resultadoV2.metricas, b = alternativa.resultadoV2.metricas
   const total = (m: number[][]) => m.flat().reduce((x, y) => x + y, 0)
-  const horas = new Map(referencia.resultado.horarios.map(h => [h.colaboradorId, h.totalHoras]))
-  const valido = validarResultadoSemana(alternativa.resultado, e.cajeros, e.auxiliares, e.eventuales, e.contexto).publicable
-  const protegida = valido && alternativa.resultado.horarios.filter(h => horas.has(h.colaboradorId) && h.rolGeneral === 'cajero')
-    .every(h => h.totalHoras === horas.get(h.colaboradorId)) &&
-    b.deficit_por_slot.every((fila, d) => fila.every((n, s) => n <= a.deficit_por_slot[d][s])) &&
+  const valido = referenciaValidada(e, alternativa)
+  const protegida = b.deficit_por_slot.every((fila, d) => fila.every((n, s) => n <= a.deficit_por_slot[d][s])) &&
     total(b.exceso_por_slot) <= total(a.exceso_por_slot)
   const despues = medir(alternativa)
   const mejorCiclo = ciclo.rotacion ? despues.repeticion < antes.repeticion
     : despues.mediasHorasCambiadas < antes.mediasHorasCambiadas
-  const aplicada = protegida && (total(b.deficit_por_slot) < total(a.deficit_por_slot) ||
-    total(b.exceso_por_slot) < total(a.exceso_por_slot) || mejorCiclo)
-  return { ...(aplicada ? alternativa : referencia), ciclo: { id: ciclo.cicloId, aplicada, antes, despues: aplicada ? despues : antes } }
+  // Una referencia inválida no fija cotas de calidad para un horario válido.
+  const aplicada = valido && (!referenciaElegible || (protegida &&
+    (total(b.deficit_por_slot) < total(a.deficit_por_slot) ||
+    total(b.exceso_por_slot) < total(a.exceso_por_slot) || mejorCiclo)))
+  return { ...(aplicada ? alternativa : referencia), elegibleHibrido: aplicada || referenciaElegible, ciclo: { id: ciclo.cicloId, aplicada, antes, despues: aplicada ? despues : antes } }
+}
+
+/** Un borrador puede seguir visible en A, pero jamás pasa como respaldo válido a B. */
+export function referenciaValidada(e: EntradaMultiArranque, r: ReturnType<typeof generarConMultiArranque>): boolean {
+  if (!validarResultadoSemana(r.resultado, e.cajeros, e.auxiliares, e.eventuales, e.contexto).publicable) return false
+  const horas = new Map(r.resultado.horarios.map(h => [h.colaboradorId, h.totalHoras]))
+  return e.cajeros.filter(c => c.tipo === 'FULL' || c.tipo === 'PART').every(c =>
+    c.tipo === 'FULL' ? horas.get(c.id) === 48 : c.horasSemanales != null && horas.get(c.id) === c.horasSemanales)
 }
