@@ -65,6 +65,8 @@ export interface InputAlgoritmo {
   max_bloques_caja_eventual_dia?: number;
   eventuales_caja_hora_limite?: string;
   demanda: MatrizDemanda;
+  /** Inicio mínimo del lunes (slots desde 08:00) por ID INTERNO del motor, derivado del domingo confirmado. */
+  inicio_minimo_lunes_por_colaborador?: Record<string, number>;
   colaboradores: Colaborador[];
   presencia_aux: Record<string, MatrizPresencia>;        // key = colab_id con rol=AUX
   disponibilidad_eventual: Record<string, MatrizDisponibilidad>; // key = colab_id con rol=EVENTUAL
