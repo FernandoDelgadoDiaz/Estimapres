@@ -12,6 +12,7 @@ import { aplicarEdicionConRecalculo } from '../hooks/useAsignacion'
 import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas } from '../utils/preferencias'
 import { generarPDF } from '../utils/exportPDF'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
+import { leerAntecedenteDomingo } from '../utils/antecedenteDomingo'
 import { getSucursalActual } from '../utils/sucursal'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
@@ -78,12 +79,22 @@ export default function UltimoHorarioPage() {
     cumplimientoHoras: ultimaSemana.cumplimientoHoras,
   } : null, [ultimaSemana])
 
+  const antecedenteDomingo = useMemo(() => {
+    if (!ultimaSemana?.antecedenteDomingo) return undefined
+    try {
+      return leerAntecedenteDomingo(ultimaSemana.antecedenteDomingo, ultimaSemana.fechaLunes, colaboradoresActivos, getSucursalActual())
+    } catch {
+      return undefined
+    }
+  }, [ultimaSemana, colaboradoresActivos])
+
   // #38: semanas históricas sin los datos necesarios → nunca VALIDADO; se explica qué falta.
   const limitaciones = useMemo(() => !ultimaSemana ? [] : [
+    !antecedenteDomingo && 'No hay antecedente dominical verificable para esta fecha, sucursal y dotación.',
     !ultimaSemana.configOperativa && 'La semana no registró su configuración operativa: se revisó con las reglas vigentes hoy.',
     !ultimaSemana.disponibilidadSemana && 'La semana no registró la disponibilidad resuelta de AUX y eventuales: no se puede verificar que los eventuales estén dentro de su disponibilidad.',
     !ultimaSemana.necesidadFranjas && 'La demanda del POM no se guardó: se reconstruyó en forma aproximada desde la cobertura.',
-  ].filter((x): x is string => !!x), [ultimaSemana])
+  ].filter((x): x is string => !!x), [ultimaSemana, antecedenteDomingo])
 
   // #38: validación COMPLETA (no solo horas) tras cada edición y antes de exportar.
   const validacion = useMemo(() => {
@@ -100,12 +111,13 @@ export default function UltimoHorarioPage() {
         operativa,
         omitirDisponibilidadEventual: !disp,
         limitaciones,
+        finDomingoAnteriorPorId: antecedenteDomingo?.finPorId,
         // #7: cada semana se valida con el perfil de horas con que se generó: sin id →
         // histórico (PART ≤ 31 h); id desconocido → limitación, nunca VALIDADO.
         perfilHorasId: ultimaSemana.perfilHorasId,
       },
     )
-  }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])
+  }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones, antecedenteDomingo])
   const avisosHoras = validacion?.advertencias ?? []
 
   // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el

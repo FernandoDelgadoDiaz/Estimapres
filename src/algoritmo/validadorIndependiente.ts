@@ -108,6 +108,8 @@ export interface EntradaValidacion {
   cajaEventual?: AsignacionCajaColaborador[]
   /** Horarios de la semana anterior (para 12 h domingo → lunes). */
   semanaAnterior?: HorarioColaborador[]
+  /** Salida efectiva del domingo anterior, importada sin usar simulaciones. null = franco. */
+  finDomingoAnteriorPorId?: Record<string, string | null>
   /**
    * #38 — Estado EFECTIVO de las reglas operativas de la sucursal con el que se
    * generó/edita la semana. Si se informa, se validan como reglas obligatorias:
@@ -201,7 +203,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
 
     if (persona.contrato === 'FULL' || persona.contrato === 'PART') {
       validarContrato(v, h.colaboradorId, nombre, dias, e.perfil.contratos[persona.contrato], persona.contrato)
-      validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior)
+      validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior, e.finDomingoAnteriorPorId)
       validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorNombre === nombre))
     }
   }
@@ -287,13 +289,19 @@ function validarContrato(
 
 function validarDescanso(
   v: Violacion[], id: string, nombre: string, dias: (Bloque[] | null)[], horas: number, semanaAnterior?: HorarioColaborador[],
+  finDomingoAnteriorPorId?: Record<string, string | null>,
 ) {
   // Fin del domingo anterior, si existe
   let finPrevio: number | null = null
-  const prev = semanaAnterior?.find(h => h.colaboradorId === id)
-  if (prev) {
-    const dom = jornadasPorDia(prev)[6]
-    if (dom && dom.length) finPrevio = dom[dom.length - 1].fin - 1440 // relativo al lunes 00:00
+  if (finDomingoAnteriorPorId && Object.prototype.hasOwnProperty.call(finDomingoAnteriorPorId, id)) {
+    const fin = finDomingoAnteriorPorId[id]
+    if (fin !== null) finPrevio = min(fin) - 1440 // relativo al lunes 00:00
+  } else {
+    const prev = semanaAnterior?.find(h => h.colaboradorId === id)
+    if (prev) {
+      const dom = jornadasPorDia(prev)[6]
+      if (dom && dom.length) finPrevio = dom[dom.length - 1].fin - 1440
+    }
   }
   for (let d = 0; d < 7; d++) {
     const b = dias[d]

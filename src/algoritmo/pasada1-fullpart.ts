@@ -109,7 +109,7 @@ function sesgoDeJornada(bloques: Bloque[], sesgo: SesgoTurno, dia: number): numb
 
 // ============== FUNCIÓN PRINCIPAL ==============
 
-export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
+export function ejecutarPasada1(input: InputAlgoritmo, reoptimizar = true): ResultadoPasada1 {
   const fulls = input.colaboradores.filter(c => c.rol === "FULL");
   const parts = input.colaboradores.filter(c => c.rol === "PART");
   const excepciones = input.excepciones ?? [];
@@ -141,12 +141,14 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
   for (const colab of orden) {
     const semilla = input.semillas?.[colab.id];
     if (!semilla) continue;
+    const minimoLunes = input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0;
+    if (semilla.some(j => j.dia === 0 && j.bloques.length > 0 && j.bloques[0].slot_inicio < minimoLunes)) continue;
     aplicarSemana(semilla, cobertura, francos_full, francos_part, colab.rol === "FULL");
     semanas.set(colab.id, semilla);
   }
 
   const t0 = Date.now();
-  for (let pasada = 0; pasada < MAX_PASADAS; pasada++) {
+  for (let pasada = 0; reoptimizar && pasada < MAX_PASADAS; pasada++) {
     let cambios = 0;
     for (const colab of orden) {
       if (pasada > 0 && Date.now() - t0 > PRESUPUESTO_MS) break;
@@ -161,8 +163,8 @@ export function ejecutarPasada1(input: InputAlgoritmo): ResultadoPasada1 {
       const pre = prefijosUtilidad(demanda, cobertura, pesosEfectivos);
       const contrato = contratoPart(input, colab.id);
       const nueva = es_full
-        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos)
-        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, contrato, PEN_HORA);
+        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos, input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0)
+        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, contrato, PEN_HORA, input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0);
       const penal = (sem: Jornada[]) => (es_full ? 0 : penalizacionHoras(sem, contrato, PEN_HORA));
 
       let elegida: Jornada[] | null = previa;
@@ -589,7 +591,8 @@ function optimizarSemanaFull(
   sesgo: SesgoTurno,
   cap_francos: number,
   aperturaSoloAux: boolean,
-  francoMedioCorridos: boolean
+  francoMedioCorridos: boolean,
+  inicioMinimoLunes = 0,
 ): Jornada[] | null {
   const cands_por_dia: Candidato[][] = [];
   for (let d = 0; d < 7; d++) {
@@ -603,7 +606,7 @@ function optimizarSemanaFull(
         PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
         sesgo,
         aperturaSoloAux
-      )
+      ).filter(c => d !== 0 || c.item === -1 || c.inicio >= inicioMinimoLunes)
     );
   }
 
@@ -711,7 +714,8 @@ function optimizarSemanaPart(
   sesgo: SesgoTurno,
   cap_francos: number,
   contrato: ContratoSlots = { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO },
-  penHora: number = PENALIZACION_HORA_FALTANTE
+  penHora: number = PENALIZACION_HORA_FALTANTE,
+  inicioMinimoLunes = 0,
 ): Jornada[] | null {
   const MAX_SLOTS_PART = Math.max(0, Math.floor(contrato.maximoSlots));
   const OBJETIVO = contrato.objetivoSlots === null ? 0 : Math.min(MAX_SLOTS_PART, Math.max(0, Math.floor(contrato.objetivoSlots)));
@@ -727,7 +731,7 @@ function optimizarSemanaPart(
         francos_full[d] + francos_part[d] < cap_francos,
         PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
         sesgo
-      )
+      ).filter(c => d !== 0 || c.item === -1 || c.inicio >= inicioMinimoLunes)
     );
   }
 
@@ -831,4 +835,31 @@ export function generarJornadasFullPart(
     jornadas_full: resultado.jornadas_full,
     jornadas_part: resultado.jornadas_part,
   };
+}
+
+/** Desplazamientos de media hora del último bloque, construidos con los catálogos vigentes. */
+export function* desplazamientosCierre(
+  input: InputAlgoritmo, semanas: Record<string, Jornada[]>, deficit: number[][], limite: number,
+): Generator<Jornada> {
+  const pre = Array.from({ length: 7 }, () => Array<number>(31).fill(0));
+  for (const colab of input.colaboradores) {
+    if (colab.rol !== "FULL" && colab.rol !== "PART") continue;
+    const sesgo = normalizarSesgo(input.preferencias_turno?.[colab.id]);
+    for (const jornada of semanas[colab.id] ?? []) {
+      const { dia, bloques } = jornada;
+      const ultimo = bloques[bloques.length - 1];
+      if (!ultimo || ultimo.slot_fin < limite || !deficit[dia][ultimo.slot_fin]) continue;
+      // La mañana, el franco, la duración y la composición se conservan.
+      if (bloques.length === 1 && ultimo.slot_inicio <= 6) continue;
+      const excepciones = input.excepciones ?? [];
+      const catalogo = colab.rol === "FULL"
+        ? candidatosDiaFull(colab, dia, pre, excepciones, false, 0, sesgo, input.apertura_solo_aux ?? true)
+        : candidatosDiaPart(colab, dia, pre, excepciones, false, 0, sesgo);
+      const compatible = catalogo.find(c => c.bloques.length === bloques.length && c.bloques.every((b, i) => {
+        const delta = i === bloques.length - 1 ? 1 : 0;
+        return b.slot_inicio === bloques[i].slot_inicio + delta && b.slot_fin === bloques[i].slot_fin + delta;
+      }));
+      if (compatible) yield { ...jornada, bloques: compatible.bloques };
+    }
+  }
 }

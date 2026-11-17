@@ -1,6 +1,64 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — límites de caja de eventuales · 2026-11-16
+## PUNTO ÚNICO DE RETOMA — domingo programado y modo prueba (PR #53) · 2026-11-17
+
+- Base `a7006e48476226976d8b698881ac5274eb568a7d`. Auditoría de CI 66: las cinco fallas de navegador esperaban historial automático o VALIDADO sin antecedente. Se conservaron los recorridos con confirmación explícita donde corresponde y se añadió cobertura del caso sin antecedente.
+- Las salidas programadas se confirman en pantalla por cajero, o mediante JSON con sucursal, fecha e IDs completos. Nunca se toma la última versión del historial automáticamente. El motor y la verificación independiente comparten los límites.
+- Correcciones sin semana guardada son transitorias, aun en borrador operativo rechazado. PDF muestra marca de prueba/borrador. Al guardar un resultado operativo se registra el antecedente en el JSON existente, para auditar una reapertura. No se reescribieron históricos. Rotación y correcciones automáticas se limitan a registros de este flujo con procedencia registrada.
+- Sucursal 091: consulta SELECT confirmó 8/8 IDs y salidas contra la dotación activa (4 FULL de 48 h y 4 PART de 32 h). El antecedente del 22/11 es programado, aplicable solo a semana que empieza el 23/11. AUX y eventuales mantienen sus patrones.
+- Sin POM del 23–29 en las entradas verificadas, queda pendiente la generación operativa de esa semana. Rollback de aplicación: conservar el deploy productivo vigente de Aliada antes de autorizar cambios, y usar Publish deploy sobre ese deploy si hay que revertir. Identificar y verificar el ID en Netlify antes de una publicación. Sin migraciones ni escrituras productivas.
+
+### Validación conjunta de #52 y #53
+
+La integración conserva el selector de cierre y aplica el límite del lunes al generar y validar. Conflicto documental resuelto conservando ambas evidencias. Los PR originales mantienen sus bases.
+
+- A/B repetido con 406 h-caja del 16–22, bajo los mismos supuestos de la prueba anterior. Ensayo controlado del selector: 97,54 % → 98,15 %, faltantes 10 → 7,5 h-caja, cierre 3 → 0,5 h-caja, cero sobrantes y cero infracciones observables. Con la limitación del domingo 15 declarada al selector, el flujo real conserva 97,54 % en ambos casos. La limitación también fue registrada al auditar independientemente ambos ensayos.
+- Semana del 23–29: antecedente del 22 confirmado solo como restricción programada. Las salidas de 22:00 y 22:30 implican entradas no anteriores a 10:00 y 10:30 respectivamente. La POM del 23–29 sigue pendiente. No reutilizar la del 16–22.
+- Rollback de Aliada identificado por lectura de Netlify: deploy publicado y fijado `6afba0e1c0b8e64caa476f2c`, commit `a7006e48476226976d8b698881ac5274eb568a7d`. Conservarlo y republicarlo manualmente si fuera necesario después de una publicación autorizada.
+
+## Evidencia del PR #52 — cobertura de cierre FULL/PART · 2026-11-17
+
+- Rama `feat/ah2-cobertura-cierre`, base de `main` verificada `a7006e48476226976d8b698881ac5274eb568a7d` (#51).
+- V9 (planificación experimental de 091, semana 16–22/11): su PDF dice VALIDADO. La grilla exportada contiene 31 franjas, 406 h-caja, 12 faltantes y 0 sobrantes: 97,04 %. La última media hora tiene una caja faltante los siete días (3,5 h-caja). El PDF no certifica el snapshot de generación ni el domingo anterior efectivo. Faltan acreditar fichas vigentes, disponibilidades de entrada, excepciones, reglas, sesgos y pesos e historial original. V8/V9 tampoco acreditan turnos trabajados.
+- Causa demostrada en el código previo: pasada 1 calcula utilidad contra demanda bruta y su propia cobertura. Pasadas 2/3 conocen disponibilidad y cortes, pero no retroalimentan la planificación FULL/PART. El selector previo mira déficit total y sobrantes, sin objetivo específico de cierre. Causa del resultado V9 sin aislar hasta reproducir su entrada.
+- Refinamiento: al finalizar la búsqueda normal, con un corte configurado y déficit posterior al corte, se exploran desplazamientos de 30 minutos del último bloque FULL/PART, con los catálogos y excepciones de la pasada 1. Cada propuesta vuelve a ejecutar AUX y eventuales con demanda y reglas intactas. Se exige validación independiente, mismas horas por persona, objetivo PART exacto si existe, ningún aumento de déficit en ninguna franja ni de sobrantes semanales y mejora efectiva de cierre. Se conservan categoría de mañana, días de franco y composición. Se conserva el resultado normal si no hay mejora y se respeta el presupuesto del multi-arranque.
+- Archivos de motor: `src/algoritmo/{pasada1-fullpart,orquestador}.ts` y `src/utils/generacionMultiArranque.ts`. Pruebas y benchmark reproducible: `src/algoritmo/__tests__/cobertura-cierre.test.ts`. Sin cambios de configuración, Prestify, BD, producción o reglas de 091.
+
+### Comparación A/B controlada
+
+Fixture sintético existente (no equivale a V9), demanda 406 h-caja, 4 FULL de 48 h, 5 PART de 32 h, 3 AUX, 3 eventuales, máximo dos bloques de caja por eventual y corte 22:00. Domingo anterior sintético con fin a las 20:00; una prueba separada verifica el rechazo con descanso insuficiente. A omite exclusivamente el nuevo refinamiento. B lo ejecuta sobre la misma entrada.
+
+| Indicador | A | B |
+|---|---:|---:|
+| Cobertura | 98,03 % | 98,15 % |
+| Faltantes h-caja | 8 | 7,5 |
+| Sobrantes h-caja | 2 | 2 |
+| Faltante 22:00–22:30 (h-caja) | 2,5 | 2 |
+| Picos diarios (82,5 h-caja) | 100 % | 100 % |
+| Infracciones del validador | 0 | 0 |
+| Mediana en Node (cinco pares alternados) | 335 ms | 364 ms |
+
+Refinamiento p50: 63 ms. Tiempos de una máquina, con preparación previa, sin extrapolar a producción. Ambos resultados conservaron objetivo individual, descansos y francos en el fixture, límite de bloques, ausencia de AUX/eventuales en caja al cierre y consistencia entre cobertura, validación y PDF. Las franjas de 19:00–21:00 quedaron sin faltantes en ambos.
+
+Faltantes en cajas por día y media hora. Valor único significa A = B; franjas omitidas tienen cero en ambas.
+
+| Desde | Lun | Mar | Mié | Jue | Vie | Sáb | Dom |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 08:00 | 0 | 0 | 0 | 0 | 1 | 1 | 0 |
+| 08:30 | 0 | 0 | 0 | 0 | 1 | 1 | 0 |
+| 09:00 | 0 | 0 | 0 | 0 | 0 | 2 | 0 |
+| 09:30 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| 10:00 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| 10:30 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| 14:00 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| 14:30 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| 22:00 | 0 | 1 | 0 | 0 | 1 → 0 | 2 | 1 |
+
+Reproducir en Node mediante `AH2_CIERRE_RESULTADOS=/tmp/cierre.json npm test -- src/algoritmo/__tests__/cobertura-cierre.test.ts`. TypeScript y build local aprobados. Vitest local: 451 aprobadas, 4 omitidas. Chromium local abortó al crear un socket de proceso; consultar el check browser del PR.
+
+Siguiente paso: validar A/B con el snapshot privado exacto V9 o con un snapshot de la próxima semana y su domingo anterior real, sin guardar semanas. Mantener el motor productivo mientras no se confirme el impacto en 091.
+
+## Registro anterior — límites de caja de eventuales · 2026-11-16
 
 - Rama `feat/ah2-reglas-caja-eventuales`, base verificada `3b74d9c3102124abf8c6f77d45154ee2f76ae786`. El historial anterior queda debajo.
 - Implementación en la pasada 3, adaptación de entrada, gestión y revisiones por sucursal, snapshot semanal, recálculo tras edición y validador independiente. Sin valores por defecto para ambas reglas. Una edición manual incompatible queda informada por la validación. Cambios y pruebas en el diff de la rama.

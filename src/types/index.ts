@@ -190,6 +190,7 @@ export interface SemanaHistorial {
   // fecha) por id de AUX/eventual, mismo formato que horarioSemanal. Permite
   // revalidar presencia/disponibilidad tras ediciones y antes de exportar.
   disponibilidadSemana?: Record<string, string[]>
+  antecedenteDomingo?: import('../utils/antecedenteDomingo').AntecedenteDomingo
   // #38: celdas de eventuales fijadas a mano ("id|día").
   eventualesFijos?: string[]
   // #7: perfil de horas por contrato con que se generó (contratos.ts). Ausente en

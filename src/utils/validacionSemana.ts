@@ -13,6 +13,8 @@ export interface ContextoValidacionSemana {
   maxFrancosDia?: number
   minimosCajeros?: MinimoFranja[]
   semanaAnterior?: HorarioColaborador[]
+  /** Alternativa explícita: salida del domingo REAL, por ID; null equivale a franco. */
+  finDomingoAnteriorPorId?: Record<string, string | null>
   perfil?: PerfilNormativo
   huecosSupervision?: HuecoSupervision[]
   /**
@@ -81,6 +83,7 @@ export function validarResultadoSemana(
     cajaAux: resultado.cajaAux,
     cajaEventual: resultado.cajaEventual,
     semanaAnterior: ctx.semanaAnterior,
+    finDomingoAnteriorPorId: ctx.finDomingoAnteriorPorId,
     operativa: operativaEfectiva(ctx.operativa),
   })
   const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales, perfil.perfilHorasId)

@@ -50,6 +50,7 @@ function sanitizarTexto(texto: string): string {
 
 /** Identificación del documento y resultado de la validación, si está disponible. */
 export interface MetaPDF {
+  marcaNoGuardado?: string
   sucursal?: string
   /** 7 fechas yyyy-MM-dd (lunes→domingo). */
   fechas?: string[]
@@ -222,6 +223,7 @@ export function generarPDF(
     meta.sucursal ? `Sucursal ${meta.sucursal}` : null,
     fechas ? `Semana ${fechaAR(fechas[0])} al ${fechaAR(fechas[6])}` : null,
     meta.version !== undefined ? `Versión ${meta.version}` : null,
+    meta.marcaNoGuardado,
   ].filter(Boolean).join('  ·  ')
   const estado = meta.estado?.split(':')[0] ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
 
