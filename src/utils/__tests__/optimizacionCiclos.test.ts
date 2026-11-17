@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { convertirInputAV2 } from '../../algoritmo/adapter'
 import { AUX_S47, CAJEROS_S47, EVENTUALES_S47, OPERATIVA_S47 } from '../../algoritmo/__tests__/fixtures/semana47Anonimizada'
+import { desplazamientosConSobrante } from '../../algoritmo/pasada1-fullpart'
 import type { DiaEfectivo } from '../../planificacion/historial'
 import type { CicloPlanificacion } from '../../planificacion/ciclos'
 import * as multiArranque from '../generacionMultiArranque'
@@ -14,6 +15,16 @@ const calendario: CicloPlanificacion[] = [
 const historial = { desde: '2026-11-02', hasta: '2026-12-06', hoy: '2026-12-07', tramos: [], versiones: [] }
 
 describe('Selección experimental por ciclos', () => {
+  it('conserva la categoría de mañana al desplazar una jornada con exceso', () => {
+    const necesidad = MATRIZ_POM_SINTETICA.map(([hora, necesidad]) => ({ hora, necesidad }))
+    const input = convertirInputAV2(necesidad, CAJEROS_S47, AUX_S47, EVENTUALES_S47, [], OPERATIVA_S47)
+    const cajero = input.colaboradores.find(c => c.rol === 'FULL')!
+    const original = { colab_id: cajero.id, dia: 2 as const, bloques: [{ slot_inicio: 6, slot_fin: 24 }] }
+    const exceso = Array.from({ length: 7 }, () => Array<number>(30).fill(1))
+    const alternativas = [...desplazamientosConSobrante(input, { [cajero.id]: [original] }, exceso)]
+    expect(alternativas.map(j => j.bloques[0].slot_inicio)).toEqual([5])
+  })
+
   it('distingue cambio de ciclo y cambio de mes y aísla sucursales', () => {
     expect(prepararCiclo({ lunes: '2026-11-30', sucursalId: '900', calendario, historial }).rotacion).toBe(false)
     expect(prepararCiclo({ lunes: '2026-12-07', sucursalId: '900', calendario, historial }).rotacion).toBe(true)

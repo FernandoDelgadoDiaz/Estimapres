@@ -895,7 +895,8 @@ export function* desplazamientosConSobrante(
         ? candidatosDiaFull(colab, dia, pre, excepciones, false, 0, sesgo, input.apertura_solo_aux ?? true)
         : candidatosDiaPart(colab, dia, pre, excepciones, false, 0, sesgo)
       for (const delta of desplazamientos) {
-        const vecino = catalogo.find(c => c.bloques.length === bloques.length && c.bloques.every((b, i) =>
+        const eraManana = bloques.length === 1 && bloques[0].slot_inicio <= 6
+        const vecino = catalogo.find(c => c.es_manana === eraManana && c.bloques.length === bloques.length && c.bloques.every((b, i) =>
           b.slot_inicio === bloques[i].slot_inicio + delta && b.slot_fin === bloques[i].slot_fin + delta))
         if (vecino) yield { ...jornada, bloques: vecino.bloques }
       }
