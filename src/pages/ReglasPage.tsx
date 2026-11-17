@@ -8,6 +8,7 @@ import {
   ETIQUETAS_OPERATIVAS,
   DEFAULTS_OPERATIVOS,
   type TipoReglaOperativa,
+  reglaCajaEventualVigente,
 } from '../utils/preferencias'
 
 const TIPOS_OPERATIVOS: TipoReglaOperativa[] = [
@@ -78,7 +79,9 @@ export default function ReglasPage() {
   }
 
   // Reglas gestionadas arriba (sección operativa): no se listan abajo para no duplicarlas.
-  const TIPOS_GESTIONADOS = new Set<string>([...TIPOS_OPERATIVOS, 'max_francos_dia'])
+  const maxBloques = reglaCajaEventualVigente(reglas, 'max_bloques_caja_eventual_dia')
+  const limiteCaja = reglaCajaEventualVigente(reglas, 'eventuales_caja_hora_limite')
+  const TIPOS_GESTIONADOS = new Set<string>([...TIPOS_OPERATIVOS, 'max_francos_dia', 'max_bloques_caja_eventual_dia', 'eventuales_caja_hora_limite'])
   const reglasListadas = reglas.filter(r => !(r.ambito === 'local' && TIPOS_GESTIONADOS.has(r.tipo)))
 
   const [ambito, setAmbito] = useState<'colaborador' | 'local'>('colaborador')
@@ -221,6 +224,44 @@ export default function ReglasPage() {
             </div>
           )
         })}
+
+        <div style={{ padding: '14px 0', borderTop: '1px solid var(--border)' }}>
+          <label style={labelStyle} htmlFor="max-bloques-caja-eventual">Máximo diario de bloques de caja por eventual</label>
+          <select id="max-bloques-caja-eventual" style={inputStyle}
+            value={maxBloques?.activa ? maxBloques.cantidad ?? '' : ''}
+            onChange={ev => {
+              const valor = ev.target.value
+              agregarRegla({
+                ambito: 'local', tipo: 'max_bloques_caja_eventual_dia',
+                activa: valor !== '', cantidad: valor ? Number(valor) : undefined,
+                descripcion: valor ? `Máximo ${valor} bloques de caja por eventual` : 'Sin límite de bloques de caja por eventual',
+              })
+            }}
+          >
+            <option value="">Sin límite</option>
+            {Array.from({ length: 15 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+          </select>
+        </div>
+        <div style={{ padding: '14px 0', borderTop: '1px solid var(--border)' }}>
+          <label style={labelStyle} htmlFor="eventuales-caja-hora-limite">Eventuales fuera de caja desde</label>
+          <select id="eventuales-caja-hora-limite" style={inputStyle}
+            value={limiteCaja?.activa ? limiteCaja.hora ?? '' : ''}
+            onChange={ev => {
+              const hora = ev.target.value
+              agregarRegla({
+                ambito: 'local', tipo: 'eventuales_caja_hora_limite',
+                activa: hora !== '', hora: hora || undefined,
+                descripcion: hora ? `Eventuales fuera de caja desde las ${hora}` : 'Sin hora límite de caja para eventuales',
+              })
+            }}
+          >
+            <option value="">Sin límite</option>
+            {Array.from({ length: 30 }, (_, i) => {
+              const hora = `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`
+              return <option key={hora} value={hora}>{hora}</option>
+            })}
+          </select>
+        </div>
 
         {/* Máximo de francos por día (regla 6) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 0', borderTop: '1px solid var(--border)' }}>

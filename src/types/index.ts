@@ -116,6 +116,8 @@ export type TipoReglaColaborador =
 
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
+  | 'max_bloques_caja_eventual_dia'
+  | 'eventuales_caja_hora_limite'
   | 'max_francos_dia'    // máximo N francos el mismo día
   // Reglas operativas booleanas (toggles). El campo `activa` de la regla
   // guarda el estado del toggle. Si NO existe una regla de ese tipo, se usa
@@ -181,6 +183,8 @@ export interface SemanaHistorial {
     sinAuxCierre: boolean
     supervisorJornadaCompleta: boolean
     francoMedioCorridos: boolean
+    maxBloquesCajaEventualDia?: number
+    eventualesCajaHoraLimite?: string
   }
   // #38: disponibilidad RESUELTA de la semana (patrón habitual + excepciones por
   // fecha) por id de AUX/eventual, mismo formato que horarioSemanal. Permite

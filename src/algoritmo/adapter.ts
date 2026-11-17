@@ -163,6 +163,8 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
  * cajeros por franja (reglas del local) y tope de francos por día.
  */
 export interface OpcionesGeneracion {
+  maxBloquesCajaEventualDia?: number
+  eventualesCajaHoraLimite?: string
   preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
   demandaMinima?: Array<{ dia: number; slotDesde: number; slotHasta: number; cantidad: number }>;
   maxFrancosDia?: number;
@@ -259,6 +261,8 @@ export function convertirInputAV2(
     colaboradores,
     presencia_aux,
     disponibilidad_eventual,
+    max_bloques_caja_eventual_dia: opciones?.maxBloquesCajaEventualDia,
+    eventuales_caja_hora_limite: opciones?.eventualesCajaHoraLimite,
     excepciones,
     preferencias_turno,
     max_francos_dia: opciones?.maxFrancosDia,

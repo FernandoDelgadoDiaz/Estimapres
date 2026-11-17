@@ -243,10 +243,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
       pesosFranja: pesosFranjaDeCriterios(criteriosCobertura),
       // Reglas operativas de la sucursal (con defaults del negocio)
-      aperturaSoloAux: operativa.aperturaSoloAux,
-      sinAuxCierre: operativa.sinAuxCierre,
-      supervisorJornadaCompleta: operativa.supervisorJornadaCompleta,
-      francoMedioCorridos: operativa.francoMedioCorridos,
+      ...operativa,
     }
 
     // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación.

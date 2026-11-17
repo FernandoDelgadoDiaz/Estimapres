@@ -232,7 +232,9 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
     validacion: elegido.totalmenteValido ? 'valida' : 'con-violaciones-preexistentes',
     violacionesElegida: elegido.violaciones,
     candidatos, tiempoMs: ahora() - t0,
-    versionAlgoritmo: VERSION_ALGORITMO,
+    versionAlgoritmo: base.max_bloques_caja_eventual_dia !== undefined || base.eventuales_caja_hora_limite !== undefined
+      ? `${VERSION_ALGORITMO}+caja-eventual-v1`
+      : VERSION_ALGORITMO,
   }
   // En el resultado visible se omiten los tiempos: la generación debe ser reproducible
   // (misma entrada → mismo resultado). Los tiempos quedan en `seleccion` para diagnóstico.

@@ -62,6 +62,8 @@ export interface SesgoTurno {
 
 // Inputs completos al algoritmo
 export interface InputAlgoritmo {
+  max_bloques_caja_eventual_dia?: number;
+  eventuales_caja_hora_limite?: string;
   demanda: MatrizDemanda;
   colaboradores: Colaborador[];
   presencia_aux: Record<string, MatrizPresencia>;        // key = colab_id con rol=AUX

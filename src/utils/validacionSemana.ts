@@ -43,6 +43,7 @@ export interface ContextoValidacionSemana {
 
 export function operativaEfectiva(op?: Partial<ConfigOperativa>): ConfigOperativa {
   return {
+    ...op,
     aperturaSoloAux: op?.aperturaSoloAux ?? DEFAULTS_OPERATIVOS.apertura_solo_aux,
     sinAuxCierre: op?.sinAuxCierre ?? DEFAULTS_OPERATIVOS.sin_aux_cierre,
     supervisorJornadaCompleta: op?.supervisorJornadaCompleta ?? DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
