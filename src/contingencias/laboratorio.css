@@ -1,0 +1,31 @@
+:root{font-family:Inter,system-ui,sans-serif;color:#152523;background:#f2f6f4;font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0}
+main{max-width:1100px;margin:auto;padding:42px 24px}
+header,.row,.events li{display:flex;justify-content:space-between;align-items:center;gap:20px}
+header{border-bottom:1px solid #c1cec7;margin-bottom:24px;padding-bottom:16px}
+header>p{text-align:right}
+h1{font-size:clamp(2rem,5vw,3.25rem);letter-spacing:-.04em;margin:4px 0}
+h2{font-size:1.25rem;margin:0 0 16px;letter-spacing:-.02em}
+.tag{font-weight:650;color:#216453;margin:0}
+section,.audit{background:#fff;border:1px solid #d8e3dd;border-radius:14px;padding:22px;margin-bottom:14px}
+form{display:flex;align-items:end;flex-wrap:wrap;gap:14px}
+label{display:grid;gap:6px;font-size:.86rem;font-weight:650;flex:1;min-width:120px}
+input,select,button{font:inherit;border-radius:8px;padding:9px 12px;min-height:42px}
+input,select{border:1px solid #b8c9bf;background:#fafffb;color:inherit;width:100%}
+button{background:#125141;border:1px solid #125141;color:#fff;font-weight:630;cursor:pointer}
+button:disabled{opacity:.46;cursor:default}
+button.neutro{background:white;color:#125141;border-color:#c1cec7;margin-left:5px}
+:focus-visible{outline:3px solid #ed992d;outline-offset:2px}
+dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:10px 0}
+dl>div{background:#edf5f0;border-radius:10px;padding:12px}
+dt,.nota,small{color:#475b54;font-size:.85rem}
+dd{margin:4px 0 0;font-weight:720;font-size:1.3rem}
+.events{list-style:none;padding:0;margin:14px 0 0}
+.events li{border-top:1px solid #e0eae4;padding:10px 0}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:9px 5px;border-bottom:1px solid #e0eae4}
+summary{cursor:pointer;color:#125141;margin:12px 0}
+.footer{margin-top:15px}
+[role=alert]{color:#9d321b}
+@media(max-width:620px){main{padding:20px 12px}section{padding:14px}dl{grid-template-columns:1fr}header,.row{align-items:flex-start}th,td{padding:7px 4px}}

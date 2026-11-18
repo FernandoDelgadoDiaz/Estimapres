@@ -325,7 +325,7 @@ Efectivo:  lun 16 → V1 · mar 17 → V1 · mié 18…dom 22 → V2
   - recorta los tramos que se solapan con [F, …]: `hastaEfectivo = F − 1`;
   - si el tramo todavía no había empezado, se anula (`hastaEfectivo = null`);
   - la versión anterior y sus días anteriores a `F` quedan intactos.
-- **`F` ≥ mañana** en la zona horaria de la sucursal (I4). Replanificar el día en curso queda como decisión D14.
+- **`F` ≥ mañana** en la zona horaria de la sucursal (I4). La [decisión D14 del MASTER](ALIADA_HORARIOS_MASTER.md#9-registro-único-de-decisiones) confirma el límite para la primera versión.
 - **La versión del reemplazo debe ser idéntica en los días anteriores a `F`** a la versión vigente (jornadas fijas). La Function lo verifica antes de publicar; el validador revisa la semana completa, incluido el descanso de 12 h entre el último día congelado y `F`.
 
 **Unicidad garantizada en la base**, aun con dos aprobadores publicando a la vez:
@@ -811,7 +811,7 @@ La experiencia en la 091 antes de eso se limita a **prueba local** (U1).
 | D11 | Motivos de modificación | Lista base editable por la empresa | Aprobar la lista base | **Pendiente** |
 | D12 | Corte por trabajo | Sí, con límite de seguridad registrado y advertido; benchmark documentado antes de integrarlo | Autorizar W2 (cambia el motor) | **Pendiente** |
 | D13 | Aislamiento respecto de Prestify | Separar proyecto, esquema y sitio antes de comercializar; P0 primero | Decisión y autorización (afecta a otro producto) | **Pendiente** |
-| D14 | Replanificación del día en curso | No en la primera versión: `F` ≥ mañana | Aprobar o pedir alternativa | **Pendiente** |
+| D14 | Replanificación del día en curso | Automática desde mañana en la zona horaria de la sucursal | Ver D14 en el MASTER §9 | **Aprobada 17/11/2026** |
 
 **Autorizaciones de ejecución pendientes:**
 - cada PR de código posterior a B1 (incluido W1);
