@@ -1,6 +1,16 @@
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
-## PUNTO ÚNICO DE RETOMA — calidad híbrida offline · 2026-11-17
+## PUNTO ÚNICO DE RETOMA — contingencias offline · 2026-11-18
+
+- Rama `feat/ah2-replanificacion-lab` desde [PR #57](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/57), `2340eff9315792dc568b512f6dfabb749720b750`. Los candidatos previos quedaron intactos.
+- El MASTER registra D14 (mañana local como mínimo) y AH2-035 (flujo de cuatro acciones). Se actualizó la referencia del diseño B.
+- Abrir `/lab-contingencias.html` con `npm run dev -- --host 127.0.0.1`. El laboratorio usa el fixture sintético incluido, no pertenece al build de la aplicación y guarda su auditoría en memoria.
+- A conserva duración y clase obligatoria de mañana en los días afectados, calcula apoyo residual y valida descansos y cobertura por franja. El día del aviso y los tramos fuera de la ausencia son inmutables. Si no se puede cubrir la supervisión obligatoria, la propuesta no se aprueba. El domingo no se desplaza sin apertura siguiente conocida.
+- El flujo registra, busca, muestra el diff y permite aprobación local con vista de vigencia, sin publicación oficial. Edición/anulación invalida la propuesta anterior y mantiene la auditoría local. B se ensaya aparte por JSON y amplía la búsqueda a permutas dentro del tramo. La UI local ejecuta A.
+- Banco de 133 expedientes: ejecutar `AH2_REPLAN_CASOS=/ruta/casos.json AH2_REPLAN_RESULTADOS=/ruta/a.jsonl npm test -- src/contingencias/reparar.test.ts`. El banco incluye 5 parejas domingo–lunes y 3 casos del domingo sin una pareja válida en el banco sin adelantar el turno por falta de frontera siguiente cuando corresponda. La comparación y el validador independiente están en la rama sucesora de aliada-optimizer.
+- Próximo paso para 091: conseguir semana autorizada, POM, horario comunicado, dotación y ventanas de ausencia, contratos y apoyos, historial efectivo y límites domingo–lunes. Falta validación con datos reales, publicación segura, persistencia y permisos.
+
+## Registro anterior — calidad híbrida offline · 2026-11-17
 
 - Rama `feat/ah2-calidad-hibrida` desde el [PR #56](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/56), SHA verificado `17aeade4d0de731ce0eaab9aa7b6193cf1c27561`. Los candidatos previos conservan sus SHA.
 - Refinamiento explícito de laboratorio: desplazar jornadas ya previstas dentro de su catálogo diario, recalcular la asignación de apoyo y aceptar solo menos sobrante con cobertura íntegra por media hora, horas contractuales y validación independiente. No altera el flujo operativo. Se mantienen AH2-015/016/020/026/031/032.
