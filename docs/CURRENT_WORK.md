@@ -3,6 +3,8 @@
 **Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.** Evaluación AH2-040 completada en laboratorio. Ninguna alternativa aprobada; la política v1 sigue **no publicable**.
 Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las secciones siguientes son historia.
 
+**Aclaración posterior del propietario sobre la categoría EVENTUAL (19/11/2026):** EVENTUAL no significa repositor ni maestranza ni cualquier puesto específico; es personal de apoyo a caja proveniente de **cualquier función**. Cada colaborador conserva las obligaciones y horas necesarias de su función habitual real, según configuración individual/sucursal; sus horas contratadas no son automáticamente horas disponibles para caja. El MASTER AH2-037 y AH2-040-P3 y el contrato de integración fueron corregidos. **Solo documentación**, sin cambios de motor, tests ni autorización de P3; continúa pendiente su aprobación. No crear perfiles sectoriales predeterminados para EVENTUAL.
+
 ### Ramas y SHAs
 - Estimapres PR #60, `feat/ah2-integracion-hibrida-work-claude`:
   - base verificada `16b8cdee164adcfb674a0579dc14021aecd9f2e8`, con CI `test-build` y `browser` en success antes de editar;
