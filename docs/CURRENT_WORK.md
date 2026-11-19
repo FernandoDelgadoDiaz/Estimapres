@@ -1,3 +1,17 @@
+## PUNTO ÚNICO DE RETOMA — integración híbrida Work ↔ Claude · 2026-11-19 (Argentina)
+
+**Estado: INICIADO — solo documentación y ramas aisladas; integración de código PENDIENTE.**
+
+- **Esta sección es el relevo operativo canónico** para Work y Claude; consultar primero [el contrato de integración](INTEGRACION_HIBRIDA_WORK_CLAUDE.md) y [el MASTER](ALIADA_HORARIOS_MASTER.md). El historial precedente queda debajo sin modificaciones.
+- Rama activa Estimapres: `feat/ah2-integracion-hibrida-work-claude`, creada sobre PR #59 HEAD `98cedebef1989249aa69b7e46b617b78d0367e8e`. Rama del solver: `FernandoDelgadoDiaz/aliada-optimizer:feat/integracion-aliada-work-claude` sobre PR #5 HEAD `df32c00cdb4854640787aded824e103ff7eb41d3`.
+- **Trabajo efectuado:** contrato técnico compartido, ramas experimentales y registro de continuidad. Ningún código del generador integrado ni pruebas de integración ejecutadas todavía. Los PR base #59/#5 permanecen intactos.
+- **Decisiones confirmadas:** motor A como respaldo, CP-SAT B+refinamiento condicionado a validación; supervisor ve una sola propuesta. Excluir a Gabriel de reasignación automática; no contabilizar 06:00–10:00 en otro sector como caja; no modificar regla Supabase. Seven cajeros restantes conservan francos bloqueados solo cuando se solicita; AUX/eventuales conservan presencia. No tocar producción, BD, Netlify, Prestify ni `main`.
+- **Datos laboratorio, no aprobados para operar:** semana 23–29/11, 217 franjas, demanda 402 h-caja; último ensayo 99,75 %, faltantes 1 h, sobrante 0, 272 h de siete cajeros, 28 jornadas modificadas, 0 cambios de franco, Gabriel manual pendiente. Mantener resultados fuera de GitHub con datos privados.
+- **Próximo paso exacto (Work):** comprobar HEAD de ambos repos y sus PR, auditar contratos de entrada/salida de A y B, elegir arquitectura de ejecución segura por viabilidad/costos/privacidad (sin aprovisionar servicios pagos), crear tests de contrato sintéticos, implementar primer paso acotado y registrar SHAs/pruebas/bloqueos en ESTA SECCIÓN antes de entregar a Claude.
+- **Handoff obligatorio:** solo un agente edita una rama a la vez; HEAD/PRs antes y después, tests reales y siguiente comando concreto. Si algo depende de permiso o costo, marcarlo BLOQUEADO, no improvisar.
+
+---
+
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
 ## PUNTO ÚNICO DE RETOMA — contingencias offline · 2026-11-18
