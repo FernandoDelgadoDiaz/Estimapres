@@ -37,6 +37,6 @@ Laboratorio `/lab-condiciones.html` con `npm run dev -- --host 127.0.0.1`, datos
 
 Comandos A: `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e`. B: `python -m pytest -q`; smoke histórico `python -m optimizer.benchmark --fixtures fixtures --seconds 2 --jobs 2 --modes hybrid --output /tmp/smoke.json`.
 
-Fixtures `condicionesBCalculadas.json` / `fixtures/condiciones/cruzadas.json`: tres soluciones sintéticas B con snapshot común (franco, turno fechado, preferencia), recalculadas en OR-Tools 9.15, 3 s y un worker; OPTIMAL para el modelo representado. El validador A vuelve a comprobar las jornadas y contratos; no confía en métricas del solver. Test PDF extrae texto con pdf.js; test de navegador comprueba conflictos y ausencia de escrituras.
+Fixtures `condicionesBCalculadas.json` / `fixtures/condiciones/cruzadas.json`: tres soluciones sintéticas B con snapshot común (franco, turno fechado, preferencia), recalculadas en OR-Tools 9.15, 3 s, semilla 20261114 y un worker; OPTIMAL para el modelo representado. El validador A vuelve a comprobar las jornadas y contratos; no confía en métricas del solver. Test PDF extrae texto con pdf.js; test de navegador comprueba conflictos y ausencia de escrituras.
 
 Resultados y SHA exactos se registran en el único CURRENT_WORK rector y en los checks reales de cada PR. Limitaciones: no integración UI operativa ni persistencia oficial; no benchmark real 091; generalización 3+ AUX y comparabilidad AH2-040 pendientes. No se modificaron reglas ni datos de producción.

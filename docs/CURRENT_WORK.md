@@ -1,3 +1,47 @@
+## PUNTO ÚNICO DE RETOMA — AH2-039 y AH2-040 · 19/11/2026, Work
+
+**Estado: AH2-039 IMPLEMENTADA Y PROBADA EN LABORATORIO; AH2-040-P1 PROPUESTA IMPLEMENTADA COMO DIAGNÓSTICO. NO PUBLICABLE.** Esta es la única continuidad vigente para Work/Claude. MASTER §9 sigue siendo la única autoridad de decisiones. El contenido posterior se conserva como historia, no instrucciones vigentes.
+
+### SHAs, ramas y alcance
+
+- Estimapres PR #60, rama `feat/ah2-integracion-hibrida-work-claude`: base remota revalidada **`c152a0454bdcaadc86e313ef3e6b7155d566f0fa`**, con test-build/browser remotos aprobados antes de editar. Implementación **`94cc553f04a572444c6635eff05987043778fade`** y corrección final de código/tests **`3a6955aad3d8ca528a4e379dd2a13b99ee24a3ad`**. El commit posterior que contiene este relevo modifica solo documentación (CURRENT_WORK y precisión de semilla en la evidencia). Leer HEAD exacto del PR antes de continuar.
+- aliada-optimizer PR #6, rama `feat/integracion-aliada-work-claude`: base revalidada **`f92f77be0cdcc03e4ea94f2eaceaa2720585fbf7`**, checks offline remotos aprobados; implementación **`4f233fe35216eac11430d083a7e9fe1139afaa1f`**, candidato con regresión FULL **`2e5241ab3f59fcb0d1dd787fe2beb49c458000c0`**.
+- No se rehízo AH2-036–038; se preservaron los cambios documentales concurrentes, el contrato Work/Claude y el historial. Ref actualizada con SHA esperado, sin force-push. PR #59/#5 y candidatos anteriores intactos.
+
+### Implementado y comprobado
+
+- Condiciones opcionales versionadas por semana/sucursal y persona estable: DEBE/PREFERIRIA, vigencia inclusiva, franco obligatorio, turno con ventanas configuradas, exclusión manual semanal, máximo local de francos y preferencias de franco/turno/medio franco FULL adyacente. No inventa un horario global mañana/tarde ni almacena condiciones permanentemente.
+- Preflight de ámbito/fechas/identidades y conflictos de reglas/presencia/supervisión; pruebas de incompatibilidad individual y capacidad de francos. No hallar conflicto no certifica factibilidad conjunta. Ficha PART sin objetivo válido se diagnostica como dato, no como inviabilidad matemática. UNKNOWN nunca equivale a INFEASIBLE.
+- A preserva contratos, no acepta guía blanda que aumente déficit en alguna franja ni sobrantes, y conserva prioridad de recursos. Las semillas exploratorias sin objetivo PART nunca se exponen como propuesta: deben restaurarse contratos y pasar validación. B compila las mismas restricciones fechadas y agrega la preferencia como última fase lexicográfica.
+- Snapshot A/B y PDF con persona, condición, valor, ventana y vigencia. Validador A revalida el snapshot tras ediciones sin depender del compilador. Condiciones nuevas por ID, sin mezclar homónimos en A; B rechaza nombres técnicos ambiguos antes de excluir personas.
+- Laboratorio visual **`/lab-condiciones.html`**, con datos sintéticos y sin persistencia. No hay ruta operativa activada, aprobación, publicación, localStorage, escritura Supabase ni despliegue. Puede generar sin condiciones.
+- AH2-040: `analizarComparabilidad` / `analyze_comparability` muestran **pares individuales propuestos**, oportunidades, horas reales de caja y diferencias; excluyen supervisor exclusivo y disponibilidad incompatible. **No aplican un límite pendiente de aprobación, no promedian AUX ni inventan un default de 12 horas.** MASTER registra AH2-040-P1 como PROPUESTO, no como regla definitiva. Si falta máximo eventual, la política v1 sigue indicando homologación pendiente.
+
+### Pruebas y evidencia
+
+- A: TypeScript y build aprobados; **492 Vitest aprobadas y 8 omitidas**. Regresiones nuevas de ámbito, vigencia, ventanas fechadas, franco/max francos, conflicto individual, ficha incompleta, preferencias contradictorias, FULL medio franco, exclusión sin mutación, identidad, multi-arranque, snapshot tras edición y PDF A4.
+- B: suite completa local **86 pytest aprobadas**; CI remota **85 aprobadas y una omitida** (reproducción histórica que requiere fixtures externos no incluidos) en `2e5241ab3f59fcb0d1dd787fe2beb49c458000c0`. Tres fixtures CP-SAT sintéticos, 3 s, un worker y semilla 20261114: **OPTIMAL para el modelo representado**, snapshots idénticos A/B y revalidación con el validador A; contratos PART 30/32 exactos, respaldo válido ante timeout y rechazo del respaldo incompatible con nuevas condiciones.
+- Smoke de ocho fixtures históricos, híbrido, 2 s y dos procesos: 6 UNKNOWN, 1 FEASIBLE, 1 INFEASIBLE; siete comparables, dos mejoras, cinco empates, cero pérdidas, un caso sin plan. No es un benchmark nuevo de 200 ni una prueba operativa 091. Resultado agregado del ejecutor ≈8,18 s; no se equipara con 2 s totales. No se suman estados de fases como categorías disjuntas.
+- Navegador local: falta binario Playwright empaquetado; usando Chromium del sistema, aborta antes de navegar por `socket() Operation not permitted`. **No se declara Playwright aprobado localmente.** CI remota del primer commit A: test-build aprobó; browser tuvo 18 aprobadas, una omitida y un fallo en el selector exacto de etiqueta Día del test nuevo. Corregido mediante nombre accesible explícito, sin eliminar la prueba ni relajar controles. La repetición remota en el candidato de código `3a6955aad3d8ca528a4e379dd2a13b99ee24a3ad` aprobó **19 Playwright y una omitida**, además de 492 Vitest/8 omitidas, TypeScript, instalación con lockfile y build. Evidencia A: https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/44631249833 . Evidencia B: https://github.com/FernandoDelgadoDiaz/aliada-optimizer/actions/runs/44631243279 . El commit de este relevo es solo documental; verificar también sus checks en el PR.
+- Evidencia reproducible y límites: `docs/CONDICIONES_SUPERVISOR_V1.md`, tests `condiciones-supervisor`, `condiciones-cruzadas`, fixture `condicionesBCalculadas.json`, `e2e/condiciones.e2e.ts`; B `tests/test_manual_conditions.py` y `fixtures/condiciones/cruzadas.json`. Comandos A `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e`; B `python -m pytest -q`. La CI realiza instalación con lockfile: no confundir dependencias locales reutilizadas con instalación limpia remota.
+
+### Archivos y límites
+
+A: tipos de condición/entrada/salida; compilador/preflight; p1 y orquestador; adapter; selector multi-arranque; puente `auditoriaV2`; validador independiente y contexto; análisis AUX/EV; laboratorio y pruebas/fixtures; MASTER (solo propuesta técnica nueva), este relevo y documento de evidencia. B: dominio, catálogo, normalizador/preflight, solver, comparador, validador, analizador, fixtures/tests y nota de enlace. No se modificaron migraciones, funciones de Prestify, datos, producción, Netlify ni Supabase.
+
+**Límites:** no certificación de factibilidad global por preflight; A sigue siendo heurístico; ventanas de turno requieren definición explícita; exclusión manual parcial no homologada; adyacencia de medio franco dentro de semana, sin inferir domingo/lunes circular; preferencias nuevas verificadas en solver semanal B, sin rediseñar refinamiento de mínimo impacto; persistencia/permisos/publicación oficial no implementados. Generalización 3+ AUX, política real de supervisión de apertura y comparabilidad AH2-040 siguen pendientes. No ensayo real 091 ni nuevo resultado operativo acreditado.
+
+### Próximo paso exacto para Claude
+
+1. Verificar HEAD de #60/#6 y **checks de esos HEAD**, leer MASTER AH2-039/040-P1 y este punto. Si falla un check, revisar sus logs y corregir dentro del laboratorio; no asumir aprobación remota por los resultados locales.
+2. Revisar la propuesta AH2-040-P1 con el propietario: oportunidades EVENTUAL íntegramente contenidas en las de un AUX elegible, par individual elegido explícitamente y relación `EV ≤ AUX`. Confirmar definición de comparabilidad y elección de pares antes de convertirla en restricción dura.
+3. Con definición aprobada, imponer la relación en ambos motores/validadores y medir el costo de cobertura frente a la misma entrada, sin relajarla ni fabricar topes. Por ahora ejecutar el analizador sobre fixture sintético y abrir el laboratorio, sin datos reales ni escrituras.
+4. Solo después de homologar dependencias, preparar la integración UI/híbrida y ensayo offline autorizado. Sin merge, migraciones, gastos, Supabase escrito ni publicación.
+
+---
+
+## Historia conservada — relevo anterior, no vigente
+
 ## PUNTO ÚNICO DE RETOMA — integración híbrida · 19/11/2026, entrega Work
 
 **Estado: IMPLEMENTACIÓN PARCIAL VERIFICADA; INTEGRACIÓN Y HOMOLOGACIÓN OPERATIVA BLOQUEADAS.**
@@ -1249,3 +1293,4 @@ No iniciar implementación, migraciones ni despliegues sin esa autorización.
 - Deploy / merge / gastos (sí/no y autorización):
 - Bloqueos / decisiones pendientes:
 - Próxima acción **exacta**:
+
