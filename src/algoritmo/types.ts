@@ -1,3 +1,4 @@
+import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/types.ts
 // Tipos compartidos del algoritmo de horarios v2.
 // Referencia: ai/architecture.md §3.
@@ -31,6 +32,7 @@ export interface Colaborador {
   id: string;
   nombre: string;
   rol: Rol;
+  horasSemanales?: number;
 }
 
 export type AsignacionAux = "CAJA" | "PARADO" | "NO_PRESENTE";
@@ -64,7 +66,7 @@ export interface SesgoTurno {
 }
 
 // Inputs completos al algoritmo
-export interface InputAlgoritmo {
+export interface InputAlgoritmo extends PoliticaRecursos {
   max_bloques_caja_eventual_dia?: number;
   eventuales_caja_hora_limite?: string;
   demanda: MatrizDemanda;

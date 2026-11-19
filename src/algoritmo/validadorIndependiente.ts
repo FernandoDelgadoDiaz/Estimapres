@@ -1,3 +1,5 @@
+import { erroresDatosRecursos } from './politicaRecursos'
+import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/validadorIndependiente.ts
 // VAL-01 (#10) — Validador independiente del motor.
 //
@@ -121,7 +123,7 @@ export interface EntradaValidacion {
   operativa?: OperativaValidacion
 }
 
-export interface OperativaValidacion {
+export interface OperativaValidacion extends PoliticaRecursos {
   maxBloquesCajaEventualDia?: number
   eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
@@ -244,7 +246,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   if (e.operativa) validarReglasOperativas(v, e, e.operativa, porId)
 
   const bloqueantes = v.length
-  return { ok: bloqueantes === 0, publicable: bloqueantes === 0, violaciones: v, metricas }
+  return { ok: bloqueantes === 0, publicable: bloqueantes === 0 && !e.operativa?.politica_recursos_version, violaciones: v, metricas, ...(e.operativa?.politica_recursos_version?{limitaciones:['Política de recursos v1: alcance AH2-036–038; pendientes preflight AH2-039 y comparabilidad semanal AUX/EVENTUAL AH2-040. No habilita publicación.']}: {}) }
 }
 
 function validarContrato(
@@ -462,6 +464,27 @@ function validarReglasOperativas(
   const evCaja = (e.cajaEventual ?? []).filter(a => porId.get(a.colaboradorId)?.contrato === 'EVENTUAL')
   const enCaja = (m: boolean[][] | undefined, d: number, s: number) => !!m?.[d]?.[s]
 
+  v.push(...erroresDatosRecursos(op,[...porId].filter(([,r])=>r.contrato==='EVENTUAL').map(([id])=>id)).map(detalle=>({codigo:'DATOS_RECURSOS',nivel:'DATOS' as const,detalle})));
+  // AH2-036/037: verificación independiente sobre presencia y caja efectivas.
+  if (op.politica_recursos_version !== undefined) {
+    if (op.politica_recursos_version !== 1) v.push({codigo:'DATOS_POLITICA_RECURSOS',nivel:'DATOS',detalle:'Versión de política no soportada.'})
+    for (const [id,r] of porId) if(r.contrato==='EVENTUAL') {
+      const cap=op.max_caja_eventual_slots?.[id]
+      const m=evCaja.find(x=>x.colaboradorId===id)?.slotsCajaPorDia ?? []
+      const count=m.flat().filter(Boolean).length
+      if(!Number.isInteger(cap) || cap!<0 || cap!>210) v.push({codigo:'POLITICA_EV_COMPARACION_PENDIENTE',nivel:'DATOS',colaboradorId:id,detalle:'Sin tope explícito o dato inválido: falta homologar la comparación semanal AUX/EV.'})
+      else if(count>cap!) v.push({codigo:'OP_EVENTUAL_TOPE_SEMANAL',nivel:'OPERATIVA',colaboradorId:id,detalle:'Supera el máximo semanal individual de caja.'})
+      for(let d=0;d<7;d++) for(let slot=0;slot<30;slot++) if(m[d]?.[slot] && op.reservas_sector_eventual?.[id]?.[d]?.[slot]) v.push({codigo:'OP_EVENTUAL_RESERVA_SECTOR',nivel:'OPERATIVA',colaboradorId:id,dia:d,detalle:'Caja dentro de una reserva sectorial.'})
+    }
+    for(let d=0;d<7;d++) for(let slot=0;slot<30;slot++) {
+      const n=[...presencia.values()].filter(m=>m[d][slot]).length
+      const a=[...auxCaja.values()].filter(m=>m[d]?.[slot]).length
+      const ev=evCaja.filter(m=>m.slotsCajaPorDia[d]?.[slot]).length
+      if(n>2) v.push({codigo:'POLITICA_AUX_MULTIPLE',nivel:'DATOS',dia:d,detalle:'Generalización para más de dos AUX pendiente.'})
+      if(slot<2 && op.aperturaSoloAux && demanda(d,slot)>0 && n===1 && !op.supervision_apertura_externa?.[d]?.[slot]) v.push({codigo:'POLITICA_APERTURA_SUPERVISION',nivel:'DATOS',dia:d,detalle:'AUX único de apertura: falta supervisor distinto autorizado.'})
+      if(slot>=2 && slot<=(sinAuxCierre?27:28) && n===2 && demanda(d,slot)>fp[d][slot] && a<1) v.push({codigo:'OP_PRIORIDAD_AUX',nivel:'OPERATIVA',dia:d,detalle:`AUX elegible sin caja con demanda residual; eventuales usados: ${ev}.`})
+    }
+  }
   // AUX en caja fuera de su presencia / al cierre
   for (const [id, m] of auxCaja) {
     const pres = presencia.get(id)
@@ -512,7 +535,7 @@ function validarReglasOperativas(
       const a = auxEn(s), ev = evEn(s), f = fp[d][s]
       const h = horaDeSlot(s)
       if (op.aperturaSoloAux) {
-        if (a.length !== 1) problemas.push(`${h}: ${a.length} AUX en caja (debe ser exactamente 1)`)
+        if (a.length !== (op.politica_recursos_version && demanda(d,s)===0 ? 0 : 1)) problemas.push(`${h}: ${a.length} AUX en caja (debe ser exactamente 1)`)
         if (f > 0) problemas.push(`${h}: ${f} FULL/PART en caja (la apertura es solo AUX)`)
         if (ev.length) problemas.push(`${h}: ${ev.length} eventual(es) en caja`)
       } else {

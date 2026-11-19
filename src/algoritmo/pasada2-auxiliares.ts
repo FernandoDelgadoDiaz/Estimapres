@@ -20,6 +20,7 @@
 //   - Nunca se convierte PARADO en CAJA sin déficit (sin "relleno" ni extensión
 //     de bloques para alcanzar 1 hora).
 
+import { activaRecursos, aperturaExterna, erroresDatosRecursos } from "./politicaRecursos";
 import type { InputAlgoritmo, AsignacionAux, DiaSemana, SlotIdx, RegulaViolada } from "./types";
 import { ejecutarPasada1, type ResultadoPasada1 } from "./pasada1-fullpart";
 import { validarPresenciaAux0809, validarCobertura0922 } from "./reglas";
@@ -50,6 +51,21 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
     ...validarCobertura0922(input.presencia_aux),
   ];
 
+  violaciones_input.push(...erroresDatosRecursos(input,Object.keys(input.disponibilidad_eventual)).map(detalle=>({regla:'DATOS-RECURSOS',detalle})));
+  if (activaRecursos(input)) {
+    for(const c of input.colaboradores) {
+      if(c.rol==='FULL' && c.horasSemanales!==48) violaciones_input.push({regla:'DATOS-CONTRATO-FULL',detalle:`Ficha FULL ausente o incompatible con catálogo 48 h: ${c.id}`});
+      if(c.rol==='PART' && (!input.contratos?.[c.id] || input.contratos[c.id].objetivoSlots===null)) violaciones_input.push({regla:'DATOS-CONTRATO-PART',detalle:`Falta objetivo PART individual: ${c.id}`});
+    }
+    for (const id of Object.keys(input.disponibilidad_eventual)) {
+      const n=input.max_caja_eventual_slots?.[id];
+      if (!Number.isInteger(n) || n! < 0 || n! > 210) violaciones_input.push({regla:'POLITICA-EV-COMPARACION-PENDIENTE',detalle:`Sin tope explícito o dato inválido; pendiente homologación de comparación AUX/EV: ${id}`});
+    }
+    for (const dia of DIAS) for(let s=0;s<30;s++) {
+      const n=Object.values(input.presencia_aux).filter(m=>m[dia][s]!=='NO_PRESENTE').length;
+      if(n>2) violaciones_input.push({regla:'POLITICA-AUX-MULTIPLE',dia,detalle:`Más de dos AUX en slot ${s}: generalización pendiente de autorización.`});
+    }
+  }
   // === PASO 2: asignación inicial = presencia (PARADO / NO_PRESENTE) ===
   const asignacion_aux: Record<string, AsignacionAux[][]> = {};
   for (const [auxId, matriz] of Object.entries(input.presencia_aux)) {
@@ -82,8 +98,13 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
         if (hA !== hB) return hA - hB;
         return a.localeCompare(b);
       });
+      if (activaRecursos(input) && SLOTS_APERTURA.some(s=>input.demanda[dia][s]>0 && Object.values(input.presencia_aux).filter(m=>m[dia][s]!=='NO_PRESENTE').length===1 && !aperturaExterna(input,dia,s))) {
+        violaciones_input.push({regla:'POLITICA-APERTURA-SUPERVISION',dia,detalle:'AUX único: falta responsable externo autorizado en apertura.'});
+        continue;
+      }
       const elegido = candidatos[0];
       for (const s of SLOTS_APERTURA) {
+        if (activaRecursos(input) && deficit_actual[dia][s] === 0) continue;
         asignacion_aux[elegido][dia][s] = "CAJA";
         deficit_actual[dia][s] = Math.max(0, deficit_actual[dia][s] - 1); // la cobertura del AUX se descuenta
       }

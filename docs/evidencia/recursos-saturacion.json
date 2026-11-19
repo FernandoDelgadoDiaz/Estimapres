@@ -1,0 +1,23 @@
+[
+  {
+    "horasAdicionales": 0,
+    "cobertura": 76.19047619047619,
+    "faltantesHoras": 5,
+    "sobrantesHoras": 0,
+    "supuesto": "Contrataci\u00f3n hipot\u00e9tica con disponibilidad completa, cat\u00e1logo vigente y sin domingo previo acreditado; no es alta ni propuesta real."
+  },
+  {
+    "horasAdicionales": 32,
+    "cobertura": 100,
+    "faltantesHoras": 0,
+    "sobrantesHoras": 26,
+    "supuesto": "Contrataci\u00f3n hipot\u00e9tica con disponibilidad completa, cat\u00e1logo vigente y sin domingo previo acreditado; no es alta ni propuesta real."
+  },
+  {
+    "horasAdicionales": 48,
+    "cobertura": 95.23809523809523,
+    "faltantesHoras": 1,
+    "sobrantesHoras": 44,
+    "supuesto": "Contrataci\u00f3n hipot\u00e9tica con disponibilidad completa, cat\u00e1logo vigente y sin domingo previo acreditado; no es alta ni propuesta real."
+  }
+]
