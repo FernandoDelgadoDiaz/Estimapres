@@ -1,3 +1,47 @@
+## PUNTO ÚNICO DE RETOMA — integración híbrida · 19/11/2026, entrega Work
+
+**Estado: IMPLEMENTACIÓN PARCIAL VERIFICADA; INTEGRACIÓN Y HOMOLOGACIÓN OPERATIVA BLOQUEADAS.**
+Agente que entrega: Work. Agente receptor: Claude. Esta sección es el único estado operativo vigente; las entradas conservadas debajo son historia.
+
+### Ramas, SHAs y concurrencia
+
+- Estimapres PR #60, rama `feat/ah2-integracion-hibrida-work-claude`: código entregado en **`170080fb7dd656eb0af1ccf1a95eb05fb6d4ca76`**, sobre la base documental concurrente `f4850e74cc7deb4a462ac58bb7c0a0d137643e82`. El commit que contiene este relevo añade solo documentación; leer su HEAD exacto en el PR antes de editar.
+- aliada-optimizer PR #6, rama `feat/integracion-aliada-work-claude`: **`f92f77be0cdcc03e4ea94f2eaceaa2720585fbf7`**, sucesor de la implementación inicial `b87be22b722980bb7ac630882a809bd902aa37ec`.
+- Se detectaron cambios documentales concurrentes AH2-039/040 después de iniciar desde `cac11fd`/`9fb6619`. Una actualización con lease no se aplicó al HEAD cambiado. Se inspeccionó el diff y se preservaron íntegros MASTER, contrato §3.2 e historial; sin force-push ni pérdida de decisiones. El objeto técnico preliminar no aplicado no es el candidato entregado.
+
+### Cambios implementados realmente
+
+- Política de laboratorio opt-in `politica_recursos_version=1`, contratos FULL/PART exigibles, AUX antes de EVENTUAL, un supervisor de pie con dos AUX, capacidad AUX derivada sin tope semanal manual.
+- Límites semanales individuales EVENTUAL en slots de 30 minutos, cero permitido, sin default de 12 h; reservas sectoriales y preservación de presencia. Adapter transforma IDs estables a internos; validadores comprueban límites/prioridad/reservas.
+- AUX único de apertura sin responsable externo explícito genera conflicto, no excepción inventada. Tres o más AUX requieren la generalización que MASTER dejó pendiente.
+- B fuerza capacidad AUX residual en su modelo conjunto, revalida referencias y ordena sobrantes/uso eventual antes de ciclo/preferencias. A protege cada franja de una referencia sin infracciones y usa menos eventual como desempate de cobertura/sobrante.
+- APIs offline de dotación actual/+32 PART/+48 FULL y resumen de presencia/caja/no-caja. Ninguna alta ni persistencia. Fixtures y resultados exclusivamente sintéticos.
+- **AH2-039 y AH2-040 NO están completamente implementadas.** Falta el preflight integral DEBE/PREFERIRÍA y la definición/modelo individual de comparabilidad semanal AUX/EV. Sin tope explícito se diagnostica comparación pendiente, no se fabrica un máximo ni un promedio. La política v1 permanece **no publicable** en A/B aun sin infracciones en los controles de su alcance; A la marca `sin-verificar`. No se activa automáticamente en la UI.
+- Detalle, esquema, resultados y límites: [RECURSOS_OPERATIVOS_V1.md](RECURSOS_OPERATIVOS_V1.md). Archivos de motor A: adapter, types, pasadas 2/3, política, selector, validador independiente, simulador y resumen. B: dominio, apoyo, solver, selector, validador, refinamiento y staffing; pruebas nuevas en ambos.
+
+### Pruebas y evidencia ejecutadas
+
+- A: **473 Vitest aprobadas, 8 omitidas**; TypeScript y build de producción aprobados. Regresión específica de no-publicación añadida y ejecutada. Los tests de contrato revalidan con TypeScript las tres propuestas B de fixture seudónimo.
+- B: **66 pytest aprobadas**; smoke de ocho fixtures históricos a 2 s ejecutado. Tres escenarios emparejados A/B a 10 s, semillas y hashes en la evidencia. No se confundió UNKNOWN con INFEASIBLE.
+- Synthetic de demanda **280 h-caja**, 1 FULL 48 + 1 PART 32, dos AUX con solapamiento, eventual con máximo sintético 8 h: A/B 36,43 % y 178 h faltantes; +32: 47,86 % y 146 h; +48: 53,57 % y 130 h; cero sobrantes en los tres. B no mejora cobertura de A en este caso; cotas certifican solo el modelo protegido representado.
+- Prueba A de saturación (tope eventual sintético 2 h): base 5 h faltantes/0 sobrantes; +32: 0/26; +48: 1/44. Resultados calculados, no extrapolados; no es prueba de inviabilidad de mejorar +48.
+- Playwright local intentado; Chromium aborta **antes de navegar** porque el runtime prohíbe `socket()`. No se afirma aprobación local de navegador. Verificar los checks reales `test-build/browser` del HEAD final A y `offline` de B antes de recomendar integración. CI remota no equivale a estos resultados locales.
+- CSV/JSON sintéticos en `docs/evidencia/` y `aliada-optimizer/results/recursos-*`; origen/hash de entradas por escenario. No hay datos ni PDFs laborales de 091 en estos artefactos.
+
+### Bloqueos y próximo paso exacto para Claude
+
+1. Leer HEADs actuales de PR #60/#6 y este relevo; ejecutar `npm test && npm run build` en A y `python -m pytest -q` en B. Comprobar CI remota por SHA y conservar el bloqueo de publicación v1.
+2. Homologar con el propietario el significado de AUX **comparable realmente elegible** de AH2-040 (sin promedio, sin AUX exclusivamente supervisor ni indisponible). No retirar ese bloqueo inventando una relación matemática.
+3. Implementar el preflight y contrato DEBE/PREFERIRÍA de AH2-039 y la relación homologada de AH2-040, con tests antes de habilitar integración. No rehacer AH2-036–038 ya probadas.
+4. Para 091 siguen pendientes el responsable/política de apertura y reglas efectivas por persona; si se usan topes explícitos, sus valores aprobados. No exigir un tope semanal manual AUX ni un default EVENTUAL. No repetir el benchmark real antes de cerrar las reglas y el contrato.
+5. Integración UI/transporte seguro A→B, permisos/persistencia/publicación siguen pendientes. No hay autorización de merge, deploy, migración, gasto ni escritura productiva.
+
+**Seguridad:** main, Supabase, Netlify, Prestify, fichas y horarios V8/V9/V1 intactos; ningún merge, despliegue ni datos reales nuevos en GitHub. Los candidatos base #59/#5 permanecen sin modificaciones.
+
+---
+
+## HISTORIAL CONSERVADO — las secciones siguientes no son otro punto de retoma
+
 ## ÚLTIMA DECISIÓN DEL PROPIETARIO — restricciones opcionales, validación previa y equidad de carga · 2026-11-19 (Argentina)
 
 **ESTADO: REQUISITOS APROBADOS EN MASTER AH2-039/040. IMPLEMENTACIÓN Y PRUEBAS PENDIENTES.** Esta es la primera sección canónica para Work y Claude; los registros anteriores siguen debajo intactos.
