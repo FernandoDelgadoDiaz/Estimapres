@@ -48,6 +48,19 @@ Fecha de inicio: 2026-11-19. Sucursal piloto: 091. Propietario: supervisor de la
 
 **Efecto sobre el ensayo 091:** las coberturas 99,75 % / 99,88 % de ensayos anteriores no son aprobables como demostración de optimización útil por rol; revaluar después de implementar topes/roles y respetar obligaciones sectoriales.
 
+## 3.2 Parametrización opcional y prioridad AUX/EV — condiciones del supervisor
+
+**Decisiones canónicas:** MASTER AH2-039 y AH2-040. Desarrollar exactamente lo aprobado, sin inventar topes legales, cambios de franco o reglas que el supervisor no cargó.
+
+1. El **preflight** valida en la semana y sucursal reales las condiciones opcionales y persistidas: franco obligatorio por persona/día; turno de mañana/tarde obligatorio; máximo de francos simultáneos (p. ej. 2 en la 091); no disponibilidad; supervisor presente; preferencias blandas de turno y franco/medio franco corrido. DEBE vs PREFERIRÍA se serializa y muestra claramente. Las reglas del usuario no reemplazan automáticamente legislación ni reglas obligatorias.
+2. Si la combinación de obligaciones es incompatible (p. ej. ocho cajeros de franco el lunes donde se requieren cajeros o se excede el máximo diario), **bloquear la generación aprobable** e informar los conflictos concretos y qué condiciones podrían modificarse; jamás relajar sin consentimiento. Una baja cobertura por falta de recursos no equivale por sí sola a demostración de problema matemático inviable: diferenciar horario factible con déficit de horario técnicamente incompatible.
+3. **Prioridad A/B idéntica**: FULL/PART contratados → AUX elegibles con supervisión cubierta → EVENTUAL solo déficit residual; minimizar uso EVENTUAL en las soluciones con cobertura comparable **sin sacrificar restricciones duras**. No permitir reemplazo de AUX elegible por EVENTUAL en la misma franja sin justificación.
+4. **Relación semanal EVENTUAL ≤ AUX comparable disponible para caja** (intención obligatoria del propietario, no un simple promedio entre grupos). Definir rigurosamente el AUX de comparación, considerando franja de solapamiento, presencia, rol de supervisor y elegibilidad. Evitar forzar cero horas EVENTUAL por comparación con un AUX que supervisa exclusivamente o que no coincide en presencia. Validar la definición antes de ejecutar piloto; si el cumplimiento genera déficit, comunicarlo, no ocultarlo.
+5. La UI no exige agregar restricciones cada semana: carga **opcional**, ámbitos y vigencias persistibles, defaults sectoriales y de sucursal versionados. Especificar de qué modo se guardan snapshots sin migración destructiva ni escrituras productivas hasta autorización.
+6. Fijar tests sintéticos mínimos A/B/validadores: lunes todos de franco, límite local de 2 francos; mañana obligatoria, tarde obligatoria, preferencias contradictorias blandas; franco y medio franco corrido preferido; AUX supervisor excluido de comparación; dos AUX elegibles y EVENTUAL en franja coincidente; EVENTUAL sin tope individual pero con relación semanal; EVENTUAL con tope individual; máxima cobertura factible con restricciones rígidas; diagnóstico de inviabilidad y ausencia de modificaciones automáticas. Registrar filas de franja, causas y métricas comparables, nunca solo porcentaje agregado.
+
+**Orden de ingeniería:** esta etapa y AH2-036/038 se implementan **antes** de integrar o habilitar B en producción. No publicar una mejora que viole las reglas del personal de apoyo por obtener 100 % de POM.
+
 ## 4. Arquitectura a implementar — requisitos, no tecnología supuesta
 
 - **A**: generación determinística disponible inmediatamente y conservada como respaldo.
