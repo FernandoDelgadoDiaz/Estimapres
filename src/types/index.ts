@@ -49,6 +49,7 @@ export interface AsignacionCajaColaborador {
 }
 
 export interface ResultadoAsignacion {
+  condicionesSupervisor?: import('../algoritmo/condicionesTipos').AuditoriaCondiciones
   horarios: HorarioColaborador[]
   coberturaFranjas: number[][]  // [franja][dia] = cajeros asignados
   faltantesFranjas: number[][]  // [franja][dia] = diferencia (negativo = falta)
@@ -81,9 +82,12 @@ export const HORAS_FRANJAS = [
 ]
 
 export interface ExcepcionSemanal {
+  /** ID estable opcional; condiciones nuevas no se vinculan por nombre. */
+  colaboradorId?: string
+  dias?: number[]
   id: string
   colaboradorNombre: string
-  tipo: 'franco_dia' | 'no_antes_de' | 'no_despues_de' | 'siempre_cierre' | 'solo_matutino' | 'solo_nocturno'
+  tipo: 'inicio_no_despues_de' | 'franco_dia' | 'no_antes_de' | 'no_despues_de' | 'siempre_cierre' | 'solo_matutino' | 'solo_nocturno'
   valor?: string
   descripcion: string
 }

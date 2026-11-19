@@ -1,3 +1,4 @@
+import {prevalidarCondiciones,ErrorCondiciones} from '../algoritmo/condicionesSupervisor'
 // #7 · AH2-020 (APROBADO, B conjunta) — Generación con multi-arranque.
 //
 // Objetivo: mejorar la cobertura POM redistribuyendo las horas disponibles, SIN reducir
@@ -20,7 +21,7 @@
 // sin aumentar el déficit en ningún slot y con validación independiente estricta.
 import { slotLimiteCajaEventual } from '../algoritmo/reglasCajaEventual'
 import { convertirOutputDeV2, asignarIdentidadesV2 } from '../algoritmo/adapter'
-import { compararImpactoHoras, ejecutarAlgoritmo, evaluarSemanasFullPart, inputSinPrioridadHoras, tieneObjetivoHoras } from '../algoritmo/orquestador'
+import { compararImpactoHoras, ejecutarAlgoritmo, generarSemillaExploratoria, evaluarSemanasFullPart, inputSinPrioridadHoras, tieneObjetivoHoras } from '../algoritmo/orquestador'
 import { desplazamientosCierre } from '../algoritmo/pasada1-fullpart'
 import type { InputAlgoritmo, Jornada, ResultadoSemanal } from '../algoritmo/types'
 import type { Auxiliar, Colaborador, Eventual, ResultadoAsignacion } from '../types'
@@ -76,6 +77,7 @@ export interface SeleccionMultiArranque {
   candidatos: CandidatoMultiArranque[]
   tiempoMs: number
   versionAlgoritmo: string
+  descartadasPorCondiciones?:Array<{estrategia:EstrategiaMultiArranque;codigo:string}>
 }
 
 /**
@@ -142,6 +144,13 @@ export interface SalidaMultiArranque {
 }
 
 export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArranque {
+  if(e.input.condiciones_supervisor){
+    const p=prevalidarCondiciones(e.input);if(p.conflictos.length)throw new ErrorCondiciones('PREFLIGHT_BLOQUEADO',p.conflictos)
+    // Keep the original identity map (including homonyms); filter only validation roster.
+    const identOriginal=asignarIdentidadesV2([...e.cajeros,...e.auxiliares,...e.eventuales])
+    const result=generarConMultiArranque({...e,input:p.input,contexto:{...e.contexto,excepciones:(p.input.excepciones??[]).map(x=>({...x,colaboradorId:x.colaboradorId?(identOriginal.uiPorV2.get(x.colaboradorId)?.id??x.colaboradorId):undefined})),maxFrancosPorDia:p.input.max_francos_por_dia}})
+    return result
+  }
   const ahora = e.reloj ?? Date.now
   const t0 = ahora()
   const presupuesto = e.presupuestoMs ?? PRESUPUESTO_MULTI_ARRANQUE_MS
@@ -150,14 +159,15 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   const conHoras = tieneObjetivoHoras(base)
   const sinPrioridad = inputSinPrioridadHoras(base)
 
-  const correr = (inp: InputAlgoritmo) => { const t = ahora(); const r = ejecutarAlgoritmo(inp); return { r, ms: ahora() - t } }
+  const correr = (inp: InputAlgoritmo) => { const t = ahora(); const r = base.auditoria_condiciones&&Object.entries(base.contratos??{}).some(([id,c])=>c.objetivoSlots!==null&&inp.contratos?.[id]?.objetivoSlots===null)?generarSemillaExploratoria(inp):ejecutarAlgoritmo(inp); return { r, ms: ahora() - t } }
   const ident = asignarIdentidadesV2([...e.cajeros,...e.auxiliares,...e.eventuales])
   const aUi=<T>(dict:Record<string,T>|undefined)=>dict && Object.fromEntries(Object.entries(dict).map(([id,v])=>[ident.uiPorV2.get(id)?.id??id,v]))
   const contexto = base.politica_recursos_version ? {...e.contexto,maxFrancosDia:base.max_francos_dia??e.contexto.maxFrancosDia,operativa:{...e.contexto.operativa,
     politica_recursos_version:base.politica_recursos_version,supervision_apertura_externa:base.supervision_apertura_externa,max_caja_eventual_slots:aUi(base.max_caja_eventual_slots),reservas_sector_eventual:aUi(base.reservas_sector_eventual),
     aperturaSoloAux:base.apertura_solo_aux??true,sinAuxCierre:base.sin_aux_cierre??true,supervisorJornadaCompleta:base.supervisor_jornada_completa??false,francoMedioCorridos:base.franco_medio_corridos??false,
     maxBloquesCajaEventualDia:base.max_bloques_caja_eventual_dia,eventualesCajaHoraLimite:base.eventuales_caja_hora_limite}}:e.contexto
-  const validar = (r: ResultadoSemanal) => validarResultadoSemana(convertirOutputDeV2(r, e.cajeros, e.auxiliares, e.eventuales), e.cajeros, e.auxiliares, e.eventuales, contexto)
+  const automaticos=e.cajeros.filter(p=>!base.auditoria_condiciones?.excluidos.includes(ident.v2PorUi.get(p.id)??p.id))
+  const validar = (r: ResultadoSemanal) => validarResultadoSemana(convertirOutputDeV2(r, e.cajeros, e.auxiliares, e.eventuales), automaticos, e.auxiliares, e.eventuales, contexto)
 
   const respaldo = correr(base)
   const vRespaldo = validar(respaldo.r)
@@ -172,6 +182,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   const candidatos: CandidatoMultiArranque[] = [ficha('actual', respaldo, vRespaldo.violaciones.length, 0, base.politica_recursos_version && vRespaldo.violaciones.length ? 'La política de recursos requiere una referencia válida' : undefined)]
   const resultados = new Map<EstrategiaMultiArranque, ResultadoSemanal>([['actual', respaldo.r]])
   const omitidas: EstrategiaMultiArranque[] = []
+  const descartadasPorCondiciones:Array<{estrategia:EstrategiaMultiArranque;codigo:string}>=[]
 
   const evaluar = (estrategia: EstrategiaMultiArranque, x: { r: ResultadoSemanal; ms: number }, candidato = true) => {
     resultados.set(estrategia, x.r)
@@ -200,7 +211,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   } else {
     a0 = correr(sinPrioridad).r
     const alternar = (desde: ResultadoSemanal) => {
-      const aSem = ejecutarAlgoritmo({ ...sinPrioridad, semillas: semanas(desde) })
+      const aSem = (base.auditoria_condiciones?generarSemillaExploratoria:ejecutarAlgoritmo)({ ...sinPrioridad, semillas: semanas(desde) })
       return ejecutarAlgoritmo({ ...base, semillas: semanas(aSem) })
     }
     const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual' | 'anticipar-cierre'>, () => ResultadoSemanal> = {
@@ -219,8 +230,13 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
       const previa = DEPENDE_DE[nombre]
       if (!hayTiempo() || (previa && !resultados.has(previa))) { if (pedidas.has(nombre)) omitidas.push(nombre); continue }
       const t = ahora()
-      const r = ejecutores[nombre]()
-      evaluar(nombre, { r, ms: ahora() - t }, pedidas.has(nombre))
+      try {
+        const r = ejecutores[nombre]()
+        evaluar(nombre, { r, ms: ahora() - t }, pedidas.has(nombre))
+      }catch(error){
+        if(!base.auditoria_condiciones||!(error instanceof ErrorCondiciones))throw error
+        descartadasPorCondiciones.push({estrategia:nombre,codigo:error.codigo})
+      }
     }
     if (alternativas.length && omitidas.length === alternativas.length) sinAlternativas = 'presupuesto-agotado'
   }
@@ -234,6 +250,10 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   if(base.politica_recursos_version) {
     const usos=(c:CandidatoMultiArranque)=>Object.values(resultados.get(c.estrategia)!.asignacion_eventual).flat(2).filter(s=>s==='CAJA').length
     for(const c of elegibles) if(Math.abs(c.coberturaPct-elegido.coberturaPct)<=EPS && Math.abs(c.sobrantesHoras-elegido.sobrantesHoras)<=EPS && usos(c)<usos(elegido)) elegido=c
+  }
+  if(base.auditoria_condiciones){
+    const usos=(c:CandidatoMultiArranque)=>Object.values(resultados.get(c.estrategia)!.asignacion_eventual).flat(2).filter(s=>s==='CAJA').length
+    for(const c of elegibles)if(Math.abs(c.coberturaPct-elegido.coberturaPct)<=EPS&&Math.abs(c.sobrantesHoras-elegido.sobrantesHoras)<=EPS&&(!base.politica_recursos_version||usos(c)===usos(elegido))&&(resultados.get(c.estrategia)!.preferencias_manuales_incumplidas??Infinity)<(resultados.get(elegido.estrategia)!.preferencias_manuales_incumplidas??Infinity))elegido=c
   }
   const referencia = resultados.get(elegido.estrategia)!
   const limite = slotLimiteCajaEventual(base.eventuales_caja_hora_limite)
@@ -284,18 +304,19 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
     coberturaElegidaPct: final.metricas.cobertura_total_pct,
     omitidas,
     ...(sinAlternativas ? { sinAlternativas } : {}),
-    validacion: base.politica_recursos_version && elegido.totalmenteValido ? 'sin-verificar' : elegido.totalmenteValido ? 'valida' : 'con-violaciones-preexistentes',
+    validacion: (base.politica_recursos_version||base.auditoria_condiciones) && elegido.totalmenteValido ? 'sin-verificar' : elegido.totalmenteValido ? 'valida' : 'con-violaciones-preexistentes',
     violacionesElegida: elegido.violaciones,
-    candidatos, tiempoMs: ahora() - t0,
+    candidatos, ...(descartadasPorCondiciones.length?{descartadasPorCondiciones}:{}), tiempoMs: ahora() - t0,
     versionAlgoritmo: base.politica_recursos_version ? `${VERSION_ALGORITMO}+recursos-v1` : base.max_bloques_caja_eventual_dia !== undefined || base.eventuales_caja_hora_limite !== undefined
       ? `${VERSION_ALGORITMO}+caja-eventual-v1${elegido.estrategia === 'anticipar-cierre' ? '+cierre-v1' : ''}`
       : VERSION_ALGORITMO,
   }
   // En el resultado visible se omiten los tiempos: la generación debe ser reproducible
   // (misma entrada → mismo resultado). Los tiempos quedan en `seleccion` para diagnóstico.
+  if(base.auditoria_condiciones)seleccion.versionAlgoritmo+='+condiciones-v1'
   const multiArranque: SeleccionMultiArranque = { ...seleccion, tiempoMs: 0, candidatos: candidatos.map(c => ({ ...c, ms: 0 })) }
   const salida = convertirOutputDeV2(resultadoV2, e.cajeros, e.auxiliares, e.eventuales)
-  if(base.politica_recursos_version) salida.alertas.push('Recursos v1: AH2-039/040 pendientes de homologación e implementación. No publicable.')
+  if(base.politica_recursos_version) salida.alertas.push('Recursos v1: AH2-040 pendiente de homologación de comparabilidad individual. No publicable.')
   // Un candidato «sin violaciones nuevas» NO es un horario válido: si hereda violaciones
   // del respaldo se avisa expresamente; la pantalla lo deja en BORRADOR (validador independiente).
   if (seleccion.validacion === 'con-violaciones-preexistentes') {

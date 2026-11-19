@@ -11,6 +11,7 @@ export interface ContextoValidacionSemana {
   necesidad: Franja[]
   excepciones: ExcepcionSemanal[]
   maxFrancosDia?: number
+  maxFrancosPorDia?: number[]
   minimosCajeros?: MinimoFranja[]
   semanaAnterior?: HorarioColaborador[]
   /** Alternativa explícita: salida del domingo REAL, por ID; null equivale a franco. */
@@ -74,10 +75,12 @@ export function validarResultadoSemana(
   }
   const validacion = validarHorario({
     horarios: resultado.horarios,
+    condicionesSupervisor:resultado.condicionesSupervisor,
     roster,
     perfil,
     excepciones: normalizarExcepciones(ctx.excepciones),
     maxFrancosDia: ctx.maxFrancosDia,
+    maxFrancosPorDia: ctx.maxFrancosPorDia,
     necesidad: ctx.necesidad,
     minimosCajeros: ctx.minimosCajeros,
     cajaAux: resultado.cajaAux,
@@ -92,7 +95,7 @@ export function validarResultadoSemana(
   // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).
   const op = operativaEfectiva(ctx.operativa)
   const huecos = (ctx.huecosSupervision ?? []).filter(h => h.tipo === 'APERTURA' && op.aperturaSoloAux)
-  const limitaciones = [...(ctx.limitaciones?.filter(Boolean) ?? []), ...limitacionesPerfil]
+  const limitaciones = [...(resultado.condicionesSupervisor?['Condiciones de supervisor en laboratorio experimental: no publicable automáticamente.']:[]),...(ctx.limitaciones?.filter(Boolean) ?? []), ...limitacionesPerfil]
   const violaciones = [
     ...validacion.violaciones,
     ...horas.violaciones,

@@ -1,3 +1,4 @@
+import type {EntradaCondiciones} from './condicionesTipos'
 import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/adapter.ts
 // Capa de conversión entre los tipos de la UI (algoritmo viejo) y el algoritmo v2.
@@ -163,7 +164,7 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
  * preferencias blandas (rotación + aprendizaje, keyed por NOMBRE), mínimos de
  * cajeros por franja (reglas del local) y tope de francos por día.
  */
-export interface OpcionesGeneracion extends PoliticaRecursos {
+export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones {
   maxBloquesCajaEventualDia?: number
   eventualesCajaHoraLimite?: string
   preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
@@ -262,6 +263,8 @@ export function convertirInputAV2(
     colaboradores,
     presencia_aux,
     disponibilidad_eventual,
+    sucursal_id: opciones?.sucursal_id, semana: opciones?.semana,
+    condiciones_supervisor: opciones?.condiciones_supervisor && {...opciones.condiciones_supervisor,condiciones:opciones.condiciones_supervisor.condiciones.map(c=>({...c,colaboradorId:c.colaboradorId?(ident.v2PorUi.get(c.colaboradorId)??c.colaboradorId):undefined}))},
     politica_recursos_version: opciones?.politica_recursos_version,
     supervision_apertura_externa: opciones?.supervision_apertura_externa,
     max_caja_eventual_slots: opciones?.max_caja_eventual_slots && Object.fromEntries(Object.entries(opciones.max_caja_eventual_slots).map(([id,n])=>[ident.v2PorUi.get(id) ?? id,n])),
@@ -457,6 +460,8 @@ export function convertirOutputDeV2(
   // Alertas desde el reporte de reglas
   const alertas: string[] = [
     ...resultado.reporte_reglas.advertencias,
+    ...(resultado.auditoria_condiciones?.aplicadas??[]).map(c=>`Condición ${c.id}: ${c.modo} ${c.tipo}${c.colaboradorId?' · '+(nombreMap[c.colaboradorId]??c.colaboradorId):''}${c.valor!==undefined?' = '+c.valor:''}${c.ventana?' (ingreso '+slotAHora(c.ventana.min)+'–'+slotAHora(c.ventana.max)+', salida hasta '+slotAHora(c.ventana.fin)+')':''}, ${c.desde} a ${c.hasta}; días ${c.dias.map(d=>d+1).join(',')}.`),
+    ...(resultado.auditoria_condiciones?.excluidos.length?[`Gestión manual excluida del cálculo automático: ${resultado.auditoria_condiciones.excluidos.join(',')}. No se infiere franco ni ausencia.`]:[]),
     ...resultado.reporte_reglas.violaciones.map(v =>
       v.colab_id ? `${v.regla} (${nombreMap[v.colab_id] ?? v.colab_id}): ${v.detalle}` : `${v.regla}: ${v.detalle}`
     ),
@@ -480,6 +485,7 @@ export function convertirOutputDeV2(
     cajaEventual,
     cumplimientoHoras,
     impactoHoras: resultado.impacto_horas,
+    condicionesSupervisor: resultado.auditoria_condiciones && {...resultado.auditoria_condiciones,aplicadas:resultado.auditoria_condiciones.aplicadas.map(c=>({...c,colaboradorId:c.colaboradorId?(idMap[c.colaboradorId]??c.colaboradorId):undefined})),excluidos:resultado.auditoria_condiciones.excluidos.map(id=>idMap[id]??id)},
   };
 }
 

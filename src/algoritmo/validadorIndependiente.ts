@@ -94,6 +94,7 @@ export interface Violacion {
 }
 
 export interface EntradaValidacion {
+  condicionesSupervisor?: import('./condicionesTipos').AuditoriaCondiciones
   horarios: HorarioColaborador[]
   /** Contrato y nombre de cada persona (por id de UI). */
   roster: Array<{ id: string; nombre: string; contrato: Contrato; horarioSemanal?: string[] }>
@@ -102,6 +103,7 @@ export interface EntradaValidacion {
   excepciones?: ExcepcionSemanal[]
   /** Tope de francos FULL+PART por día. */
   maxFrancosDia?: number
+  maxFrancosPorDia?: number[]
   /** Demanda POM (31 filas 07:00–22:00) para métricas y mínimos. */
   necesidad?: Franja[]
   /** Mínimo de personas en caja por franja (regla operativa). slotDesde/Hasta: slots de 30 min desde 08:00. */
@@ -179,6 +181,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   const v: Violacion[] = []
   const porId = new Map(e.roster.map(r => [r.id, r]))
   const vistos = new Set<string>()
+  validarSnapshotCondiciones(e,v)
 
   for (const h of e.horarios) {
     const persona = porId.get(h.colaboradorId)
@@ -206,18 +209,18 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
     if (persona.contrato === 'FULL' || persona.contrato === 'PART') {
       validarContrato(v, h.colaboradorId, nombre, dias, e.perfil.contratos[persona.contrato], persona.contrato)
       validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior, e.finDomingoAnteriorPorId)
-      validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorNombre === nombre))
+      validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorId?x.colaboradorId===h.colaboradorId:x.colaboradorNombre === nombre))
     }
   }
 
   // Tope de francos simultáneos (FULL + PART)
-  if (e.maxFrancosDia !== undefined) {
+  if (e.maxFrancosDia !== undefined || e.maxFrancosPorDia) {
     for (let d = 0; d < 7; d++) {
       const n = e.horarios.filter(h => {
         const c = porId.get(h.colaboradorId)?.contrato
         return (c === 'FULL' || c === 'PART') && h.jornadas.some(j => j.dia === d && j.esFranco)
       }).length
-      if (n > e.maxFrancosDia) {
+      if (n > (e.maxFrancosPorDia?.[d]??e.maxFrancosDia??2)) {
         v.push({ codigo: 'OP_MAX_FRANCOS_DIA', nivel: 'OPERATIVA', dia: d, detalle: `${n} francos el ${DIAS[d]} (máximo ${e.maxFrancosDia}).` })
       }
     }
@@ -246,7 +249,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   if (e.operativa) validarReglasOperativas(v, e, e.operativa, porId)
 
   const bloqueantes = v.length
-  return { ok: bloqueantes === 0, publicable: bloqueantes === 0 && !e.operativa?.politica_recursos_version, violaciones: v, metricas, ...(e.operativa?.politica_recursos_version?{limitaciones:['Política de recursos v1: alcance AH2-036–038; pendientes preflight AH2-039 y comparabilidad semanal AUX/EVENTUAL AH2-040. No habilita publicación.']}: {}) }
+  return { ok: bloqueantes === 0, publicable: bloqueantes === 0 && !e.operativa?.politica_recursos_version && !e.condicionesSupervisor, violaciones: v, metricas, ...(e.operativa?.politica_recursos_version?{limitaciones:['Política de recursos v1: alcance AH2-036–038; pendiente homologación de comparabilidad semanal AUX/EVENTUAL AH2-040. No habilita publicación.']}: {}) }
 }
 
 function validarContrato(
@@ -325,7 +328,7 @@ function validarDescanso(
 function validarExcepciones(v: Violacion[], id: string, nombre: string, dias: (Bloque[] | null)[], exc: ExcepcionSemanal[]) {
   for (const x of exc) {
     dias.forEach((b, d) => {
-      if (!b) return
+      if (!b || (x.dias && !x.dias.includes(d))) return
       const franco = b.length === 0
       const push = (detalle: string) =>
         v.push({ codigo: `OP_${x.tipo.toUpperCase()}`, nivel: 'OPERATIVA', colaboradorId: id, dia: d, detalle: `${nombre}: ${detalle} (${x.descripcion || x.tipo}).` })
@@ -338,6 +341,9 @@ function validarExcepciones(v: Violacion[], id: string, nombre: string, dias: (B
         }
         case 'no_antes_de':
           if (!franco && x.valor && b[0].ini < min(x.valor)) push(`entra antes de ${x.valor} el ${DIAS[d]}`)
+          break
+        case 'inicio_no_despues_de':
+          if(!franco&&x.valor&&b[0].ini>min(x.valor))push(`entra después del máximo de inicio ${x.valor}`)
           break
         case 'no_despues_de':
           if (!franco && x.valor && b[b.length - 1].fin > min(x.valor)) push(`sale después de ${x.valor} el ${DIAS[d]}`)
@@ -595,4 +601,24 @@ function validarReglasOperativas(
 
 function rangos(horas: string[]): string {
   return horas.length > 4 ? `${horas[0]}…${horas[horas.length - 1]} (${horas.length} medias horas)` : horas.join(', ')
+}
+
+/** Relectura independiente del snapshot, sin llamar al compilador ni al optimizador. */
+function validarSnapshotCondiciones(e:EntradaValidacion,v:Violacion[]){
+ const snap=e.condicionesSupervisor;if(!snap)return
+ for(const c of snap.aplicadas){if(c.modo!=='DEBE')continue
+  const push=(dia:number|undefined,detalle:string)=>v.push({codigo:'OP_CONDICION_SUPERVISOR',nivel:'OPERATIVA',dia,colaboradorId:c.colaboradorId,detalle:`${c.id}: ${detalle}`})
+  const h=e.horarios.find(h=>h.colaboradorId===c.colaboradorId)
+  if(c.tipo==='exclusion_manual'){if(h)push(undefined,'persona gestionada manualmente incluida en cálculo automático');continue}
+  if(c.tipo==='max_francos'){
+   for(const d of c.dias){const n=e.horarios.filter(h=>['FULL','PART'].includes(e.roster.find(p=>p.id===h.colaboradorId)?.contrato??'')&&h.jornadas.find(j=>j.dia===d)?.esFranco).length;if(n>Number(c.valor))push(d,`francos ${n} superan ${c.valor}`)}
+   continue
+  }
+  if(!h){push(undefined,'falta horario bajo condición obligatoria');continue}
+  const dias=jornadasPorDia(h)
+  for(const d of c.dias){const b=dias[d];if(!b){push(d,'falta jornada');continue}
+   if(c.tipo==='franco'&&b.length)push(d,'trabaja con franco obligatorio')
+   if(c.tipo==='turno'&&b.length){const w=c.ventana;if(!w||b[0].ini<480+w.min*30||b[0].ini>480+w.max*30||b[b.length-1].fin>480+w.fin*30)push(d,'turno fuera de ventana obligatoria')}
+  }
+ }
 }

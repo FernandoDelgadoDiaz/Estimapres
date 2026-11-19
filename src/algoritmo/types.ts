@@ -1,3 +1,4 @@
+import type {EntradaCondiciones,AuditoriaCondiciones} from './condicionesTipos'
 import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/types.ts
 // Tipos compartidos del algoritmo de horarios v2.
@@ -66,7 +67,8 @@ export interface SesgoTurno {
 }
 
 // Inputs completos al algoritmo
-export interface InputAlgoritmo extends PoliticaRecursos {
+export interface InputAlgoritmo extends PoliticaRecursos, EntradaCondiciones {
+  auditoria_condiciones?: AuditoriaCondiciones
   max_bloques_caja_eventual_dia?: number;
   eventuales_caja_hora_limite?: string;
   demanda: MatrizDemanda;
@@ -156,6 +158,8 @@ export interface MetricasCobertura {
 }
 
 export interface ResultadoSemanal {
+  auditoria_condiciones?: AuditoriaCondiciones
+  preferencias_manuales_incumplidas?: number
   semana: { desde: Date; hasta: Date };
   jornadas_full: Record<string, Jornada[]>;
   jornadas_part: Record<string, Jornada[]>;
