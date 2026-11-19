@@ -33,6 +33,21 @@ Fecha de inicio: 2026-11-19. Sucursal piloto: 091. Propietario: supervisor de la
 7. Reportar **sobrantes dentro de POM y fuera de POM**, en particular 22:30–23:00, y déficits por franja. No esconder regresiones locales bajo un porcentaje global.
 8. No borrar, aprobar ni comunicar V1 por efecto de la integración. Los horarios semanales reales siguen un circuito de aprobación separado.
 
+## 3.1 Cambio de producto de máxima prioridad: AUX/eventuales/dotación (19/11/2026)
+
+**Autoridad normativa única:** MASTER [AH2-036, AH2-037, AH2-038](ALIADA_HORARIOS_MASTER.md). Estas referencias prevalecen sobre los resultados previos de laboratorio y sobre objetivos porcentuales del 99,75/99,88 %. No duplicar aquí decisiones de producto.
+
+**Gates técnicos obligatorios para A, B y validadores comunes:**
+
+1. El presupuesto FULL/PART se asigna a caja conforme a sus contratos; AUX cubre demanda residual **antes** de EVENTUAL cuando haya disponibilidad efectiva y un responsable de supervisión distinto. Un candidato que usa eventuales mientras un AUX libre puede cubrir exactamente la misma franja debe ser penalizado según la prioridad acordada o rechazado cuando se declare una regla operativa obligatoria.
+2. Si coinciden **dos AUX** y existe demanda de caja no cubierta, reservar uno para **supervisión de pie** y asignar preferentemente al segundo a caja. Ambos deben tener presencia efectiva; no doble contar supervisión/caja, ni inventar demanda. Casos con 3+ AUX son generalización propuesta, no decisión confirmada.
+3. Configuración local 091, 08:00–09:00 con AUX único y sin FULL/PART: exigir la decisión explícita de supervisión compatible. Nunca suponer que caja y supervisión de pie ocurren simultáneamente. Los casos sin responsable autorizado quedan advertidos/bloqueados.
+4. **No pedir al supervisor un tope de horas-caja semanales para AUX**: la capacidad surge del modelo de asignaciones por franja, presencia y supervisión. Para EVENTUAL soportar máximo semanal por colaborador, con reservas sectoriales cuando consten. **12 h es un escenario ilustrativo, no un default aprobado.** Con límite activo, no sacrificar tareas principales por buscar 100 %.
+5. Si la cobertura factible queda por debajo de 100 %, mostrar la brecha real y generar simulaciones marginales de **+32 h PART** y **+48 h FULL** en escenarios sintéticos de nueva contratación, con descansos, francos, turnos y supervisión; indicar supuestos y diferencia vs plantilla vigente. Sin altas reales ni escrituras.
+6. Tests mínimos: doble AUX con demanda residual y eventual disponible; doble AUX sin demanda residual; AUX único 08–09 sin política de supervisión; eventual con tope semanal alcanzado; preservación de presencia sectorial; fallback de A con restricciones; escenarios +32/+48 no sobreestiman cobertura. Comparar métricas por franja, no solo porcentaje agregado.
+
+**Efecto sobre el ensayo 091:** las coberturas 99,75 % / 99,88 % de ensayos anteriores no son aprobables como demostración de optimización útil por rol; revaluar después de implementar topes/roles y respetar obligaciones sectoriales.
+
 ## 4. Arquitectura a implementar — requisitos, no tecnología supuesta
 
 - **A**: generación determinística disponible inmediatamente y conservada como respaldo.
