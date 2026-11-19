@@ -1,3 +1,16 @@
+## ÚLTIMA DECISIÓN DEL PROPIETARIO — restricciones opcionales, validación previa y equidad de carga · 2026-11-19 (Argentina)
+
+**ESTADO: REQUISITOS APROBADOS EN MASTER AH2-039/040. IMPLEMENTACIÓN Y PRUEBAS PENDIENTES.** Esta es la primera sección canónica para Work y Claude; los registros anteriores siguen debajo intactos.
+
+- **Entrada al generador:** el supervisor puede generar sin restricciones nuevas o preconfigurar por colaborador reglas de turno obligatorio mañana/tarde, franco obligatorio lunes/miércoles/jueves, un máximo de francos simultáneos por día (en 091 dos, local), preferencias no vinculantes de turnos y de franco/medio franco corrido. Las reglas admiten ámbito y vigencia. Distinguir DEBE (dura) de PREFERIRÍA (blanda), sin convertir las preferencias en obligaciones, ni relajar condiciones duras silenciosamente.
+- **Preflight:** si todos tienen franco el lunes o se supera la cantidad permitida, o falta supervisión obligatoria, no generar un horario aparentemente válido: advertir condiciones responsables y proponer ajustes manuales. Diferenciar inviabilidad técnica real de cobertura parcial factible; respetar decisiones del supervisor sin modificarlas automáticamente.
+- **Secuencia invariable:** FULL/PART 100 % de horas contractuales de caja → AUX disponibles para caja, manteniendo otro AUX supervisor de pie cuando corresponda → EVENTUAL solo demanda residual. Sin límite AUX semanal manual; usar demanda, presencia, supervisión. No sumar presencia de reposición/maestranza como disponibilidad ilimitada de caja.
+- **Condición añadida:** ningún EVENTUAL debe exceder horas-caja semanales de un AUX comparable realmente elegible para caja, incluso sin tope semanal explícito para el EVENTUAL. La comparación excluye a quien solo supervisa y requiere resolver técnica y explícitamente el significado de comparable (horarios, disponibilidad y solapes); pendiente de homologación, sin usar un promedio que esconda incumplimientos y sin imponer un bloqueo artificial por AUX no elegible. Si eso reduce cobertura, mostrar brecha, no ocultar.
+- **Próximo paso exacto para Work/Claude:** leer MASTER AH2-036 a 040 y contrato §3.1–§3.2, auditar las capas de reglas configurables y el selector A/B, escribir tests sintéticos de los escenarios obligatorios/preferenciales y prioridades AUX/EV, implementar preflight y contrato compartido y solo entonces refinar CP-SAT, A y el validador. No reanudar tests de 091 con resultados previos como si fueran aprobados.
+- **Ejecutado en esta entrega:** cambios documentales en Estimapres PR #60; ningún código del motor ni tests ejecutados, ninguna escritura Supabase, despliegue, merge o cambio de personal. Confirmar HEAD de ambas ramas antes del siguiente commit. Mantener única continuidad Work/Claude en ESTE archivo.
+
+---
+
 ## ACTUALIZACIÓN PRIORITARIA DEL PROPIETARIO — recursos AUX y EVENTUAL · 2026-11-19 (Argentina)
 
 **Estado: REQUISITO DE PRODUCTO APROBADO, CÓDIGO PENDIENTE. Esta actualización tiene prioridad sobre cualquier tarea de integración pendiente.** Work y Claude deben leer primero MASTER AH2-036/037/038 y `docs/INTEGRACION_HIBRIDA_WORK_CLAUDE.md` §3.1 antes de programar; ambos mantienen una única continuidad en ESTE archivo.
