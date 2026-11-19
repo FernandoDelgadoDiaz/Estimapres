@@ -79,3 +79,15 @@ it('el multi-arranque conserva contratos tras sus semillas exploratorias y snaps
  expect(r.resultado.condicionesSupervisor?.aplicadas[0].id).toBe('c1')
  expect(r.resultadoV2.jornadas_part.p[0].bloques).toEqual([])
 })
+it('ficha PART incompleta no se presenta como inviabilidad matemáticamente demostrada',()=>{
+ const i=request(data(),[row]);i.contratos!.p.objetivoSlots=null
+ const conflicts=prevalidarCondiciones(i).conflictos
+ expect(conflicts.some(c=>c.codigo==='DATOS_HORAS_FICHA'&&!c.demostrado)).toBe(true)
+})
+it('preferencia de franco y medio franco FULL sigue subordinada a cobertura y no reduce horas',()=>{
+ const i=request(data(),[{...row,tipo:'franco_medio_corrido',modo:'PREFERIRIA',dia:undefined}]);i.colaboradores[0]={...i.colaboradores[0],rol:'FULL',horasSemanales:48};delete i.contratos!.p
+ const base=ejecutarAlgoritmo({...i,condiciones_supervisor:{...i.condiciones_supervisor!,condiciones:[]}}),r=ejecutarAlgoritmo(i)
+ expect(r.jornadas_full.p.flatMap(j=>j.bloques).reduce((s,b)=>s+b.slot_fin-b.slot_inicio,0)).toBe(96)
+ r.metricas.deficit_por_slot.forEach((rs,d)=>rs.forEach((v,s)=>expect(v).toBeLessThanOrEqual(base.metricas.deficit_por_slot[d][s])))
+ expect([0,1]).toContain(r.preferencias_manuales_incumplidas)
+})

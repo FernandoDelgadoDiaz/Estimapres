@@ -65,6 +65,7 @@ export function prevalidarCondiciones(original:InputAlgoritmo){
  for(let d=0;d<7;d++)if(forced[d].size>(input.max_francos_por_dia?.[d]??input.max_francos_dia??2))conflictos.push({codigo:'MAX_FRANCOS_INCOMPATIBLE',dia:d,causas:auditoria.aplicadas.filter(c=>c.modo==='DEBE'&&(c.tipo==='max_francos'||forced[d].has(c.colaboradorId??''))).map(c=>c.id),demostrado:true})
  for(const p of input.colaboradores.filter(p=>p.rol==='FULL'||p.rol==='PART')){
   const causes=auditoria.aplicadas.filter(c=>c.modo==='DEBE'&&c.colaboradorId===p.id).map(c=>c.id)
+  if(causes.length&&p.rol==='PART'&&(!Number.isInteger(input.contratos?.[p.id]?.objetivoSlots)||(input.contratos?.[p.id]?.objetivoSlots??0)<=0)){conflictos.push({codigo:'DATOS_HORAS_FICHA',persona:p.id,causas:causes,demostrado:false});continue}
   if(causes.length&&!factibilidadIndividual(input,p))conflictos.push({codigo:'CONTRATO_INDIVIDUAL_INVIABLE',persona:p.id,causas:causes,demostrado:true})
  }
  const zero=Array.from({length:7},()=>Array(30).fill(0)),p2=ejecutarPasada2(input,{jornadas_full:{},jornadas_part:{},deficit_1:zero,infactibles:[],cumplimiento_horas:[]})
