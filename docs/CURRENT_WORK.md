@@ -1,3 +1,16 @@
+## ACTUALIZACIÓN PRIORITARIA DEL PROPIETARIO — recursos AUX y EVENTUAL · 2026-11-19 (Argentina)
+
+**Estado: REQUISITO DE PRODUCTO APROBADO, CÓDIGO PENDIENTE. Esta actualización tiene prioridad sobre cualquier tarea de integración pendiente.** Work y Claude deben leer primero MASTER AH2-036/037/038 y `docs/INTEGRACION_HIBRIDA_WORK_CLAUDE.md` §3.1 antes de programar; ambos mantienen una única continuidad en ESTE archivo.
+
+- **Error observado:** propuestas con 99,75 % de cobertura consumen demasiadas horas de reposición/maestranza de eventuales (alrededor de 26–30 h-caja de 48 h laborales, según reporte del supervisor), mientras auxiliares de 48 h tienen muchas menos horas-caja. Estas cifras son observación del supervisor, **NO benchmark nuevo ni validación de esta rama**. No sostener que 99,75 % es resultado operativamente aceptable bajo criterios corregidos.
+- **Decisión:** FULL/PART horas contractuales de caja → AUX con máxima cobertura residual dentro de presencia y supervisión → EVENTUAL solo resto necesario. Con **dos AUX simultáneos**, uno debe estar de pie supervisando, otro tiene prioridad para atender caja si el POM lo requiere. No inventar sobrantes ni suponer roles simultáneos incompatibles. AUX no requiere tope semanal manual; deriva de solapes, demanda, normas y supervisión. Reglas por sucursal.
+- **Particularidad 091:** 08:00–09:00 puede haber un único AUX y ningún FULL/PART de caja. Falta política explícita para resolver responsable de supervisión compatible; **no autoautorizar una excepción o doble rol**.
+- **EVENTUAL:** proteger reposición/maestranza; máximo semanal individual configurable de horas-caja y reservas sectoriales cuando estén acreditadas. 12 h/semana **ejemplo, no decisión del valor 091**. Con los límites reales, maximizar cobertura factible y mostrar faltantes. Simular aparte +1 PART 32 h / +1 FULL 48 h (sin crear altas), con mejora realmente calculada.
+- **Próximo paso exacto que sustituye el anterior:** implementar **primero** fixtures sintéticos y pruebas de aceptación del MASTER §9 AH2-036–038 para los dos motores y el validador compartido; documentar en PR #60/#6 el punto actual en que la asignación AUX/EV no respeta la prioridad. Luego introducir restricciones y modelo de supervisión por franja sin romper fallback. **No correr nuevo benchmark real 091 hasta estas reglas homologadas.**
+- **Trabajos realizados en esta actualización:** únicamente decisiones, contrato y relevo en GitHub; **ninguna implementación ni prueba nueva**, ningún cambio en Supabase, Netlify, `main` o PRs base. Work/Claude debe comprobar el último HEAD antes de escribir.
+
+---
+
 ## PUNTO ÚNICO DE RETOMA — integración híbrida Work ↔ Claude · 2026-11-19 (Argentina)
 
 **Estado: INICIADO — solo documentación y ramas aisladas; integración de código PENDIENTE.**
