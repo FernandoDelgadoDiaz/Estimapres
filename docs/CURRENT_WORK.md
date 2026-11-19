@@ -1,4 +1,82 @@
-## PUNTO ÚNICO DE RETOMA — AH2-039 y AH2-040 · 19/11/2026, Work
+## PUNTO ÚNICO DE RETOMA — integración híbrida · evaluación AH2-040 · 20/11/2026 (Argentina), Claude
+
+**Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.** Evaluación AH2-040 completada en laboratorio. Ninguna alternativa aprobada; la política v1 sigue **no publicable**.
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las secciones siguientes son historia.
+
+### Ramas y SHAs
+- Estimapres PR #60, `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `16b8cdee164adcfb674a0579dc14021aecd9f2e8`, con CI `test-build` y `browser` en success antes de editar;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6, `feat/integracion-aliada-work-claude`:
+  - base verificada `2e5241ab3f59fcb0d1dd787fe2beb49c458000c0`, con CI `offline` en success;
+  - entrega **`a7c560748601a8cd0de5b87ec2f7acd012f03776`**.
+- Sin force-push. AH2-036–039 no se rehicieron.
+
+### Cambios concretos
+- **Definiciones comunes A/B** (`src/algoritmo/ah2040.ts` ↔ `optimizer/ah2040.py`):
+  - O(e): oportunidades del EVENTUAL;
+  - K(a): capacidad **efectiva** de caja AUX, descontando supervisión. El supervisor exclusivo tiene K = ∅;
+  - Kd(a): capacidad **determinada**, es decir, el único AUX que puede atender caja en la franja.
+- **Modos:**
+  - P0: sin relación;
+  - P1: pares explícitos con O ⊆ K;
+  - P2: automática por máximo solapamiento, comparando totales semanales;
+  - P2E: P2 contra todo AUX solapado;
+  - P3: ventana compartida con capacidad determinada (alternativa nueva).
+- Todo es opt-in con `comparacion_aux_eventual`, solo laboratorio, `publicable=False`. Sin ese campo, el comportamiento y el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` no cambian.
+- **B (CP-SAT):** variables de identidad AUX por franja, solo en modo experimental, y restricciones dentro del mismo orden lexicográfico. La extracción respeta la identidad.
+- **A:** la pasada 3 corre después de fijar la caja AUX. A deriva topes (P1, P2, P2E) o reservas (P3) y vuelve a correr comprobando que la caja AUX no cambie.
+- **Verificadores independientes** en ambos repositorios. Los 40 planes A y los 40 planes B se validan con **ambos** validadores (relación del modo y reglas existentes).
+- **Evidencia:**
+  - `docs/AH2-040_EVALUACION.md` (análisis y recomendación);
+  - `docs/evidencia/ah2040-comparacion.csv` (80 filas: cobertura, faltantes, sobrantes y horas-caja de cada AUX y EVENTUAL, horas sectoriales, relaciones e infracciones);
+  - aliada-optimizer `results/ah2040/` (entradas y planes);
+  - MASTER: AH2-040-P3 **PROPUESTO** y medición agregada a P1. Ninguna decisión aprobada cambió.
+
+### Pruebas ejecutadas (resultados reales)
+- A: TypeScript OK; **499 Vitest aprobadas, 8 omitidas** (7 nuevas en `ah2040-comparacion.test.ts`); build OK. Playwright no corrido localmente; verificar `browser` en la CI del PR.
+- B: **94 pytest aprobadas, 1 omitida** (9 nuevas en `tests/test_ah2040.py`).
+- Laboratorio CP-SAT: 8 casos × 5 modos. Todos OPTIMAL (máximo 1,25 s; semilla 20261119; un worker). 0 infracciones en ambos validadores y en la validación cruzada. Ningún INFEASIBLE: la relación siempre admite EVENTUAL = 0, así que su costo es pérdida de cobertura.
+- **Faltantes totales en los 8 casos** (horas, B / A):
+
+  | Modo | B / A | Diferencia con P0 |
+  |---|---|---|
+  | P0 | 1013 / 1015 | — |
+  | P1 | 1013 / 1048,5 | A pierde 33,5 h en el caso 4, por roles AUX rotativos |
+  | P2 | 1097 / 1130,5 | +84 / +115,5 h |
+  | P2E | 1181 / 1183 | +168 h |
+  | P3 | 1013 / 1015 | 0 |
+
+- **Ningún modo aumentó las horas-caja AUX totales:** las relaciones semanales solo quitan horas EVENTUALES en franjas sin AUX de caja posible.
+
+### Decisiones
+- **Recomendación técnica única: aprobar AH2-040 como P3** (DEBE), con tres complementos:
+  - la prioridad por franja de AH2-036;
+  - transparencia individual obligatoria;
+  - protección sectorial mediante tope o reservas explícitos por sucursal (AH2-037).
+- P1 y P2 siguen PROPUESTAS. No se convirtió ninguna en restricción productiva.
+
+### Bloqueos, seguridad y datos
+- Pendientes:
+  - aprobación del propietario de AH2-040 (P3 recomendada);
+  - generalización a 3 o más AUX;
+  - topes y reservas reales y política de apertura de la 091.
+- Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales; solo datos sintéticos. Publicación bloqueada.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks: `test-build`, `browser` y `offline`.
+2. Presentar al propietario `docs/AH2-040_EVALUACION.md` y obtener su decisión sobre AH2-040-P3.
+3. **Si aprueba P3:**
+   - activarla como regla de la política v1 en A, B y ambos validadores. Hoy está detrás de `comparacion_aux_eventual`: pasarla a la política, con la versión correspondiente;
+   - reemplazar el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` por la verificación P3;
+   - agregar al PDF y al resumen las horas dentro y fuera de las ventanas compartidas;
+   - repetir esta matriz y los suites.
+4. **Si rechaza P3 o pide un límite por totales semanales:** usar los costos medidos de P2 y P2E y exigir topes o reservas explícitos por sucursal. No fabricar defaults.
+5. Después: integración UI y transporte A→B y ensayo offline autorizado de la 091, sin datos reales en GitHub.
+
+---
+
+## RELEVO ANTERIOR (historia) — AH2-039 y AH2-040 · 19/11/2026, Work
 
 **Estado: AH2-039 IMPLEMENTADA Y PROBADA EN LABORATORIO; AH2-040-P1 PROPUESTA IMPLEMENTADA COMO DIAGNÓSTICO. NO PUBLICABLE.** Esta es la única continuidad vigente para Work/Claude. MASTER §9 sigue siendo la única autoridad de decisiones. El contenido posterior se conserva como historia, no instrucciones vigentes.
 
