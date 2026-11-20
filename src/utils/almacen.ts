@@ -173,7 +173,7 @@ function reglaAFila(r: ReglaConfigurable): Omit<FilaRegla, 'created_at'> {
   }
 }
 
-function filaARegla(f: FilaRegla): ReglaConfigurable {
+export function filaARegla(f: FilaRegla): ReglaConfigurable {
   const p = f.parametros ?? {}
   return {
     id: f.id,
@@ -219,9 +219,12 @@ export function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> 
       cajaEventual: s.cajaEventual,
       configOperativa: s.configOperativa,
       disponibilidadSemana: s.disponibilidadSemana,
+      antecedenteDomingo: s.antecedenteDomingo,
       eventualesFijos: s.eventualesFijos,
       perfilHorasId: s.perfilHorasId,
       cumplimientoHoras: s.cumplimientoHoras,
+      hibrido: s.hibrido,
+      condicionesSupervisor: s.condicionesSupervisor,
       generacion: s.generacion, // #7 · AH2-020 (jsonb existente, sin migración)
     },
     metricas: {
@@ -252,10 +255,13 @@ export function filaASemana(f: FilaSemana): SemanaHistorial {
     cajaEventual: h.cajaEventual as SemanaHistorial['cajaEventual'],
     configOperativa: h.configOperativa as SemanaHistorial['configOperativa'],
     disponibilidadSemana: h.disponibilidadSemana as SemanaHistorial['disponibilidadSemana'],
+    antecedenteDomingo: h.antecedenteDomingo as SemanaHistorial['antecedenteDomingo'],
     eventualesFijos: h.eventualesFijos as string[] | undefined,
     perfilHorasId: h.perfilHorasId as string | undefined,
     cumplimientoHoras: h.cumplimientoHoras as SemanaHistorial['cumplimientoHoras'],
     generacion: h.generacion as SemanaHistorial['generacion'],
+    hibrido: h.hibrido as SemanaHistorial['hibrido'],
+    condicionesSupervisor: h.condicionesSupervisor as SemanaHistorial['condicionesSupervisor'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,

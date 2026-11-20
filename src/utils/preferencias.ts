@@ -1,3 +1,4 @@
+import type { PoliticaRecursos } from '../algoritmo/politicaRecursos'
 // src/utils/preferencias.ts
 // Motor de dominio (funciones puras) para las tres capacidades configurables:
 //   1. Reglas configurables → excepciones del algoritmo + demanda mínima + cap de francos
@@ -712,7 +713,7 @@ export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; 
 
 export type TipoReglaCajaEventual = 'max_bloques_caja_eventual_dia' | 'eventuales_caja_hora_limite'
 
-export interface ConfigOperativa {
+export interface ConfigOperativa extends PoliticaRecursos {
   maxBloquesCajaEventualDia?: number
   eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
