@@ -1,4 +1,24 @@
-## PUNTO ÚNICO DE RETOMA — completar ensayo 091 con EVENTUAL acreditados · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — ensayo 091 con topes EVENTUAL configurables por contrato · 20/11/2026
+
+**Decisión expresa del propietario:** los topes semanales de horas-caja EVENTUAL son optativos y editables por sucursal según contrato de origen FULL/PART. 091 elige 12 h para FULL y 8 h para PART. Otras sucursales pueden definir topes distintos o desactivarlos. Sin topes configurados no imponer máximos arbitrarios: se mantienen prioridad residual, DIAS, presencia efectiva, reservas explícitas, límite diario de bloques y hora de corte. No son objetivos de carga ni modifican los contratos de cajeros FULL/PART. MASTER AH2-037/040 actualizado en `b8c0809`, prevalece sobre referencias históricas a 12 h como ejemplo o a ausencia de topes para el ensayo.
+
+**Estado:** ensayo real conservador ejecutado (77,363 %, 91 h faltantes); acreditación de los cuatro EVENTUAL aprobada. Nueva corrida con topes locales pendiente. Implementación de configuración editable por contrato pendiente; los mecanismos de tope individual existen.
+
+### Continuación inmediata — Claude
+1. Leer MASTER y verificar ambos HEAD. Reutilizar el POM real y dotacion.json privados ya disponibles. No pedir nuevamente los archivos ni la acreditación. 
+2. Aplicar los máximos locales 12/8 usando los perfiles/topes efectivos existentes, con fuente y vigencia del ensayo. El export legada no trae tipo/contrato de origen EVENTUAL; sus horarios registrados suman tres presencias de 48 h y una de 32 h. Para avanzar sin otra consulta, usar esa correspondencia **provisional y explícita únicamente para el ensayo**; no tratarla como contrato acreditado ni persistirla. Si el dato contractual verificable ya está en la carpeta, tiene prioridad. Informar la hipótesis y su impacto. No inventar horas de reserva adicionales.
+3. Correr A+B 120 s con la misma dotación y POM. Mantener la exclusión manual, 272 h contractuales automáticas, prioridad AUX, excepción 08–09, DIAS, dos bloques diarios y corte 22:00. Reportar por persona, tope, horas-caja, función habitual planificada, cobertura, faltantes y PDF. Comparar contra la línea base; no certificar descanso dominical sin evidencia. No homologar resultados basados en clasificación provisional.
+4. Implementar la configuración editable local de máximos por contrato de origen FULL/PART, independiente de rol EVENTUAL, con activación/desactivación explícita, sin hardcode de sucursal, sin confundir tope desactivado con 0 h; resolverla a topes efectivos del motor y conservar restricciones individuales. Llevar a A, B, adaptador, contrato, validadores y PDF, con pruebas de límites activos/desactivados, otra sucursal y contrato no informado. Si no hay tope de clase, el contrato de origen no puede bloquear por sí solo. Sin migración ni escritura real; preparar persistencia separada para autorización.
+5. Actualizar relevo y entregar evidencia; luego preparar piloto privado. Sin merge, despliegue, Supabase escritura, Prestify ni gasto.
+
+### Base
+- Estimapres PR #60, código validado `690712d07f69e45ce9c1207e6081521e39042e34`; HEAD documental posterior, consultar PR.
+- aliada-optimizer PR #6, `64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`.
+- Ambos borradores. CI del código previo verde. Guardar únicamente métricas agregadas en GitHub; no subir POM, dotación ni archivos privados.
+
+---
+
+## RELEVO ANTERIOR (historia) — completar ensayo 091 con EVENTUAL acreditados · 20/11/2026
 
 **Estado: ensayo conservador ejecutado; siguiente corrida pendiente.** Después de pedir nuevamente la confirmación de la disponibilidad de los cuatro EVENTUAL activos, el propietario señaló que ya estaba definida. MASTER AH2-037 actualizado en `137a07b`: ratificación de esa disponibilidad para el ensayo privado del 23–29/11. No es autorización de publicación ni acreditación universal.
 
