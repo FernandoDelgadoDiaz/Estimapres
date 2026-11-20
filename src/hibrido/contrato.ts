@@ -8,6 +8,7 @@
  * Ningún dato sale del proceso salvo por el transporte inyectado. Nada se publica.
  */
 import type {InputAlgoritmo,Jornada,ResultadoSemanal} from '../algoritmo/types'
+import {compilarCondiciones} from '../algoritmo/condicionesSupervisor'
 
 export const VERSION_CONTRATO='aliada-hibrido/1'
 export const ESTADOS_B=['OPTIMAL','FEASIBLE','UNKNOWN','INFEASIBLE','DATOS_INCOMPLETOS','ERROR_CONTRATO','ERROR_INTERNO'] as const
@@ -77,7 +78,10 @@ export function validarRespuesta(crudo:unknown,sobre:SobreSolicitud,input:InputA
   return {ok:true,respuesta:{...r,plan:null}}
  }
  const p=r.plan
- const ids=(rol:string[])=>input.colaboradores.filter(c=>rol.includes(c.rol)).map(c=>c.id).sort().join()
+ // FULL/PART con exclusión manual (DEBE, semana completa) quedan fuera del cálculo en A y en B: no se esperan en el plan.
+ let excluidos=new Set<string>()
+ try{excluidos=new Set(compilarCondiciones(input).auditoria?.excluidos??[])}catch{return {ok:false,codigo:'PLAN_CONDICIONES'}}
+ const ids=(rol:string[])=>input.colaboradores.filter(c=>rol.includes(c.rol)&&!excluidos.has(c.id)).map(c=>c.id).sort().join()
  if(!p||typeof p!=='object'||!p.jornadas||!p.AUX||!p.EVENTUAL)return {ok:false,codigo:'PLAN_FORMA'}
  if(Object.keys(p.jornadas).sort().join()!==ids(['FULL','PART']))return {ok:false,codigo:'PLAN_DOTACION'}
  if(Object.keys(p.AUX).sort().join()!==ids(['AUX'])||Object.keys(p.EVENTUAL).sort().join()!==ids(['EVENTUAL']))return {ok:false,codigo:'PLAN_APOYO'}

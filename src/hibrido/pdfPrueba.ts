@@ -7,6 +7,23 @@ import autoTable from 'jspdf-autotable'
 import type {SalidaUnica} from './orquestador'
 
 export const MARCA_NO_OFICIAL='PRUEBA NO OFICIAL — NO PUBLICAR'
+const DIAS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
+const hora=(slot:number)=>{const m=8*60+slot*30;return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
+/** Tramos contiguos de franjas (índices 0..29, 08:00–23:00) como «HH:MM–HH:MM». */
+export function tramos(slots:number[]):string[]{
+ const o=[...new Set(slots)].sort((a,b)=>a-b),r:string[]=[]
+ for(let i=0;i<o.length;){let j=i;while(j+1<o.length&&o[j+1]===o[j]+1)j++;r.push(`${hora(o[i])}–${hora(o[j]+1)}`);i=j+1}
+ return r
+}
+/** Grilla semanal de caja por persona a partir del plan elegido (FULL/PART: jornada; AUX/EVENTUAL: franjas en caja). */
+export function grillaPlan(p:NonNullable<SalidaUnica['propuesta']>):string[][]{
+ const filas:string[][]=[]
+ for(const [rol,m] of [['FULL',p.jornadas_full],['PART',p.jornadas_part]] as const)for(const [id,js] of Object.entries(m))
+  filas.push([id,rol,...DIAS.map((_,d)=>{const j=js.find(x=>x.dia===d);return j&&j.bloques.length?j.bloques.map(b=>`${hora(b.slot_inicio)}–${hora(b.slot_fin)}`).join(' / '):'Franco'})])
+ for(const [rol,m] of [['AUX',p.asignacion_aux],['EVENTUAL',p.asignacion_eventual]] as const)for(const [id,w] of Object.entries(m as Record<string,string[][]>))
+  filas.push([id,rol,...w.map(row=>{const t=tramos(row.flatMap((v,s)=>v==='CAJA'?[s]:[]));return t.length?`Caja ${t.join(' / ')}`:'—'})])
+ return filas
+}
 
 export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:string}):jsPDF{
  const doc=new jsPDF({orientation:'portrait',format:'a4',unit:'mm'})
@@ -30,7 +47,9 @@ export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:stri
   ['Cobertura POM',s.coberturaPomPct===null?'—':`${s.coberturaPomPct} %`],['Demanda (h)',s.demandaHoras??'—'],['Faltantes (h)',s.faltantesHoras??'—'],
   ['Sobrantes (h)',s.sobrantesHoras??'—'],['Comparabilidad AH2-040',`${s.comparabilidadAH2040.modo??'sin modo'} · ${s.comparabilidadAH2040.activacionDefinitiva}`],
   ['Excepción apertura AUX único (AH2-037)',s.excepcionApertura.configurada?`configurada · ${s.excepcionApertura.franjasAplicadas} franjas aplicadas`:'no configurada'],
+  ['Bloqueos de datos o política',s.bloqueos.length?s.bloqueos.join(', '):'ninguno'],
   ['Publicable','NO'],['Hash de entrada',s.hashEntrada??'—']])
+ if(s.propuesta)tabla(`Planificación semanal de caja (propuesta ${s.origen})`,['Persona','Rol',...DIAS],grillaPlan(s.propuesta))
  tabla('Horas por persona',['Persona','Rol','Contrato/presencia','Caja','Reservado función','Disponible caja','Restante'],
   s.horasPorEmpleado.map(x=>{const r=x as Record<string,unknown>;return [String(r.id),String(r.rol),String(r.horasContractuales??r.horasPresencia??'—'),String(r.horasCaja),String(r.horasReservadasFuncionHabitual??'—'),String(r.disponibilidadCajaEfectivaHoras??'—'),String(r.disponibilidadCajaRestanteHoras??'—')]}))
  tabla('Faltantes por franja',['Día','Franja','Personas'],s.faltantesPorFranja.map(f=>[f.dia,f.franja,f.personas]))

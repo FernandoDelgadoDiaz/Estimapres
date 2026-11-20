@@ -15,7 +15,7 @@ import type {InputAlgoritmo,ResultadoSemanal} from '../../algoritmo/types'
 import {aEntradaB,canonico,crearSobre,hashEntrada,validarRespuesta,VERSION_CONTRATO,type RespuestaB,type SobreSolicitud} from '../contrato'
 import {generarPropuestaHibrida,type OpcionesHibrido} from '../orquestador'
 import {transporteProceso} from '../transporteProceso'
-import {generarPDFPrueba,MARCA_NO_OFICIAL} from '../pdfPrueba'
+import {generarPDFPrueba,grillaPlan,MARCA_NO_OFICIAL,tramos} from '../pdfPrueba'
 import {abrirPDFNode} from '../../utils/__tests__/fixtures/pdfTextoNode'
 
 type Caso={nombre:string;data:{input:InputAlgoritmo}}
@@ -54,6 +54,16 @@ describe('contrato A↔B',()=>{
   const fuera=structuredClone(planB('S5'));fuera.EVENTUAL['ev-1'][0]=[31]
   expect(mal({plan:fuera})).toEqual({ok:false,codigo:'PLAN_MATRIZ'})
   await expect(crearSobre('x',sobre.entrada,{...OP.parametros,segundos:500})).rejects.toThrow('PARAMETROS_INVALIDOS')
+ })
+ it('exclusión manual DEBE (semana completa): A y B la dejan fuera del plan; el contrato no la exige',async()=>{
+  const input=caso('S5');const fp=input.colaboradores.find(c=>c.rol==='FULL'||c.rol==='PART')!
+  Object.assign(input,{sucursal_id:'synthetic',semana:'2026-11-23',condiciones_supervisor:{version:1,sucursal_id:'synthetic',semana:'2026-11-23',
+   condiciones:[{id:'ex-1',modo:'DEBE',tipo:'exclusion_manual',colaboradorId:fp.id,desde:'2026-11-23',hasta:'2026-11-29'}]}})
+  const sobre=await crearSobre('x',aEntradaB(input,'synthetic').entrada,OP.parametros)
+  const plan=structuredClone(planB('S5'));delete plan.jornadas[fp.id]
+  const ok=await responde(()=>({plan}))(sobre)
+  expect(validarRespuesta(ok,sobre,input)).toMatchObject({ok:true})
+  expect(validarRespuesta({...ok,plan:planB('S5')},sobre,input)).toEqual({ok:false,codigo:'PLAN_DOTACION'})
  })
 })
 
@@ -155,4 +165,14 @@ describe.skipIf(!hayB)('proceso real de B (laboratorio local)',()=>{
   const corto=await generarPropuestaHibrida(caso('S5','DIAS'),{...OP,timeoutMs:60000,transporte:transporteProceso({python:PY,cwd:DIR_B,plazoMs:10})})
   expect(corto).toMatchObject({origen:'A',estadoB:'ERROR_TRANSPORTE'})
  },120000)
+})
+
+describe('PDF no oficial: grilla semanal de caja',()=>{
+ it('tramos contiguos y grilla con jornada, franco y franjas de caja',()=>{
+  expect(tramos([0,1,2,5,6,29])).toEqual(['08:00–09:30','10:30–11:30','22:30–23:00'])
+  const g=grillaPlan({jornadas_full:{f:[{colab_id:'f',dia:0,bloques:[{slot_inicio:0,slot_fin:8},{slot_inicio:20,slot_fin:28}]}]},jornadas_part:{},
+   asignacion_aux:{a:[['CAJA','CAJA','PARADO',...Array(27).fill('NO_PRESENTE')],...Array.from({length:6},()=>Array(30).fill('NO_PRESENTE'))]},asignacion_eventual:{}} as unknown as ResultadoSemanal)
+  expect(g[0]).toEqual(['f','FULL','08:00–12:00 / 18:00–22:00','Franco','Franco','Franco','Franco','Franco','Franco'])
+  expect(g[1].slice(0,4)).toEqual(['a','AUX','Caja 08:00–09:00','—'])
+ })
 })

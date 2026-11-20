@@ -167,7 +167,7 @@ function construirSalida(x:{candidatos:Record<'A'|'B',Record<string,unknown>>;si
     notaAtribucion:'Atribución estimada con el motor A: misma entrada con y sin la relación semanal. «Sin personal» es una cota estructural por franja.'}
   })(),
   // Bloqueos de política/datos que impiden un ensayo concluyente (no se resuelven automáticamente).
-  bloqueos:[...new Set([...x.datosA.map(d=>d.codigo),...x.conflictos.filter(c=>c.origen==='B'||c.origen==='DATOS').map(c=>c.codigo)]
+  bloqueos:[...new Set([...x.datosA.map(d=>d.codigo),...(x.info?.diagnosticos??[]).filter(d=>d.bloqueaPublicacion).map(d=>d.codigo),...x.conflictos.filter(c=>c.origen==='B'||c.origen==='DATOS').map(c=>c.codigo)]
    .map(c=>c.replace(/[-]/g,'_').split(':')[0]).filter(c=>c.startsWith('POLITICA_')||c.startsWith('DATOS_')||c.startsWith('EV_CAJA')))].sort(),
   excepcionApertura:{configurada:!!input.excepcion_apertura_aux_unico?.some(r=>r.some(Boolean)),
    franjasAplicadas:elegido?input.demanda.reduce((a,row,d)=>a+[0,1].filter(s=>input.excepcion_apertura_aux_unico?.[d]?.[s]&&row[s]>0&&Object.values(elegido.r.asignacion_aux).filter(m=>m[d][s]!=='NO_PRESENTE').length===1&&Object.values(elegido.r.asignacion_aux).some(m=>m[d][s]==='CAJA')).length,0):0,

@@ -28,18 +28,24 @@ import {metricasAH2040} from '../../algoritmo/ah2040'
 const B=process.env.AH2_OPTIMIZER_DIR??resolve(process.cwd(),'../aliada-optimizer')
 it.skipIf(!dir||!existsSync(`${dir}/dotacion.json`))('ensayo privado · paso 2: A + CP-SAT, comparación y PDF',async()=>{
  const pom=JSON.parse(readFileSync(`${dir}/pom.json`,'utf8')),d=JSON.parse(readFileSync(`${dir}/dotacion.json`,'utf8'))
- // Impedimentos previos: con dotación REAL no se inventan perfiles de caja EVENTUAL ni disponibilidades.
+ // Perfiles de caja EVENTUAL: con dotación REAL nunca se infieren. Si faltan, el ensayo corre en modo conservador:
+ // perfiles vacíos → cada EVENTUAL queda con 0 h de caja y el diagnóstico EV_CAJA_SIN_PERFIL (bloquea publicación)
+ // queda visible en la salida y en el PDF. No existe escenario que acredite caja sin perfil aprobado.
+ const sufijo=''
  const impedimentos:string[]=[]
- if(String(d.origen).startsWith('REAL')&&d.eventuales?.some((e:{activo:boolean})=>e.activo)&&!d.opciones?.disponibilidad_caja_eventual)
-  impedimentos.push('EVENTUAL activos sin perfiles de disponibilidad de caja acreditados (AH2-037): no se infieren.')
- if(impedimentos.length){writeFileSync(`${dir}/impedimentos.json`,JSON.stringify(impedimentos,null,1));return}
- const input=convertirInputAV2(pom.franjas,d.cajeros,d.auxiliares,d.eventuales,d.excepciones??[],{politica_recursos_version:1,...d.opciones,sucursal_id:d.sucursal,semana:pom.semana.lunes})
+ if(!d.opciones?.disponibilidad_caja_eventual){
+  if(d.eventuales?.some((e:{activo:boolean})=>e.activo))impedimentos.push('EVENTUAL activos sin perfiles de caja acreditados (AH2-037): no se infieren; se planifica con 0 h de caja EVENTUAL.')
+  d.opciones={...d.opciones,disponibilidad_caja_eventual:{version:1,perfiles:[]}}
+ }
+ writeFileSync(`${dir}/impedimentos.json`,JSON.stringify({impedimentos},null,1))
+ const input=convertirInputAV2(pom.franjas,d.cajeros,d.auxiliares,d.eventuales,d.excepciones??[],{politica_recursos_version:1,...d.opciones,sucursal_id:d.sucursal,semana:(pom.semana.semana??pom.semana).lunes})
  const segundos=Number(process.env.AH2_ENSAYO_SEGUNDOS??30)
  const ev:EventoProgreso[]=[]
  const s=await generarPropuestaHibrida(input,{id:'ensayo-091',sucursal:d.sucursal,timeoutMs:(segundos+60)*1000,parametros:{segundos,modo:'global',semilla:20261119},
   transporte:transporteProceso({python:process.env.AH2_PYTHON??'python3',cwd:B,plazoMs:(segundos+60)*1000}),onProgreso:e=>ev.push(e)})
- writeFileSync(`${dir}/entrada-motor.json`,JSON.stringify(input))
- writeFileSync(`${dir}/salida.json`,JSON.stringify({...s,progreso:ev,origenDotacion:d.origen},null,1))
- if(s.propuesta&&!s.bloqueos.length)writeFileSync(`${dir}/propuesta-no-oficial.pdf`,Buffer.from(generarPDFPrueba(s,{sucursal:d.sucursal,semana:pom.semana.lunes}).output('arraybuffer')))
+ writeFileSync(`${dir}/entrada-motor${sufijo}.json`,JSON.stringify(input))
+ writeFileSync(`${dir}/salida${sufijo}.json`,JSON.stringify({...s,progreso:ev,origenDotacion:d.origen,impedimentos},null,1))
+ // PDF solo sin bloqueos de POLÍTICA (los de datos, p. ej. EVENTUAL sin perfil, se imprimen en el PDF).
+ if(s.propuesta&&!s.bloqueos.some(b=>b.startsWith('POLITICA_')))writeFileSync(`${dir}/propuesta-no-oficial${sufijo}.pdf`,Buffer.from(generarPDFPrueba(s,{sucursal:d.sucursal,semana:(pom.semana.semana??pom.semana).lunes}).output('arraybuffer')))
  void metricasAH2040
 },600000)

@@ -71,6 +71,14 @@ describe('bloqueos para el ensayo real',()=>{
   expect(s2.bloqueos).toContain('POLITICA_APERTURA_SUPERVISION')
   expect((await generarPropuestaHibrida(demoSucursalLab(),OP)).bloqueos).toEqual([])
  })
+ it('EVENTUAL sin perfil acreditado: 0 h de caja, propuesta conservadora y bloqueo EV_CAJA_SIN_PERFIL visible',async()=>{
+  const i=demoSucursalLab();i.disponibilidad_caja_eventual={version:1,perfiles:[]}
+  const s=await generarPropuestaHibrida(i,OP)
+  expect(s.bloqueos).toContain('EV_CAJA_SIN_PERFIL')
+  expect(s.propuesta).not.toBeNull()
+  expect(Object.values(s.candidatos.A as {horasCajaEventual:Record<string,number>}).length).toBeGreaterThan(0)
+  expect(Object.values((s.candidatos.A as {horasCajaEventual:Record<string,number>}).horasCajaEventual).every(h=>h===0)).toBe(true)
+ })
 })
 
 describe('carga local de POM y dotación',()=>{

@@ -1,4 +1,38 @@
-## PUNTO ÚNICO DE RETOMA — ensayo privado 091: dotación recuperada por ChatGPT · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — ensayo privado 091 EJECUTADO con datos reales (EVENTUAL sin perfil = 0 h caja) · 20/11/2026, Claude
+
+**Estado: ENSAYO REAL EJECUTADO; propuesta conservadora válida, NO publicable.** POM real (23–29/11/2026) + `dotacion.json` real (solo lectura, carpeta privada fuera de los repositorios) + A y CP-SAT con 120 s de presupuesto. Los 4 EVENTUAL no tienen perfil de caja acreditado: **no se infirió ninguno**; cada uno quedó con 0 h de caja y `EV_CAJA_SIN_PERFIL` (bloquea publicación) visible en la salida y en el PDF.
+
+### Resultado agregado (sin datos personales)
+| | A (heurístico) | B (CP-SAT) |
+|---|---|---|
+| Estado | válido | **OPTIMAL en las 6 fases** (~28 s, sin agotar los 120 s) |
+| Cobertura POM | 77,363 % | 77,363 % |
+| Faltantes / sobrantes | 91 h / 0 h | 91 h / 0 h |
+| Infracciones (validador independiente de A) | 0 | 0 |
+| Selección | **A** (B válido pero no mejora estrictamente) | — |
+
+- Demanda 402 h = 272 h FULL/PART (7 incluidos, 100 % de contrato: 3×48 + 4×32) + 39 h caja AUX (rango 12–14 h por AUX; resto supervisión) + **91 h faltantes**. Sobrantes 0: toda hora disponible se usa. B demuestra que 91 h es el **mínimo posible** con esta dotación y reglas sin EVENTUAL en caja.
+- Faltantes por día (h): Lun 8 · Mar 10,5 · Mié 12 · Jue 14,5 · Vie 16 · Sáb 12,5 · Dom 17,5. Pico de 2 personas en 09:00–10:30 y 19:00–21:00; resto mayormente 1.
+- Excepción AH2-037 aplicada en 14 franjas. DIAS sin relaciones (ningún EVENTUAL con caja). Exclusión manual DEBE respetada (1 FULL fuera del cálculo, 0 h). Reglas duras cumplidas; 0 violaciones; supervisión AUX presente en todas las franjas.
+- Antecedente dominical anterior: **no consultado / no verificado**; no se certifica descanso intersemanal del lunes.
+- Reproducible: dos corridas idénticas (semilla 20261119).
+
+### Correcciones de código surgidas del ensayo real
+1. **Contrato A↔B (`PLAN_DOTACION` falso):** B quita del modelo a la persona con `exclusion_manual` DEBE y A también; el validador de contrato aún la exigía en `jornadas` y rechazaba un plan OPTIMAL. Ahora usa `compilarCondiciones` (misma normalización que A). Prueba de regresión en `hibrido.test.ts`.
+2. **`bloqueos` omitía `EV_CAJA_SIN_PERFIL`:** se agregan los diagnósticos de caja EVENTUAL que bloquean publicación. Prueba en `laboratorio.test.ts`.
+3. **PDF no oficial:** grilla «Planificación semanal de caja» por persona y día (jornada, franco o franjas de caja AUX/EVENTUAL) y fila «Bloqueos de datos o política».
+4. **Ejecutor privado:** sin perfiles EVENTUAL corre en modo conservador (perfiles vacíos → 0 h), registra el impedimento en `impedimentos.json` y emite PDF salvo bloqueos `POLITICA_*`. No existe escenario que acredite caja sin perfil aprobado.
+- Vitest 546 passed / 10 skipped; tsc y build OK.
+
+### Próximo paso exacto
+1. **Propietario:** perfil de caja de cada uno de los 4 EVENTUAL activos (acreditación `NO_ACREDITADA` / `PRESENCIA_MENOS_RESERVAS` / `TODA_LA_PRESENCIA`, reservas de función habitual, mínimo de función habitual y tope si está aprobado). Con eso, repetir el paso 2 del ejecutor (mismo comando, misma carpeta privada) y comparar contra este piso de 91 h.
+2. Opcional: antecedente del domingo 22/11 para certificar descanso del lunes.
+3. Después del ensayo completo: retomar el piloto privado móvil (en pausa).
+4. No merge, no despliegue, no escrituras Supabase, no migraciones, no cambios Prestify ni contratación.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo privado 091: dotación recuperada por ChatGPT · 20/11/2026
 
 **Estado: DATOS DE DOTACIÓN RECUPERADOS; ensayo real todavía no ejecutado.** El propietario autorizó expresamente consultas y exportación de solo lectura. ChatGPT pudo acceder al proyecto Supabase correcto de Horarios, exclusivamente a la sucursal 091 y a la cuenta de la dotación activa. El impedimento de acceso de Claude se resuelve mediante archivo privado `dotacion.json`, entregado al propietario para adjuntarlo a Claude. Ningún dato personal, horario individual ni archivo de dotación se incorpora al repositorio o CI.
 

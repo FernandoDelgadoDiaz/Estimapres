@@ -25,7 +25,8 @@ describe('excepción de apertura AUX único (AH2-037)',()=>{
  })
  it('con excepción: el AUX único atiende caja toda la franja, cuenta como hora-caja y no hay bloqueo ni infracción',async()=>{
   const s=await generarPropuestaHibrida(apertura(TODA),OP)
-  expect(s.bloqueos).toEqual([])
+  // Los perfiles EVENTUAL del fixture son de otra sucursal: EV_CAJA_SIN_PERFIL es esperable; no hay bloqueo de política.
+  expect(s.bloqueos.filter(b=>b.startsWith('POLITICA_'))).toEqual([])
   expect(s.conflictos.filter(c=>c.codigo==='OP_APERTURA_COMPOSICION'||c.codigo.startsWith('POLITICA_APERTURA'))).toEqual([])
   expect(s.origen).toBe('A')
   for(let d=0;d<6;d++){const abre=[0,2,4].includes(d)?'aux-sA':'aux-sB';expect(s.propuesta!.asignacion_aux[abre][d].slice(0,2)).toEqual(['CAJA','CAJA'])}
