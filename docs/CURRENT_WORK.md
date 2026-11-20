@@ -1,4 +1,23 @@
-## PUNTO ÚNICO DE RETOMA — ensayo privado 091 EJECUTADO con datos reales (EVENTUAL sin perfil = 0 h caja) · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — completar ensayo 091 con EVENTUAL acreditados · 20/11/2026
+
+**Estado: ensayo conservador ejecutado; siguiente corrida pendiente.** Después de pedir nuevamente la confirmación de la disponibilidad de los cuatro EVENTUAL activos, el propietario señaló que ya estaba definida. MASTER AH2-037 actualizado en `137a07b`: ratificación de esa disponibilidad para el ensayo privado del 23–29/11. No es autorización de publicación ni acreditación universal.
+
+### Continuación inmediata — Claude
+1. Usar el POM y `dotacion.json` reales que ya están en la carpeta privada del ensayo. No pedir que se adjunten de nuevo si siguen disponibles. Crear los cuatro perfiles locales `TODA_LA_PRESENCIA` con fuente de la ratificación del propietario, vigentes 23–29/11/2026; no inventar topes, mínimos ni reservas adicionales. Si existe una restricción explícita registrada, respetarla. No compartir nombres, horarios ni perfiles en el repositorio.
+2. Mantener exactas las reglas aprobadas: 272 h contratadas de los siete FULL/PART incluidos, exclusión manual previamente aprobada, AUX prioritarios, excepción de apertura 08–09, EVENTUAL solo residual, máximo dos bloques por día y corte 22:00, DIAS semanal. La disponibilidad potencial no implica asignar toda la jornada. No volver a consultar reglas aprobadas.
+3. Repetir el ejecutor privado A+B (120 s), verificar los candidatos y entregar comparación con el ensayo anterior (77,363 %, 91 h faltantes, 0 sobrantes, 39 h caja AUX), nuevo PDF A4 y distribución individual. Mostrar especialmente las relaciones DIAS o ausencia de comparables, faltantes por franja, horas de función habitual planificada y si CP-SAT mejora A. No confundir factibilidad con óptimo demostrado; no certificar descanso del domingo anterior sin datos.
+4. Si el resultado deja EVENTUAL por encima de un AUX no comparable, explicarlo expresamente sin relajar ni redefinir DIAS unilateralmente. Revisar que no queden bloqueos falsos de perfil una vez cargados los perfiles. No homologar ni publicar horarios.
+5. Actualizar este relevo con métricas agregadas exclusivamente. Luego retomar piloto móvil. Sin merge, despliegue, migraciones, escrituras en Supabase, Prestify ni gastos.
+
+### Base verificada
+- Estimapres #60: código `690712d07f69e45ce9c1207e6081521e39042e34`, CI success; documentación posterior, consultar HEAD.
+- aliada-optimizer #6: `64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`, CI success.
+- Ambos PR en borrador, sin merge.
+- Ensayo anterior: POM 402 h, ambos motores válidos y CP-SAT OPTIMAL en seis fases. La cobertura de 77,363 % correspondía exclusivamente al escenario sin EVENTUAL. No representa el potencial de la dotación acreditada.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo privado 091 EJECUTADO con datos reales (EVENTUAL sin perfil = 0 h caja) · 20/11/2026, Claude
 
 **Estado: ENSAYO REAL EJECUTADO; propuesta conservadora válida, NO publicable.** POM real (23–29/11/2026) + `dotacion.json` real (solo lectura, carpeta privada fuera de los repositorios) + A y CP-SAT con 120 s de presupuesto. Los 4 EVENTUAL no tienen perfil de caja acreditado: **no se infirió ninguno**; cada uno quedó con 0 h de caja y `EV_CAJA_SIN_PERFIL` (bloquea publicación) visible en la salida y en el PDF.
 
