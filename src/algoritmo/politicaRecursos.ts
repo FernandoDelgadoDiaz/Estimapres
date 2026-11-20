@@ -1,10 +1,12 @@
-import type {DisponibilidadCajaEventual,InfoDisponibilidadCaja} from './disponibilidadCajaEventual'
+import type {DisponibilidadCajaEventual,InfoDisponibilidadCaja,TopesCajaEventualContrato} from './disponibilidadCajaEventual'
 /** Contrato compartido de laboratorio AH2-036/037. IDs, no nombres. Slots de 30 min. */
 export interface PoliticaRecursos {
   /** Laboratorio AH2-037/040: perfiles versionados de disponibilidad efectiva de caja EVENTUAL. */
   disponibilidad_caja_eventual?: DisponibilidadCajaEventual
   /** Resultado de compilar `disponibilidad_caja_eventual` (lo agrega el compilador; no se carga a mano). */
   disponibilidad_caja_compilada?: InfoDisponibilidadCaja
+  /** Topes semanales de caja EVENTUAL por sucursal/vigencia y contrato de origen FULL/PART (editables, desactivables). */
+  topes_caja_eventual_contrato?: TopesCajaEventualContrato
   politica_recursos_version?: 1
   /** Supervisión externa de apertura explícitamente autorizada por franja. No presume doble rol. */
   supervision_apertura_externa?: boolean[][]

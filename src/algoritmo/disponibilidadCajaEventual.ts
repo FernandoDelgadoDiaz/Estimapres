@@ -10,26 +10,40 @@
  *   máximo semanal / función mínima / sin acreditar → `max_caja_eventual_slots` (mínimo)
  * Sin acreditación, la presencia nunca se interpreta como horas de caja. Sin defaults inventados.
  * Nada vuelve publicable un plan.
+ *
+ * Topes semanales por sucursal y contrato de origen (`topes_caja_eventual_contrato`, decisión del propietario
+ * 20/11/2026): editables y desactivables por sucursal/vigencia, sin recarga semanal. Son MÁXIMOS, nunca mínimos
+ * ni objetivos; `activo:false` = sin tope de clase (nunca 0). El contrato de origen (`contratoOrigen` del perfil)
+ * no cambia el rol EVENTUAL. Se suman al mínimo de topes con los individuales explícitos. Contrato no informado
+ * con un tope de clase activo → `EV_CONTRATO_ORIGEN_NO_INFORMADO` (bloquea; no se infiere). Sin tope activo, el
+ * contrato de origen no bloquea por sí solo. Sin perfiles de caja la configuración solo se valida.
  */
 import type {InputAlgoritmo,ResultadoSemanal} from './types'
 import {capacidadDeterminada,mascarasAH2040} from './ah2040'
 
 export const ACREDITACIONES=['NO_ACREDITADA','PRESENCIA_MENOS_RESERVAS','TODA_LA_PRESENCIA'] as const
 export type Acreditacion=typeof ACREDITACIONES[number]
+export const CONTRATOS_ORIGEN=['FULL','PART'] as const
+export type ContratoOrigen=typeof CONTRATOS_ORIGEN[number]
+export interface TopeClase {activo:boolean;horas?:number|null}
+export interface ConfiguracionTopesContrato {sucursalId:string;vigenciaDesde:string;vigenciaHasta?:string|null;fuente:string;FULL:TopeClase;PART:TopeClase}
+export interface TopesCajaEventualContrato {version:1;configuraciones:ConfiguracionTopesContrato[]}
 export interface ReservaFuncionHabitual {dias:number[];desde:string;hasta:string}
 export interface PerfilCajaEventual {
  colaboradorId:string;sucursalId:string;vigenciaDesde:string;vigenciaHasta?:string|null
  acreditacion:Acreditacion;fuente?:string
  horasContractuales?:number|null;reservas?:ReservaFuncionHabitual[]
  horasFuncionHabitualMinimas?:number|null;maxCajaHoras?:number|null
+ /** Contrato de origen del EVENTUAL (FULL/PART). No cambia su rol; solo selecciona el tope de clase. */
+ contratoOrigen?:ContratoOrigen|null
 }
 export interface DisponibilidadCajaEventual {version:1;perfiles:PerfilCajaEventual[]}
 export interface DiagnosticoCaja {codigo:string;nivel:'DATOS'|'ADVERTENCIA';colaboradorId:string;detalle:string;bloqueaPublicacion:boolean}
-export interface FilaCompilada {perfil:PerfilCajaEventual|null;presenciaSlots:number;reservaFijaSlots:number;funcionMinimaSlots:number|null;topeSlots:number|null;acreditada:boolean;origenTope:string[]}
+export interface FilaCompilada {perfil:PerfilCajaEventual|null;presenciaSlots:number;reservaFijaSlots:number;funcionMinimaSlots:number|null;topeSlots:number|null;acreditada:boolean;origenTope:string[];contratoOrigen:ContratoOrigen|null}
 export interface InfoDisponibilidadCaja {diagnosticos:DiagnosticoCaja[];eventuales:Record<string,FilaCompilada>;bloqueaPublicacion:boolean}
 
-const CAMPOS=new Set(['colaboradorId','sucursalId','vigenciaDesde','vigenciaHasta','acreditacion','fuente','horasContractuales','reservas','horasFuncionHabitualMinimas','maxCajaHoras'])
-const BLOQUEANTES=new Set(['EV_CAJA_SIN_PERFIL','EV_CAJA_PERFIL_AMBIGUO','EV_CAJA_NO_ACREDITADA','EV_CAJA_SIN_DETALLE','EV_CAJA_DECLARACION_CONTRADICTORIA','EV_FUNCION_HABITUAL_EXCEDE_PRESENCIA'])
+const CAMPOS=new Set(['colaboradorId','sucursalId','vigenciaDesde','vigenciaHasta','acreditacion','fuente','horasContractuales','reservas','horasFuncionHabitualMinimas','maxCajaHoras','contratoOrigen'])
+const BLOQUEANTES=new Set(['EV_CAJA_SIN_PERFIL','EV_CAJA_PERFIL_AMBIGUO','EV_CAJA_NO_ACREDITADA','EV_CAJA_SIN_DETALLE','EV_CAJA_DECLARACION_CONTRADICTORIA','EV_FUNCION_HABITUAL_EXCEDE_PRESENCIA','EV_CONTRATO_ORIGEN_NO_INFORMADO'])
 const slot=(h:string)=>(Number(h.slice(0,2))-8)*2+Math.floor(Number(h.slice(3))/30)
 const horaValida=(h:unknown)=>typeof h==='string'&&/^\d\d:(00|30)$/.test(h)&&Number(h.slice(0,2))>=8&&Number(h.slice(0,2))<=23&&slot(h)>=0&&slot(h)<=30
 const medias=(x:unknown)=>x===undefined||x===null||(typeof x==='number'&&x>=0&&x<=84&&Number.isInteger(x*2))
@@ -45,11 +59,38 @@ export function validarDisponibilidadCaja(cfg:unknown):DisponibilidadCajaEventua
   fecha(p.vigenciaDesde)
   if(p.vigenciaHasta!=null&&fecha(p.vigenciaHasta)<p.vigenciaDesde)throw new Error('vigencia invertida')
   if(![p.horasContractuales,p.horasFuncionHabitualMinimas,p.maxCajaHoras].every(medias))throw new Error('horas inválidas (0–84, múltiplo de 0,5)')
+  if(p.contratoOrigen!=null&&!CONTRATOS_ORIGEN.includes(p.contratoOrigen))throw new Error('contrato de origen inválido (FULL o PART)')
   for(const r of p.reservas??[])
    if(!r||typeof r!=='object'||Object.keys(r).sort().join()!=='desde,dias,hasta'||!Array.isArray(r.dias)||!r.dias.length||r.dias.some(d=>!Number.isInteger(d)||d<0||d>6)
      ||!horaValida(r.desde)||!horaValida(r.hasta)||slot(r.desde)>=slot(r.hasta))throw new Error('reserva de función habitual inválida')
  }
  return c
+}
+
+/** Forma de `topes_caja_eventual_contrato` (lanza Error). */
+export function validarTopesContrato(cfg:unknown):TopesCajaEventualContrato{
+ const c=cfg as TopesCajaEventualContrato
+ if(!c||typeof c!=='object'||c.version!==1||!Array.isArray(c.configuraciones))throw new Error('topes_caja_eventual_contrato inválido')
+ const permitidos=new Set(['sucursalId','vigenciaDesde','vigenciaHasta','fuente','FULL','PART'])
+ for(const x of c.configuraciones){
+  if(!x||typeof x!=='object'||Object.keys(x).some(k=>!permitidos.has(k))||['sucursalId','vigenciaDesde','fuente','FULL','PART'].some(k=>!(k in x))
+   ||typeof x.sucursalId!=='string'||typeof x.fuente!=='string'||!x.fuente.trim())throw new Error('configuración de topes por contrato inválida')
+  fecha(x.vigenciaDesde)
+  if(x.vigenciaHasta!=null&&fecha(x.vigenciaHasta)<x.vigenciaDesde)throw new Error('vigencia invertida')
+  for(const k of CONTRATOS_ORIGEN){
+   const t=x[k]
+   if(!t||typeof t!=='object'||Object.keys(t).some(z=>z!=='activo'&&z!=='horas')||typeof t.activo!=='boolean'||!medias(t.horas))throw new Error('tope por contrato inválido (activo booleano; horas 0–84, múltiplo de 0,5)')
+   if(t.activo&&t.horas==null)throw new Error('tope por contrato activo sin horas')
+  }
+ }
+ return c
+}
+
+/** Configuración vigente para la semana y sucursal, o null. Superposición = error (no se elige una). */
+export function resolverTopesContrato(cfg:TopesCajaEventualContrato,semana:string,sucursal:string):ConfiguracionTopesContrato|null{
+ const v=cfg.configuraciones.filter(c=>c.sucursalId===sucursal&&c.vigenciaDesde<=semana&&(c.vigenciaHasta==null||c.vigenciaHasta>=semana))
+ if(v.length>1)throw new Error('configuraciones de topes por contrato superpuestas')
+ return v[0]??null
 }
 
 /** Perfiles vigentes por colaborador para la semana (lunes ISO) y sucursal. */
@@ -70,10 +111,13 @@ const h=(n:number)=>String(n).replace('.',',')
 export function compilarDisponibilidadCaja(input:InputAlgoritmo):{input:InputAlgoritmo;info:InfoDisponibilidadCaja|null}{
  if(input.disponibilidad_caja_compilada)return {input,info:input.disponibilidad_caja_compilada}
  const cfg=input.disponibilidad_caja_eventual
+ if(input.topes_caja_eventual_contrato!=null)validarTopesContrato(input.topes_caja_eventual_contrato)
  if(cfg==null)return {input,info:null}
  validarDisponibilidadCaja(cfg)
  if(typeof input.semana!=='string'||typeof input.sucursal_id!=='string')throw new Error('la disponibilidad de caja requiere semana y sucursal_id')
  const vigentes=resolverPerfilesCaja(cfg,input.semana,input.sucursal_id)
+ const clase=input.topes_caja_eventual_contrato!=null?resolverTopesContrato(input.topes_caja_eventual_contrato,input.semana,input.sucursal_id):null
+ const claseActiva=!!clase&&CONTRATOS_ORIGEN.some(k=>clase[k].activo)
  const topes:Record<string,number>={...(input.max_caja_eventual_slots??{})}
  const reservas:Record<string,boolean[][]>=Object.fromEntries(Object.entries(input.reservas_sector_eventual??{}).map(([id,m])=>[id,m.map(r=>[...r])]))
  const diagnosticos:DiagnosticoCaja[]=[],eventuales:Record<string,FilaCompilada>={}
@@ -84,7 +128,7 @@ export function compilarDisponibilidadCaja(input:InputAlgoritmo):{input:InputAlg
   const pres=new Set<string>();ev[id].forEach((row,d)=>row.forEach((v,s)=>{if(v!=='NO_DISPONIBLE')pres.add(k(d,s))}))
   const cands=vigentes[id]??[]
   const perfil=cands.length===1?cands[0]:null
-  const fila:FilaCompilada={perfil,presenciaSlots:pres.size,reservaFijaSlots:0,funcionMinimaSlots:null,topeSlots:topes[id]??null,acreditada:false,origenTope:[]}
+  const fila:FilaCompilada={perfil,presenciaSlots:pres.size,reservaFijaSlots:0,funcionMinimaSlots:null,topeSlots:topes[id]??null,acreditada:false,origenTope:[],contratoOrigen:perfil?.contratoOrigen??null}
   if(!cands.length)diagnosticos.push(diag('EV_CAJA_SIN_PERFIL',id,'Sin disponibilidad de caja acreditada vigente: su presencia no se interpreta como horas de caja.'))
   else if(cands.length>1)diagnosticos.push(diag('EV_CAJA_PERFIL_AMBIGUO',id,`${cands.length} perfiles vigentes superpuestos para la semana.`))
   else if(perfil!.acreditacion==='NO_ACREDITADA')diagnosticos.push(diag('EV_CAJA_NO_ACREDITADA',id,'Disponibilidad de caja declarada como no acreditada.'))
@@ -100,6 +144,7 @@ export function compilarDisponibilidadCaja(input:InputAlgoritmo):{input:InputAlg
    else if(p.acreditacion==='TODA_LA_PRESENCIA'&&((p.reservas??[]).length||f))diagnosticos.push(diag('EV_CAJA_DECLARACION_CONTRADICTORIA',id,'«Toda la presencia» con reservas o tiempo de función habitual declarados.'))
    else if(p.acreditacion==='PRESENCIA_MENOS_RESERVAS'&&!res.size&&!f2)diagnosticos.push(diag('EV_CAJA_SIN_DETALLE',id,'«Presencia menos reservas» sin reservas efectivas ni horas de función habitual: no se asume que toda la presencia es caja.'))
    else if(f2!==null&&f2>pres.size)diagnosticos.push(diag('EV_FUNCION_HABITUAL_EXCEDE_PRESENCIA',id,`Función habitual mínima ${h(f!)} h supera la presencia semanal ${h(pres.size/2)} h.`))
+   else if(claseActiva&&p.contratoOrigen==null)diagnosticos.push(diag('EV_CONTRATO_ORIGEN_NO_INFORMADO',id,'Hay topes por contrato de origen activos en la sucursal y el perfil no informa contrato de origen: no se infiere.'))
    else fila.acreditada=true
    if(fuera)diagnosticos.push(diag('EV_RESERVA_FUERA_DE_PRESENCIA',id,`${h(fuera/2)} h de reserva fuera de la presencia: no cuentan.`,'ADVERTENCIA'))
    const hc=p.horasContractuales
@@ -111,6 +156,8 @@ export function compilarDisponibilidadCaja(input:InputAlgoritmo):{input:InputAlg
     const c:[number,string][]=id in topes?[[topes[id],'tope previo']]:[]
     if(p.maxCajaHoras!=null)c.push([Math.round(p.maxCajaHoras*2),'máximo semanal declarado'])
     if(f2!==null)c.push([pres.size-f2,'presencia − función habitual mínima'])
+    const co=p.contratoOrigen
+    if(clase&&co&&clase[co].activo)c.push([Math.round(clase[co].horas!*2),`tope de sucursal EVENTUAL ${co} ${h(clase[co].horas!)} h`])
     if(c.length){const v=Math.min(...c.map(x=>x[0]));topes[id]=v;fila.topeSlots=v;fila.origenTope=c.filter(x=>x[0]===v).map(x=>x[1])}
    }
   }
@@ -165,7 +212,7 @@ export function reporteDisponibilidadCaja(raw:InputAlgoritmo,r:Required<Plan>){
   const reservado=res?m.reduce((a,row,d)=>a+row.filter((v,s)=>res[d]?.[s]===true&&v!=='NO_DISPONIBLE').length,0):0
   const libre=pres-reservado,tope=input.max_caja_eventual_slots?.[id]
   const disponible=tope===undefined?libre:Math.min(libre,tope)
-  return {id,rol:c.rol,acreditada:info?(f?.acreditada??false):null,horasContractuales:f?.perfil?.horasContractuales??null,
+  return {id,rol:c.rol,acreditada:info?(f?.acreditada??false):null,horasContractuales:f?.perfil?.horasContractuales??null,contratoOrigen:f?.perfil?.contratoOrigen??null,
    horasPresencia:pres/2,horasReservadasFuncionHabitual:reservado/2,horasFuncionHabitualMinimas:f?.funcionMinimaSlots==null?null:f.funcionMinimaSlots/2,
    topeCajaHoras:tope===undefined?null:tope/2,origenTope:f?.origenTope??[],disponibilidadCajaEfectivaHoras:disponible/2,oportunidadesConDemandaHoras:O[id].size/2,
    horasCaja:cj/2,disponibilidadCajaRestanteHoras:(disponible-cj)/2,horasFuncionHabitualRealizadas:(pres-cj)/2}

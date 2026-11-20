@@ -50,8 +50,9 @@ export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:stri
   ['Bloqueos de datos o política',s.bloqueos.length?s.bloqueos.join(', '):'ninguno'],
   ['Publicable','NO'],['Hash de entrada',s.hashEntrada??'—']])
  if(s.propuesta)tabla(`Planificación semanal de caja (propuesta ${s.origen})`,['Persona','Rol',...DIAS],grillaPlan(s.propuesta))
- tabla('Horas por persona',['Persona','Rol','Contrato/presencia','Caja','Reservado función','Disponible caja','Restante'],
-  s.horasPorEmpleado.map(x=>{const r=x as Record<string,unknown>;return [String(r.id),String(r.rol),String(r.horasContractuales??r.horasPresencia??'—'),String(r.horasCaja),String(r.horasReservadasFuncionHabitual??'—'),String(r.disponibilidadCajaEfectivaHoras??'—'),String(r.disponibilidadCajaRestanteHoras??'—')]}))
+ tabla('Horas por persona',['Persona','Rol','Contrato/presencia','Contrato origen','Tope caja','Caja','Presencia fuera de caja','Disponible caja'],
+  s.horasPorEmpleado.map(x=>{const r=x as Record<string,unknown>;return [String(r.id),String(r.rol),String(r.horasContractuales??r.horasPresencia??'—'),String(r.contratoOrigen??'—'),
+   r.rol==='EVENTUAL'?(r.topeCajaHoras==null?'sin tope':`${r.topeCajaHoras} (${(r.origenTope as string[]|undefined)?.join('; ')??''})`):'—',String(r.horasCaja),String(r.horasFuncionHabitualRealizadas??r.horasSupervisionOFueraDeCaja??'—'),String(r.disponibilidadCajaEfectivaHoras??'—')]}))
  tabla('Faltantes por franja',['Día','Franja','Personas'],s.faltantesPorFranja.map(f=>[f.dia,f.franja,f.personas]))
  tabla('Sobrantes por franja',['Día','Franja','Personas'],s.sobrantesPorFranja.map(f=>[f.dia,f.franja,f.personas]))
  tabla('Conflictos y avisos',['Origen','Código','Detalle'],s.conflictos.map(c=>[c.origen,c.codigo,(c.detalle??'').slice(0,120)]))

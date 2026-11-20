@@ -28,6 +28,12 @@ import {metricasAH2040} from '../../algoritmo/ah2040'
 const B=process.env.AH2_OPTIMIZER_DIR??resolve(process.cwd(),'../aliada-optimizer')
 it.skipIf(!dir||!existsSync(`${dir}/dotacion.json`))('ensayo privado · paso 2: A + CP-SAT, comparación y PDF',async()=>{
  const pom=JSON.parse(readFileSync(`${dir}/pom.json`,'utf8')),d=JSON.parse(readFileSync(`${dir}/dotacion.json`,'utf8'))
+ // Configuración privada del ensayo (opcional, fuera del repositorio): perfiles de caja EVENTUAL aprobados por el
+ // propietario y topes por contrato de origen de la sucursal. Se fusiona sobre las opciones de la dotación.
+ if(existsSync(`${dir}/configuracion-ensayo.json`)){
+  const c=JSON.parse(readFileSync(`${dir}/configuracion-ensayo.json`,'utf8'))
+  d.opciones={...d.opciones,...(c.disponibilidad_caja_eventual?{disponibilidad_caja_eventual:c.disponibilidad_caja_eventual}:{}),...(c.topes_caja_eventual_contrato?{topes_caja_eventual_contrato:c.topes_caja_eventual_contrato}:{})}
+ }
  // Perfiles de caja EVENTUAL: con dotación REAL nunca se infieren. Si faltan, el ensayo corre en modo conservador:
  // perfiles vacíos → cada EVENTUAL queda con 0 h de caja y el diagnóstico EV_CAJA_SIN_PERFIL (bloquea publicación)
  // queda visible en la salida y en el PDF. No existe escenario que acredite caja sin perfil aprobado.

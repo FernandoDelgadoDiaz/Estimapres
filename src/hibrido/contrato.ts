@@ -41,7 +41,7 @@ export async function hashEntrada(entrada:unknown):Promise<string>{
 const DIRECTOS=['demanda','colaboradores','presencia_aux','disponibilidad_eventual','excepciones','preferencias_turno','max_francos_dia','max_francos_por_dia',
  'pesos_franja','apertura_solo_aux','sin_aux_cierre','supervisor_jornada_completa','franco_medio_corridos','contratos','max_bloques_caja_eventual_dia',
  'eventuales_caja_hora_limite','politica_recursos_version','supervision_apertura_externa','excepcion_apertura_aux_unico','max_caja_eventual_slots','reservas_sector_eventual',
- 'disponibilidad_caja_eventual','comparacion_aux_eventual','condiciones_supervisor','sucursal_id','semana'] as const
+ 'disponibilidad_caja_eventual','topes_caja_eventual_contrato','comparacion_aux_eventual','condiciones_supervisor','sucursal_id','semana'] as const
 /** Campos propios de A, sin efecto en las reglas que B debe cumplir (no se envían). */
 const SOLO_A=new Set(['semillas','omitir_impacto_horas','experimental','cobertura_objetivo_pct','auditoria_condiciones','disponibilidad_caja_compilada'])
 

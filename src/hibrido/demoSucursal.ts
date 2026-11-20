@@ -23,7 +23,7 @@ export function demoSucursalLab():InputAlgoritmo{
   presencia_aux:{'aux-sA':aux('09:00','22:00',[0,2,4,6]),'aux-sB':aux('09:00','22:00',[1,3,5]),'aux-t':aux('09:00','17:00',LS)},
   disponibilidad_eventual:{'ev-a':ev('09:00','17:00',LS),'ev-b':ev('17:00','22:00',LS)},
   disponibilidad_caja_eventual:{version:1,perfiles:[
-   {colaboradorId:'ev-a',sucursalId:'lab-sintetica',vigenciaDesde:'2026-11-01',acreditacion:'PRESENCIA_MENOS_RESERVAS',fuente:'declaración sintética',horasContractuales:48,reservas:[{dias:LS,desde:'09:00',hasta:'11:00'}]},
-   {colaboradorId:'ev-b',sucursalId:'lab-sintetica',vigenciaDesde:'2026-11-01',acreditacion:'TODA_LA_PRESENCIA',fuente:'declaración sintética',horasContractuales:30}]},
+   {colaboradorId:'ev-a',sucursalId:'lab-sintetica',vigenciaDesde:'2026-11-01',acreditacion:'PRESENCIA_MENOS_RESERVAS',fuente:'declaración sintética',horasContractuales:48,contratoOrigen:'FULL',reservas:[{dias:LS,desde:'09:00',hasta:'11:00'}]},
+   {colaboradorId:'ev-b',sucursalId:'lab-sintetica',vigenciaDesde:'2026-11-01',acreditacion:'TODA_LA_PRESENCIA',fuente:'declaración sintética',horasContractuales:30,contratoOrigen:'PART'}]},
  } as InputAlgoritmo
 }

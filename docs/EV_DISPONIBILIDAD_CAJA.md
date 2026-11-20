@@ -115,6 +115,25 @@ Muestra además la ventana determinada que usa P3. Para ver qué pasaría con un
 - **P2E**: contra todo AUX con solapamiento;
 - **PT**: contra **todo** AUX con capacidad de caja, haya o no solapamiento. Es la lectura literal de «nunca más EVENTUAL que AUX» y excluye solo al AUX que únicamente supervisa.
 
+### 1.5 Topes semanales por sucursal y contrato de origen (decisión del propietario 20/11/2026)
+
+`topes_caja_eventual_contrato` (versión 1), idéntico en A (`disponibilidadCajaEventual.ts`) y B (`ev_caja.py`):
+
+```json
+{"version":1,"configuraciones":[{"sucursalId":"…","vigenciaDesde":"AAAA-MM-DD","vigenciaHasta":null,"fuente":"…",
+  "FULL":{"activo":true,"horas":12},"PART":{"activo":true,"horas":8}}]}
+```
+
+- Por sucursal y vigencia: una configuración rige las semanas siguientes **sin recarga semanal**; editarla en el laboratorio actualiza la vigente (`src/hibrido/topesContrato.ts`). Superposición de vigencias para una sucursal = error (no se elige una).
+- **Máximos**, nunca mínimos ni objetivos. `activo:false` = **sin tope de clase** (nunca 0) y conserva `horas` para reactivar. Sin valores globales ni sucursal codificada.
+- El **contrato de origen** es dato del perfil (`contratoOrigen: FULL|PART`), independiente del rol EVENTUAL y de los contratos de cajeros. La presencia completa sigue siendo un dato separado.
+- Se suma como candidato al **mínimo** de topes del EVENTUAL acreditado junto con los individuales explícitos (`maxCajaHoras`, función habitual mínima, tope previo); el más estricto prevalece y `origenTope` lo explica.
+- Contrato de origen no informado **con** un tope de clase activo → `EV_CONTRATO_ORIGEN_NO_INFORMADO` (bloquea; no se infiere, 0 h). Sin tope de clase activo, el contrato de origen no bloquea por sí solo. Sin perfiles de caja, la configuración solo se valida.
+- No relaja DIAS, prioridad residual, reservas, máximo de bloques ni hora de corte.
+- Transporte A→B por lista blanca; validadores de A y B detectan `EV_CAJA_SUPERA_TOPE`. Reporte y PDF: contrato de origen, tope y presencia fuera de caja.
+- Pruebas: `tests/test_topes_contrato.py` (B) y `topes-contrato-eventual.test.ts` (A) sobre el mismo fixture (`results/topes_contrato/casos.json` ↔ `fixtures/topesContratoCasos.json`); editor en `topesContrato.test.ts` y `e2e/hibrido.e2e.ts`.
+- Persistencia: **no implementada** (sin migración ni escritura real); la forma JSON es la propuesta para guardar por sucursal cuando se autorice.
+
 ## 2. Casos sintéticos
 
 Base común: la de AH2-040. Un PART de 32 h; dos AUX supervisores en días alternos (`aux-sA`, `aux-sB`); demanda de 3 cajas de lunes a sábado de 09 a 22 h; corte 22:00; máximo 2 bloques.

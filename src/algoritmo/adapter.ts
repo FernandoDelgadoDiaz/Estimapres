@@ -272,6 +272,7 @@ export function convertirInputAV2(
     reservas_sector_eventual: opciones?.reservas_sector_eventual && Object.fromEntries(Object.entries(opciones.reservas_sector_eventual).map(([id,m])=>[ident.v2PorUi.get(id) ?? id,m])),
     // Perfiles persistentes de disponibilidad de caja: IDs de UI → IDs del motor (mismo criterio que reservas).
     disponibilidad_caja_eventual: opciones?.disponibilidad_caja_eventual && {...opciones.disponibilidad_caja_eventual,perfiles:opciones.disponibilidad_caja_eventual.perfiles.map(p=>({...p,colaboradorId:ident.v2PorUi.get(p.colaboradorId) ?? p.colaboradorId}))},
+    topes_caja_eventual_contrato: opciones?.topes_caja_eventual_contrato,
     max_bloques_caja_eventual_dia: opciones?.maxBloquesCajaEventualDia,
     eventuales_caja_hora_limite: opciones?.eventualesCajaHoraLimite,
     excepciones,

@@ -1,4 +1,42 @@
-## PUNTO ÚNICO DE RETOMA — ensayo 091 con topes EVENTUAL configurables por contrato · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — ensayo real definitivo 091 con topes EVENTUAL 12/8 EJECUTADO · 20/11/2026, Claude
+
+**Estado: ENSAYO DEFINITIVO EJECUTADO; configuración editable implementada en A, B, contrato, validadores, laboratorio y PDF.** Resultado privado de laboratorio, no publicable. Datos reales solo en la carpeta privada; aquí, métricas agregadas.
+
+### Configuración aplicada (decisiones ya aprobadas; no reabrir)
+- Perfiles de caja de los 4 EVENTUAL: `TODA_LA_PRESENCIA`, fuente ratificación del propietario (137a07b), vigencia 23–29/11. Contrato de origen por presencia completa confirmada: 3 FULL (48 h) y 1 PART (32 h; 20 h dentro de 08–23 y 12 h antes de las 08:00, fuera del rango POM).
+- Topes 091: EVENTUAL FULL 12 h, PART 8 h (`topes_caja_eventual_contrato`, editable/desactivable, sin recarga semanal).
+- Sin cambios: 272 h FULL/PART al 100 %, exclusión manual DEBE, prioridad FULL/PART → AUX → EVENTUAL, excepción 08–09 (14 franjas aplicadas), DIAS, 2 bloques diarios, corte 22:00.
+
+### Resultado (A + CP-SAT, 120 s; CP-SAT OPTIMAL en las 6 fases a ~57 s)
+| | Línea base (EVENTUAL 0 h) | Definitivo 12/8 |
+|---|---|---|
+| Cobertura POM | 77,363 % | **88,308 %** |
+| Faltantes / sobrantes | 91 h / 0 h | **47 h / 0 h** |
+| Caja AUX | 39 h | 39 h (sin desplazamiento) |
+| Caja EVENTUAL | 0 h | 44 h (12 + 12 + 12 + 8: todos en su tope) |
+| A vs B | idénticos | idénticos; se conserva A (B no mejora estrictamente) |
+| Infracciones (validador independiente A) | 0 | 0 |
+
+- 402 = 272 FULL/PART + 39 AUX + 44 EVENTUAL + 47 faltantes. B demuestra que 47 h es el mínimo con estos topes y reglas.
+- Faltantes por día (h): Lun 3 · Mar 1,5 · Mié 3 · Jue 4 · Vie 8 · Sáb 10 · Dom 17,5 (Dom sin cambio: los topes semanales se consumen en otros días con igual valor objetivo).
+- Presencia fuera de caja EVENTUAL: 36 · 36 · 36 h (FULL) y 24 h (PART: 12 h dentro de 08–23 + 12 h antes de las 08:00). Supera holgadamente los mínimos implícitos 36/24.
+- Verificación independiente sobre el plan: todos los EVENTUAL ≤ tope, ≤ 2 bloques por día, ninguna franja de caja después de las 22:00, todo dentro de presencia; AUX supervisando de pie en todas las franjas con demanda fuera de 08–09; 7 cajeros con objetivo exacto; reglas duras cumplidas.
+- DIAS: ningún AUX es comparable con ningún EVENTUAL (cada AUX tiene un día sin capacidad de caja en que el EVENTUAL sí puede atender) → sin relaciones ni tope cero. Aun así ningún EVENTUAL supera a ningún AUX en horas-caja semanales (12 ≤ 12/13/14; 8 ≤ todos).
+- Domingo 22/11: no consultado; no se certifica descanso intersemanal del lunes.
+
+### Implementación (código)
+- aliada-optimizer `8e3c5e473379d7e3140a2f63dccbfd376b258c6c`: `ev_caja` (topes por contrato), `domain`, `topes_contrato_lab`, `tests/test_topes_contrato.py`. pytest 148 passed / 1 skipped.
+- Estimapres (commit con esta sección): A espejo en `disponibilidadCajaEventual.ts`, `politicaRecursos`, adaptador, contrato A→B, editor `src/hibrido/topesContrato.ts`, laboratorio (activar/desactivar y horas por FULL/PART; tabla con contrato de origen, tope y presencia fuera de caja), PDF, demo sintética con contrato de origen, ejecutor privado con `configuracion-ensayo.json`. Vitest 562 passed / 10 skipped; Playwright 21 passed / 1 skipped (+ prueba nueva del editor); tsc y build OK. Detalle en `docs/EV_DISPONIBILIDAD_CAJA.md` §1.5.
+- `npm run lint` falla también en la base (ESLint sin configuración): preexistente, no forma parte de CI.
+
+### Próximo paso exacto
+1. Propietario: revisar el PDF privado y la distribución diaria de caja EVENTUAL (p. ej., si el domingo debe priorizarse; hoy ninguna regla aprobada lo pide).
+2. Persistencia de `topes_caja_eventual_contrato` y `contratoOrigen` por sucursal: forma JSON lista; migración/escritura **solo con autorización**.
+3. Retomar piloto privado móvil. Sin merge, despliegue, escrituras Supabase, migraciones, Prestify ni gasto.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo 091 con topes EVENTUAL configurables por contrato · 20/11/2026
 
 **Decisión expresa del propietario:** los topes semanales de horas-caja EVENTUAL son optativos y editables por sucursal según contrato de origen FULL/PART. 091 elige 12 h para FULL y 8 h para PART. Otras sucursales pueden definir topes distintos o desactivarlos. Sin topes configurados no imponer máximos arbitrarios: se mantienen prioridad residual, DIAS, presencia efectiva, reservas explícitas, límite diario de bloques y hora de corte. No son objetivos de carga ni modifican los contratos de cajeros FULL/PART. MASTER AH2-037/040 actualizado en `b8c0809`, prevalece sobre referencias históricas a 12 h como ejemplo o a ausencia de topes para el ensayo.
 
