@@ -7,6 +7,8 @@
 
 Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
 
+**Objetivo inmediato solicitado por el propietario: versión privada de prueba accesible desde el celular, con carga directa del PDF POM, dotación existente y motor híbrido real.** Continuar desde esta entrega, sin reemplazar producción. Reutilizar lector PDF POM y adaptador existentes (solo «Estimado de cajas necesarias» y semana, validación estricta y vista previa); no requerir JSON manual. Preparar entorno separado, autenticado y restringido al supervisor autorizado de 091; lectura de dotación solo mediante sesión y RLS, sin exportar datos personales ni efectuar escrituras. Mantener perfiles/condiciones y resultado no oficial, con bloqueo visible de políticas abiertas. Preparar servicio HTTP CP-SAT autenticado, contenedor, pruebas y configuración de preview aislada; no exponer el puente Vite ni credenciales ni afirmar que A solo es híbrido. Publicación de prueba únicamente si se dispone de acceso autorizado, aislamiento efectivo y sin crear recursos facturables ni transferir datos reales al servicio externo sin autorización específica; de lo contrario entregar el bloqueo exacto y el paso mínimo para resolverlo. No merge, publicación productiva, migraciones ni cambios Prestify. No iniciar ensayo real hasta autorización específica de datos y supervisión. El propietario busca una URL verificable, no otra ronda de alternativas de AH2-040.
+
 ### Ramas y SHAs
 - Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
   - base verificada `1ceec90afa14f4d1108480f70f43b6f5faf39164`, con los commits documentales del propietario `e3de37a` y `1ceec90`;
