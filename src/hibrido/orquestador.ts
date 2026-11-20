@@ -111,7 +111,10 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
  // Contrafáctico con el mismo motor A sin la relación semanal: faltantes atribuibles a la regla (estimación).
  let sinRelacion:number[][]|null=null
  if(elegido&&!op.motorA){try{sinRelacion=metricasAH2040(input,motorASinRelacion(input)).faltantesPorFranja}catch{sinRelacion=null}}
- return construirSalida({sinRelacion,raw,input,info,elegido,origen,motivo,estadoB,respuestaB,conflictos,hash,datosA:candA?.e.datos??[]})
+ const resumen=(c:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null,estado:string)=>c?{estado,valido:c.e.valido,coberturaPct:c.e.metricas.coberturaPct,faltantesHoras:c.e.metricas.faltantesHoras,sobrantesHoras:c.e.metricas.sobrantesHoras,
+  horasCajaAux:c.e.metricas.horasCajaAux,horasCajaEventual:c.e.metricas.horasCajaEventual,infracciones:[...new Set(c.e.infracciones.map(x=>x.codigo))]}:{estado,valido:false}
+ const candidatos={A:resumen(candA,candA?'CALCULADO':'SIN_RESULTADO'),B:resumen(candB,String(estadoB))}
+ return construirSalida({candidatos,sinRelacion,raw,input,info,elegido,origen,motivo,estadoB,respuestaB,conflictos,hash,datosA:candA?.e.datos??[]})
 }
 
 class ErrorTimeout extends Error{constructor(ms:number){super(`B no respondió en ${ms} ms`)}}
@@ -126,7 +129,7 @@ function personalMaximo(input:InputAlgoritmo,d:number,s:number){
  return input.colaboradores.filter(c=>c.rol==='FULL'||c.rol==='PART').length+Object.values(K).filter(x=>x.has(k)).length+Object.values(O).filter(x=>x.has(k)).length
 }
 
-function construirSalida(x:{sinRelacion:number[][]|null;raw:InputAlgoritmo;input:InputAlgoritmo;info:ReturnType<typeof compilarDisponibilidadCaja>['info'];elegido:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null;origen:Origen|null;motivo:string;
+function construirSalida(x:{candidatos:Record<'A'|'B',Record<string,unknown>>;sinRelacion:number[][]|null;raw:InputAlgoritmo;input:InputAlgoritmo;info:ReturnType<typeof compilarDisponibilidadCaja>['info'];elegido:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null;origen:Origen|null;motivo:string;
  estadoB:string;respuestaB:RespuestaB|null;conflictos:Conflicto[];hash:string|null;datosA:{codigo:string;detalle:string;colaboradorId?:string}[]}){
  const {input,elegido}=x
  const cfg=(input as InputAlgoritmo&{comparacion_aux_eventual?:ConfigAH2040}).comparacion_aux_eventual
@@ -140,7 +143,7 @@ function construirSalida(x:{sinRelacion:number[][]|null;raw:InputAlgoritmo;input
  return {
   version:VERSION_SALIDA,noOficial:true as const,publicable:false as const,
   leyenda:'PRUEBA NO OFICIAL — laboratorio híbrido. No es un horario aprobado ni publicado.',
-  origen:x.origen,motivoSeleccion:x.motivo,estadoB:x.estadoB,fasesB:x.respuestaB?.fases??[],hashEntrada:x.hash,
+  origen:x.origen,motivoSeleccion:x.motivo,candidatos:x.candidatos,estadoB:x.estadoB,fasesB:x.respuestaB?.fases??[],hashEntrada:x.hash,
   propuesta:elegido?.r??null,
   coberturaPomPct:m?.coberturaPct??null,demandaHoras:m?.demandaHoras??null,faltantesHoras:m?.faltantesHoras??null,sobrantesHoras:m?.sobrantesHoras??null,
   faltantesPorFranja:franjas(m?.faltantesPorFranja),sobrantesPorFranja:franjas(sobrantes),
@@ -166,6 +169,9 @@ function construirSalida(x:{sinRelacion:number[][]|null;raw:InputAlgoritmo;input
   // Bloqueos de política/datos que impiden un ensayo concluyente (no se resuelven automáticamente).
   bloqueos:[...new Set([...x.datosA.map(d=>d.codigo),...x.conflictos.filter(c=>c.origen==='B'||c.origen==='DATOS').map(c=>c.codigo)]
    .map(c=>c.replace(/[-]/g,'_').split(':')[0]).filter(c=>c.startsWith('POLITICA_')||c.startsWith('DATOS_')||c.startsWith('EV_CAJA')))].sort(),
+  excepcionApertura:{configurada:!!input.excepcion_apertura_aux_unico?.some(r=>r.some(Boolean)),
+   franjasAplicadas:elegido?input.demanda.reduce((a,row,d)=>a+[0,1].filter(s=>input.excepcion_apertura_aux_unico?.[d]?.[s]&&row[s]>0&&Object.values(elegido.r.asignacion_aux).filter(m=>m[d][s]!=='NO_PRESENTE').length===1&&Object.values(elegido.r.asignacion_aux).some(m=>m[d][s]==='CAJA')).length,0):0,
+   regla:'AH2-037: AUX único atiende caja sentado en la apertura 08:00–09:00 (excepción local aprobada); cuenta como hora-caja AUX.'},
   supervision:elegido?Object.keys(input.presencia_aux).sort().map(id=>({auxId:id,porDia:elegido.r.asignacion_aux[id].map((row,d)=>({dia:DIAS[d],
    presenteHoras:row.filter(v=>v!=='NO_PRESENTE').length/2,cajaHoras:row.filter(v=>v==='CAJA').length/2,supervisionHoras:row.filter(v=>v==='PARADO').length/2}))})):[],
  }

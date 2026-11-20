@@ -29,6 +29,7 @@ export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:stri
   ['Origen de la propuesta',s.origen??'ninguna (sin candidato válido)'],['Motivo',s.motivoSeleccion],['Estado de B',s.estadoB],
   ['Cobertura POM',s.coberturaPomPct===null?'—':`${s.coberturaPomPct} %`],['Demanda (h)',s.demandaHoras??'—'],['Faltantes (h)',s.faltantesHoras??'—'],
   ['Sobrantes (h)',s.sobrantesHoras??'—'],['Comparabilidad AH2-040',`${s.comparabilidadAH2040.modo??'sin modo'} · ${s.comparabilidadAH2040.activacionDefinitiva}`],
+  ['Excepción apertura AUX único (AH2-037)',s.excepcionApertura.configurada?`configurada · ${s.excepcionApertura.franjasAplicadas} franjas aplicadas`:'no configurada'],
   ['Publicable','NO'],['Hash de entrada',s.hashEntrada??'—']])
  tabla('Horas por persona',['Persona','Rol','Contrato/presencia','Caja','Reservado función','Disponible caja','Restante'],
   s.horasPorEmpleado.map(x=>{const r=x as Record<string,unknown>;return [String(r.id),String(r.rol),String(r.horasContractuales??r.horasPresencia??'—'),String(r.horasCaja),String(r.horasReservadasFuncionHabitual??'—'),String(r.disponibilidadCajaEfectivaHoras??'—'),String(r.disponibilidadCajaRestanteHoras??'—')]}))

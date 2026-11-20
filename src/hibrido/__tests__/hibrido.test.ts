@@ -65,6 +65,9 @@ describe('orquestador híbrido: respaldo A, fallos y selección',()=>{
  it('B mejor y válido: se elige B; salida única completa y coherente',async()=>{
   const s=await generarPropuestaHibrida(caso('S5'),{...OP,transporte:responde(()=>({plan:planB('S5')}))})
   expect(s.origen).toBe('B')
+  expect(s.candidatos.A).toMatchObject({estado:'CALCULADO',valido:true})
+  expect(s.candidatos.B).toMatchObject({estado:'OPTIMAL',valido:true,faltantesHoras:106})
+  expect((s.candidatos.A as {faltantesHoras:number}).faltantesHoras).toBeGreaterThan(106)
   expect(s.faltantesHoras).toBe(106)
   expect(s.faltantesPorFranja.reduce((a,f)=>a+f.personas,0)/2).toBe(s.faltantesHoras)
   expect(s.sobrantesHoras).toBe(0)

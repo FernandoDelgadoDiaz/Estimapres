@@ -1,4 +1,4 @@
-import { erroresDatosRecursos } from './politicaRecursos'
+import { aperturaAuxUnicoAutorizada, erroresDatosRecursos } from './politicaRecursos'
 import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/validadorIndependiente.ts
 // VAL-01 (#10) — Validador independiente del motor.
@@ -487,7 +487,7 @@ function validarReglasOperativas(
       const a=[...auxCaja.values()].filter(m=>m[d]?.[slot]).length
       const ev=evCaja.filter(m=>m.slotsCajaPorDia[d]?.[slot]).length
       if(n>2) v.push({codigo:'POLITICA_AUX_MULTIPLE',nivel:'DATOS',dia:d,detalle:'Generalización para más de dos AUX pendiente.'})
-      if(slot<2 && op.aperturaSoloAux && demanda(d,slot)>0 && n===1 && !op.supervision_apertura_externa?.[d]?.[slot]) v.push({codigo:'POLITICA_APERTURA_SUPERVISION',nivel:'DATOS',dia:d,detalle:'AUX único de apertura: falta supervisor distinto autorizado.'})
+      if(slot<2 && op.aperturaSoloAux && demanda(d,slot)>0 && n===1 && !aperturaAuxUnicoAutorizada(op,d,slot)) v.push({codigo:'POLITICA_APERTURA_SUPERVISION',nivel:'DATOS',dia:d,detalle:'AUX único de apertura: falta supervisor distinto autorizado o la excepción local AH2-037 para esta franja.'})
       if(slot>=2 && slot<=(sinAuxCierre?27:28) && n===2 && demanda(d,slot)>fp[d][slot] && a<1) v.push({codigo:'OP_PRIORIDAD_AUX',nivel:'OPERATIVA',dia:d,detalle:`AUX elegible sin caja con demanda residual; eventuales usados: ${ev}.`})
     }
   }

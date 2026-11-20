@@ -163,7 +163,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   const ident = asignarIdentidadesV2([...e.cajeros,...e.auxiliares,...e.eventuales])
   const aUi=<T>(dict:Record<string,T>|undefined)=>dict && Object.fromEntries(Object.entries(dict).map(([id,v])=>[ident.uiPorV2.get(id)?.id??id,v]))
   const contexto = base.politica_recursos_version ? {...e.contexto,maxFrancosDia:base.max_francos_dia??e.contexto.maxFrancosDia,operativa:{...e.contexto.operativa,
-    politica_recursos_version:base.politica_recursos_version,supervision_apertura_externa:base.supervision_apertura_externa,max_caja_eventual_slots:aUi(base.max_caja_eventual_slots),reservas_sector_eventual:aUi(base.reservas_sector_eventual),
+    politica_recursos_version:base.politica_recursos_version,supervision_apertura_externa:base.supervision_apertura_externa,excepcion_apertura_aux_unico:base.excepcion_apertura_aux_unico,max_caja_eventual_slots:aUi(base.max_caja_eventual_slots),reservas_sector_eventual:aUi(base.reservas_sector_eventual),
     aperturaSoloAux:base.apertura_solo_aux??true,sinAuxCierre:base.sin_aux_cierre??true,supervisorJornadaCompleta:base.supervisor_jornada_completa??false,francoMedioCorridos:base.franco_medio_corridos??false,
     maxBloquesCajaEventualDia:base.max_bloques_caja_eventual_dia,eventualesCajaHoraLimite:base.eventuales_caja_hora_limite}}:e.contexto
   const automaticos=e.cajeros.filter(p=>!base.auditoria_condiciones?.excluidos.includes(ident.v2PorUi.get(p.id)??p.id))

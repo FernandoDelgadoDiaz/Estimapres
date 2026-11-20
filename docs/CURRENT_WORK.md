@@ -1,4 +1,80 @@
-## PUNTO ÚNICO DE RETOMA — Aliada Horarios 2.0 integral en laboratorio, lista para ensayo privado 091 · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — ensayo privado 091: POM real leído, excepción de apertura implementada; dotación real NO accesible · 20/11/2026, Claude
+
+**Estado: BLOQUEADO SOLO POR DATOS.**
+- El propietario autorizó el ensayo privado con el PDF POM de la semana 23–29/11/2026 y la dotación vigente de la 091 en solo lectura.
+- La excepción de apertura aprobada (AH2-037) ya está implementada y probada en A, B, el contrato, ambos validadores, la salida y el PDF.
+- **No se generó una planificación real:** la dotación vigente de la 091 no es accesible desde esta sesión y no se inventaron disponibilidades ni perfiles.
+- El piloto móvil sigue en pausa: va después del ensayo, según la prioridad ratificada.
+
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Datos reales solo en una carpeta privada fuera de los repositorios. Esta sección es el único estado vigente; las siguientes son historia.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador): base `74cebc9caa34f0dcb139bc5f4f4c903d79de3991`, con los commits del propietario `b77782c`, `452f244`, `0fa72de` y `74cebc9` integrados. Esta entrega está en el commit que contiene esta sección; el SHA figura en el PR.
+- aliada-optimizer PR #6 (borrador): **`64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`**, sobre `f764caf`.
+- Sin force-push. Al subir encontré los commits nuevos del propietario y los integré antes de continuar. Mi borrador anterior trataba la apertura como decisión pendiente; lo corregí según el MASTER: la regla está aprobada y solo faltaba implementarla.
+
+### Contraste de bloqueos con el MASTER
+
+| Bloqueo | Estado real |
+|---|---|
+| Apertura con AUX único de 08:00 a 09:00 | **Aprobada** (AH2-037). **Implementada ahora**; no se pide otra decisión. |
+| Comparabilidad AUX/EVENTUAL | **DIAS en laboratorio** (decisión del propietario); no se reabre. |
+| Dotación vigente de la 091 | **Dato faltante:** sin acceso. |
+| Perfiles de caja EVENTUAL | **Dato faltante:** no se infieren. |
+| Tres o más AUX simultáneos | Política pendiente **solo si ocurre** en la dotación real; no se puede verificar sin ella. |
+
+### Implementado y probado
+1. **Excepción AH2-037** (`excepcion_apertura_aux_unico`, matriz opt-in por día y franja, solo 08:00–09:00):
+   - **A:** `politicaRecursos.aperturaAuxUnicoAutorizada`, pasada 2, K/Kd de AH2-040, analizador y validador independiente (`POLITICA_APERTURA_SUPERVISION` solo si falta la excepción). Además el adaptador, el multi-arranque y el contrato A→B.
+   - **B:** `support.apertura_aux_unico_autorizada`, `static_violations`, `ah2040.masks`, analizador, y `validate_input`, que rechaza valores fuera de la franja.
+   - **Salida y PDF:** `excepcionApertura`, con la configuración y las franjas aplicadas.
+   - **Pruebas en ambos motores:**
+     - activada: el AUX único está en caja toda la franja, cuenta como hora-caja AUX y no genera bloqueo ni infracción;
+     - desactivada: se mantiene el bloqueo;
+     - parcial por día;
+     - fuera de franja: se rechaza;
+     - otra sucursal sin configuración: rige la regla ordinaria.
+2. **PDF POM real** leído con el lector actual: solo la semana y «Estimado de cajas necesarias». Resultado: lunes 23/11, 31 franjas, 203 con demanda, **402 horas-caja**, sin avisos. La matriz no se versiona.
+3. **Ejecutor del ensayo, sin datos** (`src/hibrido/__tests__/ensayo-privado.local.test.ts`, omitido sin `AH2_ENSAYO_DIR`): PDF → POM → dotación → adaptador de la app → A + CP-SAT real → validación → selección → salida, comparación A/B (`candidatos`) y PDF. Con dotación REAL se niega a generar sin perfiles de caja EVENTUAL.
+4. **Prueba de humo técnica, NO real:** POM real + estructura sintética S47 del repositorio + excepción de apertura, 120 s.
+
+   | Motor | Cobertura | Faltantes | Sobrantes | Validez |
+   |---|---:|---:|---:|---|
+   | A | 98,76 % | 5 h | 0,5 h | válido |
+   | B | 99,88 % | 0,5 h | 3 h | válido |
+
+   - Elegido B, con 0 infracciones y sin bloqueos; la excepción se aplicó en 14 franjas.
+   - B tarda ≈ 76 s en probar el óptimo de faltantes y la fase de sobrantes queda FEASIBLE a los 120 s.
+   - **Con 30 s, B no completa la primera fase de forma óptima: se necesitan ≈ 120 s.**
+
+### Pruebas (locales)
+- **A:**
+  - TypeScript OK;
+  - **Vitest 543 aprobadas, 10 omitidas** (2 del ejecutor privado);
+  - build OK;
+  - **Playwright 21 aprobadas, 1 omitida** (con CP-SAT local).
+- **B:** **pytest 134 aprobadas, 1 omitida**.
+- CI: ver los checks en los PR.
+
+### Impedimentos reales (solo datos)
+1. **Acceso a la dotación vigente de la 091.** El conector de Supabase de esta sesión solo ve la organización con `noven-ia` y `Barberos`; ninguno tiene las tablas de Horarios. El sitio `al-iada` usa otro proyecto, no accesible desde aquí. El respaldo de la app (`aliada-backup`) no incluye la dotación.
+2. **Perfiles de caja de cada EVENTUAL:** acreditación, reservas de función habitual y tope si existe.
+3. Opcional: salidas del domingo 22/11, para el descanso de 12 h el lunes.
+
+### PRÓXIMO PASO EXACTO
+1. **Acción del propietario**, una de dos:
+   - **(a)** en claude.ai → Configuración → Conectores → Supabase, conectar la cuenta u organización dueña del proyecto de horarios.aliadaapps.com (lectura), para leer `colaboradores` y `reglas_configurables` de la sucursal 091 con `SELECT`;
+   - **(b)** pegar en la conversación la dotación de la 091, con nombres reemplazables por seudónimos:
+     - FULL/PART con horas semanales;
+     - horario por día de cada AUX y cada EVENTUAL;
+     - reglas activas de la sucursal;
+     - perfil de caja de cada EVENTUAL.
+2. Con los datos: `AH2_ENSAYO_DIR=<carpeta privada> AH2_ENSAYO_SEGUNDOS=120 npx vitest run src/hibrido/__tests__/ensayo-privado.local.test.ts`. Entregar al propietario la comparación A/B, la cobertura, los faltantes por franja, las horas-caja individuales FULL/PART/AUX/EVENTUAL, el cumplimiento contractual y la supervisión, y el PDF A4 de la mejor planificación válida. Registrar aquí solo métricas agregadas.
+3. Después del ensayo: retomar el piloto web privado (Cloud Run con autorización separada).
+
+---
+
+## RELEVO ANTERIOR (historia) — Aliada Horarios 2.0 integral en laboratorio, lista para ensayo privado 091 · 20/11/2026, Claude
 
 **Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.**
 - Flujo completo funcionando **en laboratorio**: interfaz → A + CP-SAT → validación → propuesta única → PDF no oficial, con DIAS como comparabilidad de la política v1 de laboratorio.

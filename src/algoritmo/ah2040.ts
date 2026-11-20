@@ -17,6 +17,7 @@
  */
 import type {InputAlgoritmo,ResultadoSemanal} from './types'
 import {ejecutarAlgoritmo} from './orquestador'
+import {aperturaAuxUnicoAutorizada} from './politicaRecursos'
 
 export const MODOS_AH2040=['P0','P1','P2','P2E','P3'] as const
 /** PT (laboratorio de disponibilidad de caja): límite semanal estricto caja(e) ≤ caja(a) contra TODO AUX con
@@ -60,7 +61,7 @@ export function mascarasAH2040(input:InputAlgoritmo){
    const present=Object.keys(input.presencia_aux).filter(id=>input.presencia_aux[id][d][s]!=='NO_PRESENTE')
    const open=s<2&&(input.apertura_solo_aux??true)
    const last=input.sin_aux_cierre===false?28:27
-   if((open&&(present.length===2||(present.length===1&&input.supervision_apertura_externa?.[d]?.[s]===true)))||(s>=2&&s<=last&&present.length===2))
+   if((open&&(present.length===2||(present.length===1&&aperturaAuxUnicoAutorizada(input,d,s))))||(s>=2&&s<=last&&present.length===2))
     for(const id of present)if(id!==sup&&(!open||[0,1].every(k=>input.presencia_aux[id][d][k]!=='NO_PRESENTE')))K[id].add(key(d,s))
    if(s>=2&&s<corte)for(const [id,m] of Object.entries(input.disponibilidad_eventual))
     if(input.max_caja_eventual_slots?.[id]!==0&&m[d][s]!=='NO_DISPONIBLE'&&input.reservas_sector_eventual?.[id]?.[d]?.[s]!==true)O[id].add(key(d,s))

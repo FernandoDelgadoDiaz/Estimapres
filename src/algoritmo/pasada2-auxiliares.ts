@@ -20,7 +20,7 @@
 //   - Nunca se convierte PARADO en CAJA sin déficit (sin "relleno" ni extensión
 //     de bloques para alcanzar 1 hora).
 
-import { activaRecursos, aperturaExterna, erroresDatosRecursos } from "./politicaRecursos";
+import { activaRecursos, aperturaAuxUnicoAutorizada, erroresDatosRecursos } from "./politicaRecursos";
 import type { InputAlgoritmo, AsignacionAux, DiaSemana, SlotIdx, RegulaViolada } from "./types";
 import { ejecutarPasada1, type ResultadoPasada1 } from "./pasada1-fullpart";
 import { validarPresenciaAux0809, validarCobertura0922 } from "./reglas";
@@ -101,7 +101,7 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
         if (hA !== hB) return hA - hB;
         return a.localeCompare(b);
       });
-      if (activaRecursos(input) && SLOTS_APERTURA.some(s=>input.demanda[dia][s]>0 && Object.values(input.presencia_aux).filter(m=>m[dia][s]!=='NO_PRESENTE').length===1 && !aperturaExterna(input,dia,s))) {
+      if (activaRecursos(input) && SLOTS_APERTURA.some(s=>input.demanda[dia][s]>0 && Object.values(input.presencia_aux).filter(m=>m[dia][s]!=='NO_PRESENTE').length===1 && !aperturaAuxUnicoAutorizada(input,dia,s))) {
         violaciones_input.push({regla:'POLITICA-APERTURA-SUPERVISION',dia,detalle:'AUX único: falta responsable externo autorizado en apertura.'});
         continue;
       }

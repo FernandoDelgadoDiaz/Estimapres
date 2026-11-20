@@ -1,5 +1,6 @@
 /** AH2-040-P1: análisis de una propuesta, NO regla homologada ni restricción del solver. */
 import type {InputAlgoritmo,ResultadoSemanal} from './types'
+import {aperturaAuxUnicoAutorizada} from './politicaRecursos'
 export interface ParPropuesto {eventualId:string;auxId:string}
 export function analizarComparabilidad(input:InputAlgoritmo,r:ResultadoSemanal,pares:ParPropuesto[]=[]){
  const auxMasks:Record<string,Set<string>>={},evMasks:Record<string,Set<string>>={}
@@ -12,7 +13,7 @@ export function analizarComparabilidad(input:InputAlgoritmo,r:ResultadoSemanal,p
    if(input.demanda[d][s]<=0)continue
    const present=Object.keys(input.presencia_aux).filter(id=>input.presencia_aux[id][d][s]!=='NO_PRESENTE')
    const open=s<2&&(input.apertura_solo_aux??true)
-   if((open&&(present.length===2||present.length===1&&input.supervision_apertura_externa?.[d]?.[s]))||(s>=2&&s<=(input.sin_aux_cierre===false?28:27)&&present.length===2))for(const id of present)if(id!==designado&&(!open||[0,1].every(k=>input.presencia_aux[id][d][k]!=='NO_PRESENTE')))auxMasks[id].add(`${d}/${s}`)
+   if((open&&(present.length===2||present.length===1&&aperturaAuxUnicoAutorizada(input,d,s)))||(s>=2&&s<=(input.sin_aux_cierre===false?28:27)&&present.length===2))for(const id of present)if(id!==designado&&(!open||[0,1].every(k=>input.presencia_aux[id][d][k]!=='NO_PRESENTE')))auxMasks[id].add(`${d}/${s}`)
    const cut=input.eventuales_caja_hora_limite?((Number(input.eventuales_caja_hora_limite.slice(0,2))-8)*2+Number(input.eventuales_caja_hora_limite.slice(3))/30):30
    if(s>=2&&s<cut)for(const [id,m] of Object.entries(input.disponibilidad_eventual))if(input.max_caja_eventual_slots?.[id]!==0&&m[d][s]!=='NO_DISPONIBLE'&&!input.reservas_sector_eventual?.[id]?.[d]?.[s])evMasks[id].add(`${d}/${s}`)
   }
