@@ -21,11 +21,14 @@ import {ejecutarAlgoritmo} from './orquestador'
 export const MODOS_AH2040=['P0','P1','P2','P2E','P3'] as const
 /** PT (laboratorio de disponibilidad de caja): límite semanal estricto caja(e) ≤ caja(a) contra TODO AUX con
  *  capacidad efectiva de caja, haya o no solapamiento. Solo mide el costo de la lectura literal. */
-export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT'] as const
+/** SEMANAL (AH2-040, regla ratificada 20/11/2026): totales semanales caja(e) ≤ caja(a) contra CADA AUX realmente
+ *  comparable: K(a) ≠ ∅ y K(a) ∩ O(e) ≠ ∅. Sin AUX comparable: sin relación (nunca tope cero). Sin promedios.
+ *  PC: variante más estrecha (O(e) ⊆ K(a)); solo para documentar la ambigüedad técnica con fixtures. */
+export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT','SEMANAL','PC'] as const
 export type ModoAH2040=typeof MODOS_VALIDOS_AH2040[number]
 export interface ParAH2040 {eventualId:string;auxId:string}
 export interface ConfigAH2040 {modo:ModoAH2040;pares?:ParAH2040[]}
-export interface RelacionAH2040 {eventualId:string;auxId:string;ventana:string[]|null;origen:string}
+export interface RelacionAH2040 {eventualId:string;auxId:string;ventana:string[]|null;origen:string;solapamientoHoras?:number}
 
 const key=(d:number,s:number)=>`${d}/${s}`
 
@@ -81,6 +84,14 @@ export function relacionesAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
   for(const e of ordenar(Object.keys(O)))if(!rels.some(r=>r.eventualId===e))notas.push({codigo:'EVENTUAL_SIN_PAR',eventualId:e})
   return {rels,notas}
  }
+ if(cfg.modo==='SEMANAL'||cfg.modo==='PC'){
+  for(const e of ordenar(Object.keys(O))){
+   const comp=ordenar(Object.keys(K)).filter(a=>K[a].size>0&&(cfg.modo==='SEMANAL'?[...K[a]].some(x=>O[e].has(x)):O[e].size>0&&[...O[e]].every(x=>K[a].has(x))))
+   if(!comp.length)notas.push({codigo:'EVENTUAL_SIN_AUX_COMPARABLE',eventualId:e,oportunidadesHoras:O[e].size/2})
+   for(const a of comp)rels.push({eventualId:e,auxId:a,ventana:null,origen:`${cfg.modo}-total-semanal`,solapamientoHoras:(cfg.modo==='SEMANAL'?[...K[a]].filter(x=>O[e].has(x)).length:O[e].size)/2})
+  }
+  return {rels,notas}
+ }
  if(cfg.modo==='PT'){
   for(const e of ordenar(Object.keys(O))){
    const comparables=ordenar(Object.keys(K)).filter(a=>K[a].size>0)
@@ -123,10 +134,50 @@ export function verificarAH2040(input:InputAlgoritmo,r:Pick<ResultadoSemanal,'as
  * en la ventana compartida cuando ese AUX también la hace); (3) se vuelve a correr y se comprueba que la
  * caja AUX no cambió. Eventuales sin tope explícito usan 210 franjas (= sin tope), como el default de B.
  */
+/**
+ * Roles AUX rotativos (sin supervisor designado): en las franjas donde los dos AUX presentes tienen capacidad de
+ * caja y uno está en caja y el otro supervisa, la identidad es intercambiable sin cambiar cobertura ni
+ * supervisión. Para la regla SEMANAL, A asigna cada tramo contiguo de esas franjas (desde 09:00) al AUX con menos
+ * horas-caja acumuladas (desempate por id), de modo determinístico. CP-SAT (B) elige la identidad en el modelo.
+ */
+export function balancearIdentidadAux(input:InputAlgoritmo,r:ResultadoSemanal):ResultadoSemanal{
+ const {K}=mascarasAH2040(input)
+ const ids=Object.keys(input.presencia_aux).sort((a,b)=>a<b?-1:a>b?1:0)
+ const aux=Object.fromEntries(ids.map(id=>[id,r.asignacion_aux[id].map(row=>[...row])]))
+ const libre=(d:number,s:number)=>{
+  if(s<2)return null
+  const pres=ids.filter(id=>input.presencia_aux[id][d][s]!=='NO_PRESENTE')
+  if(pres.length!==2||!pres.every(id=>K[id].has(key(d,s))))return null
+  const caja=pres.filter(id=>aux[id][d][s]==='CAJA')
+  return caja.length===1?pres:null
+ }
+ const total=Object.fromEntries(ids.map(id=>[id,0]))
+ const tramos:{d:number;slots:number[];par:string[]}[]=[]
+ for(let d=0;d<7;d++){
+  let actual:{d:number;slots:number[];par:string[]}|null=null
+  for(let s=0;s<30;s++){
+   const par=libre(d,s)
+   if(par&&actual&&actual.par.join()===par.join()&&actual.slots[actual.slots.length-1]===s-1)actual.slots.push(s)
+   else if(par){actual={d,slots:[s],par};tramos.push(actual)}
+   else{actual=null;for(const id of ids)if(aux[id][d][s]==='CAJA')total[id]++}
+  }
+ }
+ for(const t of tramos){
+  const [a,b]=t.par
+  const elegido=total[a]<total[b]||(total[a]===total[b]&&a<b)?a:b,otro=elegido===a?b:a
+  for(const s of t.slots){aux[elegido][t.d][s]='CAJA';aux[otro][t.d][s]='PARADO'}
+  total[elegido]+=t.slots.length
+ }
+ return {...r,asignacion_aux:aux as ResultadoSemanal['asignacion_aux']}
+}
+
+const BALANCEA=new Set(['SEMANAL','PC'])
+
 export function ejecutarAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
  const base:InputAlgoritmo=structuredClone(input)
  base.max_caja_eventual_slots={...Object.fromEntries(Object.keys(base.disponibilidad_eventual).map(id=>[id,210])),...(input.max_caja_eventual_slots??{})}
- const r0=ejecutarAlgoritmo(base)
+ const ajustar=(r:ResultadoSemanal)=>BALANCEA.has(cfg.modo)?balancearIdentidadAux(input,r):r
+ const r0=ajustar(ejecutarAlgoritmo(base))
  const {rels}=relacionesAH2040(input,cfg)
  if(!rels.length)return {resultado:r0,inputEfectivo:base,auxEstable:true}
  const ajustado:InputAlgoritmo=structuredClone(base)
@@ -140,7 +191,7 @@ export function ejecutarAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
    for(const k of rel.ventana)if(!cajaAux[rel.auxId].has(k)){const [d,s]=k.split('/').map(Number);m[d][s]=true}
   }
  }
- const r1=ejecutarAlgoritmo(ajustado)
+ const r1=ajustar(ejecutarAlgoritmo(ajustado))
  const auxEstable=Object.keys(input.presencia_aux).every(a=>[...cajaSet(r1.asignacion_aux[a])].join()===[...cajaAux[a]].join())
  return {resultado:r1,inputEfectivo:ajustado,auxEstable}
 }

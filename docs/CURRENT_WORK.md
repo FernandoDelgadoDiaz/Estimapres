@@ -1,4 +1,102 @@
-## PUNTO ÚNICO DE RETOMA — disponibilidad efectiva de caja EVENTUAL · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-040 regla semanal EVENTUAL ≤ AUX comparable · 20/11/2026, Claude
+
+**Estado: IMPLEMENTACIÓN TÉCNICA DE AH2-040 COMPLETADA EN LABORATORIO (A, CP-SAT B y ambos validadores), con evidencia reproducible.** No publicable ni activada por defecto. Sin merge ni despliegue. Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Regla aplicada (aprobada; no se rediscute):**
+1. FULL/PART: 100 % de las horas contractuales en caja.
+2. AUX: prioridad sobre la demanda residual, manteniendo la supervisión.
+3. EVENTUAL: solo demanda residual, respetando sus funciones habituales.
+4. Ningún EVENTUAL supera en horas-caja **semanales** a un AUX realmente comparable y habilitado para caja.
+
+EVENTUAL puede venir de cualquier función. P3 y los perfiles de disponibilidad no sustituyen esta regla.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `5a92b7d2eb1149fc8982cb365fc9cbcaef570805`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `5ebf637e2453fa3515944c21ce512446300b18a4`;
+  - entrega **`5d0fe3bb51c421efcb82b89a7d726f5a5614364d`**.
+- Sin force-push. No se rehicieron AH2-036–039, P0–P3 ni los perfiles.
+
+### Código implementado
+- **Comparabilidad automática**, idéntica en A y B: `a` es comparable con `e` ⇔ K(a) ≠ ∅ y K(a) ∩ O(e) ≠ ∅.
+  - **K(a)** es la capacidad efectiva de caja del AUX: con demanda, sin el supervisor designado. El supervisor exclusivo tiene K = ∅; con roles rotativos, ambos AUX tienen K en las franjas compartidas.
+  - **O(e)** son las oportunidades del EVENTUAL: con demanda y disponibilidad acreditada, descontando reservas, corte y tope.
+  - Sin comparable no hay relación: no se fabrica un tope cero.
+- **Restricción de totales semanales (modo `SEMANAL` en `comparacion_aux_eventual`):** `caja(e) ≤ caja(a)` para **cada** AUX comparable, sin promedios.
+  - **B:** identidad AUX por franja dentro del modelo lexicográfico (`optimizer/ah2040.py`); `validator.evaluate` emite `AH2040_SEMANAL:e:a`.
+  - **A:** `ah2040.ts` reparte la identidad AUX rotativa por tramos (`balancearIdentidadAux`) y deriva el tope = mínimo de `caja(a)` entre los comparables.
+  - **Validador A:** `auditarEscenario` emite `OP_EVENTUAL_SUPERA_AUX_COMPARABLE` y, en este modo, reemplaza el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE`.
+- Se acumula con la disponibilidad acreditada, las reservas y los topes de AH2-037. No relaja ninguna restricción.
+- `solve(..., deterministic_time=)` (opcional, laboratorio) permite registrar estados FEASIBLE y UNKNOWN de forma reproducible.
+- Variante **PC** (contención) solo para documentar la ambigüedad.
+
+### Evidencia y pruebas (resultados reales)
+- A: TypeScript OK; **516 Vitest aprobadas, 8 omitidas** (8 nuevas en `ah2040-semanal.test.ts`); build OK.
+- B: **119 pytest aprobadas, 1 omitida** (10 nuevas en `tests/test_ah2040_semanal.py`).
+- 9 casos × 4 modos (P0, SEMANAL, PC, PT). Los casos cubren:
+  - turnos coincidentes y diferentes;
+  - supervisión rotativa;
+  - AUX solo supervisor;
+  - EVENTUAL que supera a un AUX;
+  - varios AUX comparables;
+  - demanda superior a la capacidad;
+  - cobertura parcial con perfiles;
+  - ambigüedad de solapamiento mínimo.
+- **Resultados de la matriz:** las 36 corridas B terminaron OPTIMAL, con 0 infracciones en todos los verificadores de A y B. Los 36 planes B se validaron con A.
+  - O, K y los pares comparables son idénticos en ambos motores.
+  - **Con SEMANAL, A = B en cobertura y horas en los 9 casos.**
+  - La caja AUX total nunca cambia.
+- **Costo de la regla (faltantes B, P0 → SEMANAL):**
+  - Caso 2: 93 → 116.
+  - Caso 3 (rotativos): 82 → 138.
+  - Caso 5: 106 → 154.
+  - Caso 6: 94 → 154 (EVENTUAL = mínimo, 12 h).
+  - Caso 7: 244 → 292.
+  - Caso 8: 122 → 132.
+  - Caso 9: 129 → 200.
+  - Casos 1 y 4: sin cambio.
+  - Faltantes por franja en `docs/evidencia/ah2040-semanal-faltantes-por-franja.csv`.
+- **Estados del solver** (presupuesto determinístico por fase):
+
+  | Caso | Presupuesto | Estado |
+  |---|---|---|
+  | S11 | 0,3 | UNKNOWN sin plan |
+  | S11 | 4,0 | FEASIBLE, plan válido |
+  | S3 | 0,12 | UNKNOWN con incumbente válido |
+  | S10 | — | INFEASIBLE (`HORAS_FUERA_PERFIL`, ajeno a la regla) |
+
+  La regla nunca produjo INFEASIBLE.
+- Documentación: `docs/AH2-040_SEMANAL.md`, `docs/evidencia/ah2040-semanal.csv`, nota técnica en el MASTER AH2-040 (sin cambiar el texto aprobado) y aliada-optimizer `results/ah2040_semanal/`.
+
+### Única ambigüedad técnica (documentada, no se rediscute la política)
+Caso 9: un AUX comparable con una sola hora común limita todo el total semanal del EVENTUAL (1 h, +71 h de faltantes).
+- **PC** (contención) anula la regla en todos los casos medidos.
+- **PT** (todo AUX) crea falsos conflictos en los casos 2 y 8.
+- **SEMANAL** es la lectura implementada. Solo queda abierto si un solapamiento mínimo debe bastar; no se inventó un umbral.
+
+### Limitaciones
+- A es heurístico: sin la regla cubre hasta 12 h menos que B (caso 5).
+- Tres o más AUX simultáneos siguen pendientes (`POLITICA_AUX_MULTIPLE`).
+- CP-SAT no penaliza la fragmentación de la identidad AUX.
+- El modo SEMANAL es opt-in: no está activado por defecto en la política v1, la interfaz, el PDF ni la persistencia.
+- Evidencia sintética, no un ensayo de la 091.
+- Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales. PR #60 y #6 siguen en borrador.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD y los checks de #60 y #6 (`test-build`, `browser`, `offline`).
+2. Registrar la decisión del propietario sobre la ambigüedad del caso 9 (`docs/AH2-040_SEMANAL.md` §3).
+3. Activar SEMANAL como parte de la política v1, con versión:
+   - por defecto en A y B cuando `politica_recursos_version=1`;
+   - eliminar el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` en esa versión;
+   - mostrar en la interfaz y el PDF, por persona, los comparables y los faltantes atribuibles;
+   - repetir estas matrices.
+4. Después: transporte A→B y ensayo offline autorizado de la 091, sin datos reales en GitHub.
+
+---
+
+## RELEVO ANTERIOR (historia) — disponibilidad efectiva de caja EVENTUAL · 20/11/2026, Claude
 
 **Estado: AVANCE DE LABORATORIO VERIFICABLE.** Protección operativa de cualquier EVENTUAL implementada y probada con datos sintéticos en A y B. **AH2-040 NO está completada**: faltan reglas de negocio. Nada homologado ni publicable.
 Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
