@@ -1,4 +1,21 @@
-## PUNTO ÚNICO DE RETOMA — prueba real 091 aprobada en preview; fusión de #61 y publicación de al-iada · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — motor híbrido 091 PUBLICADO en Horarios · 20/11/2026, Claude
+
+**Estado: PUBLICADO.** #61 fusionado a `main` (merge `e91dd19f0e9499a261a527184bac41c6337313aa`, CI verde en `c5bcc0f`/`cd250de`). El propietario publicó en al-iada el deploy **`6b00af11bb927938de720319`** (commit `e91dd19`, producción, **bloqueado** contra auto publicación); `horarios.aliadaapps.com` sirve el bundle con `VITE_AH2_HIBRIDO_091=true` y `VITE_AH2_OPTIMIZER_URL` del servicio. Otras sucursales mantienen el generador anterior; en la 091 el selector conserva el respaldo por generación.
+
+**Servicio CP-SAT:** Cloud Run `aliada-optimizer` (proyecto `aliada-horarios`, `southamerica-east1`), imagen `optimizer:5b98417` (`sha256:c855db31…`), revisión **`aliada-optimizer-00004-966`**, min 0 / máx 1, concurrencia 1, facturación por solicitud, origen permitido solo `https://horarios.aliadaapps.com`, usuario y configuración 091 en Secret Manager (v2). Presupuesto de guardia USD 1. Prueba real: `POST /v1/optimizar` 200 en 125,6 s; conteos Supabase idénticos antes/después.
+
+**Rollback (en orden de alcance):**
+1. Por generación: selector «Usar motor anterior» en Nueva semana.
+2. Solo el híbrido: `VITE_AH2_HIBRIDO_091=false` en al-iada + rebuild de `main` + Publish deploy.
+3. Frontend completo: Netlify al-iada → Deploys → `6afba0e1c0b8e64caa476f2c` (commit `a7006e4`) → Publish deploy; mantener bloqueo.
+4. Servicio: `gcloud run services update-traffic aliada-optimizer --region southamerica-east1 --to-revisions <revisión>=100` o `gcloud run services delete aliada-optimizer --region southamerica-east1` (la app cae al respaldo A).
+Sin migraciones: ningún rollback requiere revertir datos. Prestify sin cambios.
+
+**Pendientes no bloqueantes:** antecedente del domingo previo sigue SIN VERIFICAR si no se confirma en la app; Safari de escritorio no probado (iPhone visto por el propietario); vigencias de la configuración privada son 23–29/11: para semanas siguientes hay que cargar una versión nueva de `ah2-pilot-options` (no se renuevan solas). Notas del entorno Claude: `unset CLOUDSDK_AUTH_ACCESS_TOKEN` antes de gcloud; `*.run.app` solo alcanzable vía Cloud Build.
+
+---
+
+## RELEVO ANTERIOR — prueba real 091 aprobada en preview; fusión de #61 y publicación de al-iada · 20/11/2026, Claude
 
 **Prueba real autenticada (preview `deploy-preview-61--al-iada.netlify.app`, build de `cd250de`, código = `c5bcc0f`):** el propietario inició sesión y generó la semana 23–29/11 de la 091 con el híbrido; no guardó. Cloud Run (revisión `00003-mtl`, origen temporal de la preview): `GET /v1/sesion` 200 (0,7–0,9 s), `POST /v1/optimizar` **200 en 125,6 s**, sin advertencias ni errores. Supabase al-iada horarios (solo lectura, usuario/091) **idéntico antes y después**: colaboradores 17 (15 activos), reglas 5 (4 activas), semanas_historial 18 (1 de la semana 23/11, previa del 19/11), correcciones 38, aprendizajes 0. Los 5 IDs de la configuración privada existen, activos, 091 y del mismo usuario. Visualización en iPhone aceptada por el propietario (uso principal en computadora).
 
