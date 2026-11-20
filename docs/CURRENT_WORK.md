@@ -1,4 +1,14 @@
-## PUNTO ÚNICO DE RETOMA — CP-SAT operativo para 091 en Cloud Run; falta solo la parte Netlify · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — prueba real 091 aprobada en preview; fusión de #61 y publicación de al-iada · 20/11/2026, Claude
+
+**Prueba real autenticada (preview `deploy-preview-61--al-iada.netlify.app`, build de `cd250de`, código = `c5bcc0f`):** el propietario inició sesión y generó la semana 23–29/11 de la 091 con el híbrido; no guardó. Cloud Run (revisión `00003-mtl`, origen temporal de la preview): `GET /v1/sesion` 200 (0,7–0,9 s), `POST /v1/optimizar` **200 en 125,6 s**, sin advertencias ni errores. Supabase al-iada horarios (solo lectura, usuario/091) **idéntico antes y después**: colaboradores 17 (15 activos), reglas 5 (4 activas), semanas_historial 18 (1 de la semana 23/11, previa del 19/11), correcciones 38, aprendizajes 0. Los 5 IDs de la configuración privada existen, activos, 091 y del mismo usuario. Visualización en iPhone aceptada por el propietario (uso principal en computadora).
+
+**Cierre de la prueba:** origen de Cloud Run devuelto a `https://horarios.aliadaapps.com` (revisión **`aliada-optimizer-00004-966`**); controles negativos repetidos: 401 sin sesión/JWT inválido, 403 origen ajeno, preflight solo del dominio productivo.
+
+**Publicación:** fusionar #61 a `main` (base `a7006e4` sin cambios). Producción de al-iada sigue con auto publicación bloqueada: el build de `main` queda listo sin publicarse; el propietario pulsa **Publish deploy** en ese build. Rollback: republicar `6afba0e1c0b8e64caa476f2c` (commit `a7006e4`) y bloquear; desactivar el híbrido con `VITE_AH2_HIBRIDO_091=false` + rebuild; servicio: `update-traffic` a una revisión anterior o borrarlo. Prestify no se toca (si el repositorio dispara un build suyo, queda sin publicar por su bloqueo).
+
+---
+
+## RELEVO ANTERIOR — CP-SAT operativo para 091 en Cloud Run; falta solo la parte Netlify · 20/11/2026, Claude
 
 **Hecho:** el propietario entregó el UID Supabase verificado y la configuración privada original de la 091 (perfiles EVENTUAL, topes 12/8, exclusión manual, excepción de apertura). Validada contra `Config` y `ev_caja` del backend `5b98417` antes de cargarla. Secret Manager: `ah2-allowed-user-id` v2 y `ah2-pilot-options` v2 (v1 provisorias **deshabilitadas**). Revisión **`aliada-optimizer-00002-b77`** sirve 100 % con esos secretos; arranque sin errores; controles negativos repetidos desde Cloud Build: 401 sin sesión/JWT inválido, 403 origen ajeno, preflight solo `https://horarios.aliadaapps.com`. Rollback del servicio: `gcloud run services update-traffic aliada-optimizer --region southamerica-east1 --to-revisions aliada-optimizer-00001-wvt=100` (revisión que rechaza todo) o borrar el servicio. Ningún dato personal en repositorios.
 
