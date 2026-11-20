@@ -1,4 +1,23 @@
-## PUNTO ÚNICO DE RETOMA — motor híbrido dentro de Aliada Horarios existente · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — proyecto Google Cloud informado; acceso a consola bloqueado · 20/11/2026
+
+**Orden actual del propietario:** informa que creó el proyecto Google Cloud `aliada-horarios` y autoriza desplegar CP-SAT, conectarlo a Horarios y completar la publicación controlada exclusivamente para 091. Sin instalar otros servicios, generar gastos sin autorización ni afectar Prestify. No volver a pedir autorización funcional; interrumpir solo por autenticación/costos, salvo un bloqueo técnico de acceso que impida materialmente continuar.
+
+### Comprobado en esta retoma
+
+- Leídos CURRENT_WORK de #61, MASTER AH2-041 y guía de publicación. #61 sigue abierto/borrador y sin merge; código frontend **`c5bcc0f604234850d8348f904347e84006a780c2`**, CI **44782995884 SUCCESS**, verificada de nuevo sin ejecutar tests. Backend #6 **`5b98417c2d960d940e195f01d4c8e3cd6f0c52fc`**, CI **44782328398 SUCCESS**. No rehacer ensayos.
+- Intento sobre la URL exacta del propietario: `https://console.cloud.google.com/run?project=aliada-horarios`. El navegador de esta sesión muestra **Site Unavailable / Unable to access this site**, antes de una pantalla de autenticación. Se registró el obstáculo y se hizo una única recarga, con igual resultado. No se infiere que el proyecto no exista ni que Google esté caído; no fue posible verificar cuenta, proyecto, facturación, cuotas o permisos.
+- Sin alternativa autenticada por comandos: no hay gcloud disponible, configuración gcloud, credenciales ADC ni variables de acceso Google/Cloud SDK en el entorno. No se instaló SDK, servicio ni proveedor alternativo, ni se solicitaron/extrajeron claves del navegador.
+- **No desplegado ni conectado.** No se creó recurso Cloud Run, imagen remota, cuenta, permiso o facturación; no se fusionó/publicó #61, no se modificó Netlify/Prestify ni la BD. Sin transferencia de dotación y sin gastos realizados por esta retoma. Los conteos anteriores son antecedentes, no un control nuevo de despliegue.
+
+### Próximo paso exacto
+
+Continuar con acceso operativo autenticado al proyecto `aliada-horarios`, desde una sesión/entorno donde la consola o herramientas Google Cloud estén disponibles. Primero verificar proyecto/cuenta y facturación/costo real antes de crear recursos; si habilitar facturación o gastar es necesario, presentar la aprobación concreta. Reutilizar el contenedor y SHAs anteriores y la configuración privada ya conservada; después controles negativos del servicio, recorrido autenticado, conteos y rollback, promoción solo de al-iada y 091. No abrir otros proveedores ni repetir las etapas aprobadas. **El bloqueo actual es de acceso de esta sesión, no falta de código ni de autorización funcional.**
+
+Este commit es **solo documental**; el código congelado con CI aprobada es `c5bcc0f604234850d8348f904347e84006a780c2`. No confundir su SHA con un HEAD documental posterior. No se volvió a ejecutar CI/build para este relevo.
+
+---
+
+## RELEVO ANTERIOR — motor híbrido dentro de Aliada Horarios existente · 20/11/2026
 
 **Orden vigente del propietario:** cancelar el piloto independiente, reutilizar lo validado e integrar en Horarios; primera activación 091, generador anterior como respaldo, publicación controlada con rollback. Sin otra app, cambios Prestify ni gastos. MASTER AH2-041. No retomar instalaciones de Render ni otro sitio piloto.
 
