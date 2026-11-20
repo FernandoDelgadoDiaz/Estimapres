@@ -23,8 +23,11 @@ describe('activación acotada y sesión de la app existente',()=>{
   auth.getUser.mockResolvedValue({data:{user},error:null});auth.getSession.mockResolvedValue({data:{session:{user,access_token:'synthetic-token'}}})
   const fetch=vi.fn().mockResolvedValue(new Response(JSON.stringify({usuario:user.id,sucursal:'091',configuracion:{maxFrancosDia:99,topes_caja_eventual_contrato:{version:1,configuraciones:[]}}})))
   vi.stubGlobal('fetch',fetch)
+  // Sin configuración guardada en la sucursal (AH2-042): rige la del servicio.
+  auth.from.mockReturnValue({select:vi.fn().mockReturnThis(),eq:vi.fn().mockReturnThis(),order:vi.fn().mockResolvedValue({data:[],error:null})})
   const s=await configuracionAutenticada('091',undefined,cfg)
   expect(s.opciones).toEqual({topes_caja_eventual_contrato:{version:1,configuraciones:[]}})
+  expect(s.fuente).toBe('servicio')
   expect(fetch.mock.calls[0][1].body).toBeUndefined()
   fetch.mockResolvedValue(new Response(JSON.stringify({usuario:'otra',sucursal:'091',configuracion:{}})))
   await expect(configuracionAutenticada('091',undefined,cfg)).rejects.toThrow('cuenta y sucursal')
