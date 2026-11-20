@@ -1,0 +1,826 @@
+{
+ "version": "aliada-salida-unica/1",
+ "noOficial": true,
+ "publicable": false,
+ "leyenda": "PRUEBA NO OFICIAL — laboratorio híbrido. No es un horario aprobado ni publicado.",
+ "origen": "A",
+ "motivoSeleccion": "B no utilizable (ERROR_TRANSPORTE); se usa A, válido.",
+ "estadoB": "ERROR_TRANSPORTE",
+ "fasesB": [],
+ "hashEntrada": "5fe2005b2ad9d20d1c648df1109c0dc388ec826c436fa0952ab0ebb683baf8c0",
+ "coberturaPomPct": 35.043,
+ "demandaHoras": 234,
+ "faltantesHoras": 152,
+ "sobrantesHoras": 0,
+ "faltantesPorFranja": [
+  {
+   "dia": "Lun",
+   "franja": "09:00–09:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "09:30–10:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "10:00–10:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "10:30–11:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "11:00–11:30",
+   "personas": 1
+  },
+  {
+   "dia": "Lun",
+   "franja": "13:00–13:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "13:30–14:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "14:00–14:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "14:30–15:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "15:00–15:30",
+   "personas": 1
+  },
+  {
+   "dia": "Lun",
+   "franja": "15:30–16:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "16:00–16:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "16:30–17:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "17:00–17:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "17:30–18:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "18:00–18:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "18:30–19:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "19:00–19:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "19:30–20:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "20:00–20:30",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "20:30–21:00",
+   "personas": 2
+  },
+  {
+   "dia": "Lun",
+   "franja": "21:00–21:30",
+   "personas": 3
+  },
+  {
+   "dia": "Lun",
+   "franja": "21:30–22:00",
+   "personas": 3
+  },
+  {
+   "dia": "Mar",
+   "franja": "09:00–09:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "09:30–10:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "10:00–10:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "10:30–11:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "11:00–11:30",
+   "personas": 1
+  },
+  {
+   "dia": "Mar",
+   "franja": "13:00–13:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "13:30–14:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "14:00–14:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "14:30–15:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "15:00–15:30",
+   "personas": 1
+  },
+  {
+   "dia": "Mar",
+   "franja": "15:30–16:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "16:00–16:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "16:30–17:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "17:00–17:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "17:30–18:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "18:00–18:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "18:30–19:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "19:00–19:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "19:30–20:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "20:00–20:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "20:30–21:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mar",
+   "franja": "21:00–21:30",
+   "personas": 3
+  },
+  {
+   "dia": "Mar",
+   "franja": "21:30–22:00",
+   "personas": 3
+  },
+  {
+   "dia": "Mié",
+   "franja": "09:00–09:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "09:30–10:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "10:00–10:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "10:30–11:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "11:00–11:30",
+   "personas": 1
+  },
+  {
+   "dia": "Mié",
+   "franja": "13:00–13:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "13:30–14:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "14:00–14:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "14:30–15:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "15:00–15:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "15:30–16:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "16:00–16:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "16:30–17:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "17:00–17:30",
+   "personas": 1
+  },
+  {
+   "dia": "Mié",
+   "franja": "17:30–18:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "18:00–18:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "18:30–19:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "19:00–19:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "19:30–20:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "20:00–20:30",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "20:30–21:00",
+   "personas": 2
+  },
+  {
+   "dia": "Mié",
+   "franja": "21:00–21:30",
+   "personas": 3
+  },
+  {
+   "dia": "Mié",
+   "franja": "21:30–22:00",
+   "personas": 3
+  },
+  {
+   "dia": "Jue",
+   "franja": "09:00–09:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "09:30–10:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "10:00–10:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "10:30–11:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "11:00–11:30",
+   "personas": 1
+  },
+  {
+   "dia": "Jue",
+   "franja": "13:00–13:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "13:30–14:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "14:00–14:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "14:30–15:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "15:00–15:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "15:30–16:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "16:00–16:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "16:30–17:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "17:00–17:30",
+   "personas": 1
+  },
+  {
+   "dia": "Jue",
+   "franja": "17:30–18:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "18:00–18:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "18:30–19:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "19:00–19:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "19:30–20:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "20:00–20:30",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "20:30–21:00",
+   "personas": 2
+  },
+  {
+   "dia": "Jue",
+   "franja": "21:00–21:30",
+   "personas": 3
+  },
+  {
+   "dia": "Jue",
+   "franja": "21:30–22:00",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "09:00–09:30",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "09:30–10:00",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "10:00–10:30",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "10:30–11:00",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "11:00–11:30",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "11:30–12:00",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "12:00–12:30",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "12:30–13:00",
+   "personas": 1
+  },
+  {
+   "dia": "Vie",
+   "franja": "13:00–13:30",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "13:30–14:00",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "14:00–14:30",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "14:30–15:00",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "15:00–15:30",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "15:30–16:00",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "16:00–16:30",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "16:30–17:00",
+   "personas": 2
+  },
+  {
+   "dia": "Vie",
+   "franja": "17:00–17:30",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "17:30–18:00",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "18:00–18:30",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "18:30–19:00",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "19:00–19:30",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "19:30–20:00",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "20:00–20:30",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "20:30–21:00",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "21:00–21:30",
+   "personas": 3
+  },
+  {
+   "dia": "Vie",
+   "franja": "21:30–22:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "09:00–09:30",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "09:30–10:00",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "10:00–10:30",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "10:30–11:00",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "11:00–11:30",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "11:30–12:00",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "12:00–12:30",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "12:30–13:00",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "13:00–13:30",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "13:30–14:00",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "14:00–14:30",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "14:30–15:00",
+   "personas": 2
+  },
+  {
+   "dia": "Sáb",
+   "franja": "15:00–15:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "15:30–16:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "16:00–16:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "16:30–17:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "17:00–17:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "17:30–18:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "18:00–18:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "18:30–19:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "19:00–19:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "19:30–20:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "20:00–20:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "20:30–21:00",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "21:00–21:30",
+   "personas": 3
+  },
+  {
+   "dia": "Sáb",
+   "franja": "21:30–22:00",
+   "personas": 3
+  }
+ ],
+ "sobrantesPorFranja": [],
+ "horasPorEmpleado": [
+  {
+   "id": "p1",
+   "rol": "PART",
+   "horasContractuales": 32,
+   "horasCaja": 32
+  },
+  {
+   "id": "aux-sA",
+   "rol": "AUX",
+   "horasPresencia": 52,
+   "horasCaja": 0,
+   "horasSupervisionOFueraDeCaja": 52,
+   "capacidadCajaEfectivaHoras": 0
+  },
+  {
+   "id": "aux-sB",
+   "rol": "AUX",
+   "horasPresencia": 39,
+   "horasCaja": 0,
+   "horasSupervisionOFueraDeCaja": 39,
+   "capacidadCajaEfectivaHoras": 0
+  },
+  {
+   "id": "aux-t",
+   "rol": "AUX",
+   "horasPresencia": 20,
+   "horasCaja": 20,
+   "horasSupervisionOFueraDeCaja": 0,
+   "capacidadCajaEfectivaHoras": 20
+  },
+  {
+   "id": "ev-1",
+   "rol": "EVENTUAL",
+   "acreditada": true,
+   "horasContractuales": null,
+   "horasPresencia": 72,
+   "horasReservadasFuncionHabitual": 12,
+   "horasFuncionHabitualMinimas": null,
+   "topeCajaHoras": 30,
+   "origenTope": [
+    "máximo semanal declarado"
+   ],
+   "disponibilidadCajaEfectivaHoras": 30,
+   "oportunidadesConDemandaHoras": 60,
+   "horasCaja": 30,
+   "disponibilidadCajaRestanteHoras": 0,
+   "horasFuncionHabitualRealizadas": 42
+  },
+  {
+   "id": "ev-2",
+   "rol": "EVENTUAL",
+   "acreditada": true,
+   "horasContractuales": null,
+   "horasPresencia": 30,
+   "horasReservadasFuncionHabitual": 0,
+   "horasFuncionHabitualMinimas": null,
+   "topeCajaHoras": null,
+   "origenTope": [],
+   "disponibilidadCajaEfectivaHoras": 30,
+   "oportunidadesConDemandaHoras": 30,
+   "horasCaja": 0,
+   "disponibilidadCajaRestanteHoras": 30,
+   "horasFuncionHabitualRealizadas": 30
+  }
+ ],
+ "conflictos": [
+  {
+   "origen": "TRANSPORTE",
+   "codigo": "ERROR_TRANSPORTE",
+   "detalle": "Cannot read properties of undefined (reading 'plan')"
+  }
+ ],
+ "condiciones": {
+  "solicitadas": [],
+  "auditoria": null,
+  "preferenciasIncumplidas": null
+ },
+ "disponibilidadEventual": {
+  "diagnosticos": [],
+  "bloqueaPublicacion": false
+ },
+ "comparabilidadAH2040": {
+  "modo": "DIAS",
+  "activacionDefinitiva": "BLOQUEADA — pendiente de homologación del propietario",
+  "relaciones": [],
+  "incumplimientos": []
+ }
+}

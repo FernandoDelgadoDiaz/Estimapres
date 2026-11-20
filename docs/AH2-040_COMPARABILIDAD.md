@@ -123,3 +123,85 @@ No hay un criterio objetivo que elija entre las dos sin decidir esta pregunta. A
 **Evidencia:**
 - `docs/evidencia/ah2040-comparabilidad.csv` (120 filas A y B, con relaciones y simultaneidad por escenario y modo);
 - aliada-optimizer `results/ah2040_comparabilidad/`.
+
+---
+
+## 5. Evaluación de DIAS con duración efectiva y capacidad real de caja (20/11/2026, segunda ronda)
+
+**Pedido:** tomar DIAS como candidato preferido y comprobar que compartir los mismos días no compare jornadas muy distintas. Además:
+- conservar los totales semanales individuales;
+- no inventar umbrales;
+- separar la cobertura perdida por la regla de la cobertura imposible.
+
+**Alternativas agregadas** en A, B y ambos validadores, con las mismas entradas y restricciones:
+
+| Modo | AUX comparable / relación |
+|---|---|
+| `DIAS` | Lo de SEMANAL y además todo día con oportunidades del EVENTUAL tiene capacidad de caja del AUX. |
+| `DIAS_CAPACIDAD` | DIAS y además \|K(a)\| ≥ oportunidad efectiva semanal del EVENTUAL = min(\|O(e)\|, tope individual). Compara la capacidad efectiva de cada persona; no hay número fijo. |
+| `SATURACION` | Comparables por DIAS; relación `min(caja(e), \|K(a)\|) ≤ caja(a)`. El EVENTUAL solo puede superar a un AUX comparable que ya usó toda su capacidad efectiva. En CP-SAT se modela con una variable mínimo. |
+
+**Escenarios nuevos:**
+- **D1:** mismos días, jornada muy distinta. AUX de caja de 13 a 14 de lunes a sábado (6 h); EVENTUAL de 09 a 21 de lunes a sábado.
+- **N3:** AUX corto con capacidad ociosa. AUX de 09 a 13 con demanda baja a la mañana, ya cubierta por dos PART; EVENTUAL de 09 a 21.
+
+### 5.1 Descomposición del faltante (CP-SAT, horas)
+
+Por cada escenario el faltante se separa en tres partes (`descomposicion-b.json`, `docs/evidencia/ah2040-comparabilidad-perdida-por-franja.csv`):
+- **sin personal:** cota estructural, demanda que supera a todas las personas que podrían estar en caja;
+- **otras reglas:** contratos y demás reglas obligatorias (todo P0, salvo lo imposible);
+- **perdido por la definición:** modo − P0, franja por franja.
+
+| Escenario | Sin personal | Otras reglas | SEMANAL | DIAS | **DIAS_CAPACIDAD** | SATURACION | OPORTUNIDAD | PC |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| S1 coincidentes | 60 | 46 | 0 | 0 | **0** | 0 | 0 | 0 |
+| S2 AUX L–V, EV L–S | 47 | 46 | 23 | 0 | **0** | 0 | 0 | 0 |
+| S3 rotativos | 36 | 46 | 56 | 24 | **0** | 0 | 0 | 0 |
+| S4 solo supervisores | 84 | 46 | 0 | 0 | **0** | 0 | 0 | 0 |
+| S5 AUX 4 h diarias | 60 | 46 | 48 | 48 | **0** | 0 | 0 | 0 |
+| S6 AUX repartidos | 48 | 46 | 60 | 0 | **0** | 0 | 0 | 0 |
+| S7 demanda superior | 198 | 46 | 48 | 48 | **0** | 0 | 0 | 0 |
+| S8 perfiles | 46 | 76 | 10 | 0 | **0** | 0 | 0 | 0 |
+| S9 una hora | 83 | 46 | 71 | 0 | **0** | 0 | 0 | 0 |
+| **N1 misma disponibilidad** | 90 | 26 | 4 | 4 | **4** | 4 | 4 | 0 |
+| N2 AUX jornada completa | 36 | 46 | 24 | 24 | **0** | 0 | 0 | 0 |
+| Z1 cuatro cajas | 0 | 44 | 24 | 24 | **0** | 0 | 0 | 0 |
+| **D1 jornada muy distinta** | 78 | 46 | 66 | **66** | **0** | 0 | 0 | 0 |
+| **N3 AUX corto ocioso** | 60 | 52 | 28 | **28** | **0** | 28 | 0 | 0 |
+
+**Validación:**
+- Las 98 corridas B (14 escenarios × 7 modos) terminaron OPTIMAL, con 0 infracciones en los validadores B y A y validación cruzada completa.
+- La descomposición cierra exactamente: faltante = sin personal + otras reglas + perdido.
+- La prioridad AUX nunca se relajó. La caja AUX no disminuye en ningún modo. En N3, CP-SAT la **aumenta** (16 → 20 h) reacomodando jornadas PART.
+- **A vs B:** donde la relación limita al EVENTUAL, A = B. La única excepción medida es ese reacomodo de PART en N3, que A no hace porque fija la caja AUX antes de asignar EVENTUALES.
+
+### 5.2 Lectura
+
+| Modo | Conclusión |
+|---|---|
+| DIAS | **Falla la comprobación pedida.** En D1 compara una jornada de caja de 1 h diaria con 12 h diarias, porque comparten los días, y pierde 66 h. En N3 compara 4 h con 12 h y pierde 28 h. Es un artefacto del mismo tipo que S9. |
+| SATURACION | Resuelve D1 pero no N3: un AUX corto con capacidad ociosa sigue limitando a un EVENTUAL de jornada larga. |
+| **DIAS_CAPACIDAD** | Resuelve D1, N3 y S9 y mantiene la relación de disponibilidad equivalente (N1). Ninguna de sus pérdidas es un artefacto, y no usa umbrales: compara la capacidad efectiva propia de cada persona. |
+| OPORTUNIDAD | Coincide con DIAS_CAPACIDAD en todos los escenarios: con capacidad suficiente, el requisito de días rara vez decide. Se conserva DIAS_CAPACIDAD porque además exige compartir todos los días del EVENTUAL. |
+| PC | Sigue descartada: no limita ni en N1. |
+
+### 5.3 Recomendación técnica definitiva
+
+**Homologar AH2-040 con DIAS_CAPACIDAD.** Un AUX es *realmente comparable* con un EVENTUAL si se cumplen las tres condiciones:
+1. Puede atender caja sin descubrir la supervisión: K(a) ≠ ∅. Esto excluye al AUX que solo supervisa.
+2. Tiene capacidad de caja **todos los días** en que el EVENTUAL tiene oportunidades.
+3. Su capacidad efectiva semanal de caja es **al menos** la oportunidad efectiva semanal del EVENTUAL, es decir, la disponibilidad acreditada menos las reservas, con su tope individual.
+
+Para cada AUX comparable rige `horasCaja_semana(EVENTUAL) ≤ horasCaja_semana(AUX)`, sobre el total y sin promedios. Si no hay AUX comparable, no se aplica ningún tope cero.
+
+### 5.4 Ambigüedad material residual (activación bloqueada)
+
+DIAS_CAPACIDAD **no compara** a un EVENTUAL cuya oportunidad efectiva semanal supera la capacidad de todo AUX de los mismos días. Casos N2, S5, S7 y Z1: un AUX de jornada completa (48 h) frente a un EVENTUAL con 72 h acreditadas y sin tope. En esos casos el EVENTUAL puede superar al AUX; con DIAS, en cambio, quedaría limitado (24–48 h de pérdida por escenario).
+
+No existe criterio sin umbral que separe N2 (8 h frente a 12 h diarias) de D1 (1 h frente a 12 h): solo difieren en grado. Por eso la pregunta exacta para el propietario es una sola:
+
+> **¿Una mayor oportunidad efectiva semanal del EVENTUAL vuelve no comparable a un AUX de los mismos días?**
+> - **Sí:** DIAS_CAPACIDAD (recomendada). Sin artefactos D1, N3 ni S9. La carga del EVENTUAL queda acotada por su perfil de AH2-037: tope y reservas acreditadas. Declarar un tope ≤ la capacidad del AUX lo vuelve comparable.
+> - **No:** DIAS, aceptando las pérdidas de D1 (66 h) y N3 (28 h), que provienen de comparar jornadas de duración muy distinta.
+
+La activación definitiva sigue **bloqueada** hasta esa respuesta. Las tres definiciones (DIAS, DIAS_CAPACIDAD, SATURACION) están implementadas, verificadas y se activan solo por pedido (`comparacion_aux_eventual.modo`).

@@ -26,12 +26,16 @@ export const MODOS_AH2040=['P0','P1','P2','P2E','P3'] as const
  *  PC: variante más estrecha (O(e) ⊆ K(a)); solo para documentar la ambigüedad técnica con fixtures. */
 /** Alternativas de comparabilidad SEMANAL (20/11/2026, sin umbrales numéricos; ninguna homologada):
  *  OPORTUNIDAD: además |K(a)| ≥ min(|O(e)|, tope(e)); DIAS: todo día con oportunidades de e tiene capacidad de caja de a. */
-export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT','SEMANAL','PC','OPORTUNIDAD','DIAS'] as const
-export const MODOS_COMPARABILIDAD=new Set(['SEMANAL','PC','OPORTUNIDAD','DIAS'])
+/** DIAS_CAPACIDAD: DIAS y además |K(a)| ≥ min(|O(e)|, tope(e)) (duración efectiva semanal).
+ *  SATURACION: comparables por DIAS; min(caja(e), |K(a)|) ≤ caja(a) (exceso solo si el AUX agotó su capacidad). */
+export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT','SEMANAL','PC','OPORTUNIDAD','DIAS','DIAS_CAPACIDAD','SATURACION'] as const
+export const MODOS_COMPARABILIDAD=new Set(['SEMANAL','PC','OPORTUNIDAD','DIAS','DIAS_CAPACIDAD','SATURACION'])
+/** Modos que imponen y verifican la regla de totales semanales. */
+export const MODOS_TOTALES=new Set(['SEMANAL','OPORTUNIDAD','DIAS','DIAS_CAPACIDAD','SATURACION'])
 export type ModoAH2040=typeof MODOS_VALIDOS_AH2040[number]
 export interface ParAH2040 {eventualId:string;auxId:string}
 export interface ConfigAH2040 {modo:ModoAH2040;pares?:ParAH2040[]}
-export interface RelacionAH2040 {eventualId:string;auxId:string;ventana:string[]|null;origen:string;solapamientoHoras?:number}
+export interface RelacionAH2040 {eventualId:string;auxId:string;ventana:string[]|null;origen:string;solapamientoHoras?:number;capacidadAuxSlots?:number}
 
 const key=(d:number,s:number)=>`${d}/${s}`
 
@@ -96,11 +100,16 @@ export function relacionesAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
     if(cfg.modo==='PC')return O[e].size>0&&[...O[e]].every(x=>K[a].has(x))
     if(![...K[a]].some(x=>O[e].has(x)))return false
     if(cfg.modo==='OPORTUNIDAD')return K[a].size>=efectiva
-    if(cfg.modo==='DIAS'){const da=dias(K[a]);return [...dias(O[e])].every(d=>da.has(d))}
+    if(cfg.modo==='DIAS'||cfg.modo==='DIAS_CAPACIDAD'||cfg.modo==='SATURACION'){
+     const da=dias(K[a])
+     if(![...dias(O[e])].every(d=>da.has(d)))return false
+     return cfg.modo!=='DIAS_CAPACIDAD'||K[a].size>=efectiva
+    }
     return true
    })
    if(!comp.length)notas.push({codigo:'EVENTUAL_SIN_AUX_COMPARABLE',eventualId:e,oportunidadesHoras:O[e].size/2})
-   for(const a of comp)rels.push({eventualId:e,auxId:a,ventana:null,origen:`${cfg.modo}-total-semanal`,solapamientoHoras:(cfg.modo==='PC'?O[e].size:[...K[a]].filter(x=>O[e].has(x)).length)/2})
+   for(const a of comp)rels.push({eventualId:e,auxId:a,ventana:null,origen:`${cfg.modo}-total-semanal`,solapamientoHoras:(cfg.modo==='PC'?O[e].size:[...K[a]].filter(x=>O[e].has(x)).length)/2,
+    ...(cfg.modo==='SATURACION'?{capacidadAuxSlots:K[a].size}:{})})
   }
   return {rels,notas}
  }
@@ -134,7 +143,7 @@ export function verificarAH2040(input:InputAlgoritmo,r:Pick<ResultadoSemanal,'as
   const w=rel.ventana?new Set(rel.ventana):null
   const cnt=(set:Set<string>)=>w?[...set].filter(x=>w.has(x)).length:set.size
   const ce=cnt(cajaSet(r.asignacion_eventual[rel.eventualId])),ca=cnt(cajaSet(r.asignacion_aux[rel.auxId]))
-  return ce>ca?[{eventualId:rel.eventualId,auxId:rel.auxId,origen:rel.origen,ventanaHoras:w?w.size/2:null,horasEventual:ce/2,horasAux:ca/2,excesoHoras:(ce-ca)/2}]:[]
+  return Math.min(ce,rel.capacidadAuxSlots??ce)>ca?[{eventualId:rel.eventualId,auxId:rel.auxId,origen:rel.origen,ventanaHoras:w?w.size/2:null,horasEventual:ce/2,horasAux:ca/2,excesoHoras:(ce-ca)/2}]:[]
  })
  return {modo:cfg.modo,relaciones:rels.length,violaciones,notas}
 }
@@ -200,6 +209,8 @@ export function ejecutarAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
  const cajaAux=Object.fromEntries(Object.keys(input.presencia_aux).map(a=>[a,cajaSet(r0.asignacion_aux[a])]))
  for(const rel of rels){
   if(rel.ventana===null){
+   // SATURACION: si el AUX ya agotó su capacidad efectiva no limita; si no, min(x, K) ≤ c con c < K ⇒ x ≤ c.
+   if(rel.capacidadAuxSlots!==undefined&&cajaAux[rel.auxId].size>=rel.capacidadAuxSlots)continue
    ajustado.max_caja_eventual_slots![rel.eventualId]=Math.min(ajustado.max_caja_eventual_slots![rel.eventualId],cajaAux[rel.auxId].size)
   }else{
    const reservas=(ajustado.reservas_sector_eventual??={})

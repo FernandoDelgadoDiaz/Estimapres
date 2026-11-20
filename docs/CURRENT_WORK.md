@@ -1,4 +1,101 @@
-## PUNTO ÚNICO DE RETOMA — AH2-040 simultaneidad y comparabilidad semanal · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — cierre técnico AH2-040 e integración híbrida de laboratorio · 20/11/2026, Claude
+
+**Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.**
+- AH2-040 tiene una recomendación técnica definitiva (DIAS_CAPACIDAD), pero su **activación definitiva sigue BLOQUEADA** por una ambigüedad material documentada.
+- La integración híbrida está preparada **en laboratorio**: generación híbrida productiva NO habilitada, sin persistencia oficial ni merge.
+
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Reglas aprobadas (no se rediscuten):**
+1. FULL/PART: 100 % contractual en caja.
+2. AUX: prioridad sobre la demanda residual, con supervisión obligatoria.
+3. EVENTUAL: solo demanda residual, preservando su función habitual, cualquiera sea.
+4. AUX y EVENTUAL pueden atender caja simultáneamente cuando el POM lo requiere.
+5. Ningún EVENTUAL supera en horas-caja semanales a un AUX realmente comparable.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `90a97eafb39c1f2792c812e2ceaf60b59af29863`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `1ab445f289e4874c8857d336c491018d818620fd`;
+  - comparabilidad: **`9a5d54a374d80b69c65a959fc210f6ac200be014`**;
+  - contrato: **`42ce7b9bdbd8e10d01165d42c8ee8c8d3bb19735`** (HEAD).
+- Sin force-push. No se rehicieron AH2-036–039 ni las implementaciones anteriores de AH2-040.
+
+### Etapa 1 — Comparabilidad AH2-040 (implementado y medido)
+- **Nuevos modos** en A, B y ambos validadores:
+  - `DIAS_CAPACIDAD`: DIAS + |K(a)| ≥ min(|O(e)|, tope);
+  - `SATURACION`: min(caja(e), |K(a)|) ≤ caja(a), modelado con una variable mínimo en CP-SAT.
+- **Escenarios nuevos:** D1 (mismos días, jornada muy distinta) y N3 (AUX corto con capacidad ociosa).
+- **Descomposición por franja del faltante:** sin personal + otras reglas obligatorias + perdido por la definición. Cierra exactamente en las 98 corridas.
+- 14 escenarios × 7 modos: las 98 corridas B terminaron OPTIMAL, con 0 infracciones en A y B y validación cruzada completa.
+- **Horas perdidas por definición (B):**
+
+  | Escenario | DIAS | DIAS_CAPACIDAD | SATURACION |
+  |---|---:|---:|---:|
+  | D1 | 66 | 0 | 0 |
+  | N3 | 28 | 0 | 28 |
+  | N1 (relación válida) | 4 | 4 | 4 |
+  | N2 / S5 / S7 / Z1 | 24–48 | 0 | 0 |
+
+  **DIAS falla la comprobación de jornadas muy distintas.**
+- **Corrección en A:** el reparto de identidad AUX rotativa prioriza a los AUX comparables. Donde la relación limita al EVENTUAL, A = B; la excepción medida es N3, porque CP-SAT reacomoda jornadas PART.
+- **Recomendación técnica definitiva: DIAS_CAPACIDAD** (`docs/AH2-040_COMPARABILIDAD.md` §5.3).
+- **Ambigüedad material residual** (§5.4): un EVENTUAL con más oportunidad efectiva semanal que todo AUX de los mismos días (N2: AUX de 48 h frente a EVENTUAL de 72 h sin tope) queda sin comparación. Su carga la acota el perfil AH2-037.
+
+### Etapa 2 — Integración híbrida de laboratorio (implementado y probado)
+- **Contrato `aliada-hibrido/1`:**
+  - sobre con SHA-256 canónico, idéntico en TypeScript y Python (sobre de referencia compartido);
+  - lista blanca A→B, mapeo del antecedente dominical y bloqueo ante campos no transportables;
+  - validación estricta de la respuesta.
+
+  Archivos: `src/hibrido/contrato.ts` y `optimizer/contrato.py`.
+- **Transporte inyectable** con timeout. Proceso aislado de laboratorio `python -m optimizer.contrato` (Node), sin red ni disco.
+- **Orquestador** (`src/hibrido/orquestador.ts`):
+  - A siempre primero y como respaldo;
+  - validación independiente de A y B con los validadores de A;
+  - nunca usa un resultado con infracciones;
+  - elige B solo si es estrictamente mejor;
+  - sin candidato válido, no hay propuesta.
+- **Salida única** `aliada-salida-unica/1`, no oficial: cobertura POM, faltantes y sobrantes por franja, horas por persona, conflictos, condiciones DEBE/PREFERIRÍA, disponibilidad EVENTUAL y comparabilidad.
+- **PDF A4** «PRUEBA NO OFICIAL — NO PUBLICAR» (`src/hibrido/pdfPrueba.ts`). No se versiona (`*.pdf` en `.gitignore`); se regenera con `AH2_HIBRIDO_OUT=docs/evidencia npx vitest run src/hibrido`.
+- Detalle en `docs/HIBRIDO_LAB_V1.md`.
+
+### Etapa 3 — Pruebas (resultados reales, locales)
+- **A:**
+  - TypeScript OK;
+  - **533 Vitest aprobadas, 8 omitidas** (12 nuevas en `src/hibrido/__tests__/hibrido.test.ts`, incluida la integración con el proceso CP-SAT real; omitida en CI sin el repositorio hermano);
+  - build OK;
+  - **Playwright local 19 aprobadas, 1 omitida** (Chromium preinstalado).
+- **B:** **129 pytest aprobadas, 1 omitida** (5 nuevas en `tests/test_contrato.py`; comparabilidad ampliada).
+- CI remota: ver los checks de los HEAD en los PR.
+- Evidencia:
+  - `docs/evidencia/ah2040-comparabilidad.csv` (196 filas);
+  - `docs/evidencia/ah2040-comparabilidad-perdida-por-franja.csv`;
+  - `docs/evidencia/salida-unica-sintetica.json`.
+
+### Bloqueos reales
+1. **Decisión del propietario sobre la pregunta única de AH2-040 §5.4**: ¿una mayor oportunidad efectiva semanal del EVENTUAL vuelve no comparable a un AUX de los mismos días? Sí → DIAS_CAPACIDAD (recomendada); No → DIAS.
+2. **Ejecución productiva de B:** alojamiento, costo, autenticación y limpieza de datos sin decidir ni autorizar. No se contrató nada.
+3. Tres o más AUX simultáneos siguen pendientes.
+4. Datos reales de la 091 solo en un entorno privado autorizado.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos personales en GitHub.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks (`test-build`, `browser`, `offline`).
+2. Presentar al propietario `docs/AH2-040_COMPARABILIDAD.md` §5.3–5.4 y registrar en el MASTER su respuesta.
+3. Con la respuesta:
+   - fijar el modo homologado como regla de la política v1 en A, B y ambos validadores (con versión);
+   - retirar `POLITICA_EV_COMPARACION_PENDIENTE`;
+   - repetir `ah2040_comparabilidad_lab` y las suites.
+4. Proponer al propietario la opción de ejecución de B (worker o servicio) con costos. Sin autorización, conectar solo en laboratorio la interfaz al orquestador (`generarPropuestaHibrida` con `transporteProceso` local), sin aprobación ni publicación automáticas.
+5. Ensayo privado de la 091 con datos reales fuera de GitHub, revisando la salida única y el PDF no oficial.
+
+---
+
+## RELEVO ANTERIOR (historia) — AH2-040 simultaneidad y comparabilidad semanal · 20/11/2026, Claude
 
 **Estado: AVANCE VERIFICABLE. ACTIVACIÓN DEFINITIVA DE AH2-040 BLOQUEADA** por un único caso de comparabilidad pendiente del propietario. Sin merge ni despliegue. Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
 

@@ -15,10 +15,10 @@ import {auditarEscenario} from '../auditoriaV2'
 
 type Caso={nombre:string;data:{input:InputAlgoritmo}}
 const CASOS=casos as unknown as Caso[]
-const MODOS=['P0','SEMANAL','OPORTUNIDAD','DIAS','PC'] as const
+const MODOS=['P0','SEMANAL','OPORTUNIDAD','DIAS','PC','DIAS_CAPACIDAD','SATURACION'] as const
 type ConCfg=InputAlgoritmo&{comparacion_aux_eventual:ConfigAH2040}
 const BLOQUEO='POLITICA_EV_COMPARACION_PENDIENTE'
-const VERIFICA=new Set(['SEMANAL','OPORTUNIDAD','DIAS'])
+const VERIFICA=new Set(['SEMANAL','OPORTUNIDAD','DIAS','DIAS_CAPACIDAD','SATURACION'])
 
 function entrada(c:Caso,modo:string):ConCfg{
  const i=structuredClone(c.data.input) as ConCfg
@@ -101,12 +101,20 @@ describe('AH2-040 · simultaneidad AUX + EVENTUAL y comparabilidad (motor A)',()
   for(const n of ['S2','S6','S8'])expect(fila(n,'DIAS').relaciones).toEqual([])
   // Donde la relación limita al EVENTUAL, A (con el reparto de identidad rotativa a favor de los comparables)
   // obtiene la misma cobertura que CP-SAT.
-  for(const b of B.filter(x=>['SEMANAL','DIAS','OPORTUNIDAD'].includes(x.modo)&&x.relaciones.length))
+  // Se compara donde la relación efectivamente limita (menos horas EVENTUAL que P0). Excepción medida: si CP-SAT reacomoda jornadas PART para dar más caja al AUX (N3), A —que fija la caja AUX
+  // antes de los EVENTUALES— no puede replicarlo; se compara solo donde B no cambió la caja AUX total frente a P0.
+  const totAux=(f:any)=>Object.values(f.horasCajaAux).reduce((x:number,y:any)=>x+y,0)
+  const totEv=(f:any)=>Object.values(f.horasCajaEventual).reduce((x:number,y:any)=>x+y,0)
+  const p0=(x:any)=>B.find(y=>y.caso===x.caso&&y.modo==='P0')
+  for(const b of B.filter(x=>VERIFICA.has(x.modo)&&totEv(x)<totEv(p0(x))&&totAux(x)===totAux(p0(x))))
    expect(fila(b.caso.split('-')[0],b.modo).faltantesHoras,`${b.caso} ${b.modo}`).toBe(b.faltantesHoras)
+  // D1 y N3 (jornadas muy distintas los mismos días): DIAS compara; DIAS_CAPACIDAD no.
+  for(const n of ['D1','N3']){expect(fila(n,'DIAS').relaciones.length).toBeGreaterThan(0);expect(fila(n,'DIAS_CAPACIDAD').relaciones).toEqual([])}
+  expect(fila('N1','DIAS_CAPACIDAD').horasCajaEventual['ev-1']).toBeLessThanOrEqual(fila('N1','DIAS_CAPACIDAD').horasCajaAux['aux-t'])
  })
 })
 
-describe('AH2-040 · comparabilidad: validación cruzada de los 60 planes CP-SAT con validadores A',()=>{
+describe('AH2-040 · comparabilidad: validación cruzada de los planes CP-SAT con validadores A',()=>{
  it('sin infracciones A, misma relación cumplida y mismos faltantes',()=>{
   expect(B).toHaveLength(CASOS.length*MODOS.length)
   for(const f of B){

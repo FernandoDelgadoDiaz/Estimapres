@@ -1,0 +1,135 @@
+/**
+ * Orquestador híbrido de LABORATORIO: A (determinístico, respaldo) + B (CP-SAT por transporte inyectado) →
+ * validación independiente → selección → salida única no oficial.
+ *
+ * Garantías:
+ * - A se calcula siempre primero y se conserva como respaldo; B nunca bloquea la entrega de A.
+ * - Ningún candidato con infracciones operativas o normativas se usa, venga de A o de B.
+ * - B se elige solo si es válido y estrictamente mejor que A en orden lexicográfico (faltantes, sobrantes,
+ *   horas-caja EVENTUAL); en empate se conserva A (reproducible).
+ * - Timeout, error de transporte, respuesta inválida o sin solución → se informa y se usa A si es válido.
+ * - Nunca publica ni persiste: `publicable` es siempre false y la salida se marca como NO OFICIAL.
+ */
+import type {InputAlgoritmo,ResultadoSemanal} from '../algoritmo/types'
+import {ejecutarAlgoritmo} from '../algoritmo/orquestador'
+import {auditarEscenario} from '../algoritmo/auditoriaV2'
+import {metricasAH2040,relacionesAH2040,verificarAH2040,type ConfigAH2040} from '../algoritmo/ah2040'
+import {compilarDisponibilidadCaja,reporteDisponibilidadCaja,verificarDisponibilidadCaja} from '../algoritmo/disponibilidadCajaEventual'
+import {aEntradaB,crearSobre,planBaResultado,validarRespuesta,type EstadoB,type ParametrosB,type RespuestaB} from './contrato'
+import type {TransporteB} from './transporte'
+
+export const VERSION_SALIDA='aliada-salida-unica/1'
+export type Origen='A'|'B'
+export interface Conflicto {origen:'A'|'B'|'TRANSPORTE'|'CONTRATO'|'DATOS';codigo:string;nivel?:string;detalle?:string;colaboradorId?:string;dia?:number}
+export interface OpcionesHibrido {transporte?:TransporteB;timeoutMs:number;parametros:ParametrosB;id:string;sucursal:string
+ /** Solo pruebas: reemplaza el motor A (por defecto `ejecutarAlgoritmo`). */
+ motorA?:(input:InputAlgoritmo)=>ResultadoSemanal}
+
+const DIAS=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom']
+const hora=(s:number)=>`${String(8+Math.floor(s/2)).padStart(2,'0')}:${s%2?'30':'00'}`
+
+/** Candidato evaluado con los validadores de A (independientes del motor que lo produjo). */
+function evaluar(input:InputAlgoritmo,r:ResultadoSemanal,raw:InputAlgoritmo){
+// La verificación de totales semanales AH2-040 (modos de totales) ya está dentro de auditarEscenario.
+ const v=auditarEscenario(input,r).violaciones
+ const disp=verificarDisponibilidadCaja(raw,r)
+ const infracciones=[...v.filter(x=>x.nivel!=='DATOS'),...disp.map(x=>({codigo:String(x.codigo),nivel:'OPERATIVA' as const,detalle:JSON.stringify(x),colaboradorId:x.colaboradorId as string|undefined}))]
+ const datos=v.filter(x=>x.nivel==='DATOS')
+ const m=metricasAH2040(input,r)
+ return {valido:infracciones.length===0,infracciones,datos,metricas:m}
+}
+
+const mejor=(a:{faltantesHoras:number;sobrantesHoras:number;horasCajaEventual:Record<string,number>},b:typeof a)=>{
+ const ev=(x:typeof a)=>Object.values(x.horasCajaEventual).reduce((s,y)=>s+y,0)
+ const ka=[a.faltantesHoras,a.sobrantesHoras,ev(a)],kb=[b.faltantesHoras,b.sobrantesHoras,ev(b)]
+ for(let i=0;i<3;i++){if(kb[i]<ka[i])return true;if(kb[i]>ka[i])return false}
+ return false
+}
+
+export async function generarPropuestaHibrida(raw:InputAlgoritmo,op:OpcionesHibrido){
+ const conflictos:Conflicto[]=[]
+ const {input,info}=compilarDisponibilidadCaja(raw)
+ const semana={desde:new Date(0),hasta:new Date(0)}
+ // 1. A determinístico: siempre primero.
+ let candA:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null=null
+ try{
+  const r=(op.motorA??ejecutarAlgoritmo)(input)
+  candA={r,e:evaluar(input,r,raw)}
+  if(!candA.e.valido)conflictos.push(...candA.e.infracciones.map(x=>({origen:'A' as const,codigo:x.codigo,nivel:x.nivel,detalle:x.detalle,colaboradorId:x.colaboradorId})))
+ }catch(err){conflictos.push({origen:'A',codigo:'A_SIN_RESULTADO',detalle:err instanceof Error?err.message:String(err)})}
+ // 2. B por transporte (opcional), con timeout y validación de contrato.
+ let estadoB:EstadoB|'NO_EJECUTADO'|'TIMEOUT'|'ERROR_TRANSPORTE'|'RESPUESTA_INVALIDA'='NO_EJECUTADO'
+ let respuestaB:RespuestaB|null=null,candB:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null=null
+ const {entrada,noTransportables}=aEntradaB(input,op.sucursal)
+ if(noTransportables.length)conflictos.push({origen:'CONTRATO',codigo:'CAMPOS_NO_TRANSPORTABLES',detalle:noTransportables.join(', ')})
+ let hash:string|null=null
+ if(op.transporte&&!noTransportables.length){
+  const sobre=await crearSobre(op.id,entrada,op.parametros)
+  hash=sobre.hashEntrada
+  let crudo:unknown
+  try{crudo=await conTimeout(op.transporte(sobre),op.timeoutMs)}
+  catch(err){
+   estadoB=err instanceof ErrorTimeout?'TIMEOUT':'ERROR_TRANSPORTE'
+   conflictos.push({origen:'TRANSPORTE',codigo:estadoB,detalle:err instanceof Error?err.message.slice(0,200):undefined})
+  }
+  if(crudo!==undefined){
+   const v=validarRespuesta(crudo,sobre,input)
+   if(!v.ok){estadoB='RESPUESTA_INVALIDA';conflictos.push({origen:'CONTRATO',codigo:v.codigo})}
+   else{
+    respuestaB=v.respuesta;estadoB=v.respuesta.estado
+    for(const c of v.respuesta.conflictos as {codigo?:string}[])conflictos.push({origen:'B',codigo:String(c?.codigo??'CONFLICTO_B')})
+    for(const c of v.respuesta.incidencias as unknown[])conflictos.push({origen:'B',codigo:typeof c==='string'?c:String((c as {codigo?:string})?.codigo??'INCIDENCIA_B')})
+    if(v.respuesta.plan){
+     const r=planBaResultado(input,v.respuesta.plan,semana)
+     candB={r,e:evaluar(input,r,raw)}
+     if(!candB.e.valido)conflictos.push(...candB.e.infracciones.map(x=>({origen:'B' as const,codigo:x.codigo,nivel:x.nivel,detalle:x.detalle,colaboradorId:x.colaboradorId})))
+    }
+   }
+  }
+ }
+ // 3. Selección: solo candidatos válidos; B únicamente si es estrictamente mejor.
+ const validoA=candA?.e.valido?candA:null,validoB=candB?.e.valido?candB:null
+ let origen:Origen|null=null,motivo:string
+ if(validoA&&validoB&&mejor(validoA.e.metricas,validoB.e.metricas)){origen='B';motivo='B válido y estrictamente mejor que A (faltantes → sobrantes → horas EVENTUAL).'}
+ else if(validoA){origen='A';motivo=validoB?'A y B válidos; B no mejora a A: se conserva A.':op.transporte?`B no utilizable (${estadoB}); se usa A, válido.`:'Solo A (B no ejecutado en esta llamada).'}
+ else if(validoB){origen='B';motivo='A inválido o sin resultado; B válido.'}
+ else motivo='Ningún candidato cumple las restricciones obligatorias: no se presenta propuesta.'
+ const elegido=origen==='A'?validoA:origen==='B'?validoB:null
+ return construirSalida({raw,input,info,elegido,origen,motivo,estadoB,respuestaB,conflictos,hash,datosA:candA?.e.datos??[]})
+}
+
+class ErrorTimeout extends Error{constructor(ms:number){super(`B no respondió en ${ms} ms`)}}
+export function conTimeout<T>(p:Promise<T>,ms:number):Promise<T>{
+ let t:ReturnType<typeof setTimeout>
+ return Promise.race([p,new Promise<T>((_,rej)=>{t=setTimeout(()=>rej(new ErrorTimeout(ms)),ms)})]).finally(()=>clearTimeout(t))
+}
+
+function construirSalida(x:{raw:InputAlgoritmo;input:InputAlgoritmo;info:ReturnType<typeof compilarDisponibilidadCaja>['info'];elegido:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null;origen:Origen|null;motivo:string;
+ estadoB:string;respuestaB:RespuestaB|null;conflictos:Conflicto[];hash:string|null;datosA:{codigo:string;detalle:string;colaboradorId?:string}[]}){
+ const {input,elegido}=x
+ const cfg=(input as InputAlgoritmo&{comparacion_aux_eventual?:ConfigAH2040}).comparacion_aux_eventual
+ const m=elegido?.e.metricas
+ const franjas=(g:number[][]|undefined)=>(g??[]).flatMap((row,d)=>row.flatMap((n,s)=>n>0?[{dia:DIAS[d],franja:`${hora(s)}–${hora(s+1)}`,personas:n}]:[]))
+ const sobrantes=elegido?input.demanda.map((row,d)=>row.map((n,s)=>{
+  let c=0
+  for(const w of [...Object.values(elegido.r.jornadas_full),...Object.values(elegido.r.jornadas_part)])for(const j of w)if(j.dia===d&&j.bloques.some(b=>b.slot_inicio<=s&&s<b.slot_fin))c++
+  for(const mm of [...Object.values(elegido.r.asignacion_aux),...Object.values(elegido.r.asignacion_eventual)])if(mm[d][s]==='CAJA')c++
+  return Math.max(0,c-n)})):undefined
+ return {
+  version:VERSION_SALIDA,noOficial:true as const,publicable:false as const,
+  leyenda:'PRUEBA NO OFICIAL — laboratorio híbrido. No es un horario aprobado ni publicado.',
+  origen:x.origen,motivoSeleccion:x.motivo,estadoB:x.estadoB,fasesB:x.respuestaB?.fases??[],hashEntrada:x.hash,
+  propuesta:elegido?.r??null,
+  coberturaPomPct:m?.coberturaPct??null,demandaHoras:m?.demandaHoras??null,faltantesHoras:m?.faltantesHoras??null,sobrantesHoras:m?.sobrantesHoras??null,
+  faltantesPorFranja:franjas(m?.faltantesPorFranja),sobrantesPorFranja:franjas(sobrantes),
+  horasPorEmpleado:elegido?reporteDisponibilidadCaja(x.raw,elegido.r as Required<ResultadoSemanal>):[],
+  conflictos:[...x.conflictos,...x.datosA.map(d=>({origen:'DATOS' as const,codigo:d.codigo,detalle:d.detalle,colaboradorId:d.colaboradorId}))],
+  condiciones:{solicitadas:(input.condiciones_supervisor?.condiciones??[]).map(c=>({id:c.id,modo:c.modo,tipo:c.tipo,colaboradorId:c.colaboradorId,dia:c.dia,valor:c.valor})),
+   auditoria:elegido?.r.auditoria_condiciones??null,preferenciasIncumplidas:elegido?.r.preferencias_manuales_incumplidas??null},
+  disponibilidadEventual:{diagnosticos:x.info?.diagnosticos??[],bloqueaPublicacion:x.info?.bloqueaPublicacion??false},
+  comparabilidadAH2040:{modo:cfg?.modo??null,activacionDefinitiva:'BLOQUEADA — pendiente de homologación del propietario',
+   relaciones:cfg?relacionesAH2040(input,cfg).rels.map(r=>({eventualId:r.eventualId,auxId:r.auxId})):[],
+   incumplimientos:cfg&&elegido?verificarAH2040(input,elegido.r,cfg).violaciones:[]},
+ }
+}
+export type SalidaUnica=Awaited<ReturnType<typeof generarPropuestaHibrida>>

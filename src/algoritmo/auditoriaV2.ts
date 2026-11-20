@@ -2,7 +2,7 @@ import type {InputAlgoritmo,ResultadoSemanal} from './types'
 import {convertirOutputDeV2} from './adapter'
 import {validarResultadoSemana} from '../utils/validacionSemana'
 import {PERFIL_HORAS_VIGENTE} from './contratos'
-import {verificarAH2040,type ConfigAH2040} from './ah2040'
+import {MODOS_TOTALES,verificarAH2040,type ConfigAH2040} from './ah2040'
 export function auditarEscenario(input:InputAlgoritmo,r:ResultadoSemanal){
  const cash=input.colaboradores.filter(c=>c.rol==='FULL'||c.rol==='PART').map(c=>({id:c.id,nombre:c.id,tipo:c.rol as 'FULL'|'PART',activo:true,horasSemanales:c.rol==='FULL'?c.horasSemanales:input.contratos?.[c.id]?.objetivoSlots===null?undefined:(input.contratos?.[c.id]?.objetivoSlots??0)/2}))
  const hours=(m:string[][],absent:string)=>m.map(row=>{const b:string[]=[];let start=-1;const clock=(s:number)=>`${String(8+Math.floor(s/2)).padStart(2,'0')}:${s%2?'30':'00'}`;for(let s=0;s<=30;s++){if(s<30&&row[s]!==absent){if(start<0)start=s}else if(start>=0){b.push(`${clock(start)}-${clock(s)}`);start=-1}}return b.join('|')})
@@ -15,7 +15,7 @@ export function auditarEscenario(input:InputAlgoritmo,r:ResultadoSemanal){
  // AH2-040 (regla SEMANAL): la verificación de totales semanales EVENTUAL ≤ cada AUX comparable reemplaza el
  // bloqueo «comparación pendiente»; cada incumplimiento individual es una violación operativa.
  const cfg=(input as InputAlgoritmo&{comparacion_aux_eventual?:ConfigAH2040}).comparacion_aux_eventual
- if(!cfg||!['SEMANAL','OPORTUNIDAD','DIAS'].includes(cfg.modo))return v
+ if(!cfg||!MODOS_TOTALES.has(cfg.modo))return v
  const sem=verificarAH2040(input,r,cfg).violaciones.map(x=>({codigo:'OP_EVENTUAL_SUPERA_AUX_COMPARABLE',nivel:'OPERATIVA' as const,colaboradorId:x.eventualId,detalle:`${x.horasEventual} h de caja contra ${x.horasAux} h de ${x.auxId} (exceso ${x.excesoHoras} h).`}))
  const violaciones=[...v.violaciones.filter(x=>x.codigo!=='POLITICA_EV_COMPARACION_PENDIENTE'),...sem]
  return {...v,violaciones,ok:v.ok&&!sem.length,publicable:v.publicable&&!sem.length}
