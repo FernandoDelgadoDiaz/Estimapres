@@ -24,7 +24,10 @@ export const MODOS_AH2040=['P0','P1','P2','P2E','P3'] as const
 /** SEMANAL (AH2-040, regla ratificada 20/11/2026): totales semanales caja(e) ≤ caja(a) contra CADA AUX realmente
  *  comparable: K(a) ≠ ∅ y K(a) ∩ O(e) ≠ ∅. Sin AUX comparable: sin relación (nunca tope cero). Sin promedios.
  *  PC: variante más estrecha (O(e) ⊆ K(a)); solo para documentar la ambigüedad técnica con fixtures. */
-export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT','SEMANAL','PC'] as const
+/** Alternativas de comparabilidad SEMANAL (20/11/2026, sin umbrales numéricos; ninguna homologada):
+ *  OPORTUNIDAD: además |K(a)| ≥ min(|O(e)|, tope(e)); DIAS: todo día con oportunidades de e tiene capacidad de caja de a. */
+export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT','SEMANAL','PC','OPORTUNIDAD','DIAS'] as const
+export const MODOS_COMPARABILIDAD=new Set(['SEMANAL','PC','OPORTUNIDAD','DIAS'])
 export type ModoAH2040=typeof MODOS_VALIDOS_AH2040[number]
 export interface ParAH2040 {eventualId:string;auxId:string}
 export interface ConfigAH2040 {modo:ModoAH2040;pares?:ParAH2040[]}
@@ -84,11 +87,20 @@ export function relacionesAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
   for(const e of ordenar(Object.keys(O)))if(!rels.some(r=>r.eventualId===e))notas.push({codigo:'EVENTUAL_SIN_PAR',eventualId:e})
   return {rels,notas}
  }
- if(cfg.modo==='SEMANAL'||cfg.modo==='PC'){
+ if(MODOS_COMPARABILIDAD.has(cfg.modo)){
+  const dias=(set:Set<string>)=>new Set([...set].map(x=>x.split('/')[0]))
   for(const e of ordenar(Object.keys(O))){
-   const comp=ordenar(Object.keys(K)).filter(a=>K[a].size>0&&(cfg.modo==='SEMANAL'?[...K[a]].some(x=>O[e].has(x)):O[e].size>0&&[...O[e]].every(x=>K[a].has(x))))
+   const efectiva=Math.min(O[e].size,input.max_caja_eventual_slots?.[e]??O[e].size)
+   const comp=ordenar(Object.keys(K)).filter(a=>{
+    if(!K[a].size)return false
+    if(cfg.modo==='PC')return O[e].size>0&&[...O[e]].every(x=>K[a].has(x))
+    if(![...K[a]].some(x=>O[e].has(x)))return false
+    if(cfg.modo==='OPORTUNIDAD')return K[a].size>=efectiva
+    if(cfg.modo==='DIAS'){const da=dias(K[a]);return [...dias(O[e])].every(d=>da.has(d))}
+    return true
+   })
    if(!comp.length)notas.push({codigo:'EVENTUAL_SIN_AUX_COMPARABLE',eventualId:e,oportunidadesHoras:O[e].size/2})
-   for(const a of comp)rels.push({eventualId:e,auxId:a,ventana:null,origen:`${cfg.modo}-total-semanal`,solapamientoHoras:(cfg.modo==='SEMANAL'?[...K[a]].filter(x=>O[e].has(x)).length:O[e].size)/2})
+   for(const a of comp)rels.push({eventualId:e,auxId:a,ventana:null,origen:`${cfg.modo}-total-semanal`,solapamientoHoras:(cfg.modo==='PC'?O[e].size:[...K[a]].filter(x=>O[e].has(x)).length)/2})
   }
   return {rels,notas}
  }
@@ -140,7 +152,7 @@ export function verificarAH2040(input:InputAlgoritmo,r:Pick<ResultadoSemanal,'as
  * supervisión. Para la regla SEMANAL, A asigna cada tramo contiguo de esas franjas (desde 09:00) al AUX con menos
  * horas-caja acumuladas (desempate por id), de modo determinístico. CP-SAT (B) elige la identidad en el modelo.
  */
-export function balancearIdentidadAux(input:InputAlgoritmo,r:ResultadoSemanal):ResultadoSemanal{
+export function balancearIdentidadAux(input:InputAlgoritmo,r:ResultadoSemanal,comparadores?:Set<string>):ResultadoSemanal{
  const {K}=mascarasAH2040(input)
  const ids=Object.keys(input.presencia_aux).sort((a,b)=>a<b?-1:a>b?1:0)
  const aux=Object.fromEntries(ids.map(id=>[id,r.asignacion_aux[id].map(row=>[...row])]))
@@ -164,19 +176,23 @@ export function balancearIdentidadAux(input:InputAlgoritmo,r:ResultadoSemanal):R
  }
  for(const t of tramos){
   const [a,b]=t.par
-  const elegido=total[a]<total[b]||(total[a]===total[b]&&a<b)?a:b,otro=elegido===a?b:a
+  // Solo los AUX comparables limitan a algún EVENTUAL: el tramo va primero a un comparable y, entre
+  // comparables (o entre no comparables), al de menos horas-caja acumuladas.
+  const ca=comparadores?comparadores.has(a):true,cb=comparadores?comparadores.has(b):true
+  const elegido=ca!==cb?(ca?a:b):total[a]<total[b]||(total[a]===total[b]&&a<b)?a:b,otro=elegido===a?b:a
   for(const s of t.slots){aux[elegido][t.d][s]='CAJA';aux[otro][t.d][s]='PARADO'}
   total[elegido]+=t.slots.length
  }
  return {...r,asignacion_aux:aux as ResultadoSemanal['asignacion_aux']}
 }
 
-const BALANCEA=new Set(['SEMANAL','PC'])
+const BALANCEA=MODOS_COMPARABILIDAD
 
 export function ejecutarAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
  const base:InputAlgoritmo=structuredClone(input)
  base.max_caja_eventual_slots={...Object.fromEntries(Object.keys(base.disponibilidad_eventual).map(id=>[id,210])),...(input.max_caja_eventual_slots??{})}
- const ajustar=(r:ResultadoSemanal)=>BALANCEA.has(cfg.modo)?balancearIdentidadAux(input,r):r
+ const comparadores=new Set(relacionesAH2040(input,cfg).rels.map(x=>x.auxId))
+ const ajustar=(r:ResultadoSemanal)=>BALANCEA.has(cfg.modo)?balancearIdentidadAux(input,r,comparadores):r
  const r0=ajustar(ejecutarAlgoritmo(base))
  const {rels}=relacionesAH2040(input,cfg)
  if(!rels.length)return {resultado:r0,inputEfectivo:base,auxEstable:true}

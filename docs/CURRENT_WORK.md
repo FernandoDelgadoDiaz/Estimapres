@@ -1,4 +1,88 @@
-## PUNTO ÚNICO DE RETOMA — AH2-040 regla semanal EVENTUAL ≤ AUX comparable · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-040 simultaneidad y comparabilidad semanal · 20/11/2026, Claude
+
+**Estado: AVANCE VERIFICABLE. ACTIVACIÓN DEFINITIVA DE AH2-040 BLOQUEADA** por un único caso de comparabilidad pendiente del propietario. Sin merge ni despliegue. Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Decisiones aprobadas vigentes (no se rediscuten):**
+- La prioridad es FULL/PART → AUX → EVENTUAL, sin exclusividad temporal.
+- AUX y EVENTUAL pueden atender caja **simultáneamente** cuando el POM lo requiere y la supervisión está garantizada.
+- Ningún EVENTUAL supera en horas-caja **semanales** a un AUX realmente comparable.
+- Una sola franja compartida no demuestra equivalencia de disponibilidad semanal.
+- EVENTUAL puede venir de cualquier función.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `5faad6e0f153ec8df5e93c0be440536bf62f71f6`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `5d0fe3bb51c421efcb82b89a7d726f5a5614364d`;
+  - entrega **`1ab445f289e4874c8857d336c491018d818620fd`**.
+- Sin force-push. No se rehicieron AH2-036–039, los perfiles EVENTUAL ni la implementación SEMANAL.
+
+### Cambios
+- **Simultaneidad AUX + EVENTUAL, auditada.** Los dos motores y sus validadores calculan la cobertura contra el residual, sin exclusividad temporal. No hubo error de código.
+  - Pruebas explícitas en A y B (fixture Z1): con 4 cajas, **2 PART + AUX + EVENTUAL a la vez**, sin sobrantes ni infracciones.
+  - Negativos detectados: EVENTUAL con un AUX elegible ocioso (`ORDEN_RESIDUAL` en B, `OP_PRIORIDAD_AUX` en A) y sobrante por simultaneidad (`OP_COBERTURA_DUPLICADA` en A).
+- **Alternativas de comparabilidad sin umbral numérico**, implementadas en A, B y ambos validadores (`comparacion_aux_eventual.modo`):
+  - `OPORTUNIDAD`: |K(a)| ≥ min(|O(e)|, tope);
+  - `DIAS`: el AUX tiene capacidad de caja todos los días con oportunidades del EVENTUAL;
+  - se suman a `SEMANAL` y `PC`.
+- **Corrección en A:** con roles AUX rotativos, el reparto de identidad asigna los tramos intercambiables primero al AUX comparable. En S3/DIAS, A pasa de 138 a 106 h de faltantes, igual que B.
+- **Evidencia:**
+  - `docs/AH2-040_COMPARABILIDAD.md`;
+  - `docs/evidencia/ah2040-comparabilidad.csv` (120 filas);
+  - aliada-optimizer `results/ah2040_comparabilidad/`;
+  - nota en el MASTER AH2-040, sin cambio de estado.
+
+### Pruebas (resultados reales, locales)
+- A: TypeScript OK; **521 Vitest aprobadas, 8 omitidas** (5 nuevas en `ah2040-comparabilidad.test.ts`); build OK.
+- B: **123 pytest aprobadas, 1 omitida** (4 nuevas en `tests/test_ah2040_comparabilidad.py`).
+- 12 escenarios (S1–S9, N1, N2, Z1) × 5 modos. Las 60 corridas B terminaron OPTIMAL.
+  - 0 infracciones en los verificadores A y B; validación cruzada completa.
+  - Relaciones idénticas en A y B.
+  - **Donde la relación limita al EVENTUAL, A = B en faltantes.**
+  - La caja AUX total nunca cambia.
+- **Resultados clave (faltantes B, P0 → modo):**
+
+  | Escenario | P0 | SEMANAL | DIAS | OPORTUNIDAD | PC |
+  |---|---:|---:|---:|---:|---:|
+  | S9 (AUX solo una hora el sábado) | 129 | 200 | 129 | 129 | 129 |
+  | N1 (misma disponibilidad efectiva) | 116 | 120 | 120 | 120 | 116 |
+  | N2 (AUX de jornada completa) | 82 | 106 | 106 | 82 | 82 |
+  | S2 | 93 | 116 | 93 | — | — |
+  | S6 | 94 | 154 | 94 | — | — |
+  | S8 | 122 | 132 | 122 | — | — |
+
+  - N1: con PC no se impone nada.
+  - N2: con OPORTUNIDAD el EVENTUAL queda en 72 h contra 48 h del AUX.
+- **Conclusión:** PC y OPORTUNIDAD contradicen relaciones exigidas por la regla ratificada (N1 y N2) y quedan descartadas. Las finalistas son SEMANAL y DIAS.
+
+### Bloqueo (único caso pendiente del propietario)
+¿Es «realmente comparable» un AUX con capacidad de caja **solo en parte de los días** en que el EVENTUAL puede atender?
+- **Sí → SEMANAL.** S9 pierde 71 h; S6 limita al EVENTUAL al menor de los AUX parciales; S3 incluye a los supervisores rotativos.
+- **No → DIAS.** S9 queda resuelto, pero un EVENTUAL que solo suma días fuera de los del AUX (S2, S8) o con AUX parciales (S6) queda sin comparación.
+
+No se homologó ninguna de las dos ni se inventó un umbral. La activación definitiva en la política v1 sigue bloqueada, igual que el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` fuera de los modos de laboratorio.
+
+Otras limitaciones:
+- Tres o más AUX simultáneos siguen pendientes.
+- A es heurístico donde no hay límite (hasta 12 h menos que B).
+- Evidencia sintética.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD y los checks de #60 y #6 (`test-build`, `browser`, `offline`).
+2. Presentar al propietario `docs/AH2-040_COMPARABILIDAD.md` §3–4 y registrar en el MASTER su respuesta a la pregunta única: SEMANAL o DIAS.
+3. Con la respuesta:
+   - activar ese modo como regla de la política v1 en A, B y ambos validadores, con versión;
+   - retirar el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE`;
+   - eliminar del código las alternativas descartadas o dejarlas solo en el laboratorio;
+   - repetir las matrices `ah2040_semanal_lab` y `ah2040_comparabilidad_lab` y las suites.
+4. Después: interfaz/PDF con los comparables y los faltantes por persona, transporte A→B y ensayo offline autorizado de la 091.
+
+---
+
+## RELEVO ANTERIOR (historia) — AH2-040 regla semanal EVENTUAL ≤ AUX comparable · 20/11/2026, Claude
 
 **Estado: IMPLEMENTACIÓN TÉCNICA DE AH2-040 COMPLETADA EN LABORATORIO (A, CP-SAT B y ambos validadores), con evidencia reproducible.** No publicable ni activada por defecto. Sin merge ni despliegue. Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
 
