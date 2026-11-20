@@ -4,6 +4,7 @@
 // Referencia: ai/architecture.md §7.1 Pasada 3.
 // Prompt 3.a.
 
+import { reservadoSector, topeEventual } from "./politicaRecursos";
 import type {
   InputAlgoritmo,
   AsignacionEv,
@@ -32,7 +33,7 @@ export function ejecutarPasada3(
   // Preserva NO_DISPONIBLE / NO_USADO tal como vienen del input.
   const asignacion_eventual: Record<string, AsignacionEv[][]> = {};
   for (const [evId, matriz] of Object.entries(input.disponibilidad_eventual)) {
-    asignacion_eventual[evId] = matriz.map(fila => [...fila] as AsignacionEv[]);
+    asignacion_eventual[evId] = matriz.map(fila => fila.map(x => x === "CAJA" ? "NO_USADO" : x) as AsignacionEv[]);
   }
 
   // === PASO 2: Inicializar contador horas-caja por eventual ===
@@ -68,7 +69,7 @@ export function ejecutarPasada3(
       const disponibles: string[] = [];
       for (const [evId, matriz] of Object.entries(asignacion_eventual)) {
         const fila = matriz[dia];
-        if (fila[slot] !== "NO_USADO") continue;
+        if (fila[slot] !== "NO_USADO" || reservadoSector(input,evId,dia,slot) || horas_caja_por_eventual[evId]*2 >= topeEventual(input,evId)) continue;
         const cambioBloques = 1 - Number(fila[slot - 1] === "CAJA") - Number(fila[slot + 1] === "CAJA");
         if (!esMaxBloquesCajaEventual(maxBloques) || (bloques.get(evId) ?? 0) + cambioBloques <= maxBloques) {
           disponibles.push(evId);

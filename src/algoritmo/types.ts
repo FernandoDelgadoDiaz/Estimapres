@@ -1,3 +1,5 @@
+import type {EntradaCondiciones,AuditoriaCondiciones} from './condicionesTipos'
+import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/types.ts
 // Tipos compartidos del algoritmo de horarios v2.
 // Referencia: ai/architecture.md §3.
@@ -31,6 +33,7 @@ export interface Colaborador {
   id: string;
   nombre: string;
   rol: Rol;
+  horasSemanales?: number;
 }
 
 export type AsignacionAux = "CAJA" | "PARADO" | "NO_PRESENTE";
@@ -64,7 +67,10 @@ export interface SesgoTurno {
 }
 
 // Inputs completos al algoritmo
-export interface InputAlgoritmo {
+export interface InputAlgoritmo extends PoliticaRecursos, EntradaCondiciones {
+  /** AH2-038: equilibrio y protección de picos, opt-in de laboratorio. */
+  equilibrio_semanal_version?: 1;
+  auditoria_condiciones?: AuditoriaCondiciones
   max_bloques_caja_eventual_dia?: number;
   eventuales_caja_hora_limite?: string;
   demanda: MatrizDemanda;
@@ -154,6 +160,8 @@ export interface MetricasCobertura {
 }
 
 export interface ResultadoSemanal {
+  auditoria_condiciones?: AuditoriaCondiciones
+  preferencias_manuales_incumplidas?: number
   semana: { desde: Date; hasta: Date };
   jornadas_full: Record<string, Jornada[]>;
   jornadas_part: Record<string, Jornada[]>;

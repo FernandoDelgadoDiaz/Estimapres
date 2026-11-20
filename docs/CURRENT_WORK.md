@@ -1,3 +1,1004 @@
+## PUNTO ÚNICO DE RETOMA — integración directa en la aplicación existente, sin piloto web separado · 20/11/2026
+
+**Cambio de rumbo solicitado por el propietario:** dejar de preparar un sitio piloto independiente y de pedir instalaciones de servicios alternativos. Integrar el motor híbrido validado en la aplicación de Horarios existente, conservando la experiencia habitual de carga del POM, dotación, configuración y PDF. No repetir el ensayo matemático ni las decisiones ya aprobadas. La intención es sustituir el generador actual de forma controlada; no interpretar como autorización de gastos, migraciones indiscriminadas ni de cambios en Prestify.
+
+### Partida verificada
+- Estimapres #60, HEAD previo documental `6b9dc8468fa29fca1f7492656224d3c821d5c1f6`; código probado `aa410f74717e5c02bc7041204354a99cce8dedeb`.
+- aliada-optimizer #6, HEAD `2550fb91422355a5e8268df01e2c27154bb7164d`; código/contenedor probado `361d7271b417d55a8a80fa10b104697d19de2d61`.
+- Ambos PR siguen en borrador y sus CI verificadas verdes. El ensayo real preserva 355/402 h cubiertas (88,308 %), 47 faltantes, cero sobrantes; sábado pico 0 h faltantes, domingo 8 h, peor déficit relativo 14,035 %. Solución factible; no óptimo total.
+- El frontend productivo aún utiliza el motor anterior. El híbrido tiene CP-SAT Python y requiere un servicio de ejecución HTTPS; cambiar el frontend no elimina esa dependencia. El contenedor ya está listo. El puente Vite no es apto para producción.
+
+### Próxima acción (una sola ruta)
+1. Integrar el flujo híbrido en el generador actual de Horarios, sin crear otro sitio ni solicitar Render como requisito adicional. Reutilizar componentes, adaptadores, contrato, validador, editor de topes y transporte ya probados. Preservar comportamiento de otras sucursales y Prestify. Mantener A como respaldo verificable y una activación reversible limitada inicialmente a 091 dentro de la app existente. No presentar A solo como ejecución híbrida.
+2. Resolver únicamente el alojamiento efectivo del contenedor CP-SAT con la infraestructura disponible del propietario; no cambiar de proveedor ni contratar sin autorización. Configurar autenticación, alcance de usuario/sucursal, origen HTTPS real, RLS y minimizar datos; no transferir dotación hasta verificar controles. No usar claves privilegiadas en cliente.
+3. Preparar candidato integrado y probar el flujo real POM → A+B → selección/validación → PDF, topes locales, fallback, permisos y regresiones de producción/Prestify. Verificar configuración reutilizable y distinguir si falta persistencia autorizada. Conservar rollback funcional al motor anterior y comprobar SHA exacto y CI antes de cualquier publicación. No fusionar directamente el PR de laboratorio completo sin revisar su alcance.
+4. La publicación es el objetivo del propietario; ejecutar el paso de despliegue únicamente con acceso efectivo, controles aprobados, rollback disponible y sin gastos o cambios de datos no autorizados. Si el único bloqueo es hosting, explicarlo en una instrucción concreta. No crear otro frontend ni repetir las etapas terminadas.
+
+**Bloqueo de esta sesión:** acceso GitHub/Supabase disponible, no acceso autenticado operativo a Netlify/Cloud Run. El contenedor no está publicado. No se hizo despliegue, merge, migración ni escritura real.
+
+---
+
+## RELEVO ANTERIOR (historia) — equilibrio validado y CI aprobada; habilitación del piloto pendiente · 20/11/2026
+
+**Código verificado y guardado. No rehacer las etapas terminadas.** Propietario: Fernando; fuente normativa: MASTER. Ambos PR siguen abiertos y en borrador.
+
+| Componente | SHA exacto de código/infra probado | Evidencia |
+|---|---|---|
+| Estimapres #60 | `aa410f74717e5c02bc7041204354a99cce8dedeb` | [CI 44767440886](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/44767440886): test-build y browser SUCCESS; build de piloto incluido; navegador 22 aprobadas / 2 omitidas |
+| aliada-optimizer #6 | `361d7271b417d55a8a80fa10b104697d19de2d61` | [CI 44767721664](https://github.com/FernandoDelgadoDiaz/aliada-optimizer/actions/runs/44767721664): pytest, smoke de optimización, build Docker y smoke HTTP del contenedor SUCCESS |
+
+El commit que contiene este relevo es documental y puede tener SHA posterior: confirmar HEAD en los PR, sin confundirlo con los SHAs de código anteriores.
+
+### Resultado que debe conservarse
+- Ensayo privado 091, 23–29/11: demanda 402 h, cubiertas 355 (88,308 %), faltantes 47 y sobrantes 0.
+- Nuevo déficit lunes–domingo: **8 / 8 / 7,5 / 7,5 / 8 / 0 / 8 h**. Base reproducida: 3 / 1,5 / 3 / 4 / 8 / 10 / 17,5 h. Sábado pico cubierto al 100 %; peor déficit relativo 30,435 → 14,035 %.
+- Primeros cinco objetivos OPTIMAL, desempates finales FEASIBLE dentro de 120 s. Solución completa factible, no óptimo total. Sin infracciones A/B, mismas 272 h FULL/PART, 39 AUX y 44 EVENTUAL. Reglas aprobadas intactas.
+- Sin antecedente dominical ni certificación jurídica. Formulación experimental en `docs/EQUILIBRIO_SEMANAL_LAB.md`; no homologación productiva.
+- **Documentos privados conservados para retoma:** `Aliada_091_S48_equilibrio_prueba.pdf` (cinco páginas, revisado) y `Aliada_091_S48_equilibrio_checkpoint.zip` (entrada, resultados base/nuevo, configuración y manifiesto SHA-256). Recuperar estos archivos privados si desaparece la carpeta temporal; no repetir extracción o cálculo ni pedir de nuevo dotación/POM cuando el checkpoint basta. No subirlos a GitHub.
+
+### Qué está verificado y qué falta
+- A local: 575 Vitest aprobadas / 10 omitidas, TypeScript, build productivo y build separado del piloto. B local y CI: 160 pytest / 1 omisión histórica. HTTP con CP-SAT real sintético probado.
+- Chromium local bloqueado por el entorno; la CI remota **sí** aprobó browser. El smoke móvil nuevo comprueba el bloqueo por falta de configuración a 390 px; **no** equivale a un ensayo real autenticado en iPhone.
+- Docker no está instalado localmente; **la imagen sí se construyó y ejecutó en CI**, health HTTP y rechazo de solicitud sin autorización aprobados. Se corrigió una carrera de la prueba inicial para esperar la disponibilidad HTTP durante el arranque; no se relajó autenticación.
+- Piloto separado preparado: `piloto-horarios.html`, `vite.piloto.config.ts`, `netlify.piloto.toml`, Auth/SELECT acotados, POM y transporte HTTPS. Servicio B en `optimizer/http_pilot.py`. Detalles: `docs/PILOTO_PRIVADO_MOVIL.md`.
+- **No existe URL privada nueva.** Faltan infraestructura autorizada, configuración real de usuario/sucursal/origen, comprobación de RLS real y ensayo en Safari físico. Perfiles/condiciones/topes de prueba quedan en memoria; persistencia definitiva no aplicada.
+- No se consultó ni escribió Supabase real en esta sesión; sin migraciones, merge, deploy manual, cambios Prestify, gasto ni envío de datos reales al servicio externo.
+
+### Próximo paso exacto
+**Continuidad del propietario (20/11/2026):** tras explicar que Cloud Run alojará el nuevo motor, Netlify la página privada para iPhone y Supabase conservará la dotación, el propietario respondió «Ok». Se interpreta como conformidad para avanzar con la habilitación del piloto aislado y su procesamiento temporal, no como autorización de gastos, activación de facturación, persistencia nueva ni despliegue productivo.
+
+**Bloqueo actual de ejecución:** esta sesión de ChatGPT tiene Github/Supabase, pero no acceso operativo autenticado a Google Cloud Run ni Netlify. No se encontraron conectores directos. Continuar en ChatGPT Work con navegador autenticado, o Claude con acceso equivalente. Usar la cuenta del propietario; comprobar proyecto, facturación y costo antes de crear recursos. Si requiere habilitar facturación o un recurso potencialmente facturable, detenerse y pedir una aprobación concreta con el costo estimado. No solicitar nuevamente autorización funcional del piloto.
+
+Usar el código y contenedor preparados: crear únicamente sitio/servicio aislados; configurar listas de acceso, origen HTTPS y autenticación, verificar RLS de lectura y pruebas negativas con datos sintéticos antes de permitir envío temporal de datos reales; minimizar identificadores y evitar secretos o datos en logs, almacenamiento, repositorio o bundle. Completar POM → A+B efectivo → PDF en iPhone y entregar URL verificable. No tocar producción, fusionar PR, aplicar migraciones ni escribir datos operativos. No volver a preguntar decisiones aprobadas. No afirmar despliegue hasta comprobarlo.
+
+---
+
+## RELEVO ANTERIOR — implementación del equilibrio y preparación del piloto · 20/11/2026, Codex
+
+**Estado:** próximo paso registrado ejecutado en laboratorio. No rehacer AH2-036–040 ni pedir otra vez las decisiones aprobadas. Los dos PR permanecen borradores; no hay publicación ni URL nueva de piloto.
+
+### Base y cambios
+- Estimapres #60, rama `feat/ah2-integracion-hibrida-work-claude`, base verificada `a39c8d4e76b525b623c1422bda0734a8d2387c32`. El SHA de esta entrega se confirma en PR; un relevo posterior registra el SHA de código.
+- aliada-optimizer #6, código/CI de contenedor: `2b4fd6f1215ba89e1847de7cfb3357731e26b87e`, sobre `8e3c5e473379d7e3140a2f63dccbfd376b258c6c`. Primer commit funcional B: `db39a4ae6f0706301873183b335198c3eca40060`.
+- A: `equilibrio.ts`, selección híbrida, referencia A dentro del sobre/hash, métricas y PDF diario; activación opt-in en laboratorio/ejecutor privado. B: métricas racionales exactas, objetivos lexicográficos, protección de referencia y desempates semanales. Motor productivo sin activación nueva.
+- Piloto: HTML/build separados; login, SELECT acotados a usuario/sucursal, POM PDF, servicio HTTPS con JWT, configuración de prueba local, propuesta y PDF no oficial. B incluye servidor HTTP, Dockerfile y prueba de imagen en CI. No utiliza puente Vite. Detalles y pendientes: `docs/PILOTO_PRIVADO_MOVIL.md`.
+- Fuente normativa MASTER AH2-032/038; formulación técnica experimental y evidencia en `docs/EQUILIBRIO_SEMANAL_LAB.md`. No se presenta como homologación productiva.
+
+### Ensayo real reproducido y comparado
+Misma entrada privada 23–29/11, dotación y reglas, presupuesto 120 s. Línea base reproducida antes de modificar.
+
+| Día | Demanda h | Faltantes base h | Faltantes nuevos h | Cobertura nueva |
+|---|---:|---:|---:|---:|
+| Lunes | 57,5 | 3 | 8 | 86,087 % |
+| Martes | 57 | 1,5 | 8 | 85,965 % |
+| Miércoles | 55 | 3 | 7,5 | 86,364 % |
+| Jueves | 56 | 4 | 7,5 | 86,607 % |
+| Viernes | 58 | 8 | 8 | 86,207 % |
+| Sábado (pico POM) | 61 | 10 | 0 | 100 % |
+| Domingo | 57,5 | 17,5 | 8 | 86,087 % |
+
+- Total: 402 h demandadas, 355 cubiertas, 88,308 %, 47 faltantes, 0 sobrantes. Recursos: 272 FULL/PART, 39 AUX, 44 EVENTUAL. Cero infracciones en ambos validadores.
+- Peor déficit relativo: 30,435 → 14,035 %. Coste de picos nuevo 0; no empeora ninguna franja pico de A. Se prioriza el día pico y se distribuye el déficit restante según demanda de los demás días.
+- Faltantes, ponderados, sobrantes, picos y peor déficit relativo: OPTIMAL. Desempates siguientes FEASIBLE al agotar 120 s. **Solución completa factible; no óptimo total demostrado.** El certificado del peor déficit depende de los objetivos y protecciones anteriores.
+- Preservados: exclusión manual, horas contractuales completas, jerarquía FULL/PART → AUX → EVENTUAL, supervisión, apertura 08–09, DIAS, topes 12/8, dos bloques y corte 22:00.
+- Antecedente dominical no disponible: no certificar descanso intersemanal ni conformidad jurídica.
+- PDF privado A4 de cinco páginas, resumen antes/después y propuesta, revisado visualmente y entregado como `Aliada_091_S48_equilibrio_prueba.pdf`. POM, dotación, nombres, horarios y salida permanecen fuera de ambos repositorios.
+
+### Verificación real
+- Instalación limpia A: `npm ci`.
+- A: `npx tsc --noEmit`, build productivo y build aislado de piloto aprobados. Vitest: **575 aprobadas / 10 omitidas**; verificación posterior del PDF: 14 de integración + render privado aprobadas. No volver a ejecutar el ensayo solo para generar PDF.
+- B: **160 pytest aprobadas / 1 omisión histórica**. HTTP ejecutó CP-SAT real con entrada sintética; pruebas de identidad/origen/sucursal, límites, hash y formato.
+- Chromium local no arranca por `socket() ... Operation not permitted`: las 24 pruebas se detuvieron antes de sus acciones. **No se informan como aprobadas ni como fallos funcionales.** Exigir CI browser del nuevo SHA. Docker no instalado localmente: CI añadida para construir y ejecutar smoke del contenedor; verificarla antes de declarar imagen probada.
+- CI de los nuevos commits: pendiente al redactar esta sección.
+- Sin consultas nuevas a Supabase real, sin migraciones, escrituras/borrados operativos, merge, deploy manual, cambios Prestify, transferencia de dotación real al servicio externo ni gastos.
+
+### Próximo paso exacto
+1. Verificar checks del HEAD real de #60 y #6, incluido browser y build/smoke del contenedor. Registrar SHAs y resultados sin sobrescribir trabajo concurrente.
+2. Con evidencia satisfactoria, solicitar únicamente la autorización que falta para **infraestructura aislada y envío temporal de datos al servicio privado**, sobre el entregable preparado. No pedir de nuevo topes, apertura, DIAS ni intención de equilibrio.
+3. Tras esa autorización: proyecto/servicio privado y preview separados, usuario/sucursal/origen exactos; verificar Auth y RLS reales solo lectura, configurar perfiles/condiciones de prueba faltantes y completar POM → híbrido efectivo → PDF en iPhone físico. No presentar como terminado el recorrido sin carga semanal adicional hasta habilitar la configuración reutilizable.
+4. Persistencia definitiva, homologación y producción siguen fuera de alcance sin autorización. No fusionar.
+
+---
+
+## PUNTO ÚNICO DE RETOMA — equilibrio semanal y cobertura pico; piloto privado 091 · 20/11/2026
+
+**Nueva regla de negocio aprobada por el propietario:** equilibrar el déficit de cobertura durante la semana y priorizar tanto franjas como días pico. MASTER AH2-032/038 actualizado en `b4c5949`. El criterio matemático exacto requiere implementación y validación, no otra consulta sobre la intención. No es igualar horas faltantes arbitrariamente ni priorizar un día fijo; identificar demanda pico desde POM y configuración local. Mantener cobertura total máxima factible, restricciones duras y protección de picos.
+
+### Base verificada
+- Estimapres #60, código `4347703b2a3340a05650a0ec397a522db1a9f810`, CI success; HEAD documental posterior: consultar PR.
+- aliada-optimizer #6, `8e3c5e473379d7e3140a2f63dccbfd376b258c6c`, CI success. Ambos borradores, sin merge.
+- Ensayo real 23–29/11: demanda 402 h, cobertura 355 h (88,308 %), faltantes 47 h, sobrantes 0 h. A y B coinciden; B OPTIMAL en seis fases. Faltantes diarios lunes a domingo: 3 / 1,5 / 3 / 4 / 8 / 10 / 17,5 h. Recursos: 272 h FULL/PART, 39 AUX, 44 EVENTUAL.
+- Reutilizar POM, dotación y configuración privados existentes. Mantener reglas aprobadas: contratos, exclusión manual, prioridad FULL/PART → AUX → EVENTUAL, excepción 08–09, DIAS, topes locales 12/8, dos bloques diarios y corte 22:00.
+
+### Próximo paso exacto — Claude
+1. Implementar y probar criterio de equilibrio semanal y protección de días/franjas pico en laboratorio. Calcular demanda diaria, cobertura relativa y déficit por franja según el POM; documentar definición de picos y precedencia de objetivos. Maximizar cobertura global, proteger picos y evitar concentración del déficit. Medir equilibrio respecto de demanda diaria (incluido peor déficit relativo), no simplemente repartir 47 h en siete partes. No degradar otros objetivos protegidos ni reglas obligatorias. Si hay conflicto entre protección pico y equilibrio, informar compensación verificable. Mantener prioridades y topes de recursos, sin inventar ponderaciones comerciales ni fijar domingo como pico. Aplicar criterios coherentes en selección híbrida, con candidato A como referencia; no conservar A automáticamente si B mejora el nuevo objetivo aprobado.
+2. Comparar con la línea base real, mismo POM/dotación/reglas y presupuesto de 120 s; mostrar antes/después por día: demanda, faltantes, cobertura %, valor de objetivos pico/equilibrio y comprobación de restricciones; total de faltantes <=47 h y sin nuevos sobrantes. Entregar PDF A4 privado de la mejor solución válida, declarar si es óptima o factible y no certificar descanso previo sin datos. Tests sintéticos de picos en días distintos, semanas con demanda desigual, empates, capacidad insuficiente y reglas de recursos. Registrar solo resultados agregados.
+3. Avanzar hacia piloto web privado para iPhone: preparar preview aislada con lector POM, autenticación/RLS, dotación activa y motor híbrido efectivo; contenedor y HTTP CP-SAT, no puente Vite de desarrollo. Configuración local editable de prueba, persistencia diseñada pero no aplicada. Identificar paso mínimo para habilitar URL y solicitar únicamente autorización necesaria de infraestructura/datos si faltara. No contratar, desplegar productivo, aplicar migraciones, escribir Supabase, transferir datos reales externamente, modificar Prestify ni fusionar.
+4. Actualizar CURRENT_WORK, pruebas y SHAs. No reabrir decisiones aprobadas.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo real definitivo 091 con topes EVENTUAL 12/8 EJECUTADO · 20/11/2026, Claude
+
+**Estado: ENSAYO DEFINITIVO EJECUTADO; configuración editable implementada en A, B, contrato, validadores, laboratorio y PDF.** Resultado privado de laboratorio, no publicable. Datos reales solo en la carpeta privada; aquí, métricas agregadas.
+
+### Configuración aplicada (decisiones ya aprobadas; no reabrir)
+- Perfiles de caja de los 4 EVENTUAL: `TODA_LA_PRESENCIA`, fuente ratificación del propietario (137a07b), vigencia 23–29/11. Contrato de origen por presencia completa confirmada: 3 FULL (48 h) y 1 PART (32 h; 20 h dentro de 08–23 y 12 h antes de las 08:00, fuera del rango POM).
+- Topes 091: EVENTUAL FULL 12 h, PART 8 h (`topes_caja_eventual_contrato`, editable/desactivable, sin recarga semanal).
+- Sin cambios: 272 h FULL/PART al 100 %, exclusión manual DEBE, prioridad FULL/PART → AUX → EVENTUAL, excepción 08–09 (14 franjas aplicadas), DIAS, 2 bloques diarios, corte 22:00.
+
+### Resultado (A + CP-SAT, 120 s; CP-SAT OPTIMAL en las 6 fases a ~57 s)
+| | Línea base (EVENTUAL 0 h) | Definitivo 12/8 |
+|---|---|---|
+| Cobertura POM | 77,363 % | **88,308 %** |
+| Faltantes / sobrantes | 91 h / 0 h | **47 h / 0 h** |
+| Caja AUX | 39 h | 39 h (sin desplazamiento) |
+| Caja EVENTUAL | 0 h | 44 h (12 + 12 + 12 + 8: todos en su tope) |
+| A vs B | idénticos | idénticos; se conserva A (B no mejora estrictamente) |
+| Infracciones (validador independiente A) | 0 | 0 |
+
+- 402 = 272 FULL/PART + 39 AUX + 44 EVENTUAL + 47 faltantes. B demuestra que 47 h es el mínimo con estos topes y reglas.
+- Faltantes por día (h): Lun 3 · Mar 1,5 · Mié 3 · Jue 4 · Vie 8 · Sáb 10 · Dom 17,5 (Dom sin cambio: los topes semanales se consumen en otros días con igual valor objetivo).
+- Presencia fuera de caja EVENTUAL: 36 · 36 · 36 h (FULL) y 24 h (PART: 12 h dentro de 08–23 + 12 h antes de las 08:00). Supera holgadamente los mínimos implícitos 36/24.
+- Verificación independiente sobre el plan: todos los EVENTUAL ≤ tope, ≤ 2 bloques por día, ninguna franja de caja después de las 22:00, todo dentro de presencia; AUX supervisando de pie en todas las franjas con demanda fuera de 08–09; 7 cajeros con objetivo exacto; reglas duras cumplidas.
+- DIAS: ningún AUX es comparable con ningún EVENTUAL (cada AUX tiene un día sin capacidad de caja en que el EVENTUAL sí puede atender) → sin relaciones ni tope cero. Aun así ningún EVENTUAL supera a ningún AUX en horas-caja semanales (12 ≤ 12/13/14; 8 ≤ todos).
+- Domingo 22/11: no consultado; no se certifica descanso intersemanal del lunes.
+
+### Implementación (código)
+- aliada-optimizer `8e3c5e473379d7e3140a2f63dccbfd376b258c6c`: `ev_caja` (topes por contrato), `domain`, `topes_contrato_lab`, `tests/test_topes_contrato.py`. pytest 148 passed / 1 skipped.
+- Estimapres (commit con esta sección): A espejo en `disponibilidadCajaEventual.ts`, `politicaRecursos`, adaptador, contrato A→B, editor `src/hibrido/topesContrato.ts`, laboratorio (activar/desactivar y horas por FULL/PART; tabla con contrato de origen, tope y presencia fuera de caja), PDF, demo sintética con contrato de origen, ejecutor privado con `configuracion-ensayo.json`. Vitest 562 passed / 10 skipped; Playwright 21 passed / 1 skipped (+ prueba nueva del editor); tsc y build OK. Detalle en `docs/EV_DISPONIBILIDAD_CAJA.md` §1.5.
+- `npm run lint` falla también en la base (ESLint sin configuración): preexistente, no forma parte de CI.
+
+### Próximo paso exacto
+1. Propietario: revisar el PDF privado y la distribución diaria de caja EVENTUAL (p. ej., si el domingo debe priorizarse; hoy ninguna regla aprobada lo pide).
+2. Persistencia de `topes_caja_eventual_contrato` y `contratoOrigen` por sucursal: forma JSON lista; migración/escritura **solo con autorización**.
+3. Retomar piloto privado móvil. Sin merge, despliegue, escrituras Supabase, migraciones, Prestify ni gasto.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo 091 con topes EVENTUAL configurables por contrato · 20/11/2026
+
+**Decisión expresa del propietario:** los topes semanales de horas-caja EVENTUAL son optativos y editables por sucursal según contrato de origen FULL/PART. 091 elige 12 h para FULL y 8 h para PART. Otras sucursales pueden definir topes distintos o desactivarlos. Sin topes configurados no imponer máximos arbitrarios: se mantienen prioridad residual, DIAS, presencia efectiva, reservas explícitas, límite diario de bloques y hora de corte. No son objetivos de carga ni modifican los contratos de cajeros FULL/PART. MASTER AH2-037/040 actualizado en `b8c0809`, prevalece sobre referencias históricas a 12 h como ejemplo o a ausencia de topes para el ensayo.
+
+**Estado:** ensayo real conservador ejecutado (77,363 %, 91 h faltantes); acreditación de los cuatro EVENTUAL aprobada. Nueva corrida con topes locales pendiente. Implementación de configuración editable por contrato pendiente; los mecanismos de tope individual existen.
+
+### Continuación inmediata — Claude
+1. Leer MASTER y verificar ambos HEAD. Reutilizar el POM real y dotacion.json privados ya disponibles. No pedir nuevamente los archivos ni la acreditación. 
+2. Aplicar los máximos locales 12/8 usando los perfiles/topes efectivos existentes, con fuente y vigencia del ensayo. El propietario confirmó expresamente que los horarios EVENTUAL se cargan con 48 h o 32 h para discriminar FULL/PART y representar la presencia laboral completa. Para el ensayo, los tres EVENTUAL de 48 h se clasifican FULL y el de 32 h PART: **confirmado, no provisional**. Aplicar máximos 12/8 (al menos 36/24 h fuera de caja, respectivamente); no confundir presencia con caja ni pedir nueva confirmación. MASTER actualizado en `29c1922`. No inventar horas de reserva adicionales.
+3. Correr A+B 120 s con la misma dotación y POM. Mantener la exclusión manual, 272 h contractuales automáticas, prioridad AUX, excepción 08–09, DIAS, dos bloques diarios y corte 22:00. Reportar por persona, tope, horas-caja, función habitual planificada, cobertura, faltantes y PDF. Comparar contra la línea base; no certificar descanso dominical sin evidencia. Resultado de ensayo privado no publicable; la clasificación de estos cuatro EVENTUAL está confirmada.
+4. Implementar la configuración editable local de máximos por contrato de origen FULL/PART, independiente de rol EVENTUAL y con la presencia completa como dato separado (48/32 confirmados por el propietario para esta dotación), con activación/desactivación explícita, sin hardcode de sucursal, sin confundir tope desactivado con 0 h; resolverla a topes efectivos del motor y conservar restricciones individuales. Llevar a A, B, adaptador, contrato, validadores y PDF, con pruebas de límites activos/desactivados, otra sucursal y contrato no informado. Si no hay tope de clase, el contrato de origen no puede bloquear por sí solo. Sin migración ni escritura real; preparar persistencia separada para autorización.
+5. Actualizar relevo y entregar evidencia; luego preparar piloto privado. Sin merge, despliegue, Supabase escritura, Prestify ni gasto.
+
+### Base
+- Estimapres PR #60, código validado `690712d07f69e45ce9c1207e6081521e39042e34`; HEAD documental posterior, consultar PR.
+- aliada-optimizer PR #6, `64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`.
+- Ambos borradores. CI del código previo verde. Guardar únicamente métricas agregadas en GitHub; no subir POM, dotación ni archivos privados.
+
+---
+
+## RELEVO ANTERIOR (historia) — completar ensayo 091 con EVENTUAL acreditados · 20/11/2026
+
+**Estado: ensayo conservador ejecutado; siguiente corrida pendiente.** Después de pedir nuevamente la confirmación de la disponibilidad de los cuatro EVENTUAL activos, el propietario señaló que ya estaba definida. MASTER AH2-037 actualizado en `137a07b`: ratificación de esa disponibilidad para el ensayo privado del 23–29/11. No es autorización de publicación ni acreditación universal.
+
+### Continuación inmediata — Claude
+1. Usar el POM y `dotacion.json` reales que ya están en la carpeta privada del ensayo. No pedir que se adjunten de nuevo si siguen disponibles. Crear los cuatro perfiles locales `TODA_LA_PRESENCIA` con fuente de la ratificación del propietario, vigentes 23–29/11/2026; no inventar topes, mínimos ni reservas adicionales. Si existe una restricción explícita registrada, respetarla. No compartir nombres, horarios ni perfiles en el repositorio.
+2. Mantener exactas las reglas aprobadas: 272 h contratadas de los siete FULL/PART incluidos, exclusión manual previamente aprobada, AUX prioritarios, excepción de apertura 08–09, EVENTUAL solo residual, máximo dos bloques por día y corte 22:00, DIAS semanal. La disponibilidad potencial no implica asignar toda la jornada. No volver a consultar reglas aprobadas.
+3. Repetir el ejecutor privado A+B (120 s), verificar los candidatos y entregar comparación con el ensayo anterior (77,363 %, 91 h faltantes, 0 sobrantes, 39 h caja AUX), nuevo PDF A4 y distribución individual. Mostrar especialmente las relaciones DIAS o ausencia de comparables, faltantes por franja, horas de función habitual planificada y si CP-SAT mejora A. No confundir factibilidad con óptimo demostrado; no certificar descanso del domingo anterior sin datos.
+4. Si el resultado deja EVENTUAL por encima de un AUX no comparable, explicarlo expresamente sin relajar ni redefinir DIAS unilateralmente. Revisar que no queden bloqueos falsos de perfil una vez cargados los perfiles. No homologar ni publicar horarios.
+5. Actualizar este relevo con métricas agregadas exclusivamente. Luego retomar piloto móvil. Sin merge, despliegue, migraciones, escrituras en Supabase, Prestify ni gastos.
+
+### Base verificada
+- Estimapres #60: código `690712d07f69e45ce9c1207e6081521e39042e34`, CI success; documentación posterior, consultar HEAD.
+- aliada-optimizer #6: `64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`, CI success.
+- Ambos PR en borrador, sin merge.
+- Ensayo anterior: POM 402 h, ambos motores válidos y CP-SAT OPTIMAL en seis fases. La cobertura de 77,363 % correspondía exclusivamente al escenario sin EVENTUAL. No representa el potencial de la dotación acreditada.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo privado 091 EJECUTADO con datos reales (EVENTUAL sin perfil = 0 h caja) · 20/11/2026, Claude
+
+**Estado: ENSAYO REAL EJECUTADO; propuesta conservadora válida, NO publicable.** POM real (23–29/11/2026) + `dotacion.json` real (solo lectura, carpeta privada fuera de los repositorios) + A y CP-SAT con 120 s de presupuesto. Los 4 EVENTUAL no tienen perfil de caja acreditado: **no se infirió ninguno**; cada uno quedó con 0 h de caja y `EV_CAJA_SIN_PERFIL` (bloquea publicación) visible en la salida y en el PDF.
+
+### Resultado agregado (sin datos personales)
+| | A (heurístico) | B (CP-SAT) |
+|---|---|---|
+| Estado | válido | **OPTIMAL en las 6 fases** (~28 s, sin agotar los 120 s) |
+| Cobertura POM | 77,363 % | 77,363 % |
+| Faltantes / sobrantes | 91 h / 0 h | 91 h / 0 h |
+| Infracciones (validador independiente de A) | 0 | 0 |
+| Selección | **A** (B válido pero no mejora estrictamente) | — |
+
+- Demanda 402 h = 272 h FULL/PART (7 incluidos, 100 % de contrato: 3×48 + 4×32) + 39 h caja AUX (rango 12–14 h por AUX; resto supervisión) + **91 h faltantes**. Sobrantes 0: toda hora disponible se usa. B demuestra que 91 h es el **mínimo posible** con esta dotación y reglas sin EVENTUAL en caja.
+- Faltantes por día (h): Lun 8 · Mar 10,5 · Mié 12 · Jue 14,5 · Vie 16 · Sáb 12,5 · Dom 17,5. Pico de 2 personas en 09:00–10:30 y 19:00–21:00; resto mayormente 1.
+- Excepción AH2-037 aplicada en 14 franjas. DIAS sin relaciones (ningún EVENTUAL con caja). Exclusión manual DEBE respetada (1 FULL fuera del cálculo, 0 h). Reglas duras cumplidas; 0 violaciones; supervisión AUX presente en todas las franjas.
+- Antecedente dominical anterior: **no consultado / no verificado**; no se certifica descanso intersemanal del lunes.
+- Reproducible: dos corridas idénticas (semilla 20261119).
+
+### Correcciones de código surgidas del ensayo real
+1. **Contrato A↔B (`PLAN_DOTACION` falso):** B quita del modelo a la persona con `exclusion_manual` DEBE y A también; el validador de contrato aún la exigía en `jornadas` y rechazaba un plan OPTIMAL. Ahora usa `compilarCondiciones` (misma normalización que A). Prueba de regresión en `hibrido.test.ts`.
+2. **`bloqueos` omitía `EV_CAJA_SIN_PERFIL`:** se agregan los diagnósticos de caja EVENTUAL que bloquean publicación. Prueba en `laboratorio.test.ts`.
+3. **PDF no oficial:** grilla «Planificación semanal de caja» por persona y día (jornada, franco o franjas de caja AUX/EVENTUAL) y fila «Bloqueos de datos o política».
+4. **Ejecutor privado:** sin perfiles EVENTUAL corre en modo conservador (perfiles vacíos → 0 h), registra el impedimento en `impedimentos.json` y emite PDF salvo bloqueos `POLITICA_*`. No existe escenario que acredite caja sin perfil aprobado.
+- Vitest 546 passed / 10 skipped; tsc y build OK.
+
+### Próximo paso exacto
+1. **Propietario:** perfil de caja de cada uno de los 4 EVENTUAL activos (acreditación `NO_ACREDITADA` / `PRESENCIA_MENOS_RESERVAS` / `TODA_LA_PRESENCIA`, reservas de función habitual, mínimo de función habitual y tope si está aprobado). Con eso, repetir el paso 2 del ejecutor (mismo comando, misma carpeta privada) y comparar contra este piso de 91 h.
+2. Opcional: antecedente del domingo 22/11 para certificar descanso del lunes.
+3. Después del ensayo completo: retomar el piloto privado móvil (en pausa).
+4. No merge, no despliegue, no escrituras Supabase, no migraciones, no cambios Prestify ni contratación.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo privado 091: dotación recuperada por ChatGPT · 20/11/2026
+
+**Estado: DATOS DE DOTACIÓN RECUPERADOS; ensayo real todavía no ejecutado.** El propietario autorizó expresamente consultas y exportación de solo lectura. ChatGPT pudo acceder al proyecto Supabase correcto de Horarios, exclusivamente a la sucursal 091 y a la cuenta de la dotación activa. El impedimento de acceso de Claude se resuelve mediante archivo privado `dotacion.json`, entregado al propietario para adjuntarlo a Claude. Ningún dato personal, horario individual ni archivo de dotación se incorpora al repositorio o CI.
+
+### Datos y verificaciones agregadas
+- Semana del POM ya validada: 23–29/11/2026, 402 horas-caja. No volver a extraer si el archivo privado original sigue disponible.
+- Dotación base activa: 15 personas (4 FULL de 48 h, 4 PART de 32 h, 3 AUX, 4 EVENTUAL). Horas contractuales de caja: 320 h antes de la exclusión manual previamente decidida; 272 h de los siete cajeros incluidos en el cálculo automático. Respetar dicha exclusión; no modificar la regla persistida de la persona excluida.
+- Verificación de presencia AUX: máximo dos simultáneos y cobertura de presencia AUX en todas las franjas 08:00–23:00 de la semana según los horarios registrados. No hace falta homologar 3+ AUX para este ensayo concreto. La excepción de apertura AH2-037 se mantiene aprobada e implementada.
+- Se recuperaron reglas de la misma cuenta de la dotación (incluidos toggles inactivos); el archivo privado contiene las opciones, el registro de reglas y la excepción de apertura. No aplicar reglas de otra cuenta por compartir código de sucursal.
+- **Faltan los perfiles acreditados EVENTUAL** (acreditación, reservas de función habitual y tope solo si está aprobado). El archivo no inventa ni sustituye perfiles por presencia. Antecedente domingo anterior no consultado: indicar que no está verificado, no inventarlo.
+- `dotacion.json` es formato de pantalla del ejecutor `ensayo-privado.local.test.ts`, no incluye POM; el usuario adjunta el archivo privado a Claude. Sus identificadores son alias locales de ensayo, no IDs persistidos. Mantenerlo fuera de ambos repositorios.
+
+### Base de ejecución
+- Estimapres PR #60, borrador, código `77ca315821a6aaac4a365b11510ef03921020bf8` (HEAD documental posterior: consultar PR).
+- aliada-optimizer PR #6, borrador, `64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`.
+- No reabrir AH2-037 ni DIAS; no rehacer las pruebas previas de laboratorio.
+
+### Próximo paso exacto
+1. Claude recibe el archivo privado `dotacion.json` y valida su contenido contra el ejecutor y MASTER. Resolver exclusivamente perfiles de caja EVENTUAL ausentes con el propietario; si una regla no está disponible, no inferirla. Respetar la exclusión manual, horas de contrato, reglas registradas y el scope de la excepción de apertura. No pedir otra vez la dotación.
+2. Con perfiles completos y el POM privado original `pom.pdf`, ejecutar ambos motores localmente: `AH2_ENSAYO_DIR=<carpeta privada> AH2_ENSAYO_SEGUNDOS=120 npx vitest run src/hibrido/__tests__/ensayo-privado.local.test.ts`. Si no existe el POM privado, el propietario debe volver a adjuntarlo.
+3. Entregar comparación A/B, horas caja individuales, cobertura, faltantes, supervisión y PDF no oficial si el plan es válido. Documentar ausencia de antecedente dominical si persiste y no certificar descanso intersemanal sin evidencia. Registrar aquí solo métricas agregadas, no datos personales.
+4. No merge, no despliegue, no escrituras Supabase, no migraciones, no cambios Prestify ni contratación. Piloto web posterior al ensayo.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo privado 091: POM real leído, excepción de apertura implementada; dotación real NO accesible · 20/11/2026, Claude
+
+**Estado: BLOQUEADO SOLO POR DATOS.**
+- El propietario autorizó el ensayo privado con el PDF POM de la semana 23–29/11/2026 y la dotación vigente de la 091 en solo lectura.
+- La excepción de apertura aprobada (AH2-037) ya está implementada y probada en A, B, el contrato, ambos validadores, la salida y el PDF.
+- **No se generó una planificación real:** la dotación vigente de la 091 no es accesible desde esta sesión y no se inventaron disponibilidades ni perfiles.
+- El piloto móvil sigue en pausa: va después del ensayo, según la prioridad ratificada.
+
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Datos reales solo en una carpeta privada fuera de los repositorios. Esta sección es el único estado vigente; las siguientes son historia.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador): base `74cebc9caa34f0dcb139bc5f4f4c903d79de3991`, con los commits del propietario `b77782c`, `452f244`, `0fa72de` y `74cebc9` integrados. Esta entrega está en el commit que contiene esta sección; el SHA figura en el PR.
+- aliada-optimizer PR #6 (borrador): **`64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`**, sobre `f764caf`.
+- Sin force-push. Al subir encontré los commits nuevos del propietario y los integré antes de continuar. Mi borrador anterior trataba la apertura como decisión pendiente; lo corregí según el MASTER: la regla está aprobada y solo faltaba implementarla.
+
+### Contraste de bloqueos con el MASTER
+
+| Bloqueo | Estado real |
+|---|---|
+| Apertura con AUX único de 08:00 a 09:00 | **Aprobada** (AH2-037). **Implementada ahora**; no se pide otra decisión. |
+| Comparabilidad AUX/EVENTUAL | **DIAS en laboratorio** (decisión del propietario); no se reabre. |
+| Dotación vigente de la 091 | **Dato faltante:** sin acceso. |
+| Perfiles de caja EVENTUAL | **Dato faltante:** no se infieren. |
+| Tres o más AUX simultáneos | Política pendiente **solo si ocurre** en la dotación real; no se puede verificar sin ella. |
+
+### Implementado y probado
+1. **Excepción AH2-037** (`excepcion_apertura_aux_unico`, matriz opt-in por día y franja, solo 08:00–09:00):
+   - **A:** `politicaRecursos.aperturaAuxUnicoAutorizada`, pasada 2, K/Kd de AH2-040, analizador y validador independiente (`POLITICA_APERTURA_SUPERVISION` solo si falta la excepción). Además el adaptador, el multi-arranque y el contrato A→B.
+   - **B:** `support.apertura_aux_unico_autorizada`, `static_violations`, `ah2040.masks`, analizador, y `validate_input`, que rechaza valores fuera de la franja.
+   - **Salida y PDF:** `excepcionApertura`, con la configuración y las franjas aplicadas.
+   - **Pruebas en ambos motores:**
+     - activada: el AUX único está en caja toda la franja, cuenta como hora-caja AUX y no genera bloqueo ni infracción;
+     - desactivada: se mantiene el bloqueo;
+     - parcial por día;
+     - fuera de franja: se rechaza;
+     - otra sucursal sin configuración: rige la regla ordinaria.
+2. **PDF POM real** leído con el lector actual: solo la semana y «Estimado de cajas necesarias». Resultado: lunes 23/11, 31 franjas, 203 con demanda, **402 horas-caja**, sin avisos. La matriz no se versiona.
+3. **Ejecutor del ensayo, sin datos** (`src/hibrido/__tests__/ensayo-privado.local.test.ts`, omitido sin `AH2_ENSAYO_DIR`): PDF → POM → dotación → adaptador de la app → A + CP-SAT real → validación → selección → salida, comparación A/B (`candidatos`) y PDF. Con dotación REAL se niega a generar sin perfiles de caja EVENTUAL.
+4. **Prueba de humo técnica, NO real:** POM real + estructura sintética S47 del repositorio + excepción de apertura, 120 s.
+
+   | Motor | Cobertura | Faltantes | Sobrantes | Validez |
+   |---|---:|---:|---:|---|
+   | A | 98,76 % | 5 h | 0,5 h | válido |
+   | B | 99,88 % | 0,5 h | 3 h | válido |
+
+   - Elegido B, con 0 infracciones y sin bloqueos; la excepción se aplicó en 14 franjas.
+   - B tarda ≈ 76 s en probar el óptimo de faltantes y la fase de sobrantes queda FEASIBLE a los 120 s.
+   - **Con 30 s, B no completa la primera fase de forma óptima: se necesitan ≈ 120 s.**
+
+### Pruebas (locales)
+- **A:**
+  - TypeScript OK;
+  - **Vitest 543 aprobadas, 10 omitidas** (2 del ejecutor privado);
+  - build OK;
+  - **Playwright 21 aprobadas, 1 omitida** (con CP-SAT local).
+- **B:** **pytest 134 aprobadas, 1 omitida**.
+- CI: ver los checks en los PR.
+
+### Impedimentos reales (solo datos)
+1. **Acceso a la dotación vigente de la 091.** El conector de Supabase de esta sesión solo ve la organización con `noven-ia` y `Barberos`; ninguno tiene las tablas de Horarios. El sitio `al-iada` usa otro proyecto, no accesible desde aquí. El respaldo de la app (`aliada-backup`) no incluye la dotación.
+2. **Perfiles de caja de cada EVENTUAL:** acreditación, reservas de función habitual y tope si existe.
+3. Opcional: salidas del domingo 22/11, para el descanso de 12 h el lunes.
+
+### PRÓXIMO PASO EXACTO
+1. **Acción del propietario**, una de dos:
+   - **(a)** en claude.ai → Configuración → Conectores → Supabase, conectar la cuenta u organización dueña del proyecto de horarios.aliadaapps.com (lectura), para leer `colaboradores` y `reglas_configurables` de la sucursal 091 con `SELECT`;
+   - **(b)** pegar en la conversación la dotación de la 091, con nombres reemplazables por seudónimos:
+     - FULL/PART con horas semanales;
+     - horario por día de cada AUX y cada EVENTUAL;
+     - reglas activas de la sucursal;
+     - perfil de caja de cada EVENTUAL.
+2. Con los datos: `AH2_ENSAYO_DIR=<carpeta privada> AH2_ENSAYO_SEGUNDOS=120 npx vitest run src/hibrido/__tests__/ensayo-privado.local.test.ts`. Entregar al propietario la comparación A/B, la cobertura, los faltantes por franja, las horas-caja individuales FULL/PART/AUX/EVENTUAL, el cumplimiento contractual y la supervisión, y el PDF A4 de la mejor planificación válida. Registrar aquí solo métricas agregadas.
+3. Después del ensayo: retomar el piloto web privado (Cloud Run con autorización separada).
+
+---
+
+## RELEVO ANTERIOR (historia) — Aliada Horarios 2.0 integral en laboratorio, lista para ensayo privado 091 · 20/11/2026, Claude
+
+**Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.**
+- Flujo completo funcionando **en laboratorio**: interfaz → A + CP-SAT → validación → propuesta única → PDF no oficial, con DIAS como comparabilidad de la política v1 de laboratorio.
+- **No productivo:** sin publicación, persistencia, despliegue ni merge.
+- El ensayo con datos reales de la 091 está **preparado pero no ejecutado**: falta la autorización específica y hay bloqueos de política abiertos.
+
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Objetivo posterior al ensayo privado: versión de prueba accesible desde el celular, con carga directa del PDF POM, dotación existente y motor híbrido real.** Continuar desde esta entrega, sin reemplazar producción. Reutilizar lector PDF POM y adaptador existentes (solo «Estimado de cajas necesarias» y semana, validación estricta y vista previa); no requerir JSON manual. Preparar entorno separado, autenticado y restringido al supervisor autorizado de 091; lectura de dotación solo mediante sesión y RLS, sin exportar datos personales ni efectuar escrituras. Mantener perfiles/condiciones y resultado no oficial, con bloqueo visible de políticas abiertas. Preparar servicio HTTP CP-SAT autenticado, contenedor, pruebas y configuración de preview aislada; no exponer el puente Vite ni credenciales ni afirmar que A solo es híbrido. Publicación de prueba únicamente si se dispone de acceso autorizado, aislamiento efectivo y sin crear recursos facturables ni transferir datos reales al servicio externo sin autorización específica; de lo contrario entregar el bloqueo exacto y el paso mínimo para resolverlo. No merge, publicación productiva, migraciones ni cambios Prestify. No iniciar ensayo real hasta autorización específica de datos; apertura ya aprobada en MASTER AH2-037. El propietario busca una URL verificable, no otra ronda de alternativas de AH2-040.
+
+**Prioridad inmediata ratificada por el propietario (20/11/2026):** probar el motor híbrido con el PDF POM real que adjunte directamente a Claude, antes de desplegar o contratar infraestructura. **Regla local 091 aprobada:** de 08:00 a 09:00, si hay un único AUX/supervisor, puede cubrir caja sentado durante toda la hora cuando hay demanda, sin requerir otro supervisor ni supervisión externa. Configurable por sucursal y franja, opt-in; no generalizar fuera de la excepción. Contabilizar como hora-caja AUX, no doble función simultánea. MASTER AH2-037 actualizado (`b77782c`). Implementación efectiva pendiente: adaptar ambos motores, cálculo K/Kd, preflight, contrato, validadores y reporte; probar excepción activada/desactivada, otra sucursal y fuera de franja, sin cambiar producción. No inventar supervisión externa. No volver a preguntar esta regla. Una vez que el propietario adjunte PDF y autorice uso de dotación real, ejecutar el ensayo privado local A+B y entregar PDF A4 no oficial y métricas, con las restantes restricciones vigentes. No usar datos reales en repositorios o CI.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `1ceec90afa14f4d1108480f70f43b6f5faf39164`, con los commits documentales del propietario `e3de37a` y `1ceec90`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `42ce7b9bdbd8e10d01165d42c8ee8c8d3bb19735`;
+  - entrega **`f764cafac2d95e996efb73d00948ff2d16ad1547`**.
+- Sin force-push. No se agregaron alternativas de comparabilidad nuevas.
+
+### Estado por componente
+
+| Componente | Estado | Evidencia |
+|---|---|---|
+| AH2-040 DIAS (política v1 de laboratorio) | **Activo en laboratorio** en A (`motorAConPolitica` → `ejecutarAH2040`), B (`politica_laboratorio_v1`) y ambos validadores. Motor productivo sin cambios. | `src/hibrido/politica.ts`, `optimizer/contrato.py`, pruebas de política |
+| Defecto corregido: EVENTUAL a 0 h en A con política v1 | El orquestador usaba `ejecutarAlgoritmo`, que con política v1 y sin tope deja a todo EVENTUAL en 0 h. Ahora lo acota la regla y su perfil. | `laboratorio.test.ts` |
+| Defecto corregido: preflight incoherente con B | La pasada 2 emitía «comparación pendiente» aunque hubiera un modo vigente. Ahora se omite con modo, igual que B. | `pasada2-auxiliares.ts`, e2e |
+| Interfaz integrada (`lab-condiciones.html`) | Carga de POM y dotación (demo o JSON local, con el mismo adaptador de la app); condiciones DEBE/PREFERIRÍA; A + CP-SAT con progreso real y cancelación; propuesta única; cobertura, faltantes, supervisión y horas-caja; AH2-040 (comparables, sin comparable, faltantes atribuibles y sin personal); bloqueos; PDF no oficial. | `src/condiciones/laboratorio.tsx`, `e2e/hibrido.e2e.ts` |
+| CP-SAT desde la interfaz | Middleware **solo de `vite dev`** con `AH2_LAB_CPSAT_DIR`: loopback, 2 MB, NDJSON con fases en vivo. Fuera del build (`dist/` sin `/__lab` ni `child_process`). | `src/hibrido/servidorLab.ts`, `transporteHttpLab.ts` |
+| Progreso real de B | `solve(on_phase=)` y `contrato --progreso`: cada fase lexicográfica en vivo. | `tests/test_contrato.py` |
+| Bloqueos visibles | `salida.bloqueos`: `POLITICA_AUX_MULTIPLE`, `POLITICA_APERTURA_SUPERVISION`, `EV_CAJA_*`, `DATOS_*`. | `laboratorio.test.ts` |
+| Infraestructura de B | **Propuesta** sin contratar: Cloud Run con escala a cero y JWT de Supabase. ≈ USD 0 por mes con el volumen de la 091 (verificar). | `docs/HIBRIDO_INFRAESTRUCTURA.md` |
+| Ensayo privado 091 | **Procedimiento listo, no ejecutado.** Sin acceso a datos reales. | `docs/ENSAYO_091_PRIVADO.md` |
+
+### Pruebas (resultados reales, locales)
+- **A:**
+  - TypeScript OK;
+  - **Vitest: 539 aprobadas, 8 omitidas** (6 nuevas en `src/hibrido/__tests__/laboratorio.test.ts`, entre ellas el servidor HTTP con CP-SAT real);
+  - build OK.
+- **Playwright:**
+  - con `AH2_LAB_CPSAT_DIR`: **21 aprobadas, 1 omitida**, incluida la **prueba integral interfaz → A + CP-SAT real → PDF**;
+  - sin CP-SAT (como en CI): la integral se omite y la de solo A pasa.
+- **B:** **pytest 130 aprobadas, 1 omitida**.
+- **Corrida integral observada** (sucursal sintética, 8 s):
+  - fases de CP-SAT faltantes → cobertura ponderada → sobrantes → uso eventual → equidad → preferencias, todas OPTIMAL, en 4,2 s;
+  - A y B válidos; B no mejora a A, así que se conserva A;
+  - cobertura 68,99 % y 80 h de faltantes;
+  - ev-a 36 h ≤ aux-t 48 h; ev-b sin AUX comparable;
+  - 0 incumplimientos y PDF descargado.
+- CI remota: ver los checks de los HEAD en los PR. La CI de Estimapres no ejecuta CP-SAT porque no tiene el repositorio hermano; esa parte se verificó localmente con los SHAs de esta entrega.
+
+### Bloqueos reales
+1. **Autorización específica** para usar el POM y la dotación reales de la 091 (`docs/ENSAYO_091_PRIVADO.md` §1).
+2. **Tres o más AUX simultáneos:** sin generalización. B devuelve `DATOS_INCOMPLETOS` y la salida lo muestra como bloqueo.
+3. **Apertura con AUX único 08–09:** excepción local ya aprobada; falta implementarla y probarla, no decidirla.
+4. **Perfiles de caja EVENTUAL reales** (acreditación, reservas y topes) y fichas PART completas para la 091.
+5. **Infraestructura de B:** decisión y autorización (Cloud Run recomendado; sin contratar).
+6. AH2-040 DIAS sigue siendo de laboratorio: costos conocidos en D1/N3 y AUX de días parciales; falta la homologación productiva.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales.
+
+### PRÓXIMO PASO EXACTO (Claude / Work)
+1. Verificar HEAD y leer MASTER. Contrastar cada bloqueo del relevo y documentos auxiliares con las decisiones aprobadas: nunca volver a pedir una decisión ya registrada; distinguir regla aprobada, implementación pendiente y prueba faltante. Si un documento secundario contradice al MASTER, corregirlo antes de actuar. Procedimiento de ensayo alineado en `0fa72de`.
+2. Implementar y probar la excepción configurable de apertura AH2-037 en A, B, contrato, preflight y ambos validadores, sin exigir supervisión externa en la franja autorizada. No cambiar producción.
+3. Con PDF adjunto y autorización específica para datos reales, extraer semana y necesidad de cajas, obtener dotación de solo lectura y ejecutar A+B local según el procedimiento privado. Resolver únicamente datos faltantes y políticas realmente pendientes aplicables a esa semana; no inventar datos ni bloquear por reglas ya aprobadas.
+4. Entregar planificación válida, PDF A4 no oficial y métricas comparativas; registrar únicamente métricas agregadas sin datos personales en este relevo.
+5. Solo después del ensayo, preparar acceso web privado. Cloud Run requiere autorización separada de infraestructura y tratamiento de datos; sin contratar ni publicar por ahora.
+
+---
+
+## RELEVO ANTERIOR (historia) — DIAS e integración híbrida operativa de laboratorio · 20/11/2026
+
+**Estado: CONTINUIDAD AUTORIZADA DE LABORATORIO; implementación siguiente pendiente.** Tras recomendar DIAS (no DIAS_CAPACIDAD), el propietario indicó «Sigamos». Se interpreta como autorización para continuar con DIAS en la política v1 de laboratorio, sin homologación operativa final ni autorización de publicación. MASTER AH2-040 actualizado en el commit documental e3de37a8d4446c57c38f655c71f8cb9272649ec9. Agente receptor: Claude (Work cuando esté disponible).
+
+### Punto de partida verificado
+- Estimapres PR #60, borrador, rama `feat/ah2-integracion-hibrida-work-claude`: último código `0a2b7eddc44cd3772ed39226213b139bf71b00e6`, CI verde; HEAD documental actualizado (consultar PR).
+- aliada-optimizer PR #6, borrador, rama `feat/integracion-aliada-work-claude`: HEAD `42ce7b9bdbd8e10d01165d42c8ee8c8d3bb19735`, CI verde.
+- Revisar los HEAD vigentes antes de escribir; no rehacer AH2-036–040 ni contrato/orquestador/PDF de laboratorio existentes.
+
+### Decisión de continuidad y límites
+- DIAS: AUX con capacidad efectiva de caja sin descubrir supervisión, al menos una franja común y capacidad de caja en todos los días de oportunidad del EVENTUAL. Aplicar total semanal EVENTUAL ≤ cada AUX comparable, sin promedios. No excluir por mayor disponibilidad del EVENTUAL; sin comparable no inventar tope cero. Mantener reservas, topes acreditados y prioridad FULL/PART → AUX → EVENTUAL, incluida simultaneidad permitida.
+- Limitaciones medidas aceptadas para continuar el ensayo: D1 +66 h, N3 +28 h; S2/S6/S8 sin comparación con AUX de días parciales. Reportar explícitamente estas situaciones y costo de cobertura. No se declara resuelto todo caso de tres o más AUX ni se alteran excepciones de supervisión.
+- Sin acceso a datos personales reales ni a Supabase por esta instrucción. Sin merge, deploy, migraciones, cambios Prestify, contratación ni publicación de horarios.
+
+### Próximo paso exacto
+1. Fijar DIAS en ambos motores y validadores para la política v1 exclusivamente en el entorno de laboratorio; retirar el bloqueo de comparación pendiente solo allí al validar esa política; alternativas solo de laboratorio; mantener noOficial/publicable=false y comportamiento heredado sin cambios.
+2. Conectar interfaz aislada al orquestador existente incluyendo transporte CP-SAT local del servidor Node, progreso real, selección única verificada, diagnósticos de fallos y PDF A4 no oficial. Mostrar comparables por persona, horas-caja y faltantes atribuibles, distinguiendo falta de personal y otras reglas. No persistir datos.
+3. Ejecutar regresiones, matrices relevantes y prueba extremo a extremo de ambos repositorios con CP-SAT real, ligada a SHAs exactos; documentar cualquier paso omitido en CI. No confundir resultado sintético con validación real.
+4. Preparar procedimiento reproducible para ensayo privado de la 091 (sin datos reales hasta autorización específica) y alternativas de alojamiento B con costos, autenticación, privacidad, timeout y limpieza; sin contratar. Reportar qué impide el ensayo, incluidos tres o más AUX simultáneos y reglas de apertura, sin decidir excepciones unilateralmente.
+5. Actualizar este relevo único, MASTER si corresponde y PRs en borrador con evidencia y SHAs. No homologar producción.
+
+---
+
+## RELEVO ANTERIOR (historia) — cierre técnico AH2-040 e integración híbrida de laboratorio · 20/11/2026, Claude
+
+**Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.**
+- AH2-040 tiene una recomendación técnica definitiva (DIAS_CAPACIDAD), pero su **activación definitiva sigue BLOQUEADA** por una ambigüedad material documentada.
+- La integración híbrida está preparada **en laboratorio**: generación híbrida productiva NO habilitada, sin persistencia oficial ni merge.
+
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Reglas aprobadas (no se rediscuten):**
+1. FULL/PART: 100 % contractual en caja.
+2. AUX: prioridad sobre la demanda residual, con supervisión obligatoria.
+3. EVENTUAL: solo demanda residual, preservando su función habitual, cualquiera sea.
+4. AUX y EVENTUAL pueden atender caja simultáneamente cuando el POM lo requiere.
+5. Ningún EVENTUAL supera en horas-caja semanales a un AUX realmente comparable.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `90a97eafb39c1f2792c812e2ceaf60b59af29863`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `1ab445f289e4874c8857d336c491018d818620fd`;
+  - comparabilidad: **`9a5d54a374d80b69c65a959fc210f6ac200be014`**;
+  - contrato: **`42ce7b9bdbd8e10d01165d42c8ee8c8d3bb19735`** (HEAD).
+- Sin force-push. No se rehicieron AH2-036–039 ni las implementaciones anteriores de AH2-040.
+
+### Etapa 1 — Comparabilidad AH2-040 (implementado y medido)
+- **Nuevos modos** en A, B y ambos validadores:
+  - `DIAS_CAPACIDAD`: DIAS + |K(a)| ≥ min(|O(e)|, tope);
+  - `SATURACION`: min(caja(e), |K(a)|) ≤ caja(a), modelado con una variable mínimo en CP-SAT.
+- **Escenarios nuevos:** D1 (mismos días, jornada muy distinta) y N3 (AUX corto con capacidad ociosa).
+- **Descomposición por franja del faltante:** sin personal + otras reglas obligatorias + perdido por la definición. Cierra exactamente en las 98 corridas.
+- 14 escenarios × 7 modos: las 98 corridas B terminaron OPTIMAL, con 0 infracciones en A y B y validación cruzada completa.
+- **Horas perdidas por definición (B):**
+
+  | Escenario | DIAS | DIAS_CAPACIDAD | SATURACION |
+  |---|---:|---:|---:|
+  | D1 | 66 | 0 | 0 |
+  | N3 | 28 | 0 | 28 |
+  | N1 (relación válida) | 4 | 4 | 4 |
+  | N2 / S5 / S7 / Z1 | 24–48 | 0 | 0 |
+
+  **DIAS falla la comprobación de jornadas muy distintas.**
+- **Corrección en A:** el reparto de identidad AUX rotativa prioriza a los AUX comparables. Donde la relación limita al EVENTUAL, A = B; la excepción medida es N3, porque CP-SAT reacomoda jornadas PART.
+- **Recomendación técnica definitiva: DIAS_CAPACIDAD** (`docs/AH2-040_COMPARABILIDAD.md` §5.3).
+- **Ambigüedad material residual** (§5.4): un EVENTUAL con más oportunidad efectiva semanal que todo AUX de los mismos días (N2: AUX de 48 h frente a EVENTUAL de 72 h sin tope) queda sin comparación. Su carga la acota el perfil AH2-037.
+
+### Etapa 2 — Integración híbrida de laboratorio (implementado y probado)
+- **Contrato `aliada-hibrido/1`:**
+  - sobre con SHA-256 canónico, idéntico en TypeScript y Python (sobre de referencia compartido);
+  - lista blanca A→B, mapeo del antecedente dominical y bloqueo ante campos no transportables;
+  - validación estricta de la respuesta.
+
+  Archivos: `src/hibrido/contrato.ts` y `optimizer/contrato.py`.
+- **Transporte inyectable** con timeout. Proceso aislado de laboratorio `python -m optimizer.contrato` (Node), sin red ni disco.
+- **Orquestador** (`src/hibrido/orquestador.ts`):
+  - A siempre primero y como respaldo;
+  - validación independiente de A y B con los validadores de A;
+  - nunca usa un resultado con infracciones;
+  - elige B solo si es estrictamente mejor;
+  - sin candidato válido, no hay propuesta.
+- **Salida única** `aliada-salida-unica/1`, no oficial: cobertura POM, faltantes y sobrantes por franja, horas por persona, conflictos, condiciones DEBE/PREFERIRÍA, disponibilidad EVENTUAL y comparabilidad.
+- **PDF A4** «PRUEBA NO OFICIAL — NO PUBLICAR» (`src/hibrido/pdfPrueba.ts`). No se versiona (`*.pdf` en `.gitignore`); se regenera con `AH2_HIBRIDO_OUT=docs/evidencia npx vitest run src/hibrido`.
+- Detalle en `docs/HIBRIDO_LAB_V1.md`.
+
+### Etapa 3 — Pruebas (resultados reales, locales)
+- **A:**
+  - TypeScript OK;
+  - **533 Vitest aprobadas, 8 omitidas** (12 nuevas en `src/hibrido/__tests__/hibrido.test.ts`, incluida la integración con el proceso CP-SAT real; omitida en CI sin el repositorio hermano);
+  - build OK;
+  - **Playwright local 19 aprobadas, 1 omitida** (Chromium preinstalado).
+- **B:** **129 pytest aprobadas, 1 omitida** (5 nuevas en `tests/test_contrato.py`; comparabilidad ampliada).
+- CI remota: ver los checks de los HEAD en los PR.
+- Evidencia:
+  - `docs/evidencia/ah2040-comparabilidad.csv` (196 filas);
+  - `docs/evidencia/ah2040-comparabilidad-perdida-por-franja.csv`;
+  - `docs/evidencia/salida-unica-sintetica.json`.
+
+### Bloqueos reales
+1. **Decisión del propietario sobre la pregunta única de AH2-040 §5.4**: ¿una mayor oportunidad efectiva semanal del EVENTUAL vuelve no comparable a un AUX de los mismos días? Sí → DIAS_CAPACIDAD (recomendada); No → DIAS.
+2. **Ejecución productiva de B:** alojamiento, costo, autenticación y limpieza de datos sin decidir ni autorizar. No se contrató nada.
+3. Tres o más AUX simultáneos siguen pendientes.
+4. Datos reales de la 091 solo en un entorno privado autorizado.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos personales en GitHub.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks (`test-build`, `browser`, `offline`).
+2. Presentar al propietario `docs/AH2-040_COMPARABILIDAD.md` §5.3–5.4 y registrar en el MASTER su respuesta.
+3. Con la respuesta:
+   - fijar el modo homologado como regla de la política v1 en A, B y ambos validadores (con versión);
+   - retirar `POLITICA_EV_COMPARACION_PENDIENTE`;
+   - repetir `ah2040_comparabilidad_lab` y las suites.
+4. Proponer al propietario la opción de ejecución de B (worker o servicio) con costos. Sin autorización, conectar solo en laboratorio la interfaz al orquestador (`generarPropuestaHibrida` con `transporteProceso` local), sin aprobación ni publicación automáticas.
+5. Ensayo privado de la 091 con datos reales fuera de GitHub, revisando la salida única y el PDF no oficial.
+
+---
+
+## RELEVO ANTERIOR (historia) — AH2-040 simultaneidad y comparabilidad semanal · 20/11/2026, Claude
+
+**Estado: AVANCE VERIFICABLE. ACTIVACIÓN DEFINITIVA DE AH2-040 BLOQUEADA** por un único caso de comparabilidad pendiente del propietario. Sin merge ni despliegue. Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Decisiones aprobadas vigentes (no se rediscuten):**
+- La prioridad es FULL/PART → AUX → EVENTUAL, sin exclusividad temporal.
+- AUX y EVENTUAL pueden atender caja **simultáneamente** cuando el POM lo requiere y la supervisión está garantizada.
+- Ningún EVENTUAL supera en horas-caja **semanales** a un AUX realmente comparable.
+- Una sola franja compartida no demuestra equivalencia de disponibilidad semanal.
+- EVENTUAL puede venir de cualquier función.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `5faad6e0f153ec8df5e93c0be440536bf62f71f6`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `5d0fe3bb51c421efcb82b89a7d726f5a5614364d`;
+  - entrega **`1ab445f289e4874c8857d336c491018d818620fd`**.
+- Sin force-push. No se rehicieron AH2-036–039, los perfiles EVENTUAL ni la implementación SEMANAL.
+
+### Cambios
+- **Simultaneidad AUX + EVENTUAL, auditada.** Los dos motores y sus validadores calculan la cobertura contra el residual, sin exclusividad temporal. No hubo error de código.
+  - Pruebas explícitas en A y B (fixture Z1): con 4 cajas, **2 PART + AUX + EVENTUAL a la vez**, sin sobrantes ni infracciones.
+  - Negativos detectados: EVENTUAL con un AUX elegible ocioso (`ORDEN_RESIDUAL` en B, `OP_PRIORIDAD_AUX` en A) y sobrante por simultaneidad (`OP_COBERTURA_DUPLICADA` en A).
+- **Alternativas de comparabilidad sin umbral numérico**, implementadas en A, B y ambos validadores (`comparacion_aux_eventual.modo`):
+  - `OPORTUNIDAD`: |K(a)| ≥ min(|O(e)|, tope);
+  - `DIAS`: el AUX tiene capacidad de caja todos los días con oportunidades del EVENTUAL;
+  - se suman a `SEMANAL` y `PC`.
+- **Corrección en A:** con roles AUX rotativos, el reparto de identidad asigna los tramos intercambiables primero al AUX comparable. En S3/DIAS, A pasa de 138 a 106 h de faltantes, igual que B.
+- **Evidencia:**
+  - `docs/AH2-040_COMPARABILIDAD.md`;
+  - `docs/evidencia/ah2040-comparabilidad.csv` (120 filas);
+  - aliada-optimizer `results/ah2040_comparabilidad/`;
+  - nota en el MASTER AH2-040, sin cambio de estado.
+
+### Pruebas (resultados reales, locales)
+- A: TypeScript OK; **521 Vitest aprobadas, 8 omitidas** (5 nuevas en `ah2040-comparabilidad.test.ts`); build OK.
+- B: **123 pytest aprobadas, 1 omitida** (4 nuevas en `tests/test_ah2040_comparabilidad.py`).
+- 12 escenarios (S1–S9, N1, N2, Z1) × 5 modos. Las 60 corridas B terminaron OPTIMAL.
+  - 0 infracciones en los verificadores A y B; validación cruzada completa.
+  - Relaciones idénticas en A y B.
+  - **Donde la relación limita al EVENTUAL, A = B en faltantes.**
+  - La caja AUX total nunca cambia.
+- **Resultados clave (faltantes B, P0 → modo):**
+
+  | Escenario | P0 | SEMANAL | DIAS | OPORTUNIDAD | PC |
+  |---|---:|---:|---:|---:|---:|
+  | S9 (AUX solo una hora el sábado) | 129 | 200 | 129 | 129 | 129 |
+  | N1 (misma disponibilidad efectiva) | 116 | 120 | 120 | 120 | 116 |
+  | N2 (AUX de jornada completa) | 82 | 106 | 106 | 82 | 82 |
+  | S2 | 93 | 116 | 93 | — | — |
+  | S6 | 94 | 154 | 94 | — | — |
+  | S8 | 122 | 132 | 122 | — | — |
+
+  - N1: con PC no se impone nada.
+  - N2: con OPORTUNIDAD el EVENTUAL queda en 72 h contra 48 h del AUX.
+- **Conclusión:** PC y OPORTUNIDAD contradicen relaciones exigidas por la regla ratificada (N1 y N2) y quedan descartadas. Las finalistas son SEMANAL y DIAS.
+
+### Bloqueo (único caso pendiente del propietario)
+¿Es «realmente comparable» un AUX con capacidad de caja **solo en parte de los días** en que el EVENTUAL puede atender?
+- **Sí → SEMANAL.** S9 pierde 71 h; S6 limita al EVENTUAL al menor de los AUX parciales; S3 incluye a los supervisores rotativos.
+- **No → DIAS.** S9 queda resuelto, pero un EVENTUAL que solo suma días fuera de los del AUX (S2, S8) o con AUX parciales (S6) queda sin comparación.
+
+No se homologó ninguna de las dos ni se inventó un umbral. La activación definitiva en la política v1 sigue bloqueada, igual que el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` fuera de los modos de laboratorio.
+
+Otras limitaciones:
+- Tres o más AUX simultáneos siguen pendientes.
+- A es heurístico donde no hay límite (hasta 12 h menos que B).
+- Evidencia sintética.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD y los checks de #60 y #6 (`test-build`, `browser`, `offline`).
+2. Presentar al propietario `docs/AH2-040_COMPARABILIDAD.md` §3–4 y registrar en el MASTER su respuesta a la pregunta única: SEMANAL o DIAS.
+3. Con la respuesta:
+   - activar ese modo como regla de la política v1 en A, B y ambos validadores, con versión;
+   - retirar el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE`;
+   - eliminar del código las alternativas descartadas o dejarlas solo en el laboratorio;
+   - repetir las matrices `ah2040_semanal_lab` y `ah2040_comparabilidad_lab` y las suites.
+4. Después: interfaz/PDF con los comparables y los faltantes por persona, transporte A→B y ensayo offline autorizado de la 091.
+
+---
+
+## RELEVO ANTERIOR (historia) — AH2-040 regla semanal EVENTUAL ≤ AUX comparable · 20/11/2026, Claude
+
+**Estado: IMPLEMENTACIÓN TÉCNICA DE AH2-040 COMPLETADA EN LABORATORIO (A, CP-SAT B y ambos validadores), con evidencia reproducible.** No publicable ni activada por defecto. Sin merge ni despliegue. Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Regla aplicada (aprobada; no se rediscute):**
+1. FULL/PART: 100 % de las horas contractuales en caja.
+2. AUX: prioridad sobre la demanda residual, manteniendo la supervisión.
+3. EVENTUAL: solo demanda residual, respetando sus funciones habituales.
+4. Ningún EVENTUAL supera en horas-caja **semanales** a un AUX realmente comparable y habilitado para caja.
+
+EVENTUAL puede venir de cualquier función. P3 y los perfiles de disponibilidad no sustituyen esta regla.
+
+**Aclaración expresa del propietario (19/11/2026):** AUX y EVENTUAL **sí pueden atender cajas simultáneamente** cuando el POM requiere ambas y se conserva la supervisión. El orden FULL/PART→AUX→EVENTUAL determina la prioridad de asignación, **no exclusividad de franjas**. No confundir este permiso con la regla semanal comparativa ni con el test de solapamiento de horarios. La regla semanal sigue obligatoria; el caso S9 de una hora de superposición no está homologado como criterio general. MASTER AH2-036 actualizado solo documentalmente, sin cambios en producción. Próxima revisión técnica: pruebas explícitas de simultaneidad y definición no arbitraria de comparabilidad S9 sin alterar políticas aprobadas.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `5a92b7d2eb1149fc8982cb365fc9cbcaef570805`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `5ebf637e2453fa3515944c21ce512446300b18a4`;
+  - entrega **`5d0fe3bb51c421efcb82b89a7d726f5a5614364d`**.
+- Sin force-push. No se rehicieron AH2-036–039, P0–P3 ni los perfiles.
+
+### Código implementado
+- **Comparabilidad automática**, idéntica en A y B: `a` es comparable con `e` ⇔ K(a) ≠ ∅ y K(a) ∩ O(e) ≠ ∅.
+  - **K(a)** es la capacidad efectiva de caja del AUX: con demanda, sin el supervisor designado. El supervisor exclusivo tiene K = ∅; con roles rotativos, ambos AUX tienen K en las franjas compartidas.
+  - **O(e)** son las oportunidades del EVENTUAL: con demanda y disponibilidad acreditada, descontando reservas, corte y tope.
+  - Sin comparable no hay relación: no se fabrica un tope cero.
+- **Restricción de totales semanales (modo `SEMANAL` en `comparacion_aux_eventual`):** `caja(e) ≤ caja(a)` para **cada** AUX comparable, sin promedios.
+  - **B:** identidad AUX por franja dentro del modelo lexicográfico (`optimizer/ah2040.py`); `validator.evaluate` emite `AH2040_SEMANAL:e:a`.
+  - **A:** `ah2040.ts` reparte la identidad AUX rotativa por tramos (`balancearIdentidadAux`) y deriva el tope = mínimo de `caja(a)` entre los comparables.
+  - **Validador A:** `auditarEscenario` emite `OP_EVENTUAL_SUPERA_AUX_COMPARABLE` y, en este modo, reemplaza el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE`.
+- Se acumula con la disponibilidad acreditada, las reservas y los topes de AH2-037. No relaja ninguna restricción.
+- `solve(..., deterministic_time=)` (opcional, laboratorio) permite registrar estados FEASIBLE y UNKNOWN de forma reproducible.
+- Variante **PC** (contención) solo para documentar la ambigüedad.
+
+### Evidencia y pruebas (resultados reales)
+- A: TypeScript OK; **516 Vitest aprobadas, 8 omitidas** (8 nuevas en `ah2040-semanal.test.ts`); build OK.
+- B: **119 pytest aprobadas, 1 omitida** (10 nuevas en `tests/test_ah2040_semanal.py`).
+- 9 casos × 4 modos (P0, SEMANAL, PC, PT). Los casos cubren:
+  - turnos coincidentes y diferentes;
+  - supervisión rotativa;
+  - AUX solo supervisor;
+  - EVENTUAL que supera a un AUX;
+  - varios AUX comparables;
+  - demanda superior a la capacidad;
+  - cobertura parcial con perfiles;
+  - ambigüedad de solapamiento mínimo.
+- **Resultados de la matriz:** las 36 corridas B terminaron OPTIMAL, con 0 infracciones en todos los verificadores de A y B. Los 36 planes B se validaron con A.
+  - O, K y los pares comparables son idénticos en ambos motores.
+  - **Con SEMANAL, A = B en cobertura y horas en los 9 casos.**
+  - La caja AUX total nunca cambia.
+- **Costo de la regla (faltantes B, P0 → SEMANAL):**
+  - Caso 2: 93 → 116.
+  - Caso 3 (rotativos): 82 → 138.
+  - Caso 5: 106 → 154.
+  - Caso 6: 94 → 154 (EVENTUAL = mínimo, 12 h).
+  - Caso 7: 244 → 292.
+  - Caso 8: 122 → 132.
+  - Caso 9: 129 → 200.
+  - Casos 1 y 4: sin cambio.
+  - Faltantes por franja en `docs/evidencia/ah2040-semanal-faltantes-por-franja.csv`.
+- **Estados del solver** (presupuesto determinístico por fase):
+
+  | Caso | Presupuesto | Estado |
+  |---|---|---|
+  | S11 | 0,3 | UNKNOWN sin plan |
+  | S11 | 4,0 | FEASIBLE, plan válido |
+  | S3 | 0,12 | UNKNOWN con incumbente válido |
+  | S10 | — | INFEASIBLE (`HORAS_FUERA_PERFIL`, ajeno a la regla) |
+
+  La regla nunca produjo INFEASIBLE.
+- Documentación: `docs/AH2-040_SEMANAL.md`, `docs/evidencia/ah2040-semanal.csv`, nota técnica en el MASTER AH2-040 (sin cambiar el texto aprobado) y aliada-optimizer `results/ah2040_semanal/`.
+
+### Única ambigüedad técnica (documentada, no se rediscute la política)
+Caso 9: un AUX comparable con una sola hora común limita todo el total semanal del EVENTUAL (1 h, +71 h de faltantes).
+- **PC** (contención) anula la regla en todos los casos medidos.
+- **PT** (todo AUX) crea falsos conflictos en los casos 2 y 8.
+- **SEMANAL** es la lectura implementada. Solo queda abierto si un solapamiento mínimo debe bastar; no se inventó un umbral.
+
+### Limitaciones
+- A es heurístico: sin la regla cubre hasta 12 h menos que B (caso 5).
+- Tres o más AUX simultáneos siguen pendientes (`POLITICA_AUX_MULTIPLE`).
+- CP-SAT no penaliza la fragmentación de la identidad AUX.
+- El modo SEMANAL es opt-in: no está activado por defecto en la política v1, la interfaz, el PDF ni la persistencia.
+- Evidencia sintética, no un ensayo de la 091.
+- Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales. PR #60 y #6 siguen en borrador.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD y los checks de #60 y #6 (`test-build`, `browser`, `offline`).
+2. Registrar la decisión del propietario sobre la ambigüedad del caso 9 (`docs/AH2-040_SEMANAL.md` §3).
+3. Activar SEMANAL como parte de la política v1, con versión:
+   - por defecto en A y B cuando `politica_recursos_version=1`;
+   - eliminar el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` en esa versión;
+   - mostrar en la interfaz y el PDF, por persona, los comparables y los faltantes atribuibles;
+   - repetir estas matrices.
+4. Después: transporte A→B y ensayo offline autorizado de la 091, sin datos reales en GitHub.
+
+---
+
+## RELEVO ANTERIOR (historia) — disponibilidad efectiva de caja EVENTUAL · 20/11/2026, Claude
+
+**Estado: AVANCE DE LABORATORIO VERIFICABLE.** Protección operativa de cualquier EVENTUAL implementada y probada con datos sintéticos en A y B. **AH2-040 NO está completada**: faltan reglas de negocio. Nada homologado ni publicable.
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Aclaración vigente del propietario (19/11/2026):** EVENTUAL no implica reposición, maestranza ni puesto específico; puede provenir de cualquier función. Sus horas contratadas o su presencia no son automáticamente horas de caja. No crear perfiles sectoriales predeterminados. P3 sigue siendo propuesta técnica, no aprobación de AH2-040; su costo de cobertura cero no equivale a proteger la carga semanal eventual.
+
+**Ratificación operativa del propietario (20/11/2026):** la prioridad de cobertura es FULL/PART 100 % de horas contractuales en caja → AUX elegibles (respetando supervisión) → EVENTUAL residual. **Además, ningún EVENTUAL podrá superar en el total SEMANAL de horas-caja a un AUX efectivamente comparable.** P3 solo controla ventanas compartidas y no basta; los perfiles individuales de disponibilidad protegen funciones habituales pero tampoco sustituyen la equidad semanal. Si imponer la regla reduce cobertura, exhibir faltantes, sin relajar la política. **Pendiente** homologar matemáticamente qué AUX se compara en turnos parcialmente o no coincidentes y en roles rotativos; no asignar pares ni topes inventados ni aprobar P3 sola. El MASTER AH2-040/P3 registra esta decisión; no se autorizó implementación productiva, merge ni despliegue.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `859c5d763738b3a48bb993d0a77811d5d95ddc8b` (documental del propietario, sobre `5f24417`, con CI verde);
+  - el código, las pruebas y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base verificada `a7c560748601a8cd0de5b87ec2f7acd012f03776`;
+  - entrega **`5ebf637e2453fa3515944c21ce512446300b18a4`**.
+- Sin force-push. AH2-036–039 y la comparación P0–P3 no se rehicieron.
+
+### Cambios concretos
+- **Disponibilidad efectiva individual para caja**, distinta de la presencia. El campo opt-in `disponibilidad_caja_eventual` contiene perfiles por persona y sucursal, versionados por vigencia: se reutilizan semana a semana sin recarga.
+  - Acreditación explícita: `NO_ACREDITADA`, `PRESENCIA_MENOS_RESERVAS` o `TODA_LA_PRESENCIA`, con fuente.
+  - Reservas fijas de la función habitual, sin rótulo de sector ni puesto (un campo `sector` o `puesto` se rechaza).
+  - Horas mínimas de función habitual, máximo semanal opcional y horas contractuales informativas.
+  - Se compila sobre los campos **existentes**: `reservas_sector_eventual` (unión) y `max_caja_eventual_slots` (mínimo). Sin restricciones paralelas.
+  - A compila en `ejecutarAlgoritmo`; B, en `validate_input`. El adaptador traduce los IDs de la interfaz a los del motor.
+  - Módulos: `src/algoritmo/disponibilidadCajaEventual.ts` ↔ `optimizer/ev_caja.py`.
+- **Validaciones y diagnósticos:** sin perfil, perfil ambiguo, no acreditado, sin detalle, contradictorio o con función mayor que la presencia, la persona queda con **0 h de caja** y un diagnóstico que bloquea la publicación. Jamás se interpreta la presencia como caja.
+  - Advertencias: presencia mayor que contrato, reserva fuera de presencia y perfil desconocido.
+  - Un EVENTUAL acreditado sin tope conserva `POLITICA_EV_COMPARACION_PENDIENTE`.
+  - Sin valores por defecto.
+- **Verificadores independientes A/B:** caja sin acreditar, caja en reserva, caja sobre el tope y caja fuera de presencia.
+- **Reporte por persona (A = B):**
+  - FULL/PART: contrato y caja.
+  - AUX: presencia, caja, supervisión y K.
+  - EVENTUAL: acreditación, contrato, presencia, horas reservadas, función mínima, tope y su origen, disponibilidad efectiva, caja, disponibilidad restante y función habitual realizada.
+- **Análisis EVENTUAL > AUX:** clases COMPARABLE, PARCIALMENTE_COMPARABLE, NO_COMPARABLE y AUX_SOLO_SUPERVISION, con la causa en horas (AUX ausente, AUX sin capacidad, dentro de la capacidad) y la ventana P3.
+  - Modo de medición **PT**: límite semanal estricto contra todo AUX con capacidad de caja.
+  - Los modos P0–P3 no cambian.
+- **Evidencia:**
+  - `docs/EV_DISPONIBILIDAD_CAJA.md`;
+  - `docs/evidencia/ev-disponibilidad-caja.csv` (50 filas A/B);
+  - fixtures A `evCajaCasos.json` y `evCajaResultadosB.json`;
+  - aliada-optimizer `results/ev_caja/` (entradas y planes A/B);
+  - MASTER: notas de laboratorio en AH2-037 y AH2-040-P3, **sin cambio de estado**.
+
+### Pruebas ejecutadas (resultados reales, locales)
+- A: TypeScript OK; **508 Vitest aprobadas, 8 omitidas** (9 nuevas en `ev-caja-disponibilidad.test.ts`); build OK. ESLint sin configuración en el repositorio; no ejecutado. Playwright: verificar `browser` en la CI del PR.
+- B: **109 pytest aprobadas, 1 omitida** (15 nuevas en `tests/test_ev_caja.py`).
+- Laboratorio: 5 casos × 5 modos (HEREDADO, P0, P3, P2E, PT).
+  - Las 25 corridas B terminaron OPTIMAL (26 s, semilla 20261119, un worker).
+  - 0 infracciones en los tres verificadores de ambos motores.
+  - Los 25 planes B se validaron con A, con reporte y excesos idénticos. Diagnósticos idénticos.
+- **Resultados clave (faltantes en horas, B / A):**
+  - Caso 1: HEREDADO 26 / 42,5 → P0 80 / 90. La cobertura heredada era aparente: invadía 17 h de reservas, 23,5 h sin acreditar y 35 h por encima de la función mínima o del máximo (B).
+  - P3 = P0 en los 5 casos: P3 no protege la carga semanal.
+  - El caso 3 es NO_COMPARABLE (exceso de 44 h con el AUX ausente). Con el límite estricto PT pierde 44 h de cobertura sin pasar horas a ningún AUX.
+  - Caso 4: P2E/PT −32 h (B) y −34 h (A).
+  - Ningún par COMPARABLE con exceso en B. En A aparece solo con roles AUX intercambiables (límite heurístico conocido).
+
+### Decisiones
+- No se impuso ninguna fórmula de equidad ni límite semanal nuevo. PT y P2E son modos de medición.
+- P3 queda PROPUESTA. No se tomó ninguna decisión normativa nueva.
+
+### Bloqueos (pendientes del propietario)
+1. Homologar la comparabilidad de AH2-040 (P3 recomendada) y decidir si se suma un límite por totales, con el costo medido.
+2. Política para un EVENTUAL sin perfil acreditado: 0 h de caja más bloqueo (laboratorio) o solo bloqueo de publicación.
+3. Quién acredita, revisión y vigencias indefinidas.
+4. Valores reales de la 091.
+5. Persistencia y permisos: requieren una migración autorizada.
+6. Tres o más AUX.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify, gastos ni datos reales. PR #60 y #6 siguen en borrador.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks: `test-build`, `browser` y `offline`.
+2. Presentar al propietario `docs/EV_DISPONIBILIDAD_CAJA.md` §4 y `docs/AH2-040_EVALUACION.md`, y obtener las decisiones 1–3 de los bloqueos.
+3. Con esas decisiones:
+   - convertir el campo opt-in en regla de la política v1 en A, B y ambos validadores (con versión);
+   - diseñar la persistencia de perfiles por sucursal y vigencia (migración **solo con autorización**) y una pantalla de alta y revisión que no exija recarga semanal;
+   - agregar el reporte por persona al PDF y al resumen del supervisor.
+4. Cargar valores reales de la 091 solo en un ensayo offline autorizado, sin datos reales en GitHub.
+
+---
+
+## RELEVO ANTERIOR (historia) — evaluación AH2-040 · 19/11/2026, Claude
+
+**Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.** Evaluación AH2-040 completada en laboratorio. Ninguna alternativa aprobada; la política v1 sigue **no publicable**.
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las secciones siguientes son historia.
+
+**Aclaración posterior del propietario sobre la categoría EVENTUAL (19/11/2026):** EVENTUAL no significa repositor ni maestranza ni cualquier puesto específico; es personal de apoyo a caja proveniente de **cualquier función**. Cada colaborador conserva las obligaciones y horas necesarias de su función habitual real, según configuración individual/sucursal; sus horas contratadas no son automáticamente horas disponibles para caja. El MASTER AH2-037 y AH2-040-P3 y el contrato de integración fueron corregidos. **Solo documentación**, sin cambios de motor, tests ni autorización de P3; continúa pendiente su aprobación. No crear perfiles sectoriales predeterminados para EVENTUAL.
+
+### Ramas y SHAs
+- Estimapres PR #60, `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `16b8cdee164adcfb674a0579dc14021aecd9f2e8`, con CI `test-build` y `browser` en success antes de editar;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6, `feat/integracion-aliada-work-claude`:
+  - base verificada `2e5241ab3f59fcb0d1dd787fe2beb49c458000c0`, con CI `offline` en success;
+  - entrega **`a7c560748601a8cd0de5b87ec2f7acd012f03776`**.
+- Sin force-push. AH2-036–039 no se rehicieron.
+
+### Cambios concretos
+- **Definiciones comunes A/B** (`src/algoritmo/ah2040.ts` ↔ `optimizer/ah2040.py`):
+  - O(e): oportunidades del EVENTUAL;
+  - K(a): capacidad **efectiva** de caja AUX, descontando supervisión. El supervisor exclusivo tiene K = ∅;
+  - Kd(a): capacidad **determinada**, es decir, el único AUX que puede atender caja en la franja.
+- **Modos:**
+  - P0: sin relación;
+  - P1: pares explícitos con O ⊆ K;
+  - P2: automática por máximo solapamiento, comparando totales semanales;
+  - P2E: P2 contra todo AUX solapado;
+  - P3: ventana compartida con capacidad determinada (alternativa nueva).
+- Todo es opt-in con `comparacion_aux_eventual`, solo laboratorio, `publicable=False`. Sin ese campo, el comportamiento y el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` no cambian.
+- **B (CP-SAT):** variables de identidad AUX por franja, solo en modo experimental, y restricciones dentro del mismo orden lexicográfico. La extracción respeta la identidad.
+- **A:** la pasada 3 corre después de fijar la caja AUX. A deriva topes (P1, P2, P2E) o reservas (P3) y vuelve a correr comprobando que la caja AUX no cambie.
+- **Verificadores independientes** en ambos repositorios. Los 40 planes A y los 40 planes B se validan con **ambos** validadores (relación del modo y reglas existentes).
+- **Evidencia:**
+  - `docs/AH2-040_EVALUACION.md` (análisis y recomendación);
+  - `docs/evidencia/ah2040-comparacion.csv` (80 filas: cobertura, faltantes, sobrantes y horas-caja de cada AUX y EVENTUAL, horas sectoriales, relaciones e infracciones);
+  - aliada-optimizer `results/ah2040/` (entradas y planes);
+  - MASTER: AH2-040-P3 **PROPUESTO** y medición agregada a P1. Ninguna decisión aprobada cambió.
+
+### Pruebas ejecutadas (resultados reales)
+- A: TypeScript OK; **499 Vitest aprobadas, 8 omitidas** (7 nuevas en `ah2040-comparacion.test.ts`); build OK. Playwright no corrido localmente; verificar `browser` en la CI del PR.
+- B: **94 pytest aprobadas, 1 omitida** (9 nuevas en `tests/test_ah2040.py`).
+- Laboratorio CP-SAT: 8 casos × 5 modos. Todos OPTIMAL (máximo 1,25 s; semilla 20261119; un worker). 0 infracciones en ambos validadores y en la validación cruzada. Ningún INFEASIBLE: la relación siempre admite EVENTUAL = 0, así que su costo es pérdida de cobertura.
+- **Faltantes totales en los 8 casos** (horas, B / A):
+
+  | Modo | B / A | Diferencia con P0 |
+  |---|---|---|
+  | P0 | 1013 / 1015 | — |
+  | P1 | 1013 / 1048,5 | A pierde 33,5 h en el caso 4, por roles AUX rotativos |
+  | P2 | 1097 / 1130,5 | +84 / +115,5 h |
+  | P2E | 1181 / 1183 | +168 h |
+  | P3 | 1013 / 1015 | 0 |
+
+- **Ningún modo aumentó las horas-caja AUX totales:** las relaciones semanales solo quitan horas EVENTUALES en franjas sin AUX de caja posible.
+
+### Decisiones
+- **Recomendación técnica única: aprobar AH2-040 como P3** (DEBE), con tres complementos:
+  - la prioridad por franja de AH2-036;
+  - transparencia individual obligatoria;
+  - protección sectorial mediante tope o reservas explícitos por sucursal (AH2-037).
+- P1 y P2 siguen PROPUESTAS. No se convirtió ninguna en restricción productiva.
+
+### Bloqueos, seguridad y datos
+- Pendientes:
+  - aprobación del propietario de AH2-040 (P3 recomendada);
+  - generalización a 3 o más AUX;
+  - topes y reservas reales y política de apertura de la 091.
+- Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales; solo datos sintéticos. Publicación bloqueada.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks: `test-build`, `browser` y `offline`.
+2. Presentar al propietario `docs/AH2-040_EVALUACION.md` y obtener su decisión sobre AH2-040-P3.
+3. **Si aprueba P3:**
+   - activarla como regla de la política v1 en A, B y ambos validadores. Hoy está detrás de `comparacion_aux_eventual`: pasarla a la política, con la versión correspondiente;
+   - reemplazar el bloqueo `POLITICA_EV_COMPARACION_PENDIENTE` por la verificación P3;
+   - agregar al PDF y al resumen las horas dentro y fuera de las ventanas compartidas;
+   - repetir esta matriz y los suites.
+4. **Si rechaza P3 o pide un límite por totales semanales:** usar los costos medidos de P2 y P2E y exigir topes o reservas explícitos por sucursal. No fabricar defaults.
+5. Después: integración UI y transporte A→B y ensayo offline autorizado de la 091, sin datos reales en GitHub.
+
+---
+
+## RELEVO ANTERIOR (historia) — AH2-039 y AH2-040 · 19/11/2026, Work
+
+**Estado: AH2-039 IMPLEMENTADA Y PROBADA EN LABORATORIO; AH2-040-P1 PROPUESTA IMPLEMENTADA COMO DIAGNÓSTICO. NO PUBLICABLE.** Esta es la única continuidad vigente para Work/Claude. MASTER §9 sigue siendo la única autoridad de decisiones. El contenido posterior se conserva como historia, no instrucciones vigentes.
+
+### SHAs, ramas y alcance
+
+- Estimapres PR #60, rama `feat/ah2-integracion-hibrida-work-claude`: base remota revalidada **`c152a0454bdcaadc86e313ef3e6b7155d566f0fa`**, con test-build/browser remotos aprobados antes de editar. Implementación **`94cc553f04a572444c6635eff05987043778fade`** y corrección final de código/tests **`3a6955aad3d8ca528a4e379dd2a13b99ee24a3ad`**. El commit posterior que contiene este relevo modifica solo documentación (CURRENT_WORK y precisión de semilla en la evidencia). Leer HEAD exacto del PR antes de continuar.
+- aliada-optimizer PR #6, rama `feat/integracion-aliada-work-claude`: base revalidada **`f92f77be0cdcc03e4ea94f2eaceaa2720585fbf7`**, checks offline remotos aprobados; implementación **`4f233fe35216eac11430d083a7e9fe1139afaa1f`**, candidato con regresión FULL **`2e5241ab3f59fcb0d1dd787fe2beb49c458000c0`**.
+- No se rehízo AH2-036–038; se preservaron los cambios documentales concurrentes, el contrato Work/Claude y el historial. Ref actualizada con SHA esperado, sin force-push. PR #59/#5 y candidatos anteriores intactos.
+
+### Implementado y comprobado
+
+- Condiciones opcionales versionadas por semana/sucursal y persona estable: DEBE/PREFERIRIA, vigencia inclusiva, franco obligatorio, turno con ventanas configuradas, exclusión manual semanal, máximo local de francos y preferencias de franco/turno/medio franco FULL adyacente. No inventa un horario global mañana/tarde ni almacena condiciones permanentemente.
+- Preflight de ámbito/fechas/identidades y conflictos de reglas/presencia/supervisión; pruebas de incompatibilidad individual y capacidad de francos. No hallar conflicto no certifica factibilidad conjunta. Ficha PART sin objetivo válido se diagnostica como dato, no como inviabilidad matemática. UNKNOWN nunca equivale a INFEASIBLE.
+- A preserva contratos, no acepta guía blanda que aumente déficit en alguna franja ni sobrantes, y conserva prioridad de recursos. Las semillas exploratorias sin objetivo PART nunca se exponen como propuesta: deben restaurarse contratos y pasar validación. B compila las mismas restricciones fechadas y agrega la preferencia como última fase lexicográfica.
+- Snapshot A/B y PDF con persona, condición, valor, ventana y vigencia. Validador A revalida el snapshot tras ediciones sin depender del compilador. Condiciones nuevas por ID, sin mezclar homónimos en A; B rechaza nombres técnicos ambiguos antes de excluir personas.
+- Laboratorio visual **`/lab-condiciones.html`**, con datos sintéticos y sin persistencia. No hay ruta operativa activada, aprobación, publicación, localStorage, escritura Supabase ni despliegue. Puede generar sin condiciones.
+- AH2-040: `analizarComparabilidad` / `analyze_comparability` muestran **pares individuales propuestos**, oportunidades, horas reales de caja y diferencias; excluyen supervisor exclusivo y disponibilidad incompatible. **No aplican un límite pendiente de aprobación, no promedian AUX ni inventan un default de 12 horas.** MASTER registra AH2-040-P1 como PROPUESTO, no como regla definitiva. Si falta máximo eventual, la política v1 sigue indicando homologación pendiente.
+
+### Pruebas y evidencia
+
+- A: TypeScript y build aprobados; **492 Vitest aprobadas y 8 omitidas**. Regresiones nuevas de ámbito, vigencia, ventanas fechadas, franco/max francos, conflicto individual, ficha incompleta, preferencias contradictorias, FULL medio franco, exclusión sin mutación, identidad, multi-arranque, snapshot tras edición y PDF A4.
+- B: suite completa local **86 pytest aprobadas**; CI remota **85 aprobadas y una omitida** (reproducción histórica que requiere fixtures externos no incluidos) en `2e5241ab3f59fcb0d1dd787fe2beb49c458000c0`. Tres fixtures CP-SAT sintéticos, 3 s, un worker y semilla 20261114: **OPTIMAL para el modelo representado**, snapshots idénticos A/B y revalidación con el validador A; contratos PART 30/32 exactos, respaldo válido ante timeout y rechazo del respaldo incompatible con nuevas condiciones.
+- Smoke de ocho fixtures históricos, híbrido, 2 s y dos procesos: 6 UNKNOWN, 1 FEASIBLE, 1 INFEASIBLE; siete comparables, dos mejoras, cinco empates, cero pérdidas, un caso sin plan. No es un benchmark nuevo de 200 ni una prueba operativa 091. Resultado agregado del ejecutor ≈8,18 s; no se equipara con 2 s totales. No se suman estados de fases como categorías disjuntas.
+- Navegador local: falta binario Playwright empaquetado; usando Chromium del sistema, aborta antes de navegar por `socket() Operation not permitted`. **No se declara Playwright aprobado localmente.** CI remota del primer commit A: test-build aprobó; browser tuvo 18 aprobadas, una omitida y un fallo en el selector exacto de etiqueta Día del test nuevo. Corregido mediante nombre accesible explícito, sin eliminar la prueba ni relajar controles. La repetición remota en el candidato de código `3a6955aad3d8ca528a4e379dd2a13b99ee24a3ad` aprobó **19 Playwright y una omitida**, además de 492 Vitest/8 omitidas, TypeScript, instalación con lockfile y build. Evidencia A: https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/44631249833 . Evidencia B: https://github.com/FernandoDelgadoDiaz/aliada-optimizer/actions/runs/44631243279 . El commit de este relevo es solo documental; verificar también sus checks en el PR.
+- Evidencia reproducible y límites: `docs/CONDICIONES_SUPERVISOR_V1.md`, tests `condiciones-supervisor`, `condiciones-cruzadas`, fixture `condicionesBCalculadas.json`, `e2e/condiciones.e2e.ts`; B `tests/test_manual_conditions.py` y `fixtures/condiciones/cruzadas.json`. Comandos A `npx tsc --noEmit`, `npm test`, `npm run build`, `npm run test:e2e`; B `python -m pytest -q`. La CI realiza instalación con lockfile: no confundir dependencias locales reutilizadas con instalación limpia remota.
+
+### Archivos y límites
+
+A: tipos de condición/entrada/salida; compilador/preflight; p1 y orquestador; adapter; selector multi-arranque; puente `auditoriaV2`; validador independiente y contexto; análisis AUX/EV; laboratorio y pruebas/fixtures; MASTER (solo propuesta técnica nueva), este relevo y documento de evidencia. B: dominio, catálogo, normalizador/preflight, solver, comparador, validador, analizador, fixtures/tests y nota de enlace. No se modificaron migraciones, funciones de Prestify, datos, producción, Netlify ni Supabase.
+
+**Límites:** no certificación de factibilidad global por preflight; A sigue siendo heurístico; ventanas de turno requieren definición explícita; exclusión manual parcial no homologada; adyacencia de medio franco dentro de semana, sin inferir domingo/lunes circular; preferencias nuevas verificadas en solver semanal B, sin rediseñar refinamiento de mínimo impacto; persistencia/permisos/publicación oficial no implementados. Generalización 3+ AUX, política real de supervisión de apertura y comparabilidad AH2-040 siguen pendientes. No ensayo real 091 ni nuevo resultado operativo acreditado.
+
+### Próximo paso exacto para Claude
+
+1. Verificar HEAD de #60/#6 y **checks de esos HEAD**, leer MASTER AH2-039/040-P1 y este punto. Si falla un check, revisar sus logs y corregir dentro del laboratorio; no asumir aprobación remota por los resultados locales.
+2. Revisar la propuesta AH2-040-P1 con el propietario: oportunidades EVENTUAL íntegramente contenidas en las de un AUX elegible, par individual elegido explícitamente y relación `EV ≤ AUX`. Confirmar definición de comparabilidad y elección de pares antes de convertirla en restricción dura.
+3. Con definición aprobada, imponer la relación en ambos motores/validadores y medir el costo de cobertura frente a la misma entrada, sin relajarla ni fabricar topes. Por ahora ejecutar el analizador sobre fixture sintético y abrir el laboratorio, sin datos reales ni escrituras.
+4. Solo después de homologar dependencias, preparar la integración UI/híbrida y ensayo offline autorizado. Sin merge, migraciones, gastos, Supabase escrito ni publicación.
+
+---
+
+## Historia conservada — relevo anterior, no vigente
+
+## PUNTO ÚNICO DE RETOMA — integración híbrida · 19/11/2026, entrega Work
+
+**Estado: IMPLEMENTACIÓN PARCIAL VERIFICADA; INTEGRACIÓN Y HOMOLOGACIÓN OPERATIVA BLOQUEADAS.**
+Agente que entrega: Work. Agente receptor: Claude. Esta sección es el único estado operativo vigente; las entradas conservadas debajo son historia.
+
+### Ramas, SHAs y concurrencia
+
+- Estimapres PR #60, rama `feat/ah2-integracion-hibrida-work-claude`: código entregado en **`170080fb7dd656eb0af1ccf1a95eb05fb6d4ca76`**, sobre la base documental concurrente `f4850e74cc7deb4a462ac58bb7c0a0d137643e82`. El commit que contiene este relevo añade solo documentación; leer su HEAD exacto en el PR antes de editar.
+- aliada-optimizer PR #6, rama `feat/integracion-aliada-work-claude`: **`f92f77be0cdcc03e4ea94f2eaceaa2720585fbf7`**, sucesor de la implementación inicial `b87be22b722980bb7ac630882a809bd902aa37ec`.
+- Se detectaron cambios documentales concurrentes AH2-039/040 después de iniciar desde `cac11fd`/`9fb6619`. Una actualización con lease no se aplicó al HEAD cambiado. Se inspeccionó el diff y se preservaron íntegros MASTER, contrato §3.2 e historial; sin force-push ni pérdida de decisiones. El objeto técnico preliminar no aplicado no es el candidato entregado.
+
+### Cambios implementados realmente
+
+- Política de laboratorio opt-in `politica_recursos_version=1`, contratos FULL/PART exigibles, AUX antes de EVENTUAL, un supervisor de pie con dos AUX, capacidad AUX derivada sin tope semanal manual.
+- Límites semanales individuales EVENTUAL en slots de 30 minutos, cero permitido, sin default de 12 h; reservas sectoriales y preservación de presencia. Adapter transforma IDs estables a internos; validadores comprueban límites/prioridad/reservas.
+- AUX único de apertura sin responsable externo explícito genera conflicto, no excepción inventada. Tres o más AUX requieren la generalización que MASTER dejó pendiente.
+- B fuerza capacidad AUX residual en su modelo conjunto, revalida referencias y ordena sobrantes/uso eventual antes de ciclo/preferencias. A protege cada franja de una referencia sin infracciones y usa menos eventual como desempate de cobertura/sobrante.
+- APIs offline de dotación actual/+32 PART/+48 FULL y resumen de presencia/caja/no-caja. Ninguna alta ni persistencia. Fixtures y resultados exclusivamente sintéticos.
+- **AH2-039 y AH2-040 NO están completamente implementadas.** Falta el preflight integral DEBE/PREFERIRÍA y la definición/modelo individual de comparabilidad semanal AUX/EV. Sin tope explícito se diagnostica comparación pendiente, no se fabrica un máximo ni un promedio. La política v1 permanece **no publicable** en A/B aun sin infracciones en los controles de su alcance; A la marca `sin-verificar`. No se activa automáticamente en la UI.
+- Detalle, esquema, resultados y límites: [RECURSOS_OPERATIVOS_V1.md](RECURSOS_OPERATIVOS_V1.md). Archivos de motor A: adapter, types, pasadas 2/3, política, selector, validador independiente, simulador y resumen. B: dominio, apoyo, solver, selector, validador, refinamiento y staffing; pruebas nuevas en ambos.
+
+### Pruebas y evidencia ejecutadas
+
+- A: **473 Vitest aprobadas, 8 omitidas**; TypeScript y build de producción aprobados. Regresión específica de no-publicación añadida y ejecutada. Los tests de contrato revalidan con TypeScript las tres propuestas B de fixture seudónimo.
+- B: **66 pytest aprobadas**; smoke de ocho fixtures históricos a 2 s ejecutado. Tres escenarios emparejados A/B a 10 s, semillas y hashes en la evidencia. No se confundió UNKNOWN con INFEASIBLE.
+- Synthetic de demanda **280 h-caja**, 1 FULL 48 + 1 PART 32, dos AUX con solapamiento, eventual con máximo sintético 8 h: A/B 36,43 % y 178 h faltantes; +32: 47,86 % y 146 h; +48: 53,57 % y 130 h; cero sobrantes en los tres. B no mejora cobertura de A en este caso; cotas certifican solo el modelo protegido representado.
+- Prueba A de saturación (tope eventual sintético 2 h): base 5 h faltantes/0 sobrantes; +32: 0/26; +48: 1/44. Resultados calculados, no extrapolados; no es prueba de inviabilidad de mejorar +48.
+- Playwright local intentado; Chromium aborta **antes de navegar** porque el runtime prohíbe `socket()`. No se afirma aprobación local de navegador. **Verificación externa posterior al relevo:** GitHub Actions muestra workflow `CI` con conclusión `success` para Estimapres SHA `44eb952f20a3c79a5ab657cf47dec2e4837d9e1e` y workflow `Optimizer candidate` con conclusión `success` para solver SHA `f92f77be0cdcc03e4ea94f2eaceaa2720585fbf7`. Se comprobó estado de workflow remoto por SHA; los tests locales de navegador siguen sin haberse ejecutado en ese entorno. CI aprobada no autoriza integración productiva.
+- CSV/JSON sintéticos en `docs/evidencia/` y `aliada-optimizer/results/recursos-*`; origen/hash de entradas por escenario. No hay datos ni PDFs laborales de 091 en estos artefactos.
+
+### Bloqueos y próximo paso exacto para Claude
+
+1. Leer HEADs actuales de PR #60/#6 y este relevo; ejecutar `npm test && npm run build` en A y `python -m pytest -q` en B. Comprobar CI remota por SHA y conservar el bloqueo de publicación v1.
+2. Homologar con el propietario el significado de AUX **comparable realmente elegible** de AH2-040 (sin promedio, sin AUX exclusivamente supervisor ni indisponible). No retirar ese bloqueo inventando una relación matemática.
+3. Implementar el preflight y contrato DEBE/PREFERIRÍA de AH2-039 y la relación homologada de AH2-040, con tests antes de habilitar integración. No rehacer AH2-036–038 ya probadas.
+4. Para 091 siguen pendientes el responsable/política de apertura y reglas efectivas por persona; si se usan topes explícitos, sus valores aprobados. No exigir un tope semanal manual AUX ni un default EVENTUAL. No repetir el benchmark real antes de cerrar las reglas y el contrato.
+5. Integración UI/transporte seguro A→B, permisos/persistencia/publicación siguen pendientes. No hay autorización de merge, deploy, migración, gasto ni escritura productiva.
+
+**Seguridad:** main, Supabase, Netlify, Prestify, fichas y horarios V8/V9/V1 intactos; ningún merge, despliegue ni datos reales nuevos en GitHub. Los candidatos base #59/#5 permanecen sin modificaciones.
+
+---
+
+## HISTORIAL CONSERVADO — las secciones siguientes no son otro punto de retoma
+
+## ÚLTIMA DECISIÓN DEL PROPIETARIO — restricciones opcionales, validación previa y equidad de carga · 2026-11-19 (Argentina)
+
+**ESTADO: REQUISITOS APROBADOS EN MASTER AH2-039/040. IMPLEMENTACIÓN Y PRUEBAS PENDIENTES.** Esta es la primera sección canónica para Work y Claude; los registros anteriores siguen debajo intactos.
+
+- **Entrada al generador:** el supervisor puede generar sin restricciones nuevas o preconfigurar por colaborador reglas de turno obligatorio mañana/tarde, franco obligatorio lunes/miércoles/jueves, un máximo de francos simultáneos por día (en 091 dos, local), preferencias no vinculantes de turnos y de franco/medio franco corrido. Las reglas admiten ámbito y vigencia. Distinguir DEBE (dura) de PREFERIRÍA (blanda), sin convertir las preferencias en obligaciones, ni relajar condiciones duras silenciosamente.
+- **Preflight:** si todos tienen franco el lunes o se supera la cantidad permitida, o falta supervisión obligatoria, no generar un horario aparentemente válido: advertir condiciones responsables y proponer ajustes manuales. Diferenciar inviabilidad técnica real de cobertura parcial factible; respetar decisiones del supervisor sin modificarlas automáticamente.
+- **Secuencia invariable:** FULL/PART 100 % de horas contractuales de caja → AUX disponibles para caja, manteniendo otro AUX supervisor de pie cuando corresponda → EVENTUAL solo demanda residual. Sin límite AUX semanal manual; usar demanda, presencia, supervisión. No sumar presencia de reposición/maestranza como disponibilidad ilimitada de caja.
+- **Condición añadida:** ningún EVENTUAL debe exceder horas-caja semanales de un AUX comparable realmente elegible para caja, incluso sin tope semanal explícito para el EVENTUAL. La comparación excluye a quien solo supervisa y requiere resolver técnica y explícitamente el significado de comparable (horarios, disponibilidad y solapes); pendiente de homologación, sin usar un promedio que esconda incumplimientos y sin imponer un bloqueo artificial por AUX no elegible. Si eso reduce cobertura, mostrar brecha, no ocultar.
+- **Próximo paso exacto para Work/Claude:** leer MASTER AH2-036 a 040 y contrato §3.1–§3.2, auditar las capas de reglas configurables y el selector A/B, escribir tests sintéticos de los escenarios obligatorios/preferenciales y prioridades AUX/EV, implementar preflight y contrato compartido y solo entonces refinar CP-SAT, A y el validador. No reanudar tests de 091 con resultados previos como si fueran aprobados.
+- **Ejecutado en esta entrega:** cambios documentales en Estimapres PR #60; ningún código del motor ni tests ejecutados, ninguna escritura Supabase, despliegue, merge o cambio de personal. Confirmar HEAD de ambas ramas antes del siguiente commit. Mantener única continuidad Work/Claude en ESTE archivo.
+
+---
+
+## ACTUALIZACIÓN PRIORITARIA DEL PROPIETARIO — recursos AUX y EVENTUAL · 2026-11-19 (Argentina)
+
+**Estado: REQUISITO DE PRODUCTO APROBADO, CÓDIGO PENDIENTE. Esta actualización tiene prioridad sobre cualquier tarea de integración pendiente.** Work y Claude deben leer primero MASTER AH2-036/037/038 y `docs/INTEGRACION_HIBRIDA_WORK_CLAUDE.md` §3.1 antes de programar; ambos mantienen una única continuidad en ESTE archivo.
+
+- **Error observado:** propuestas con 99,75 % de cobertura consumen demasiadas horas de reposición/maestranza de eventuales (alrededor de 26–30 h-caja de 48 h laborales, según reporte del supervisor), mientras auxiliares de 48 h tienen muchas menos horas-caja. Estas cifras son observación del supervisor, **NO benchmark nuevo ni validación de esta rama**. No sostener que 99,75 % es resultado operativamente aceptable bajo criterios corregidos.
+- **Decisión:** FULL/PART horas contractuales de caja → AUX con máxima cobertura residual dentro de presencia y supervisión → EVENTUAL solo resto necesario. Con **dos AUX simultáneos**, uno debe estar de pie supervisando, otro tiene prioridad para atender caja si el POM lo requiere. No inventar sobrantes ni suponer roles simultáneos incompatibles. AUX no requiere tope semanal manual; deriva de solapes, demanda, normas y supervisión. Reglas por sucursal.
+- **Particularidad 091:** 08:00–09:00 puede haber un único AUX y ningún FULL/PART de caja. Falta política explícita para resolver responsable de supervisión compatible; **no autoautorizar una excepción o doble rol**.
+- **EVENTUAL:** proteger reposición/maestranza; máximo semanal individual configurable de horas-caja y reservas sectoriales cuando estén acreditadas. 12 h/semana **ejemplo, no decisión del valor 091**. Con los límites reales, maximizar cobertura factible y mostrar faltantes. Simular aparte +1 PART 32 h / +1 FULL 48 h (sin crear altas), con mejora realmente calculada.
+- **Próximo paso exacto que sustituye el anterior:** implementar **primero** fixtures sintéticos y pruebas de aceptación del MASTER §9 AH2-036–038 para los dos motores y el validador compartido; documentar en PR #60/#6 el punto actual en que la asignación AUX/EV no respeta la prioridad. Luego introducir restricciones y modelo de supervisión por franja sin romper fallback. **No correr nuevo benchmark real 091 hasta estas reglas homologadas.**
+- **Trabajos realizados en esta actualización:** únicamente decisiones, contrato y relevo en GitHub; **ninguna implementación ni prueba nueva**, ningún cambio en Supabase, Netlify, `main` o PRs base. Work/Claude debe comprobar el último HEAD antes de escribir.
+
+---
+
+## PUNTO ÚNICO DE RETOMA — integración híbrida Work ↔ Claude · 2026-11-19 (Argentina)
+
+**Estado: INICIADO — solo documentación y ramas aisladas; integración de código PENDIENTE.**
+
+- **Esta sección es el relevo operativo canónico** para Work y Claude; consultar primero [el contrato de integración](INTEGRACION_HIBRIDA_WORK_CLAUDE.md) y [el MASTER](ALIADA_HORARIOS_MASTER.md). El historial precedente queda debajo sin modificaciones.
+- Rama activa Estimapres: `feat/ah2-integracion-hibrida-work-claude`, creada sobre PR #59 HEAD `98cedebef1989249aa69b7e46b617b78d0367e8e`. Rama del solver: `FernandoDelgadoDiaz/aliada-optimizer:feat/integracion-aliada-work-claude` sobre PR #5 HEAD `df32c00cdb4854640787aded824e103ff7eb41d3`.
+- **PRs activos de integración (BORRADOR):** [Estimapres #60](https://github.com/FernandoDelgadoDiaz/Estimapres/pull/60) y [aliada-optimizer #6](https://github.com/FernandoDelgadoDiaz/aliada-optimizer/pull/6). Bases experimentales originales #59/#5 intactas. Los HEAD de integración se consultan en los PR antes de editar.
+- **Trabajo efectuado:** contrato técnico compartido, ramas experimentales, PRs de seguimiento y registro de continuidad. Ningún código del generador integrado ni pruebas de integración ejecutadas todavía.
+- **Decisiones confirmadas:** motor A como respaldo, CP-SAT B+refinamiento condicionado a validación; supervisor ve una sola propuesta. Excluir a Gabriel de reasignación automática; no contabilizar 06:00–10:00 en otro sector como caja; no modificar regla Supabase. Seven cajeros restantes conservan francos bloqueados solo cuando se solicita; AUX/eventuales conservan presencia. No tocar producción, BD, Netlify, Prestify ni `main`.
+- **Datos laboratorio, no aprobados para operar:** semana 23–29/11, 217 franjas, demanda 402 h-caja; último ensayo 99,75 %, faltantes 1 h, sobrante 0, 272 h de siete cajeros, 28 jornadas modificadas, 0 cambios de franco, Gabriel manual pendiente. Mantener resultados fuera de GitHub con datos privados.
+- **Próximo paso exacto (Work):** comprobar HEAD de ambos repos y sus PR, auditar contratos de entrada/salida de A y B, elegir arquitectura de ejecución segura por viabilidad/costos/privacidad (sin aprovisionar servicios pagos), crear tests de contrato sintéticos, implementar primer paso acotado y registrar SHAs/pruebas/bloqueos en ESTA SECCIÓN antes de entregar a Claude.
+- **Handoff obligatorio:** solo un agente edita una rama a la vez; HEAD/PRs antes y después, tests reales y siguiente comando concreto. Si algo depende de permiso o costo, marcarlo BLOQUEADO, no improvisar.
+
+---
+
 # CURRENT WORK — ALIADA HORARIOS 2.0
 
 ## PUNTO ÚNICO DE RETOMA — contingencias offline · 2026-11-18
@@ -1164,3 +2165,4 @@ No iniciar implementación, migraciones ni despliegues sin esa autorización.
 - Deploy / merge / gastos (sí/no y autorización):
 - Bloqueos / decisiones pendientes:
 - Próxima acción **exacta**:
+

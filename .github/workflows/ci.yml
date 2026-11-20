@@ -28,6 +28,8 @@ jobs:
         run: npm test
       - name: Typecheck + build de producción
         run: npm run build
+      - name: Build aislado del piloto privado
+        run: npx vite build --config vite.piloto.config.ts
 
   browser:
     runs-on: ubuntu-latest

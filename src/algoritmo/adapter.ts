@@ -1,3 +1,5 @@
+import type {EntradaCondiciones} from './condicionesTipos'
+import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/adapter.ts
 // Capa de conversión entre los tipos de la UI (algoritmo viejo) y el algoritmo v2.
 // Responsabilidad: traducir ida y vuelta sin que la UI necesite conocer el formato v2.
@@ -162,7 +164,7 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
  * preferencias blandas (rotación + aprendizaje, keyed por NOMBRE), mínimos de
  * cajeros por franja (reglas del local) y tope de francos por día.
  */
-export interface OpcionesGeneracion {
+export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones {
   maxBloquesCajaEventualDia?: number
   eventualesCajaHoraLimite?: string
   preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
@@ -221,7 +223,7 @@ export function convertirInputAV2(
   for (const c of cajeros) {
     if (c.tipo === 'FULL' || c.tipo === 'PART') {
       const id = ident.v2PorUi.get(c.id)!;
-      colaboradores.push({ id, nombre: c.nombre, rol: c.tipo });
+      colaboradores.push({ id, nombre: c.nombre, rol: c.tipo, horasSemanales: c.horasSemanales });
       if (c.tipo === 'PART') contratos[id] = aSlots(resolverContratoHoras('PART', c.horasSemanales, perfilHoras));
     }
   }
@@ -261,6 +263,16 @@ export function convertirInputAV2(
     colaboradores,
     presencia_aux,
     disponibilidad_eventual,
+    sucursal_id: opciones?.sucursal_id, semana: opciones?.semana,
+    condiciones_supervisor: opciones?.condiciones_supervisor && {...opciones.condiciones_supervisor,condiciones:opciones.condiciones_supervisor.condiciones.map(c=>({...c,colaboradorId:c.colaboradorId?(ident.v2PorUi.get(c.colaboradorId)??c.colaboradorId):undefined}))},
+    politica_recursos_version: opciones?.politica_recursos_version,
+    supervision_apertura_externa: opciones?.supervision_apertura_externa,
+    excepcion_apertura_aux_unico: opciones?.excepcion_apertura_aux_unico,
+    max_caja_eventual_slots: opciones?.max_caja_eventual_slots && Object.fromEntries(Object.entries(opciones.max_caja_eventual_slots).map(([id,n])=>[ident.v2PorUi.get(id) ?? id,n])),
+    reservas_sector_eventual: opciones?.reservas_sector_eventual && Object.fromEntries(Object.entries(opciones.reservas_sector_eventual).map(([id,m])=>[ident.v2PorUi.get(id) ?? id,m])),
+    // Perfiles persistentes de disponibilidad de caja: IDs de UI → IDs del motor (mismo criterio que reservas).
+    disponibilidad_caja_eventual: opciones?.disponibilidad_caja_eventual && {...opciones.disponibilidad_caja_eventual,perfiles:opciones.disponibilidad_caja_eventual.perfiles.map(p=>({...p,colaboradorId:ident.v2PorUi.get(p.colaboradorId) ?? p.colaboradorId}))},
+    topes_caja_eventual_contrato: opciones?.topes_caja_eventual_contrato,
     max_bloques_caja_eventual_dia: opciones?.maxBloquesCajaEventualDia,
     eventuales_caja_hora_limite: opciones?.eventualesCajaHoraLimite,
     excepciones,
@@ -452,6 +464,8 @@ export function convertirOutputDeV2(
   // Alertas desde el reporte de reglas
   const alertas: string[] = [
     ...resultado.reporte_reglas.advertencias,
+    ...(resultado.auditoria_condiciones?.aplicadas??[]).map(c=>`Condición ${c.id}: ${c.modo} ${c.tipo}${c.colaboradorId?' · '+(nombreMap[c.colaboradorId]??c.colaboradorId):''}${c.valor!==undefined?' = '+c.valor:''}${c.ventana?' (ingreso '+slotAHora(c.ventana.min)+'–'+slotAHora(c.ventana.max)+', salida hasta '+slotAHora(c.ventana.fin)+')':''}, ${c.desde} a ${c.hasta}; días ${c.dias.map(d=>d+1).join(',')}.`),
+    ...(resultado.auditoria_condiciones?.excluidos.length?[`Gestión manual excluida del cálculo automático: ${resultado.auditoria_condiciones.excluidos.join(',')}. No se infiere franco ni ausencia.`]:[]),
     ...resultado.reporte_reglas.violaciones.map(v =>
       v.colab_id ? `${v.regla} (${nombreMap[v.colab_id] ?? v.colab_id}): ${v.detalle}` : `${v.regla}: ${v.detalle}`
     ),
@@ -475,6 +489,7 @@ export function convertirOutputDeV2(
     cajaEventual,
     cumplimientoHoras,
     impactoHoras: resultado.impacto_horas,
+    condicionesSupervisor: resultado.auditoria_condiciones && {...resultado.auditoria_condiciones,aplicadas:resultado.auditoria_condiciones.aplicadas.map(c=>({...c,colaboradorId:c.colaboradorId?(idMap[c.colaboradorId]??c.colaboradorId):undefined})),excluidos:resultado.auditoria_condiciones.excluidos.map(id=>idMap[id]??id)},
   };
 }
 

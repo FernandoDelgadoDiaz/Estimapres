@@ -129,7 +129,7 @@ export function ejecutarPasada1(input: InputAlgoritmo, reoptimizar = true): Resu
   // Regla operativa configurable: máximo de francos FULL+PART por día.
   // Default 2 (comportamiento histórico); el supervisor puede subirlo/bajarlo
   // según su dotación. No es una ley laboral, así que no se topa en 2.
-  const cap_francos = Math.max(1, Math.round(input.max_francos_dia ?? 2));
+  const cap_francos = input.max_francos_por_dia ?? Math.max(1, Math.round(input.max_francos_dia ?? 2));
   // Criterios de cobertura aprendidos: peso por slot (default 1 = neutro).
   const pesos = input.pesos_franja;
   // Reglas operativas configurables (fallback = comportamiento histórico).
@@ -384,12 +384,13 @@ function jornadaViolaExcepcion(
   excepciones: ExcepcionSemanal[],
   nombre_colaborador: string
 ): boolean {
-  const exc = excepciones.filter(e => e.colaboradorNombre === nombre_colaborador);
+  const exc = excepciones.filter(e => e.colaboradorId ? e.colaboradorId===jornada.colab_id : e.colaboradorNombre === nombre_colaborador);
   if (exc.length === 0) return false;
 
   const es_franco = jornada.bloques.length === 0;
 
   for (const e of exc) {
+    if(e.dias && !e.dias.includes(jornada.dia)) continue;
     switch (e.tipo) {
       case "franco_dia": {
         const dia_forzado = parseInt(e.valor ?? "-1");
@@ -403,6 +404,10 @@ function jornadaViolaExcepcion(
           const slot_minimo = (h - 8) * 2 + Math.floor(m / 30);
           if (jornada.bloques[0].slot_inicio < slot_minimo) return true;
         }
+        break;
+      }
+      case "inicio_no_despues_de": {
+        if(!es_franco && e.valor){const [h,m]=e.valor.split(":").map(Number);if(jornada.bloques[0].slot_inicio>(h-8)*2+m/30)return true}
         break;
       }
       case "no_despues_de": {
@@ -601,7 +606,7 @@ function optimizarSemanaFull(
   francos_part: number[],
   excepciones: ExcepcionSemanal[],
   sesgo: SesgoTurno,
-  cap_francos: number,
+  cap_francos: number | number[],
   aperturaSoloAux: boolean,
   francoMedioCorridos: boolean,
   inicioMinimoLunes = 0,
@@ -614,7 +619,7 @@ function optimizarSemanaFull(
         d as DiaSemana,
         pre,
         excepciones,
-        francos_full[d] + francos_part[d] < cap_francos,
+        francos_full[d] + francos_part[d] < (Array.isArray(cap_francos) ? cap_francos[d] : cap_francos),
         PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
         sesgo,
         aperturaSoloAux
@@ -724,7 +729,7 @@ function optimizarSemanaPart(
   francos_part: number[],
   excepciones: ExcepcionSemanal[],
   sesgo: SesgoTurno,
-  cap_francos: number,
+  cap_francos: number | number[],
   contrato: ContratoSlots = { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO },
   penHora: number = PENALIZACION_HORA_FALTANTE,
   inicioMinimoLunes = 0,
@@ -740,7 +745,7 @@ function optimizarSemanaPart(
         d as DiaSemana,
         pre,
         excepciones,
-        francos_full[d] + francos_part[d] < cap_francos,
+        francos_full[d] + francos_part[d] < (Array.isArray(cap_francos) ? cap_francos[d] : cap_francos),
         PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
         sesgo
       ).filter(c => d !== 0 || c.item === -1 || c.inicio >= inicioMinimoLunes)
@@ -902,4 +907,11 @@ export function* desplazamientosConSobrante(
       }
     }
   }
+}
+
+/** Exacta individual con catálogos/DP vigentes; no demuestra factibilidad conjunta. */
+export function factibilidadIndividual(input:InputAlgoritmo,p:Colaborador){
+ const pre=Array.from({length:7},()=>Array(31).fill(0)),z=Array(7).fill(0),exc=input.excepciones??[]
+ const w=p.rol==='FULL'?optimizarSemanaFull(p,pre,z,z,exc,SESGO_NEUTRO,7,input.apertura_solo_aux??true,input.franco_medio_corridos??false,input.inicio_minimo_lunes_por_colaborador?.[p.id]??0):optimizarSemanaPart(p,pre,z,z,exc,SESGO_NEUTRO,7,contratoPart(input,p.id),PENALIZACION_HORA_FALTANTE,input.inicio_minimo_lunes_por_colaborador?.[p.id]??0)
+ return !!w&&slotsSemana(w)===(p.rol==='FULL'?96:contratoPart(input,p.id).objetivoSlots)
 }

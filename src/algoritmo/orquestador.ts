@@ -1,3 +1,6 @@
+import {compilarDisponibilidadCaja} from './disponibilidadCajaEventual'
+import {prevalidarCondiciones,ErrorCondiciones,costePreferencias,guiarPreferencias} from './condicionesSupervisor'
+import {auditarEscenario} from './auditoriaV2'
 // src/algoritmo/orquestador.ts
 // Pipeline completo del algoritmo de horarios v2.
 // Integra las tres pasadas y produce el ResultadoSemanal final.
@@ -89,13 +92,33 @@ function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correr
  *     dentro de su disponibilidad, con distribucion equitativa (menos
  *     horas-caja acumuladas primero).
  */
-export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
-  return construirResultado(input, correrCascada(input));
+export function ejecutarAlgoritmo(entrada: InputAlgoritmo): ResultadoSemanal {
+  // Laboratorio AH2-037/040: perfiles de disponibilidad de caja EVENTUAL → reservas/topes existentes.
+  const input = compilarDisponibilidadCaja(entrada).input
+  if(!input.condiciones_supervisor&&!input.auditoria_condiciones)return construirResultado(input, correrCascada(input));
+  const prepared=prevalidarCondiciones(input)
+  if(prepared.conflictos.length)throw new ErrorCondiciones('PREFLIGHT_BLOQUEADO',prepared.conflictos)
+  const base=construirResultado({...prepared.input,omitir_impacto_horas:true},correrCascada({...prepared.input,omitir_impacto_horas:true}))
+  let chosen=base
+  if(prepared.auditoria?.aplicadas.some(c=>c.modo==='PREFERIRIA')){
+    const guide=guiarPreferencias(prepared.input),alt=construirResultado({...guide,omitir_impacto_horas:true},correrCascada({...guide,omitir_impacto_horas:true}))
+    const bv=auditarEscenario(prepared.input,base),av=auditarEscenario(prepared.input,alt)
+    const sum=(m:number[][])=>m.flat().reduce((a,b)=>a+b,0)
+    const protectedSlots=alt.metricas.deficit_por_slot.every((row,d)=>row.every((n,s)=>n<=base.metricas.deficit_por_slot[d][s]))
+    const ev=(r:ResultadoSemanal)=>Object.values(r.asignacion_eventual).flat(2).filter(v=>v==='CAJA').length
+    const coverageGain=sum(alt.metricas.deficit_por_slot)<sum(base.metricas.deficit_por_slot)
+    if(!av.violaciones.length && (bv.violaciones.length || protectedSlots && sum(alt.metricas.exceso_por_slot)<=sum(base.metricas.exceso_por_slot) && (coverageGain || (!prepared.input.politica_recursos_version||ev(alt)<=ev(base)) && (sum(alt.metricas.exceso_por_slot)<sum(base.metricas.exceso_por_slot) || costePreferencias(prepared.auditoria,alt)<costePreferencias(prepared.auditoria,base)))))chosen=alt
+  }
+  const validacion=auditarEscenario(prepared.input,chosen)
+  if(validacion.violaciones.length)throw new ErrorCondiciones('GENERACION_SIN_PLAN_VALIDO',validacion.violaciones.map(v=>({codigo:v.codigo,causas:[],demostrado:false,detalle:v.detalle})))
+  return {...chosen,auditoria_condiciones:prepared.auditoria,preferencias_manuales_incumplidas:costePreferencias(prepared.auditoria,chosen)}
 }
 
 /** Evalúa una planificación FULL/PART del catálogo con las pasadas reales de apoyo. */
 export function evaluarSemanasFullPart(input: InputAlgoritmo, semillas: NonNullable<InputAlgoritmo['semillas']>): ResultadoSemanal {
-  const fijo = { ...input, semillas, omitir_impacto_horas: true };
+  const prepared=prevalidarCondiciones(input)
+  if(prepared.conflictos.length)throw new ErrorCondiciones("PREFLIGHT_BLOQUEADO",prepared.conflictos)
+  const fijo = { ...prepared.input, semillas, omitir_impacto_horas: true };
   return construirResultado(fijo, correrCascada(fijo, false));
 }
 
@@ -122,5 +145,16 @@ function construirResultado(input: InputAlgoritmo, real: ReturnType<typeof corre
     },
     cumplimiento_horas: p1.cumplimiento_horas,
     impacto_horas,
+    ...(input.auditoria_condiciones?{auditoria_condiciones:input.auditoria_condiciones}:{}),
   };
+}
+
+/** Solo exploración interna del multi-arranque: puede tener menos horas PART.
+ * Nunca se selecciona ni se expone como propuesta; sus jornadas solo siembran
+ * otra ejecución que restaura contratos y pasa la validación independiente.
+ */
+export function generarSemillaExploratoria(input:InputAlgoritmo):ResultadoSemanal{
+ if(input.condiciones_supervisor)throw new Error('La semilla requiere condiciones previamente compiladas')
+ const x={...input,omitir_impacto_horas:true}
+ return construirResultado(x,correrCascada(x))
 }
