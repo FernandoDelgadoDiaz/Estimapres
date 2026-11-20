@@ -252,7 +252,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   useEffect(()=>{
     if(!hibridoDisponible)return
     const ctrl=new AbortController()
-    void configuracionAutenticada(sucursal,ctrl.signal,undefined,esLunesISO(lunesSemana)?lunesSemana:undefined).then(c=>{if(!ctrl.signal.aborted){setConfigHibrida(c.opciones);setFuenteConfigHibrida(c.fuente)}}).catch(()=>{if(!ctrl.signal.aborted)setErrorConfigHibrida('No se pudo cargar la configuración del motor híbrido. Podés usar el motor anterior.')})
+    setErrorConfigHibrida('')
+    void configuracionAutenticada(sucursal,ctrl.signal,undefined,esLunesISO(lunesSemana)?lunesSemana:undefined).then(c=>{if(!ctrl.signal.aborted){setConfigHibrida(c.opciones);setFuenteConfigHibrida(c.fuente)}}).catch((e:unknown)=>{if(!ctrl.signal.aborted)setErrorConfigHibrida(e instanceof Error&&/conflictos/.test(e.message)?e.message:'No se pudo cargar la configuración del motor híbrido. Podés usar el motor anterior.')})
     return()=>ctrl.abort()
   },[hibridoDisponible,sucursal,autorSesion,lunesSemana])
   useLayoutEffect(()=>{cancelarGeneracion()},[cancelarGeneracion,motorAnterior,topesHibridos])

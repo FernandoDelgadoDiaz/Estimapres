@@ -29,6 +29,15 @@ jobs:
       - name: Typecheck + build de producción
         run: npm run build
 
+  database:
+    # AH2-042: migración de configuración del motor sobre Postgres efímero (integridad, RLS, atomicidad, concurrencia).
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migración y pruebas SQL (Postgres local, sin Supabase)
+        run: bash scripts/db/probar-configuracion-motor.sh
+
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15

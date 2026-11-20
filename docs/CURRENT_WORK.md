@@ -1,24 +1,26 @@
-## PUNTO ÚNICO DE RETOMA — configuración editable por sucursal (AH2-042) lista para aprobación · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-042 corregido según el propietario; listo para aprobar y publicar · 20/11/2026, Claude
 
-**Estado: PROPUESTO, no publicado.** PR de esta rama hacia `main` con código, pruebas, migración preparada y documentos. Nada aplicado en Supabase, Netlify, Cloud Run ni Secret Manager. Prestify y el motor matemático sin cambios.
+**Estado:** concepto AH2-042 **aprobado**; las 6 correcciones pedidas están implementadas y validadas en el PR #62 (borrador). **Migración NO aplicada.** Nada cambiado en Supabase, Netlify, Cloud Run ni Secret Manager. Motor matemático y Prestify sin cambios.
 
-### Qué resuelve
-La configuración privada del motor 091 vive en Secret Manager con vigencia de una semana (23–29/11). Se reemplaza por reglas guardadas por sucursal en Supabase, diferenciando **permanentes** (rigen todas las semanas desde su inicio) de **excepciones temporales** (reemplazan a la permanente del mismo alcance solo en sus fechas). Detalle: `docs/CONFIGURACION_MOTOR_SUCURSAL.md`; MASTER **AH2-042** (PROPUESTO).
+### Correcciones implementadas
+1. **Apertura configurable** por sucursal, día y franja (día, desde, hasta) sobre la grilla del motor; sin horarios fijos en esta capa: la franja admitida la decide el validador del motor (`erroresDatosRecursos`).
+2. **Vigencia por fecha:** resolución día a día; excepciones que empiezan o terminan a mitad de semana. Perfiles: días sin acreditación → reserva de franja completa; reservas por día; cantidades semanales prorrateadas. Topes: prorrateo por días. Condiciones: fechas reales (el motor ya las evalúa por día); «gestionar manualmente» y «franco y medio corrido» exigen semana completa (regla del motor) → conflicto explicado.
+3. **Integridad:** conflictos y reglas inválidas aislados por alcance; el resto se resuelve. Una semana con conflictos bloquea solo la generación híbrida, con detalle (motor anterior disponible). Simulación previa de cada cambio sobre las semanas afectadas: no se guarda si crearía un conflicto.
+4. **Atomicidad y concurrencia:** escrituras solo por `cms_crear`/`cms_reemplazar`/`cms_desactivar`/`cms_importar`; versión + `FOR UPDATE`; exclusión de superposiciones en la base; reemplazo fallido sin cambios; importación todo o nada.
+5. **Editor completo:** reservas horarias + mínimo de función habitual; todas las condiciones (franco, turno con definición, gestionar manualmente, máximo de francos, franco y medio corrido) con DEBE/PREFERIRÍA; Cambiar/Desactivar con versión; «Ver semana» con conflictos.
+6. **Escala e historial:** esquema único, RLS por usuario, índices por usuario/sucursal, `reemplaza_a`, sin borrados.
 
-### Implementado
-- `supabase/migrations/20261121120000_configuracion_motor_sucursal.sql` — **preparada, SIN APLICAR**: tabla, checks (temporal con fin, alcance por tipo), RLS por usuario no anónimo, sin DELETE, trigger de actualización, rollback documentado.
-- `src/hibrido/configuracionPersistente.ts` — validación (reutiliza validadores del motor), resolución por semana con precedencia temporal > permanente y rechazo de ambigüedades, importación asistida desde la configuración del servicio, reemplazo con cierre del día previo, capa de datos (tabla ausente → transición).
-- `integracion.ts` — fuente efectiva: filas activas guardadas = única fuente; sin filas → servicio. Resolución por la semana de la generación (`useAsignacion`) y de la pantalla (Nueva semana, que informa la fuente).
-- `ConfiguracionMotorPanel` en Reglas (solo donde el híbrido está habilitado): permanentes, excepciones, reemplazo desde fecha, desactivar, historial, «Ver semana», importación con confirmación.
-- Pruebas: 14 nuevas; `integracionExistente.test.ts` declara la fuente. Vitest **582 passed / 4 skipped**; Playwright **17 passed / 1 skipped**; tsc y build OK. Importación verificada localmente con la configuración real 091 (sin versionarla): semana 23–29/11 idéntica; semana siguiente con permanentes y sin la exclusión temporal.
+### Validación
+- Vitest **596 passed / 4 skipped** (28 de AH2-042); Playwright **17 passed / 1 skipped**; tsc y build OK.
+- **Migración probada en Postgres 16 real** (`scripts/db/probar-configuracion-motor.sh`, nuevo job `database` en CI): integridad, RLS, atomicidad, historial y concurrencia real con dos sesiones. La prueba encontró y corrigió un `CHECK` que aceptaba una apertura mal formada (NULL en SQL).
+- Configuración real 091 (local, sin versionar): semana 23–29/11 idéntica a la actual; semana siguiente sin conflictos.
 
 ### Para aprobar y publicar (propietario)
-1. Revisar y aprobar el PR (y AH2-042).
-2. Autorizar la aplicación de la migración en Supabase al-iada horarios (Claude puede aplicarla con el conector si se autoriza explícitamente).
-3. Fusionar y publicar al-iada (Publish deploy del build, producción bloqueada).
-4. Reglas → Configuración del motor → Importar → revisar → Confirmar. Confirmar que los perfiles EVENTUAL deben ser permanentes (hoy ratificados para 23–29/11).
-5. «Ver semana» para la próxima semana y generar. Rollback: desactivar filas (vuelve el servicio), republicar deploy anterior, o `drop table` (sin datos que conservar).
-
+1. Aprobar el PR #62.
+2. Autorizar la migración en Supabase al-iada horarios (Claude puede aplicarla con el conector si se autoriza explícitamente).
+3. Fusionar y Publish deploy en al-iada.
+4. Reglas → Configuración del motor → Importar → revisar → Confirmar (decidir si los perfiles EVENTUAL quedan permanentes).
+5. «Ver semana» y generar. Rollback: desactivar reglas (vuelve el servicio), republicar deploy anterior o rollback SQL documentado.
 ---
 
 ## RELEVO ANTERIOR — motor híbrido 091 PUBLICADO en Horarios · 20/11/2026, Claude

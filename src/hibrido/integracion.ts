@@ -45,7 +45,12 @@ export async function configuracionAutenticada(sucursal:string,signal?:AbortSign
  let fuente:FuenteConfig='servicio',traza:TrazaConfig[]=[],efectivas=opciones
  if(filas.length){
   fuente='persistida'
-  if(semana){const r=resolverConfiguracion(filas,sucursal,semana);efectivas=r.opciones;traza=r.traza}
+  if(semana){
+   const r=resolverConfiguracion(filas,sucursal,semana)
+   // Un conflicto bloquea solo la generación híbrida de esa semana, con su detalle; no se envía una configuración parcial.
+   if(r.conflictos.length)throw new Error(`La configuración del motor tiene conflictos para la semana del ${semana}: ${r.conflictos.map(c=>c.detalle).join(' ')} Corregilos en Reglas → Configuración del motor o usá el motor anterior.`)
+   efectivas=r.opciones;traza=r.traza
+  }
   else efectivas={}
  }
  return {opciones:efectivas,opcionesServicio:opciones,fuente,traza,filas:persistida.filas,tablaDisponible:persistida.disponible,token:await token(),servicio:cfg.servicio,usuario:user.id}
