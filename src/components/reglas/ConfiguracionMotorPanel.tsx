@@ -111,9 +111,10 @@ export function ConfiguracionMotorPanel({sucursal}:{sucursal:string}){
 
  return <section style={card} aria-label="Configuración del motor">
   <h2 style={{marginTop:0}}>Configuración del motor (sucursal {sucursal})</h2>
-  <p style={{color:'var(--text-muted)'}}>Las reglas <b>permanentes</b> rigen cada día desde su inicio, todas las semanas. Una <b>excepción temporal</b> rige solo en sus fechas (aunque empiece o termine a mitad de semana) y, esos días, reemplaza a la permanente de lo mismo. Nada se borra.</p>
+  <p style={{color:'var(--text-muted)'}}>Las reglas <b>permanentes</b> rigen cada día desde su inicio, todas las semanas. Una <b>excepción temporal</b> rige solo en sus fechas y, esos días, reemplaza a la permanente de lo mismo. Los <b>máximos semanales</b> se definen por semanas completas y no se prorratean. Nada se borra.</p>
   {error&&<p role="alert">{error}</p>}{aviso&&<p role="status">{aviso}</p>}
-  {usuario&&!activas.length&&!importacion&&<div><p>Esta sucursal todavía no tiene reglas guardadas: el motor usa la configuración del servicio.</p>
+  {usuario&&activas.length===0&&filas.length>0&&<p role="status">No hay reglas activas. La configuración guardada sigue siendo la única fuente: el motor no vuelve a la del servicio.</p>}
+  {usuario&&!filas.length&&!importacion&&<div><p>Esta sucursal todavía no guardó su configuración: mientras tanto el motor usa la del servicio. Después de importar o guardar, la del servicio deja de usarse.</p>
    <button disabled={ocupado} onClick={()=>void prepararImportacion()}>Importar la configuración actual del servicio</button></div>}
   {importacion&&<div aria-label="Importación propuesta"><h3>Revisá antes de guardar ({importacion.length})</h3><ul>{importacion.map((x,i)=><li key={i}>{x.clase==='permanente'?'Permanente':'Temporal'} · {ETIQUETA[x.tipo]} · {nombre(x.colaborador_id)} · desde {x.vigencia_desde}{x.vigencia_hasta?` hasta ${x.vigencia_hasta}`:''}</li>)}</ul>
    <button disabled={ocupado} onClick={()=>void ejecutar(async()=>{await importarFilas(supabase as never,filas,importacion,sucursal);setImportacion(null)},'Configuración importada.')}>Confirmar importación</button> <button className="neutro" onClick={()=>setImportacion(null)}>Cancelar</button></div>}
@@ -131,6 +132,7 @@ export function ConfiguracionMotorPanel({sucursal}:{sucursal:string}){
    <label>{editando?'Rige desde':'Desde'}<input type="date" required value={f.desde} onChange={e=>set({desde:e.target.value})}/></label>
    <label>Hasta{f.clase==='permanente'?' (vacío = sin fin)':''}<input type="date" required={f.clase==='temporal'} value={f.hasta} onChange={e=>set({hasta:e.target.value})}/></label>
 
+   {f.tipo==='topes_caja_eventual_contrato'&&<p className="nota">Máximos semanales: rigen por semanas completas (desde un lunes y, si termina, hasta un domingo). No se prorratean.</p>}
    {f.tipo==='topes_caja_eventual_contrato'&&(['full','part'] as const).map(k=><fieldset key={k}><legend>EVENTUAL de contrato {k.toUpperCase()}</legend>
     <label><input type="checkbox" checked={f[`${k}Activo`]} onChange={e=>set({[`${k}Activo`]:e.target.checked} as Partial<Form>)}/> Aplicar máximo (desactivado = sin máximo, no 0 h)</label>
     <label>Horas semanales<input type="number" min="0" max="84" step="0.5" value={f[`${k}Horas`]} onChange={e=>set({[`${k}Horas`]:e.target.value} as Partial<Form>)}/></label></fieldset>)}
@@ -151,7 +153,7 @@ export function ConfiguracionMotorPanel({sucursal}:{sucursal:string}){
    </>}
 
    {f.tipo==='excepcion_apertura_aux_unico'&&<fieldset><legend>Franjas por día en que un AUX único puede atender caja sentado</legend>
-    <p className="nota">La franja admitida la valida el motor (hoy, la apertura del día). Un día sin franjas no tiene excepción.</p>
+    <p className="nota">Solo en estas franjas un AUX único puede atender caja sin otro supervisor de pie. Fuera de ellas rige la supervisión ordinaria. Un día sin franjas no tiene excepción.</p>
     {f.franjas.map((x,i)=><div key={i} role="group" aria-label={`Franja ${i+1}`}><select aria-label={`Franja ${i+1} día`} value={x.dia} onChange={e=>set({franjas:f.franjas.map((y,j)=>j!==i?y:{...y,dia:Number(e.target.value)})})}>{DIAS.map((d,di)=><option key={d} value={di}>{d}</option>)}</select>
      <Hora label={`Franja ${i+1} desde`} value={x.desde} onChange={v=>set({franjas:f.franjas.map((y,j)=>j!==i?y:{...y,desde:v})})}/> a <Hora label={`Franja ${i+1} hasta`} value={x.hasta} onChange={v=>set({franjas:f.franjas.map((y,j)=>j!==i?y:{...y,hasta:v})})}/>
      <button type="button" className="neutro" onClick={()=>set({franjas:f.franjas.filter((_,j)=>j!==i)})}>Quitar</button></div>)}

@@ -19,17 +19,31 @@ select pg_temp.como('11111111-1111-1111-1111-111111111111');
 
 -- 1. Crear permanentes y una excepción temporal superpuesta (permitido: distinta clase).
 select (public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-11-23","datos":{"FULL":{"activo":true,"horas":12},"PART":{"activo":true,"horas":8}}}')).id as topes_id \gset
-select public.cms_crear('{"sucursal_id":"S1","clase":"temporal","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-12-09","vigencia_hasta":"2026-12-11","datos":{"FULL":{"activo":true,"horas":6},"PART":{"activo":true,"horas":4}}}');
+select public.cms_crear('{"sucursal_id":"S1","clase":"temporal","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-12-07","vigencia_hasta":"2026-12-13","datos":{"FULL":{"activo":true,"horas":6},"PART":{"activo":true,"horas":4}}}');
 select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"perfil_caja_eventual","colaborador_id":"aaaaaaaa-0000-0000-0000-000000000001","vigencia_desde":"2026-11-23","datos":{"acreditacion":"TODA_LA_PRESENCIA"}}');
 select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"perfil_caja_eventual","colaborador_id":"aaaaaaaa-0000-0000-0000-000000000002","vigencia_desde":"2026-11-23","datos":{"acreditacion":"TODA_LA_PRESENCIA"}}');
 
 -- 2. Integridad: superposición de igual clase y alcance → rechazada sin efectos; otro alcance → permitida.
 select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2027-01-04","datos":{"FULL":{"activo":true,"horas":1},"PART":{"activo":true,"horas":1}}}')$q$, 'cms_sin_superposicion');
-select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S1","clase":"temporal","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-12-10","vigencia_hasta":"2026-12-20","datos":{"FULL":{"activo":true,"horas":1},"PART":{"activo":true,"horas":1}}}')$q$, 'cms_sin_superposicion');
+select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S1","clase":"temporal","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-12-07","vigencia_hasta":"2026-12-20","datos":{"FULL":{"activo":true,"horas":1},"PART":{"activo":true,"horas":1}}}')$q$, 'cms_sin_superposicion');
 select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S1","clase":"temporal","tipo":"perfil_caja_eventual","colaborador_id":"aaaaaaaa-0000-0000-0000-000000000001","vigencia_desde":"2026-12-01","datos":{"acreditacion":"NO_ACREDITADA"}}')$q$, 'cms_temporal_con_fin');
 select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"excepcion_apertura_aux_unico","vigencia_desde":"2026-11-23","datos":{"dias":[0]}}')$q$, 'cms_datos_por_tipo');
 select public.cms_crear('{"sucursal_id":"S2","clase":"permanente","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-11-23","datos":{"FULL":{"activo":false},"PART":{"activo":false}}}');
 select pg_temp.ok((select count(*) from public.configuracion_motor_sucursal where activa) = 5, 'las fallas no dejaron filas');
+
+-- 2b. Condiciones: el alcance es tipo de condición + persona. Permanente + excepción temporal del mismo alcance conviven
+--     (la temporal la reemplaza en sus días); dos permanentes superpuestas del mismo alcance no.
+select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"condicion_supervisor","colaborador_id":"bbbbbbbb-0000-0000-0000-000000000001","vigencia_desde":"2026-11-02","datos":{"id":"t1","modo":"DEBE","tipo":"turno","valor":"mañana","colaboradorId":"bbbbbbbb-0000-0000-0000-000000000001"}}');
+select public.cms_crear('{"sucursal_id":"S1","clase":"temporal","tipo":"condicion_supervisor","colaborador_id":"bbbbbbbb-0000-0000-0000-000000000001","vigencia_desde":"2026-11-25","vigencia_hasta":"2026-11-26","datos":{"id":"t2","modo":"DEBE","tipo":"turno","valor":"tarde","colaboradorId":"bbbbbbbb-0000-0000-0000-000000000001"}}');
+select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"condicion_supervisor","colaborador_id":"bbbbbbbb-0000-0000-0000-000000000001","vigencia_desde":"2026-12-07","datos":{"id":"t3","modo":"DEBE","tipo":"turno","valor":"noche","colaboradorId":"bbbbbbbb-0000-0000-0000-000000000001"}}')$q$, 'cms_sin_superposicion');
+select public.cms_crear('{"sucursal_id":"S1","clase":"permanente","tipo":"condicion_supervisor","colaborador_id":"bbbbbbbb-0000-0000-0000-000000000001","vigencia_desde":"2026-11-02","datos":{"id":"f1","modo":"DEBE","tipo":"franco","dia":2,"colaboradorId":"bbbbbbbb-0000-0000-0000-000000000001"}}');
+select pg_temp.ok((select count(*) from public.configuracion_motor_sucursal where tipo='condicion_supervisor' and activa) = 3, 'condiciones por tipo y persona');
+-- desactivar las condiciones de prueba para no alterar los conteos siguientes
+select public.cms_desactivar(id, version) from public.configuracion_motor_sucursal where tipo='condicion_supervisor' and activa;
+
+-- 2c. Topes: solo por semanas completas (no hay prorrateo de máximos semanales).
+select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S9","clase":"temporal","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-12-09","vigencia_hasta":"2026-12-11","datos":{"FULL":{"activo":true,"horas":6},"PART":{"activo":true,"horas":4}}}')$q$, 'cms_topes_semana_completa');
+select pg_temp.falla($q$select public.cms_crear('{"sucursal_id":"S9","clase":"permanente","tipo":"topes_caja_eventual_contrato","vigencia_desde":"2026-12-10","datos":{"FULL":{"activo":true,"horas":6},"PART":{"activo":true,"horas":4}}}')$q$, 'cms_topes_semana_completa');
 
 -- 3. Escritura directa prohibida (solo funciones atómicas).
 select pg_temp.falla($q$insert into public.configuracion_motor_sucursal(sucursal_id,clase,tipo,vigencia_desde,datos) values ('S1','permanente','topes_caja_eventual_contrato','2030-01-07','{"FULL":{},"PART":{}}')$q$, '42501');
@@ -54,7 +68,7 @@ select pg_temp.falla(format($q$select public.cms_reemplazar(%L, 1, '{"sucursal_i
 select pg_temp.falla(format($q$select public.cms_desactivar(%L, 7)$q$, :'ap1'), 'CONFLICTO_CONCURRENTE');
 select public.cms_desactivar(:'ap1', 1);
 select pg_temp.ok((select not activa and desactivada_en is not null from public.configuracion_motor_sucursal where id = :'ap1'), 'desactivada con fecha');
-select pg_temp.ok((select count(*) from public.configuracion_motor_sucursal where activa) = 7, 'resto intacto');
+select pg_temp.ok((select count(*) from public.configuracion_motor_sucursal where activa and tipo<>'condicion_supervisor') = 7, 'resto intacto');
 
 -- 6. Importación atómica: si una fila falla, no queda ninguna.
 select pg_temp.falla($q$select public.cms_importar('[{"sucursal_id":"S3","clase":"permanente","tipo":"perfil_caja_eventual","colaborador_id":"aaaaaaaa-0000-0000-0000-000000000009","vigencia_desde":"2026-11-23","datos":{"acreditacion":"TODA_LA_PRESENCIA"}},{"sucursal_id":"S3","clase":"temporal","tipo":"perfil_caja_eventual","colaborador_id":"aaaaaaaa-0000-0000-0000-000000000009","vigencia_desde":"2026-11-23","datos":{"acreditacion":"NO_ACREDITADA"}}]')$q$, 'cms_temporal_con_fin');

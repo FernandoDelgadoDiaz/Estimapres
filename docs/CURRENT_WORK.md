@@ -1,4 +1,32 @@
-## PUNTO ÚNICO DE RETOMA — AH2-042 corregido según el propietario; listo para aprobar y publicar · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-042 segunda ronda de correcciones; PR #62 listo para publicación · 20/11/2026, Claude
+
+**Estado:** las 4 correcciones de la segunda ronda del propietario están implementadas, con pruebas de regresión, en el PR #62 (Estimapres, rama `feat/ah2-config-persistente-sucursal`) y en el PR #6 de aliada-optimizer (rama `feat/integracion-aliada-work-claude`, SHA `ca872838c830cd4b9b8f0eeae3d185f969613a93`). **Migración NO aplicada.** Nada cambiado en Supabase, Netlify, Cloud Run ni Secret Manager. Prestify sin cambios. Las demás reglas aprobadas se conservan.
+
+### Correcciones (segunda ronda)
+1. **Sin prorrateo de máximos semanales.** Topes por contrato: solo por semanas completas (inicio lunes, fin domingo), exigido en el cliente y en la base (`cms_topes_semana_completa`); un cambio dentro de la semana → conflicto. Perfil EVENTUAL: máximo individual y mínimo de función habitual son semanales; si difieren entre días con caja de la misma semana → conflicto explícito (nunca un valor intermedio).
+2. **Sin retorno automático a Secret Manager.** Cuando la sucursal guardó o importó configuración (cualquier fila, activa o no), la guardada es la única fuente para siempre; desactivar todo deja al motor solo con lo vigente. Solo una sucursal que nunca guardó usa el servicio. El editor ya no ofrece reimportar si hay filas.
+3. **Condiciones del supervisor día por día.** Alcance = tipo de condición + persona (también en la columna generada `alcance`). La excepción temporal rige solo en sus días y la permanente en los demás; cada tramo continuo va al motor con sus fechas reales. Turno homónimo con otra definición → clave propia. «Gestionar manualmente» y «franco y medio corrido» parciales → conflicto (regla del motor).
+4. **Excepción de AUX único sin franja fija.** El validador ya no limita a 08:00–09:00: rige en las franjas autorizadas por la sucursal (matriz 7×30), con un único AUX presente. H-A2, R3, H-A3 sin cambios fuera de eso. Cambiado en A (`politicaRecursos`, pasada 2, AH2-040, comparabilidad, validador independiente, orquestador) y en B (`support`, `domain`, máscaras, comparación). Con matrices que solo autorizan la apertura, resultados idénticos.
+
+### Pruebas de regresión
+- `configuracionPersistente.test.ts` (31): topes por semana completa, perfil con máximo distinto → conflicto / igual → conserva, importar y desactivar todo → fuente persistida, turno temporal miércoles–jueves sobre permanente (verificado con `compilarCondiciones`), franjas libres de AUX único.
+- `excepcionApertura.test.ts` + `aliada-optimizer/tests/test_excepcion_apertura.py`: mismo fixture en A y CP-SAT; AUX único en franja autorizada fuera de la apertura atiende caja; sin autorización queda de pie; A valida el plan de CP-SAT y rechaza sentarlo fuera de la franja (H-A2).
+- SQL (`scripts/db/probar-configuracion-motor.sh`, job `database` en CI): alcance de condiciones por tipo y persona, topes solo semanas completas, más integridad, RLS, atomicidad, historial y concurrencia real.
+
+### Resultados
+Vitest **601 passed / 4 skipped**; pytest **163 passed / 1 skipped**; Playwright **17 passed / 1 skipped**; build OK; SQL OK. Configuración real 091 (local, sin versionar): resuelve idéntica y sin conflictos.
+
+### Para publicar (requiere autorización del propietario)
+0. **CP-SAT:** reconstruir la imagen con aliada-optimizer `ca87283` (Cloud Build) y desplegar una revisión nueva de `aliada-optimizer` (min 0 / max 1). Rollback: revisión `aliada-optimizer-00004-966`. Sin esto, CP-SAT rechaza franjas fuera de 08:00–09:00 y Horarios usa el motor A.
+1. Aprobar y fusionar el PR #6 (aliada-optimizer) y el PR #62.
+2. Autorizar la migración en Supabase al-iada horarios.
+3. Publish deploy en al-iada.
+4. Reglas → Configuración del motor → Importar → revisar → Confirmar.
+5. «Ver semana» y generar. Rollback: cambiar/desactivar reglas en el editor (no vuelve a Secret Manager), republicar deploy anterior o rollback SQL documentado.
+---
+
+## RELEVO ANTERIOR — primera ronda de correcciones AH2-042 · 20/11/2026, Claude
+
 
 **Estado:** concepto AH2-042 **aprobado**; las 6 correcciones pedidas están implementadas y validadas en el PR #62 (borrador). **Migración NO aplicada.** Nada cambiado en Supabase, Netlify, Cloud Run ni Secret Manager. Motor matemático y Prestify sin cambios.
 

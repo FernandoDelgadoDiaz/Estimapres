@@ -5,7 +5,7 @@
 -- Garantías de integridad (no dependen del cliente):
 --  * Aislamiento: RLS por usuario autenticado no anónimo; todas las consultas filtran por (local_id, sucursal_id).
 --  * Sin superposición ambigua: una restricción de exclusión impide dos reglas ACTIVAS de la misma clase y el mismo
---    alcance (sucursal + tipo + persona/condición) con fechas superpuestas. Permanente y temporal sí pueden convivir:
+--    alcance (sucursal + tipo + persona; en condiciones, + tipo de condición) con fechas superpuestas. Permanente y temporal sí pueden convivir:
 --    la temporal es la excepción.
 --  * Escrituras SOLO mediante funciones atómicas (cms_crear, cms_reemplazar, cms_desactivar, cms_importar): sin
 --    INSERT/UPDATE/DELETE directos. Cada función toca únicamente las filas indicadas; nunca borra.
@@ -35,10 +35,11 @@ create table if not exists public.configuracion_motor_sucursal (
   creado_en timestamptz not null default now(),
   actualizado_en timestamptz not null default now(),
   desactivada_en timestamptz,
-  -- Alcance de precedencia: persona (perfiles), identificador de condición, o la sucursal.
+  -- Alcance de precedencia: persona (perfiles), tipo de condición + persona (condiciones), o la sucursal.
+  -- Una excepción temporal reemplaza, solo en sus días, a la permanente del mismo alcance.
   alcance text generated always as (
     coalesce(colaborador_id::text, '') ||
-    case when tipo = 'condicion_supervisor' then '|' || coalesce(datos ->> 'id', '') else '' end) stored,
+    case when tipo = 'condicion_supervisor' then '|' || coalesce(datos ->> 'tipo', '') else '' end) stored,
   constraint cms_temporal_con_fin check (clase = 'permanente' or vigencia_hasta is not null),
   constraint cms_vigencia_ordenada check (vigencia_hasta is null or vigencia_hasta >= vigencia_desde),
   constraint cms_alcance_segun_tipo check (
@@ -52,6 +53,9 @@ create table if not exists public.configuracion_motor_sucursal (
       (tipo = 'excepcion_apertura_aux_unico' and datos ? 'franjas' and coalesce(jsonb_typeof(datos -> 'franjas') = 'array', false)) or
       (tipo = 'condicion_supervisor' and datos ? 'id' and datos ? 'tipo' and datos ? 'modo'))),
   constraint cms_desactivada_coherente check (activa or desactivada_en is not null),
+  -- Máximos SEMANALES: rigen por semanas completas (lunes a domingo); nunca se prorratean.
+  constraint cms_topes_semana_completa check (tipo <> 'topes_caja_eventual_contrato' or (
+    extract(isodow from vigencia_desde) = 1 and (vigencia_hasta is null or extract(isodow from vigencia_hasta) = 7))),
   constraint cms_sin_superposicion exclude using gist (
     local_id with =, sucursal_id with =, tipo with =, alcance with =, clase with =,
     daterange(vigencia_desde, vigencia_hasta, '[]') with &&) where (activa)

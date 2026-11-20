@@ -20,7 +20,7 @@
 //   - Nunca se convierte PARADO en CAJA sin déficit (sin "relleno" ni extensión
 //     de bloques para alcanzar 1 hora).
 
-import { activaRecursos, aperturaAuxUnicoAutorizada, erroresDatosRecursos } from "./politicaRecursos";
+import { activaRecursos, aperturaAuxUnicoAutorizada, erroresDatosRecursos, excepcionAperturaAuxUnico } from "./politicaRecursos";
 import type { InputAlgoritmo, AsignacionAux, DiaSemana, SlotIdx, RegulaViolada } from "./types";
 import { ejecutarPasada1, type ResultadoPasada1 } from "./pasada1-fullpart";
 import { validarPresenciaAux0809, validarCobertura0922 } from "./reglas";
@@ -139,7 +139,10 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
 
     for (const slot of slots) {
       const parados = Object.keys(asignacion_aux).filter(id => asignacion_aux[id][dia][slot] === "PARADO");
-      const maxActivables = parados.length - 1; // H-A2: ≥1 AUX queda PARADO supervisando
+      // H-A2: ≥1 AUX queda PARADO supervisando. Excepción AH2-037/042: en una franja autorizada por la sucursal, si hay
+      // un único AUX presente, puede atender caja sin otro de pie (R3 no cambia: el designado no se sienta).
+      const presentes = Object.values(input.presencia_aux).filter(m => m[dia][slot] !== "NO_PRESENTE").length;
+      const maxActivables = presentes === 1 && parados.length === 1 && excepcionAperturaAuxUnico(input, dia, slot) ? 1 : parados.length - 1;
       if (maxActivables <= 0) continue;
       const designado = supervisor_designado[dia];
       const elegibles = parados.filter(id => id !== designado); // R3: el designado no se sienta

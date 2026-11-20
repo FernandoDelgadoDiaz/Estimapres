@@ -19,9 +19,10 @@ export function usaHibrido(sucursal:string,anterior=false,cfg=configHibrido()) {
 export type FuenteConfig='persistida'|'servicio'
 /**
  * Configuración privada del motor para la sucursal. Precedencia (AH2-042):
- * 1. Si la sucursal tiene alguna fila ACTIVA en `configuracion_motor_sucursal`, esa es la ÚNICA fuente: se resuelve
- *    para la semana (permanentes + excepciones temporales). No se mezcla con la del servicio.
- * 2. Si no hay filas (o la tabla todavía no existe), se usa la del servicio (`/v1/sesion`, transición).
+ * 1. Si la sucursal tiene ALGUNA fila en `configuracion_motor_sucursal` (activa o no: ya se importó o configuró), la
+ *    configuración guardada es la ÚNICA fuente, para siempre: se resuelve para la semana (permanentes + excepciones).
+ *    Desactivar reglas NUNCA devuelve la sucursal a Secret Manager; sin reglas vigentes, el motor recibe solo lo vigente.
+ * 2. Solo si la sucursal nunca guardó configuración (o la tabla todavía no existe), se usa la del servicio (transición).
  * El servicio se consulta siempre: verifica identidad, sucursal y origen y despierta CP-SAT.
  */
 export async function configuracionAutenticada(sucursal:string,signal?:AbortSignal,cfg=configHibrido(),semana?:string) {
@@ -43,7 +44,7 @@ export async function configuracionAutenticada(sucursal:string,signal?:AbortSign
  const persistida=await cargarConfiguracionMotor(supabase,user.id,sucursal)
  const filas:FilaConfigMotor[]=persistida.filas.filter(f=>f.activa)
  let fuente:FuenteConfig='servicio',traza:TrazaConfig[]=[],efectivas=opciones
- if(filas.length){
+ if(persistida.filas.length){
   fuente='persistida'
   if(semana){
    const r=resolverConfiguracion(filas,sucursal,semana)

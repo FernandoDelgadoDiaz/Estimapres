@@ -24,19 +24,26 @@ describe('vigencia por fecha (día a día)',()=>{
   for(const s of [L,'2026-11-30','2027-03-01'])expect(tp(resolverConfiguracion([p],S,s))).toMatchObject({vigenciaDesde:s,FULL:{horas:12},PART:{horas:8}})
   expect(resolverConfiguracion([p],S,'2026-11-16').opciones).toEqual({})
  })
- it('excepción de miércoles a viernes: rige solo esos días; los máximos semanales se prorratean por día',()=>{
-  const f=[tope('permanente',L,null,12,8),tope('temporal','2026-12-09','2026-12-11',6,4)]
-  const r=resolverConfiguracion(f,S,'2026-12-07')
-  expect(tp(r)).toMatchObject({FULL:{activo:true,horas:9},PART:{activo:true,horas:6}}) // (4·12+3·6)/7=9,43→9 ; (4·8+3·4)/7=6,29→6
-  expect(r.traza.map(t=>[t.clase,t.dias])).toEqual([['permanente',[0,1,5,6]],['temporal',[2,3,4]]])
+ it('regresión punto 1: los máximos semanales NO se prorratean; rigen por semanas completas',()=>{
+  // Una excepción de topes de miércoles a viernes se rechaza al guardar (no se inventa un valor intermedio).
+  expect(()=>validarFila(tope('temporal','2026-12-09','2026-12-11',6,4))).toThrow('semanas completas')
+  // Por semana completa: el valor exacto, sin prorrateo; la semana siguiente vuelve la permanente.
+  const f=[tope('permanente',L,null,12,8),tope('temporal','2026-12-07','2026-12-13',6,4)]
+  expect(tp(resolverConfiguracion(f,S,'2026-12-07'))).toMatchObject({FULL:{activo:true,horas:6},PART:{activo:true,horas:4}})
   expect(tp(resolverConfiguracion(f,S,'2026-12-14')).FULL.horas).toBe(12)
-  expect(tp(resolverConfiguracion([tope('permanente',L,null,12,8),tope('temporal','2026-12-07','2026-12-13',6,4)],S,'2026-12-07')).FULL.horas).toBe(6)
+  // Datos que no respeten semanas completas (p. ej., cargados a mano) → conflicto explícito, nunca un promedio.
+  const legado=[tope('permanente',L,null,12,8),{...tope('temporal','2026-12-07','2026-12-13',6,4),vigencia_desde:'2026-12-09',vigencia_hasta:'2026-12-11'}]
+  const r=resolverConfiguracion(legado,S,'2026-12-07')
+  expect(r.conflictos).toEqual([expect.objectContaining({tipo:'topes_caja_eventual_contrato',detalle:expect.stringContaining('semanas completas')})])
+  expect(tp(r).FULL.horas).toBe(12) // nunca un valor intermedio; el conflicto bloquea la generación híbrida de esa semana
+  // Si dos versiones válidas por semana completa se cruzaran dentro de una semana (no debería ocurrir), conflicto explícito.
+  const cruzadas=resolverConfiguracion([tope('permanente',L,'2026-12-06',12,8),{...tope('permanente','2026-12-07',null,6,4),vigencia_desde:'2026-12-10'}],S,'2026-12-07')
+  expect(cruzadas.conflictos.map(c=>c.tipo)).toContain('topes_caja_eventual_contrato')
  })
- it('una permanente que empieza a mitad de semana y un día «sin máximo» se componen por fecha',()=>{
-  const r=resolverConfiguracion([tope('permanente','2026-12-10',null,12,null)],S,'2026-12-07')
-  // lunes–miércoles sin regla = sin máximo (84/7 h por día); jueves–domingo 12 h → (3·84+4·12)/7 = 42,86 → 42,5
-  expect(tp(r)).toMatchObject({FULL:{activo:true,horas:42.5},PART:{activo:false}})
-  expect(r.notas.length).toBeGreaterThan(0)
+ it('regresión punto 1: una permanente de topes no puede empezar a mitad de semana',()=>{
+  expect(()=>validarFila(tope('permanente','2026-12-10',null,12,null))).toThrow('lunes')
+  expect(()=>validarFila(tope('permanente',L,'2026-12-10',12,8))).toThrow('domingo')
+  expect(validarFila(tope('permanente',L,'2026-12-13',12,8))).toBeTruthy()
  })
  it('perfil: «no atiende caja» de miércoles a jueves se expresa como reservas de esos días; el motor lo compila sin bloqueos',()=>{
   const i=demoSucursalLab()
@@ -51,22 +58,31 @@ describe('vigencia por fecha (día a día)',()=>{
   expect([2,3].every(d=>res[d].every((v,s)=>v||i.disponibilidad_eventual['ev-b'][d][s]==='NO_DISPONIBLE'))).toBe(true)
   expect([0,1,4,5,6].every(d=>!res[d].some(Boolean))).toBe(true)
  })
- it('perfil con reservas permanentes y excepción «toda la presencia» el sábado: reservas solo los días que rige la permanente',()=>{
-  const f=[perfil('ev-a','permanente',L,null,{acreditacion:'PRESENCIA_MENOS_RESERVAS',reservas:[{dias:[0,1,2,3,4,5],desde:'09:00',hasta:'11:00'}],maxCajaHoras:14}),
-   perfil('ev-a','temporal','2026-11-28','2026-11-28',{acreditacion:'TODA_LA_PRESENCIA'})]
-  const p=resolverConfiguracion(f,S,L).opciones.disponibilidad_caja_eventual!.perfiles[0]
-  expect(p.reservas!.map(x=>x.dias[0])).toEqual([0,1,2,3,4])
-  expect(p.maxCajaHoras).toBe(24) // 6·14/7 + 1·84/7 = 12+12
+ it('regresión punto 1: perfil con máximo individual distinto un día → conflicto (sin prorrateo); igual valor → se conserva',()=>{
+  const perm=perfil('ev-a','permanente',L,null,{acreditacion:'PRESENCIA_MENOS_RESERVAS',reservas:[{dias:[0,1,2,3,4,5],desde:'09:00',hasta:'11:00'}],maxCajaHoras:14})
+  const r=resolverConfiguracion([perm,perfil('ev-a','temporal','2026-11-28','2026-11-28',{acreditacion:'TODA_LA_PRESENCIA'})],S,L)
+  expect(r.conflictos).toEqual([expect.objectContaining({colaboradorId:'ev-a',detalle:expect.stringContaining('no se prorratean')})])
+  expect(r.opciones.disponibilidad_caja_eventual).toBeUndefined()
+  const igual=resolverConfiguracion([perm,perfil('ev-a','temporal','2026-11-28','2026-11-28',{acreditacion:'TODA_LA_PRESENCIA',maxCajaHoras:14})],S,L)
+  const p=igual.opciones.disponibilidad_caja_eventual!.perfiles[0]
+  expect(p.maxCajaHoras).toBe(14);expect(p.reservas!.map(x=>x.dias[0])).toEqual([0,1,2,3,4])
+  // «No atiende caja» unos días no cambia el máximo semanal de los días con caja.
+  const na=resolverConfiguracion([perm,perfil('ev-a','temporal','2026-11-25','2026-11-26',{acreditacion:'NO_ACREDITADA'})],S,L)
+  expect(na.conflictos).toEqual([]);expect(na.opciones.disponibilidad_caja_eventual!.perfiles[0].maxCajaHoras).toBe(14)
  })
- it('excepción de apertura: franjas configurables por día; una excepción temporal la quita un día; la franja la valida el motor',()=>{
+ it('regresión punto 4: apertura con franjas libres por sucursal (sin 08:00–09:00 fijo); excepción temporal la quita un día',()=>{
   const lunMar=apertura('permanente',L,null,[{dia:0,desde:'08:00',hasta:'09:00'},{dia:1,desde:'08:00',hasta:'08:30'}])
-  const m=resolverConfiguracion([lunMar],S,L).opciones.excepcion_apertura_aux_unico!
-  expect(m.map(r=>r.filter(Boolean).length)).toEqual([2,1,0,0,0,0,0])
+  expect(resolverConfiguracion([lunMar],S,L).opciones.excepcion_apertura_aux_unico!.map(r=>r.filter(Boolean).length)).toEqual([2,1,0,0,0,0,0])
   const todos=apertura('permanente',L,null,[0,1,2,3,4,5,6].map(dia=>({dia,desde:'08:00',hasta:'09:00'})))
   const sinMie=resolverConfiguracion([todos,apertura('temporal','2026-11-25','2026-11-25',[])],S,L).opciones.excepcion_apertura_aux_unico!
   expect(sinMie.map(r=>r.filter(Boolean).length)).toEqual([2,2,0,2,2,2,2])
-  expect(()=>validarFila(apertura('permanente',L,null,[{dia:0,desde:'10:00',hasta:'11:00'}]))).toThrow('08:00–09:00') // mensaje del validador del motor
+  // Franja autorizada a media mañana y a la noche: válida y aplicada en sus franjas exactas.
+  const libre=apertura('permanente',L,null,[{dia:2,desde:'10:00',hasta:'11:00'},{dia:5,desde:'21:00',hasta:'22:00'}])
+  expect(validarFila(libre)).toBeTruthy()
+  const m=resolverConfiguracion([libre],S,L).opciones.excepcion_apertura_aux_unico!
+  expect(m[2].flatMap((v,s)=>v?[s]:[])).toEqual([4,5]);expect(m[5].flatMap((v,s)=>v?[s]:[])).toEqual([26,27])
   expect(()=>validarFila(apertura('permanente',L,null,[{dia:0,desde:'09:00',hasta:'08:00'}]))).toThrow('Franja inválida')
+  expect(()=>validarFila(apertura('permanente',L,null,[{dia:7,desde:'08:00',hasta:'09:00'}]))).toThrow('Franja inválida')
  })
 })
 
@@ -82,6 +98,33 @@ describe('condiciones del supervisor (todas las que admite el motor)',()=>{
   const out=compilarCondiciones({...i,condiciones_supervisor:r.opciones.condiciones_supervisor})
   expect(out.auditoria!.aplicadas.map(c=>c.id).sort()).toEqual(['c1','c2','c3','c4'])
   expect(out.auditoria!.aplicadas.find(c=>c.id==='c1')!.dias).toEqual([3])
+ })
+ it('regresión punto 3: una excepción temporal del supervisor reemplaza a la permanente SOLO en sus días',()=>{
+  const i=demoSucursalLab()
+  const perm=fila({tipo:'condicion_supervisor',clase:'permanente',colaborador_id:'p1',vigencia_desde:'2026-11-02',datos:{id:'t-man',modo:'DEBE',tipo:'turno',valor:'mañana',colaboradorId:'p1',turno:{inicioMin:'09:00',inicioMax:'10:00',finMax:'16:00'}}})
+  const temp=cond('t-tar','p1','2026-11-25','2026-11-26',{tipo:'turno',valor:'tarde',turno:{inicioMin:'14:00',inicioMax:'15:00'}})
+  const r=resolverConfiguracion([perm,temp],S,i.semana!)
+  expect(r.conflictos).toEqual([])
+  const c=r.opciones.condiciones_supervisor!
+  expect(c.condiciones.map(x=>[x.id,x.valor,x.desde,x.hasta])).toEqual([
+   ['t-man@2026-11-23','mañana','2026-11-23','2026-11-24'],['t-tar@2026-11-25','tarde','2026-11-25','2026-11-26'],['t-man@2026-11-27','mañana','2026-11-27','2026-11-29']])
+  const out=compilarCondiciones({...i,condiciones_supervisor:c}).auditoria!
+  const porTurno:Record<string,number[]>={};for(const a of out.aplicadas)(porTurno[String(a.valor)]??=[]).push(...a.dias)
+  expect(porTurno).toEqual({mañana:[0,1,4,5,6],tarde:[2,3]})
+  // Otra persona o otro tipo de condición no se reemplazan entre sí.
+  const otro=resolverConfiguracion([perm,cond('f-p2','p2','2026-11-25','2026-11-25',{tipo:'franco',dia:2})],S,i.semana!).opciones.condiciones_supervisor!
+  expect(otro.condiciones.map(x=>x.id)).toEqual(['t-man','f-p2'])
+  // Mismo nombre de turno con otra definición en la misma semana: claves de turno separadas (sin conflicto ni pérdida).
+  const tempMan=cond('t-man2','p1','2026-11-25','2026-11-25',{tipo:'turno',valor:'mañana',turno:{inicioMin:'08:30',inicioMax:'09:00'}})
+  const dos=resolverConfiguracion([perm,tempMan],S,i.semana!).opciones.condiciones_supervisor!
+  expect(Object.keys(dos.turnos!).sort()).toEqual(['mañana','mañana (2026-11-25)'])
+  expect(compilarCondiciones({...i,condiciones_supervisor:dos}).auditoria!.aplicadas).toHaveLength(3)
+ })
+ it('regresión punto 3: exclusión permanente con excepción temporal a mitad de semana → conflicto explicado (el motor exige semana completa)',()=>{
+  const perm=fila({tipo:'condicion_supervisor',clase:'permanente',colaborador_id:'p1',vigencia_desde:'2026-11-02',datos:{id:'ex',modo:'DEBE',tipo:'exclusion_manual',colaboradorId:'p1'}})
+  expect(resolverConfiguracion([perm],S,L).conflictos).toEqual([])
+  const r=resolverConfiguracion([perm,cond('ex2','p1','2026-11-25','2026-11-26',{tipo:'exclusion_manual'})],S,L)
+  expect(r.conflictos.map(c=>c.detalle).join(' ')).toContain('semana completa')
  })
  it('exclusión manual que no cubre la semana: conflicto propio (el motor la exige completa); las demás reglas siguen',()=>{
   const r=resolverConfiguracion([cond('x',`p1`,'2026-11-25','2026-12-02',{tipo:'exclusion_manual'}),tope('permanente',L,null,12,8)],S,L)
@@ -220,6 +263,12 @@ describe('precedencia en el flujo integrado',()=>{
  }
  it('sin filas guardadas (o sin tabla) rige la configuración del servicio',async()=>{
   for(const caso of [[],'sin-tabla'] as const){const r=await flujo(caso as never);expect(r.fuente).toBe('servicio');expect(r.opciones.topes_caja_eventual_contrato!.configuraciones[0].FULL.horas).toBe(99)}
+ })
+ it('regresión punto 2: después de importar, desactivar todo NO vuelve a Secret Manager',async()=>{
+  const r=await flujo([{...tope('permanente',L,null,12,8),sucursal_id:'091',activa:false,desactivada_en:'2026-11-21T00:00:00Z'}])
+  expect(r.fuente).toBe('persistida')
+  expect(r.opciones).toEqual({}) // sin reglas vigentes: nada del servicio (99 h) se cuela
+  expect(r.opcionesServicio.topes_caja_eventual_contrato!.configuraciones[0].FULL.horas).toBe(99)
  })
  it('con filas guardadas son la única fuente, por fecha; un conflicto bloquea solo la generación híbrida con su detalle',async()=>{
   const r=await flujo([{...tope('permanente',L,null,12,8),sucursal_id:'091'}])

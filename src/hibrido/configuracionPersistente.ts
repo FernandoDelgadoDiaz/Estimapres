@@ -11,10 +11,13 @@
  *
  * La resolución produce SOLO los formatos que el motor ya acepta y valida (no se modifica el motor):
  *   perfiles por persona → `disponibilidad_caja_eventual` (un perfil semanal; los días con otra regla se expresan como
- *     reservas de franja completa o de las franjas declaradas, y las cantidades semanales se prorratean por días);
- *   topes por contrato → `topes_caja_eventual_contrato` (prorrateo por días si cambian durante la semana);
- *   apertura → `excepcion_apertura_aux_unico` (matriz por día y franja; la franja admitida la decide el validador del motor);
- *   condiciones → `condiciones_supervisor` con sus fechas reales (el motor ya las evalúa por día) y sus turnos.
+ *     reservas de franja completa o de las franjas declaradas). Las cantidades SEMANALES (máximo individual, mínimo de
+ *     función habitual) NUNCA se prorratean: si difieren dentro de una semana, es un conflicto explícito;
+ *   topes por contrato → `topes_caja_eventual_contrato`: son máximos SEMANALES, se configuran por semanas completas
+ *     (lunes a domingo) y nunca se prorratean;
+ *   apertura → `excepcion_apertura_aux_unico` (matriz por día y franja autorizada por la sucursal);
+ *   condiciones → `condiciones_supervisor`, resueltas DÍA POR DÍA por alcance (tipo de condición + persona): una
+ *     excepción temporal reemplaza a la permanente solo en sus días; cada tramo se envía con sus fechas exactas.
  */
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
 import type {CondicionSupervisor} from '../algoritmo/condicionesTipos'
@@ -52,8 +55,6 @@ export function sumarDias(fecha:string,n:number){const d=new Date(`${fecha}T00:0
 const esLunes=(s:string)=>new Date(`${s}T00:00:00Z`).getUTCDay()===1
 export const HORAS_GRILLA=Array.from({length:SLOTS_POR_DIA+1},(_,s)=>slotAHora(s))
 const enGrilla=(h:unknown):h is string=>typeof h==='string'&&HORA.test(h)&&horaASlot(h)>=0&&horaASlot(h)<=SLOTS_POR_DIA
-const medio=(x:number)=>Math.floor(x*2)/2
-const SIN_LIMITE_SEMANAL=84 // máximo admitido por los validadores del motor (0–84 h); un día «sin máximo» aporta 84/7 h
 
 /** Matriz 7×30 del motor a partir de franjas declaradas (solo las del día indicado). */
 function matrizApertura(porDia:(FranjaApertura[]|null)[]){
@@ -75,6 +76,8 @@ export function validarFila(f:NuevaFila):NuevaFila{
  if(f.tipo==='topes_caja_eventual_contrato'){
   if(f.colaborador_id!==null)mal('ALCANCE','Los topes son de la sucursal, no de una persona.')
   if(Object.keys(d).some(k=>k!=='FULL'&&k!=='PART'))mal('TOPES','Campos de topes desconocidos.')
+  // Máximos SEMANALES: rigen por semanas completas; nunca se prorratean.
+  if(!esLunes(f.vigencia_desde)||(f.vigencia_hasta!==null&&new Date(`${f.vigencia_hasta}T00:00:00Z`).getUTCDay()!==0))mal('TOPES','Los máximos semanales rigen por semanas completas: la vigencia debe empezar un lunes y, si termina, terminar un domingo.')
   try{validarTopesContrato({version:1,configuraciones:[{sucursalId:f.sucursal_id,vigenciaDesde:f.vigencia_desde,fuente:'validación',FULL:d.FULL as TopeClase,PART:d.PART as TopeClase}]})}
   catch(e){mal('TOPES',e instanceof Error?e.message:'Topes inválidos.')}
  }
@@ -123,7 +126,8 @@ export interface TrazaConfig {tipo:TipoConfig;colaboradorId:string|null;clase:Cl
 export interface ConflictoConfig {tipo:TipoConfig;colaboradorId:string|null;filaIds:string[];detalle:string}
 export interface ConfigResuelta {opciones:OpcionesGeneracion;traza:TrazaConfig[];conflictos:ConflictoConfig[];semana:string;domingo:string;notas:string[]}
 
-const claveAlcance=(f:Pick<FilaConfigMotor,'tipo'|'colaborador_id'|'datos'>)=>`${f.tipo}|${f.colaborador_id??''}${f.tipo==='condicion_supervisor'?`|${String((f.datos as {id?:unknown}).id??'')}`:''}`
+/** Alcance de precedencia (igual que la columna `alcance` de la base): tipo + persona; en condiciones, + tipo de condición. */
+export const claveAlcance=(f:Pick<FilaConfigMotor,'tipo'|'colaborador_id'|'datos'>)=>`${f.tipo}|${f.colaborador_id??''}${f.tipo==='condicion_supervisor'?`|${String((f.datos as {tipo?:unknown}).tipo??'')}`:''}`
 const vigenteEn=(f:FilaConfigMotor,fecha:string)=>f.vigencia_desde<=fecha&&(f.vigencia_hasta===null||f.vigencia_hasta>=fecha)
 
 /**
@@ -182,35 +186,28 @@ export function resolverConfiguracion(filas:FilaConfigMotor[],sucursal:string,se
    if(!dd||dd.acreditacion==='NO_ACREDITADA')reservas.push({dias:[d],desde:HORAS_GRILLA[0],hasta:HORAS_GRILLA[SLOTS_POR_DIA]})
    else if(dd.acreditacion==='PRESENCIA_MENOS_RESERVAS')for(const r of dd.reservas??[])if(r.dias.includes(d))reservas.push({dias:[d],desde:r.desde,hasta:r.hasta})
   })
-  const prorr=(campo:'horasFuncionHabitualMinimas'|'maxCajaHoras',sinValor:number)=>{
-   if(dias.every(x=>datosDe(x)?.[campo]==null))return undefined
-   return Math.min(SIN_LIMITE_SEMANAL,medio(dias.reduce((a,x)=>a+(datosDe(x)?.[campo]??sinValor)/7,0)))
-  }
-  const fMin=prorr('horasFuncionHabitualMinimas',0),maxC=prorr('maxCajaHoras',SIN_LIMITE_SEMANAL)
+  // Cantidades SEMANALES: no se prorratean. Deben ser iguales en todos los días con caja acreditada de la semana.
+  const acreditados=dias.filter(x=>x&&datosDe(x)!.acreditacion!=='NO_ACREDITADA')
+  const semanal=(campo:'horasFuncionHabitualMinimas'|'maxCajaHoras')=>{const v=new Set(acreditados.map(x=>datosDe(x)?.[campo]??null));return v.size===1?{ok:true,valor:[...v][0]}:{ok:false,valor:null}}
+  const fS=semanal('horasFuncionHabitualMinimas'),mS=semanal('maxCajaHoras')
+  if(!fS.ok||!mS.ok){conflictos.push({tipo:'perfil_caja_eventual',colaboradorId:id,filaIds:[...new Set(dias.filter(Boolean).map(x=>x!.id))],detalle:`El ${!mS.ok?'máximo semanal de caja':'mínimo semanal de función habitual'} cambia dentro de la semana. Los valores semanales no se prorratean: definí la excepción por semana completa (lunes a domingo) o igualá el valor.`});continue}
+  const fMin=fS.valor,maxC=mS.valor
   const hc=new Set(dias.map(x=>datosDe(x)?.horasContractuales).filter(v=>v!=null))
-  perfiles.push({acreditacion:reservas.length||fMin?'PRESENCIA_MENOS_RESERVAS':'TODA_LA_PRESENCIA',contratoOrigen:[...contratos][0]??null,
-   ...(reservas.length?{reservas}:{}),...(fMin?{horasFuncionHabitualMinimas:fMin}:{}),...(maxC!==undefined&&maxC<SIN_LIMITE_SEMANAL?{maxCajaHoras:maxC}:{}),
+  perfiles.push({acreditacion:reservas.length||fMin!=null?'PRESENCIA_MENOS_RESERVAS':'TODA_LA_PRESENCIA',contratoOrigen:[...contratos][0]??null,
+   ...(reservas.length?{reservas}:{}),...(fMin!=null?{horasFuncionHabitualMinimas:fMin}:{}),...(maxC!=null?{maxCajaHoras:maxC}:{}),
    ...(hc.size===1?{horasContractuales:[...hc][0]}:{}),
    fuente:`Composición por fecha (${dias.map((x,d)=>`${d}:${x?x.clase[0].toUpperCase():'-'}`).join(' ')}): ${[...new Set(dias.filter(Boolean).map(x=>fuente(x!)))].join(' / ')}`,...base})
   notas.push(`Perfil de ${id}: reglas distintas según el día; se combinaron por fecha.`)
  }
  if(perfiles.length)opciones.disponibilidad_caja_eventual={version:1,perfiles}
 
- // Topes por contrato de origen (semanales): prorrateo por días cuando cambian dentro de la semana.
+ // Topes por contrato de origen: máximos SEMANALES por semanas completas. Nunca se prorratean.
  const topes=entradas.find(([k])=>k.startsWith('topes_caja_eventual_contrato|'))?.[1]
  if(topes&&topes.some(Boolean)){
   const u=unica(topes)
   if(u){const d=u.datos as unknown as DatosTopes;opciones.topes_caja_eventual_contrato={version:1,configuraciones:[{sucursalId:sucursal,vigenciaDesde:semana,vigenciaHasta:domingo,fuente:fuente(u),FULL:{...d.FULL},PART:{...d.PART}}]}}
-  else{
-   const clase=(k:'FULL'|'PART'):TopeClase=>{
-    const v=topes.map(x=>(x?.datos as unknown as DatosTopes|undefined)?.[k])
-    if(v.every(t=>!t?.activo))return {activo:false,horas:null}
-    return {activo:true,horas:Math.min(SIN_LIMITE_SEMANAL,medio(v.reduce((a,t)=>a+(t?.activo?Number(t.horas):SIN_LIMITE_SEMANAL)/7,0)))}
-   }
-   opciones.topes_caja_eventual_contrato={version:1,configuraciones:[{sucursalId:sucursal,vigenciaDesde:semana,vigenciaHasta:domingo,
-    fuente:`Prorrateo por días de: ${[...new Set(topes.filter(Boolean).map(x=>fuente(x!)))].join(' / ')}`,FULL:clase('FULL'),PART:clase('PART')}]}
-   notas.push('Máximos semanales EVENTUAL distintos según el día: se prorratearon por días (un día sin máximo aporta 12 h).')
-  }
+  else conflictos.push({tipo:'topes_caja_eventual_contrato',colaboradorId:null,filaIds:[...new Set(topes.filter(Boolean).map(x=>x!.id))],
+   detalle:'Los máximos semanales EVENTUAL cambian dentro de la semana. No se prorratean: la regla debe regir la semana completa (lunes a domingo).'})
  }
 
  // Excepción de apertura: franjas configuradas, día por día.
@@ -222,20 +219,26 @@ export function resolverConfiguracion(filas:FilaConfigMotor[],sucursal:string,se
   else opciones.excepcion_apertura_aux_unico=m
  }
 
- // Condiciones del supervisor: con sus fechas reales (el motor las evalúa por día) y definiciones de turno.
+ // Condiciones del supervisor, DÍA POR DÍA: para cada alcance (tipo de condición + persona) rige la excepción temporal
+ // en sus días y la permanente en los demás. Cada tramo continuo se envía con sus fechas exactas (el motor evalúa por día).
  const conds:CondicionSupervisor[]=[],turnos:Record<string,DefinicionTurno>={}
  for(const [,dias] of entradas.filter(([k])=>k.startsWith('condicion_supervisor|'))){
-  const f=dias.find(Boolean)!,d=f.datos as unknown as DatosCondicion
-  const desde=f.vigencia_desde,hasta=f.vigencia_hasta??domingo
-  if(d.tipo==='exclusion_manual'&&!(desde<=semana&&hasta>=domingo)){conflictos.push({tipo:f.tipo,colaboradorId:f.colaborador_id,filaIds:[f.id],detalle:`«Gestionar manualmente» debe cubrir la semana completa (${semana} a ${domingo}); para días sueltos usá «franco obligatorio».`});continue}
-  if(d.tipo==='franco_medio_corrido'&&!(desde<=semana&&hasta>=domingo)){conflictos.push({tipo:f.tipo,colaboradorId:f.colaborador_id,filaIds:[f.id],detalle:'«Franco y medio corrido» es una preferencia semanal: debe cubrir la semana completa.'});continue}
-  if(d.tipo==='turno'&&d.turno){
-   const v=String(d.valor),o=turnos[v]
-   if(o&&JSON.stringify(o)!==JSON.stringify(d.turno)){conflictos.push({tipo:f.tipo,colaboradorId:f.colaborador_id,filaIds:[f.id],detalle:`El turno «${v}» tiene dos definiciones distintas esta semana.`});continue}
-   turnos[v]=d.turno
+  const tramos:{f:FilaConfigMotor;desde:number;hasta:number}[]=[]
+  dias.forEach((x,d)=>{if(!x)return;const t=tramos[tramos.length-1];if(t&&t.f===x&&t.hasta===d-1)t.hasta=d;else tramos.push({f:x,desde:d,hasta:d})})
+  const varios=tramos.length>1
+  for(const t of tramos){
+   const f=t.f,d=f.datos as unknown as DatosCondicion,desde=fechas[t.desde],hasta=fechas[t.hasta],semanaCompleta=t.desde===0&&t.hasta===6
+   if(d.tipo==='exclusion_manual'&&!semanaCompleta){conflictos.push({tipo:f.tipo,colaboradorId:f.colaborador_id,filaIds:[f.id],detalle:`«Gestionar manualmente» rige solo del ${desde} al ${hasta}; el motor la exige para la semana completa (${semana} a ${domingo}). Para días sueltos usá «franco».`});continue}
+   if(d.tipo==='franco_medio_corrido'&&!semanaCompleta){conflictos.push({tipo:f.tipo,colaboradorId:f.colaborador_id,filaIds:[f.id],detalle:'«Franco y medio corrido» es una preferencia semanal: debe regir la semana completa.'});continue}
+   let valor=d.valor
+   if(d.tipo==='turno'&&d.turno){
+    let k=String(d.valor)
+    if(turnos[k]&&JSON.stringify(turnos[k])!==JSON.stringify(d.turno))k=`${d.valor} (${desde})`
+    turnos[k]=d.turno;valor=k
+   }
+   const {turno:_t,...c}=d
+   conds.push({...c,...(valor!==undefined?{valor}:{}),id:varios?`${d.id}@${desde}`:d.id,colaboradorId:c.colaboradorId??f.colaborador_id??undefined,desde,hasta})
   }
-  const {turno:_t,...c}=d
-  conds.push({...c,colaboradorId:c.colaboradorId??f.colaborador_id??undefined,desde,hasta})
  }
  if(conds.length)opciones.condiciones_supervisor={version:1,sucursal_id:sucursal,semana,condiciones:conds,...(Object.keys(turnos).length?{turnos}:{})}
  return {opciones,traza,conflictos,semana,domingo,notas}

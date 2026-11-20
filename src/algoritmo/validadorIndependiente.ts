@@ -1,4 +1,4 @@
-import { aperturaAuxUnicoAutorizada, erroresDatosRecursos } from './politicaRecursos'
+import { aperturaAuxUnicoAutorizada, erroresDatosRecursos, excepcionAperturaAuxUnico } from './politicaRecursos'
 import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/validadorIndependiente.ts
 // VAL-01 (#10) — Validador independiente del motor.
@@ -563,7 +563,9 @@ function validarReglasOperativas(
       const sinParado: string[] = []
       for (let s = 2; s <= 27; s++) {
         const parados = [...presencia].filter(([id, p]) => p[d][s] && !enCaja(auxCaja.get(id), d, s)).length
-        if (parados === 0) sinParado.push(horaDeSlot(s))
+        // Excepción AH2-037/042: franja autorizada por la sucursal con un único AUX presente (puede estar en caja).
+        const presentes = [...presencia].filter(([, p]) => p[d][s]).length
+        if (parados === 0 && !(presentes === 1 && excepcionAperturaAuxUnico(op, d, s))) sinParado.push(horaDeSlot(s))
       }
       if (sinParado.length) v.push({
         codigo: 'H-A2', nivel: 'OPERATIVA', dia: d,
