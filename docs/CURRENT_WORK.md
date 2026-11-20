@@ -9,6 +9,8 @@ Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es e
 
 **Objetivo inmediato solicitado por el propietario: versión privada de prueba accesible desde el celular, con carga directa del PDF POM, dotación existente y motor híbrido real.** Continuar desde esta entrega, sin reemplazar producción. Reutilizar lector PDF POM y adaptador existentes (solo «Estimado de cajas necesarias» y semana, validación estricta y vista previa); no requerir JSON manual. Preparar entorno separado, autenticado y restringido al supervisor autorizado de 091; lectura de dotación solo mediante sesión y RLS, sin exportar datos personales ni efectuar escrituras. Mantener perfiles/condiciones y resultado no oficial, con bloqueo visible de políticas abiertas. Preparar servicio HTTP CP-SAT autenticado, contenedor, pruebas y configuración de preview aislada; no exponer el puente Vite ni credenciales ni afirmar que A solo es híbrido. Publicación de prueba únicamente si se dispone de acceso autorizado, aislamiento efectivo y sin crear recursos facturables ni transferir datos reales al servicio externo sin autorización específica; de lo contrario entregar el bloqueo exacto y el paso mínimo para resolverlo. No merge, publicación productiva, migraciones ni cambios Prestify. No iniciar ensayo real hasta autorización específica de datos y supervisión. El propietario busca una URL verificable, no otra ronda de alternativas de AH2-040.
 
+**Prioridad inmediata ratificada por el propietario (20/11/2026):** probar el motor híbrido con el PDF POM real que adjunte directamente a Claude, antes de desplegar o contratar infraestructura. **Regla local 091 aprobada:** de 08:00 a 09:00, si hay un único AUX/supervisor, puede cubrir caja sentado durante toda la hora cuando hay demanda, sin requerir otro supervisor ni supervisión externa. Configurable por sucursal y franja, opt-in; no generalizar fuera de la excepción. Contabilizar como hora-caja AUX, no doble función simultánea. MASTER AH2-037 actualizado (`b77782c`). Implementación efectiva pendiente: adaptar ambos motores, cálculo K/Kd, preflight, contrato, validadores y reporte; probar excepción activada/desactivada, otra sucursal y fuera de franja, sin cambiar producción. No inventar supervisión externa. No volver a preguntar esta regla. Una vez que el propietario adjunte PDF y autorice uso de dotación real, ejecutar el ensayo privado local A+B y entregar PDF A4 no oficial y métricas, con las restantes restricciones vigentes. No usar datos reales en repositorios o CI.
+
 ### Ramas y SHAs
 - Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
   - base verificada `1ceec90afa14f4d1108480f70f43b6f5faf39164`, con los commits documentales del propietario `e3de37a` y `1ceec90`;
@@ -52,7 +54,7 @@ Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es e
 ### Bloqueos reales
 1. **Autorización específica** para usar el POM y la dotación reales de la 091 (`docs/ENSAYO_091_PRIVADO.md` §1).
 2. **Tres o más AUX simultáneos:** sin generalización. B devuelve `DATOS_INCOMPLETOS` y la salida lo muestra como bloqueo.
-3. **Supervisión de apertura con AUX único 08–09:** falta la política explícita o `supervision_apertura_externa`.
+3. **Apertura con AUX único 08–09:** excepción local ya aprobada; falta implementarla y probarla, no decidirla.
 4. **Perfiles de caja EVENTUAL reales** (acreditación, reservas y topes) y fichas PART completas para la 091.
 5. **Infraestructura de B:** decisión y autorización (Cloud Run recomendado; sin contratar).
 6. AH2-040 DIAS sigue siendo de laboratorio: costos conocidos en D1/N3 y AUX de días parciales; falta la homologación productiva.
@@ -63,7 +65,6 @@ Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales.
 1. Verificar los HEAD de #60 y #6 y sus checks (`test-build`, `browser`, `offline`).
 2. Obtener del propietario:
    - la autorización del ensayo privado de la 091 (semana concreta);
-   - la política de supervisión de apertura;
    - la regla para tres o más AUX (o la confirmación de que esa semana no ocurre).
 3. Armar en una carpeta privada el paquete `aliada-lab-paquete/1` de la 091, con perfiles EVENTUAL y fichas PART, y ejecutar `docs/ENSAYO_091_PRIVADO.md` §3 con `AH2_LAB_CPSAT_DIR` y 30 s de CP-SAT.
 4. Registrar en este relevo solo métricas agregadas: cobertura, faltantes, tiempos, estados y bloqueos.
