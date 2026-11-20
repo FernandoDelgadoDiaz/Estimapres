@@ -1,4 +1,24 @@
-## PUNTO ÚNICO DE RETOMA — equilibrio validado y CI aprobada; habilitación del piloto pendiente · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — integración directa en la aplicación existente, sin piloto web separado · 20/11/2026
+
+**Cambio de rumbo solicitado por el propietario:** dejar de preparar un sitio piloto independiente y de pedir instalaciones de servicios alternativos. Integrar el motor híbrido validado en la aplicación de Horarios existente, conservando la experiencia habitual de carga del POM, dotación, configuración y PDF. No repetir el ensayo matemático ni las decisiones ya aprobadas. La intención es sustituir el generador actual de forma controlada; no interpretar como autorización de gastos, migraciones indiscriminadas ni de cambios en Prestify.
+
+### Partida verificada
+- Estimapres #60, HEAD previo documental `6b9dc8468fa29fca1f7492656224d3c821d5c1f6`; código probado `aa410f74717e5c02bc7041204354a99cce8dedeb`.
+- aliada-optimizer #6, HEAD `2550fb91422355a5e8268df01e2c27154bb7164d`; código/contenedor probado `361d7271b417d55a8a80fa10b104697d19de2d61`.
+- Ambos PR siguen en borrador y sus CI verificadas verdes. El ensayo real preserva 355/402 h cubiertas (88,308 %), 47 faltantes, cero sobrantes; sábado pico 0 h faltantes, domingo 8 h, peor déficit relativo 14,035 %. Solución factible; no óptimo total.
+- El frontend productivo aún utiliza el motor anterior. El híbrido tiene CP-SAT Python y requiere un servicio de ejecución HTTPS; cambiar el frontend no elimina esa dependencia. El contenedor ya está listo. El puente Vite no es apto para producción.
+
+### Próxima acción (una sola ruta)
+1. Integrar el flujo híbrido en el generador actual de Horarios, sin crear otro sitio ni solicitar Render como requisito adicional. Reutilizar componentes, adaptadores, contrato, validador, editor de topes y transporte ya probados. Preservar comportamiento de otras sucursales y Prestify. Mantener A como respaldo verificable y una activación reversible limitada inicialmente a 091 dentro de la app existente. No presentar A solo como ejecución híbrida.
+2. Resolver únicamente el alojamiento efectivo del contenedor CP-SAT con la infraestructura disponible del propietario; no cambiar de proveedor ni contratar sin autorización. Configurar autenticación, alcance de usuario/sucursal, origen HTTPS real, RLS y minimizar datos; no transferir dotación hasta verificar controles. No usar claves privilegiadas en cliente.
+3. Preparar candidato integrado y probar el flujo real POM → A+B → selección/validación → PDF, topes locales, fallback, permisos y regresiones de producción/Prestify. Verificar configuración reutilizable y distinguir si falta persistencia autorizada. Conservar rollback funcional al motor anterior y comprobar SHA exacto y CI antes de cualquier publicación. No fusionar directamente el PR de laboratorio completo sin revisar su alcance.
+4. La publicación es el objetivo del propietario; ejecutar el paso de despliegue únicamente con acceso efectivo, controles aprobados, rollback disponible y sin gastos o cambios de datos no autorizados. Si el único bloqueo es hosting, explicarlo en una instrucción concreta. No crear otro frontend ni repetir las etapas terminadas.
+
+**Bloqueo de esta sesión:** acceso GitHub/Supabase disponible, no acceso autenticado operativo a Netlify/Cloud Run. El contenedor no está publicado. No se hizo despliegue, merge, migración ni escritura real.
+
+---
+
+## RELEVO ANTERIOR (historia) — equilibrio validado y CI aprobada; habilitación del piloto pendiente · 20/11/2026
 
 **Código verificado y guardado. No rehacer las etapas terminadas.** Propietario: Fernando; fuente normativa: MASTER. Ambos PR siguen abiertos y en borrador.
 
