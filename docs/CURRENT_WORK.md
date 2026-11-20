@@ -25,7 +25,11 @@ El commit que contiene este relevo es documental y puede tener SHA posterior: co
 - No se consultó ni escribió Supabase real en esta sesión; sin migraciones, merge, deploy manual, cambios Prestify, gasto ni envío de datos reales al servicio externo.
 
 ### Próximo paso exacto
-Habilitar el piloto aislado **solo tras autorización específica de infraestructura y envío temporal de la dotación/horarios al servicio privado**. Usar el código y contenedor preparados, confirmar proyecto/cuenta y condiciones de facturación antes de crear recursos, configurar el sitio separado y las listas de acceso, verificar Auth/RLS reales en lectura y completar POM → híbrido efectivo → PDF en iPhone. No pedir de nuevo decisiones de apertura, topes 12/8, DIAS, contrato EVENTUAL ni intención de equilibrio. No tocar producción ni fusionar. Si no existe esa autorización/acceso, informar este bloqueo concreto; no fingir una URL habilitada.
+**Continuidad del propietario (20/11/2026):** tras explicar que Cloud Run alojará el nuevo motor, Netlify la página privada para iPhone y Supabase conservará la dotación, el propietario respondió «Ok». Se interpreta como conformidad para avanzar con la habilitación del piloto aislado y su procesamiento temporal, no como autorización de gastos, activación de facturación, persistencia nueva ni despliegue productivo.
+
+**Bloqueo actual de ejecución:** esta sesión de ChatGPT tiene Github/Supabase, pero no acceso operativo autenticado a Google Cloud Run ni Netlify. No se encontraron conectores directos. Continuar en ChatGPT Work con navegador autenticado, o Claude con acceso equivalente. Usar la cuenta del propietario; comprobar proyecto, facturación y costo antes de crear recursos. Si requiere habilitar facturación o un recurso potencialmente facturable, detenerse y pedir una aprobación concreta con el costo estimado. No solicitar nuevamente autorización funcional del piloto.
+
+Usar el código y contenedor preparados: crear únicamente sitio/servicio aislados; configurar listas de acceso, origen HTTPS y autenticación, verificar RLS de lectura y pruebas negativas con datos sintéticos antes de permitir envío temporal de datos reales; minimizar identificadores y evitar secretos o datos en logs, almacenamiento, repositorio o bundle. Completar POM → A+B efectivo → PDF en iPhone y entregar URL verificable. No tocar producción, fusionar PR, aplicar migraciones ni escribir datos operativos. No volver a preguntar decisiones aprobadas. No afirmar despliegue hasta comprobarlo.
 
 ---
 
