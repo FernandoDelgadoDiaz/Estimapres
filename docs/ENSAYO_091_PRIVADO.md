@@ -2,6 +2,7 @@
 
 **20/11/2026 · Claude.** Este documento **no** ejecuta nada.
 - No se accedió a datos reales ni a Supabase.
+- Las decisiones de negocio se consultan exclusivamente en `docs/ALIADA_HORARIOS_MASTER.md`; el estado vigente y los pasos de ejecución, en la primera sección de `docs/CURRENT_WORK.md`. Este procedimiento no constituye autoridad para reabrir decisiones.
 - El ensayo requiere **autorización específica del propietario** para usar el POM y la dotación reales de la 091.
 - Todo ocurre en una computadora controlada. Ningún dato real se sube a GitHub, a issues, a PR ni a servicios externos.
 
@@ -12,7 +13,7 @@
 | 1 | Autorización escrita del propietario para usar el POM y la dotación de la 091 de una semana concreta. | **Pendiente** |
 | 2 | Computadora controlada con Node 20+, Python 3.12, OR-Tools 9.15 y los dos repositorios en los HEAD de los PR #60 y #6. | Disponible en laboratorio |
 | 3 | Carpeta privada fuera de los repositorios (por ejemplo `~/aliada-privado/091/`), con permisos solo para el usuario. Se borra al terminar. | Pendiente |
-| 4 | Decisiones del propietario: supervisión de apertura (AUX único 08–09) y tratamiento de tres o más AUX simultáneos (ver §4). | **Pendiente** |
+| 4 | Verificar implementación de la excepción de apertura ya aprobada (MASTER AH2-037) y tratamiento de tres o más AUX simultáneos (ver §4). | Excepción aprobada; implementación pendiente. Tres o más AUX: política pendiente si ocurre. |
 | 5 | Perfiles de disponibilidad de caja de cada EVENTUAL (acreditación, reservas, tope si corresponde) y fichas PART con horas. | Pendiente de carga |
 
 ## 2. Preparación de los datos (en la carpeta privada)
@@ -68,7 +69,7 @@ AH2_LAB_CPSAT_DIR=../aliada-optimizer npm run dev -- --host 127.0.0.1
 | Bloqueo | Comportamiento actual | Decisión que falta |
 |---|---|---|
 | **Tres o más AUX presentes en la misma franja** | B devuelve `DATOS_INCOMPLETOS` (`POLITICA_AUX_MULTIPLE`). A genera, pero la salida muestra el bloqueo y las capacidades K/Kd solo modelan 1–2 AUX. | Generalizar la supervisión y la capacidad de caja para tres o más AUX: cuántos supervisan y quién puede atender caja. |
-| **Apertura con AUX único (08–09) sin supervisión externa autorizada** | `POLITICA_APERTURA_SUPERVISION`: no se presume doble rol. | Política explícita de quién supervisa la apertura (AH2-037), o declarar `supervision_apertura_externa` por franja. |
+| **Apertura con AUX único (08–09)** | La implementación anterior puede bloquearla (`POLITICA_APERTURA_SUPERVISION`). | **Ya aprobada en MASTER AH2-037**: excepción configurable local; implementar y verificar en A/B y validadores. No pedir otra aprobación ni inventar supervisión externa. |
 | **EVENTUAL sin perfil de caja acreditado** | 0 h de caja y bloqueo `EV_CAJA_*`. | Cargar los perfiles reales (acreditación, reservas y tope si se aprueba). |
 | **AH2-040 con DIAS** | Aplicada en laboratorio. Pierde cobertura en jornadas muy distintas los mismos días (D1/N3) y no compara con AUX de días parciales (S2/S6/S8). | Homologación operativa final (fuera del laboratorio). |
 | **Ejecución de B fuera de la computadora local** | Solo existe el servidor de desarrollo local. | Autorizar la infraestructura (`docs/HIBRIDO_INFRAESTRUCTURA.md`). |
