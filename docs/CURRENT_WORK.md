@@ -1,4 +1,27 @@
-## PUNTO ÚNICO DE RETOMA — cierre técnico AH2-040 e integración híbrida de laboratorio · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — DIAS e integración híbrida operativa de laboratorio · 20/11/2026
+
+**Estado: CONTINUIDAD AUTORIZADA DE LABORATORIO; implementación siguiente pendiente.** Tras recomendar DIAS (no DIAS_CAPACIDAD), el propietario indicó «Sigamos». Se interpreta como autorización para continuar con DIAS en la política v1 de laboratorio, sin homologación operativa final ni autorización de publicación. MASTER AH2-040 actualizado en el commit documental e3de37a8d4446c57c38f655c71f8cb9272649ec9. Agente receptor: Claude (Work cuando esté disponible).
+
+### Punto de partida verificado
+- Estimapres PR #60, borrador, rama `feat/ah2-integracion-hibrida-work-claude`: último código `0a2b7eddc44cd3772ed39226213b139bf71b00e6`, CI verde; HEAD documental actualizado (consultar PR).
+- aliada-optimizer PR #6, borrador, rama `feat/integracion-aliada-work-claude`: HEAD `42ce7b9bdbd8e10d01165d42c8ee8c8d3bb19735`, CI verde.
+- Revisar los HEAD vigentes antes de escribir; no rehacer AH2-036–040 ni contrato/orquestador/PDF de laboratorio existentes.
+
+### Decisión de continuidad y límites
+- DIAS: AUX con capacidad efectiva de caja sin descubrir supervisión, al menos una franja común y capacidad de caja en todos los días de oportunidad del EVENTUAL. Aplicar total semanal EVENTUAL ≤ cada AUX comparable, sin promedios. No excluir por mayor disponibilidad del EVENTUAL; sin comparable no inventar tope cero. Mantener reservas, topes acreditados y prioridad FULL/PART → AUX → EVENTUAL, incluida simultaneidad permitida.
+- Limitaciones medidas aceptadas para continuar el ensayo: D1 +66 h, N3 +28 h; S2/S6/S8 sin comparación con AUX de días parciales. Reportar explícitamente estas situaciones y costo de cobertura. No se declara resuelto todo caso de tres o más AUX ni se alteran excepciones de supervisión.
+- Sin acceso a datos personales reales ni a Supabase por esta instrucción. Sin merge, deploy, migraciones, cambios Prestify, contratación ni publicación de horarios.
+
+### Próximo paso exacto
+1. Fijar DIAS en ambos motores y validadores para la política v1 exclusivamente en el entorno de laboratorio; retirar el bloqueo de comparación pendiente solo allí al validar esa política; alternativas solo de laboratorio; mantener noOficial/publicable=false y comportamiento heredado sin cambios.
+2. Conectar interfaz aislada al orquestador existente incluyendo transporte CP-SAT local del servidor Node, progreso real, selección única verificada, diagnósticos de fallos y PDF A4 no oficial. Mostrar comparables por persona, horas-caja y faltantes atribuibles, distinguiendo falta de personal y otras reglas. No persistir datos.
+3. Ejecutar regresiones, matrices relevantes y prueba extremo a extremo de ambos repositorios con CP-SAT real, ligada a SHAs exactos; documentar cualquier paso omitido en CI. No confundir resultado sintético con validación real.
+4. Preparar procedimiento reproducible para ensayo privado de la 091 (sin datos reales hasta autorización específica) y alternativas de alojamiento B con costos, autenticación, privacidad, timeout y limpieza; sin contratar. Reportar qué impide el ensayo, incluidos tres o más AUX simultáneos y reglas de apertura, sin decidir excepciones unilateralmente.
+5. Actualizar este relevo único, MASTER si corresponde y PRs en borrador con evidencia y SHAs. No homologar producción.
+
+---
+
+## RELEVO ANTERIOR (historia) — cierre técnico AH2-040 e integración híbrida de laboratorio · 20/11/2026, Claude
 
 **Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.**
 - AH2-040 tiene una recomendación técnica definitiva (DIAS_CAPACIDAD), pero su **activación definitiva sigue BLOQUEADA** por una ambigüedad material documentada.
