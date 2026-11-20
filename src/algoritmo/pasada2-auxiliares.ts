@@ -57,7 +57,10 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
       if(c.rol==='FULL' && c.horasSemanales!==48) violaciones_input.push({regla:'DATOS-CONTRATO-FULL',detalle:`Ficha FULL ausente o incompatible con catálogo 48 h: ${c.id}`});
       if(c.rol==='PART' && (!input.contratos?.[c.id] || input.contratos[c.id].objetivoSlots===null)) violaciones_input.push({regla:'DATOS-CONTRATO-PART',detalle:`Falta objetivo PART individual: ${c.id}`});
     }
-    for (const id of Object.keys(input.disponibilidad_eventual)) {
+    // Igual que B (`support.static_violations`): con un modo de comparación AUX/EVENTUAL vigente (laboratorio), la
+    // regla semanal reemplaza el bloqueo «comparación pendiente»; sin modo, el bloqueo se conserva.
+    const comparacionVigente=(input as {comparacion_aux_eventual?:unknown}).comparacion_aux_eventual!=null
+    for (const id of comparacionVigente?[]:Object.keys(input.disponibilidad_eventual)) {
       const n=input.max_caja_eventual_slots?.[id];
       if (!Number.isInteger(n) || n! < 0 || n! > 210) violaciones_input.push({regla:'POLITICA-EV-COMPARACION-PENDIENTE',detalle:`Sin tope explícito o dato inválido; pendiente homologación de comparación AUX/EV: ${id}`});
     }

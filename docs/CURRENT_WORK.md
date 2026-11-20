@@ -1,4 +1,75 @@
-## PUNTO ÚNICO DE RETOMA — DIAS e integración híbrida operativa de laboratorio · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — Aliada Horarios 2.0 integral en laboratorio, lista para ensayo privado 091 · 20/11/2026, Claude
+
+**Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.**
+- Flujo completo funcionando **en laboratorio**: interfaz → A + CP-SAT → validación → propuesta única → PDF no oficial, con DIAS como comparabilidad de la política v1 de laboratorio.
+- **No productivo:** sin publicación, persistencia, despliegue ni merge.
+- El ensayo con datos reales de la 091 está **preparado pero no ejecutado**: falta la autorización específica y hay bloqueos de política abiertos.
+
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `1ceec90afa14f4d1108480f70f43b6f5faf39164`, con los commits documentales del propietario `e3de37a` y `1ceec90`;
+  - el código y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base `42ce7b9bdbd8e10d01165d42c8ee8c8d3bb19735`;
+  - entrega **`f764cafac2d95e996efb73d00948ff2d16ad1547`**.
+- Sin force-push. No se agregaron alternativas de comparabilidad nuevas.
+
+### Estado por componente
+
+| Componente | Estado | Evidencia |
+|---|---|---|
+| AH2-040 DIAS (política v1 de laboratorio) | **Activo en laboratorio** en A (`motorAConPolitica` → `ejecutarAH2040`), B (`politica_laboratorio_v1`) y ambos validadores. Motor productivo sin cambios. | `src/hibrido/politica.ts`, `optimizer/contrato.py`, pruebas de política |
+| Defecto corregido: EVENTUAL a 0 h en A con política v1 | El orquestador usaba `ejecutarAlgoritmo`, que con política v1 y sin tope deja a todo EVENTUAL en 0 h. Ahora lo acota la regla y su perfil. | `laboratorio.test.ts` |
+| Defecto corregido: preflight incoherente con B | La pasada 2 emitía «comparación pendiente» aunque hubiera un modo vigente. Ahora se omite con modo, igual que B. | `pasada2-auxiliares.ts`, e2e |
+| Interfaz integrada (`lab-condiciones.html`) | Carga de POM y dotación (demo o JSON local, con el mismo adaptador de la app); condiciones DEBE/PREFERIRÍA; A + CP-SAT con progreso real y cancelación; propuesta única; cobertura, faltantes, supervisión y horas-caja; AH2-040 (comparables, sin comparable, faltantes atribuibles y sin personal); bloqueos; PDF no oficial. | `src/condiciones/laboratorio.tsx`, `e2e/hibrido.e2e.ts` |
+| CP-SAT desde la interfaz | Middleware **solo de `vite dev`** con `AH2_LAB_CPSAT_DIR`: loopback, 2 MB, NDJSON con fases en vivo. Fuera del build (`dist/` sin `/__lab` ni `child_process`). | `src/hibrido/servidorLab.ts`, `transporteHttpLab.ts` |
+| Progreso real de B | `solve(on_phase=)` y `contrato --progreso`: cada fase lexicográfica en vivo. | `tests/test_contrato.py` |
+| Bloqueos visibles | `salida.bloqueos`: `POLITICA_AUX_MULTIPLE`, `POLITICA_APERTURA_SUPERVISION`, `EV_CAJA_*`, `DATOS_*`. | `laboratorio.test.ts` |
+| Infraestructura de B | **Propuesta** sin contratar: Cloud Run con escala a cero y JWT de Supabase. ≈ USD 0 por mes con el volumen de la 091 (verificar). | `docs/HIBRIDO_INFRAESTRUCTURA.md` |
+| Ensayo privado 091 | **Procedimiento listo, no ejecutado.** Sin acceso a datos reales. | `docs/ENSAYO_091_PRIVADO.md` |
+
+### Pruebas (resultados reales, locales)
+- **A:**
+  - TypeScript OK;
+  - **Vitest: 539 aprobadas, 8 omitidas** (6 nuevas en `src/hibrido/__tests__/laboratorio.test.ts`, entre ellas el servidor HTTP con CP-SAT real);
+  - build OK.
+- **Playwright:**
+  - con `AH2_LAB_CPSAT_DIR`: **21 aprobadas, 1 omitida**, incluida la **prueba integral interfaz → A + CP-SAT real → PDF**;
+  - sin CP-SAT (como en CI): la integral se omite y la de solo A pasa.
+- **B:** **pytest 130 aprobadas, 1 omitida**.
+- **Corrida integral observada** (sucursal sintética, 8 s):
+  - fases de CP-SAT faltantes → cobertura ponderada → sobrantes → uso eventual → equidad → preferencias, todas OPTIMAL, en 4,2 s;
+  - A y B válidos; B no mejora a A, así que se conserva A;
+  - cobertura 68,99 % y 80 h de faltantes;
+  - ev-a 36 h ≤ aux-t 48 h; ev-b sin AUX comparable;
+  - 0 incumplimientos y PDF descargado.
+- CI remota: ver los checks de los HEAD en los PR. La CI de Estimapres no ejecuta CP-SAT porque no tiene el repositorio hermano; esa parte se verificó localmente con los SHAs de esta entrega.
+
+### Bloqueos reales
+1. **Autorización específica** para usar el POM y la dotación reales de la 091 (`docs/ENSAYO_091_PRIVADO.md` §1).
+2. **Tres o más AUX simultáneos:** sin generalización. B devuelve `DATOS_INCOMPLETOS` y la salida lo muestra como bloqueo.
+3. **Supervisión de apertura con AUX único 08–09:** falta la política explícita o `supervision_apertura_externa`.
+4. **Perfiles de caja EVENTUAL reales** (acreditación, reservas y topes) y fichas PART completas para la 091.
+5. **Infraestructura de B:** decisión y autorización (Cloud Run recomendado; sin contratar).
+6. AH2-040 DIAS sigue siendo de laboratorio: costos conocidos en D1/N3 y AUX de días parciales; falta la homologación productiva.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify ni datos reales.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks (`test-build`, `browser`, `offline`).
+2. Obtener del propietario:
+   - la autorización del ensayo privado de la 091 (semana concreta);
+   - la política de supervisión de apertura;
+   - la regla para tres o más AUX (o la confirmación de que esa semana no ocurre).
+3. Armar en una carpeta privada el paquete `aliada-lab-paquete/1` de la 091, con perfiles EVENTUAL y fichas PART, y ejecutar `docs/ENSAYO_091_PRIVADO.md` §3 con `AH2_LAB_CPSAT_DIR` y 30 s de CP-SAT.
+4. Registrar en este relevo solo métricas agregadas: cobertura, faltantes, tiempos, estados y bloqueos.
+5. Con autorización de gasto: implementar el contenedor Cloud Run de `docs/HIBRIDO_INFRAESTRUCTURA.md` §3 y repetir la prueba integral contra el servicio.
+
+---
+
+## RELEVO ANTERIOR (historia) — DIAS e integración híbrida operativa de laboratorio · 20/11/2026
 
 **Estado: CONTINUIDAD AUTORIZADA DE LABORATORIO; implementación siguiente pendiente.** Tras recomendar DIAS (no DIAS_CAPACIDAD), el propietario indicó «Sigamos». Se interpreta como autorización para continuar con DIAS en la política v1 de laboratorio, sin homologación operativa final ni autorización de publicación. MASTER AH2-040 actualizado en el commit documental e3de37a8d4446c57c38f655c71f8cb9272649ec9. Agente receptor: Claude (Work cuando esté disponible).
 

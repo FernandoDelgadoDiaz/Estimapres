@@ -6,4 +6,5 @@
  */
 import type {SobreSolicitud} from './contrato'
 
-export type TransporteB=(sobre:SobreSolicitud)=>Promise<unknown>
+export interface FaseB {objetivo:string;estado:string;segundos?:number}
+export type TransporteB=(sobre:SobreSolicitud,ctx?:{onProgreso?:(f:FaseB)=>void})=>Promise<unknown>

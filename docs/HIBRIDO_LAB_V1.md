@@ -73,3 +73,58 @@ Autoridad: contrato `docs/INTEGRACION_HIBRIDA_WORK_CLAUDE.md` §4–5 y MASTER.
 2. Elegir y autorizar dónde corre B: worker o servicio, con sus costos.
 3. Conectar la interfaz al orquestador con el progreso visible, sin aprobar ni publicar automáticamente.
 4. Datos reales de la 091 solo en un entorno privado autorizado, nunca en GitHub.
+
+---
+
+## 6. Integración operativa de laboratorio (20/11/2026, segunda entrega)
+
+### 6.1 Interfaz
+
+Página única de laboratorio: `lab-condiciones.html`. Se extendió la existente; no se creó una paralela. El flujo tiene cinco pasos:
+
+1. **POM y dotación.** Se puede elegir:
+   - demostración de un cajero;
+   - demostración de una sucursal sintética con AUX y EVENTUALES;
+   - archivo JSON local, leído en el navegador (`src/hibrido/paquete.ts`). Acepta el paquete de pantalla `aliada-lab-paquete/1`, que pasa por el **mismo** `convertirInputAV2` de la aplicación, o la entrada del motor.
+2. **Condiciones DEBE/PREFERIRÍA** por colaborador. Se reutilizan el preflight existente y los mensajes de conflicto.
+3. **Generar:** A + CP-SAT, o solo A si no hay CP-SAT local. Muestra el **progreso real** con tiempos: preparación, A, sobre enviado, cada fase de CP-SAT al terminar, respuesta, validación independiente y selección. Permite cancelar.
+4. **Propuesta única:**
+   - origen y motivo;
+   - **bloqueos de política** destacados;
+   - cobertura POM, faltantes y sobrantes;
+   - horarios de la semana: FULL/PART, AUX (caja o supervisa) y EVENTUAL;
+   - horas-caja por persona;
+   - supervisión AUX por día;
+   - AH2-040: pares EVENTUAL ≤ AUX con horas, EVENTUAL sin AUX comparable, faltantes atribuibles a la regla y faltantes imposibles por falta de personal;
+   - faltantes por franja y conflictos.
+5. **Descargar PDF no oficial** (A4, marca en cada página).
+
+### 6.2 Política v1 de laboratorio y motores
+
+**Política (`src/hibrido/politica.ts` ↔ `optimizer/contrato.py`):** con `politica_recursos_version = 1` y sin modo explícito, la comparabilidad es **DIAS**. Solo la aplica el flujo de laboratorio: el motor productivo y el comportamiento heredado no cambian.
+
+**Motor A bajo la política:** `motorAConPolitica` usa `ejecutarAH2040`.
+- **Defecto corregido:** el orquestador llamaba a `ejecutarAlgoritmo`, que en política v1 deja en **0 h** a todo EVENTUAL sin tope explícito.
+- Ahora el EVENTUAL queda acotado por la regla DIAS y por su perfil.
+
+**Preflight coherente con B:** con un modo de comparación vigente, la pasada 2 ya no emite «comparación pendiente» (`pasada2-auxiliares.ts`), igual que `support.static_violations` de B. Sin modo, el bloqueo se conserva.
+
+### 6.3 Ejecución de CP-SAT desde la interfaz
+
+Middleware **solo de `vite dev`** (`src/hibrido/servidorLab.ts`, `pluginLabCpSat` en `vite.config.ts`):
+- se activa únicamente con `AH2_LAB_CPSAT_DIR`;
+- acepta solo conexiones loopback y sobres de 2 MB como máximo;
+- usa `python -m optimizer.contrato --progreso`;
+- responde en NDJSON (progreso por fase y respuesta);
+- mata el proceso si el cliente cancela o vence el plazo.
+
+**No forma parte del build:** `dist/` contiene solo `index.html`, sin `child_process` ni rutas `/__lab`.
+
+**Navegador:** `transporteHttpLab` lee el NDJSON en streaming.
+
+### 6.4 Pruebas
+
+| Prueba | Qué verifica |
+|---|---|
+| `src/hibrido/__tests__/laboratorio.test.ts` (6) | Política DIAS solo en v1 y sin modo explícito; A con DIAS usa EVENTUALES sin tope cero y valida. Orden y monotonía del progreso; supervisión, comparables, sin comparable y atribución. Bloqueos de tres o más AUX y de apertura con AUX único. Carga de paquete y de entrada del motor con errores. Servidor HTTP con CP-SAT real: estado, 405, 413, al menos 3 fases en vivo y OPTIMAL. |
+| `e2e/hibrido.e2e.ts` (2) | (a) Solo A, que corre siempre, también en CI: sucursal sintética, propuesta, horas-caja, supervisión, AH2-040, descarga del PDF (`%PDF-`), sin escrituras ni almacenamiento local. (b) **Prueba integral** interfaz → A + CP-SAT real con progreso por fase → validación → selección → PDF. Corre con `AH2_LAB_CPSAT_DIR`; en CI se omite porque no está el repositorio hermano. |

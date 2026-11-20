@@ -1,7 +1,8 @@
 import {test,expect} from '@playwright/test'
 test('condiciones opcionales, conflictos duros y preferencias sin persistencia',async({page})=>{
  const writes:string[]=[]
- page.on('request',r=>{if(!['GET','HEAD'].includes(r.method()))writes.push(r.url())})
+ // El POST al CP-SAT local del servidor de desarrollo (si está activo) no persiste nada: se excluye.
+ page.on('request',r=>{if(!['GET','HEAD'].includes(r.method())&&!r.url().includes('/__lab/cp-sat'))writes.push(r.url())})
  await page.goto('/lab-condiciones.html')
  await page.getByRole('button',{name:'Verificar y generar prueba'}).click()
  await expect(page.getByRole('heading',{name:'Propuesta de laboratorio'})).toBeVisible()
