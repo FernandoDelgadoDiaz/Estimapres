@@ -1,4 +1,33 @@
-## PUNTO ÚNICO DE RETOMA — facturación/API informadas; sesión Google presente, consola y Shell inaccesibles · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — CP-SAT desplegado en Cloud Run (bloqueado por diseño hasta cargar usuario y configuración privada) · 20/11/2026, Claude
+
+**Acceso resuelto:** gcloud autenticado con la cuenta del propietario (rol `owner` en `aliada-horarios`, facturación `017DA5-3AEF78-DC684E` vinculada). Nota del entorno Claude: la variable preconfigurada `CLOUDSDK_AUTH_ACCESS_TOKEN` debe quitarse (`unset`) para usar la sesión gcloud; `*.run.app` no es alcanzable desde el proxy del entorno, por eso los controles HTTP se ejecutan desde Cloud Build.
+
+### Recursos creados (proyecto `aliada-horarios`, región `southamerica-east1`)
+- APIs habilitadas: Cloud Build, Secret Manager, Billing Budgets (Cloud Run y Artifact Registry ya estaban).
+- Artifact Registry `aliada` · imagen `optimizer:5b98417` (backend #6 `5b98417c2d960d940e195f01d4c8e3cd6f0c52fc`, sin cambios), digest `sha256:c855db31cb07c1e4503bfb1ef500232f4d299c767ea58b71f7d471cff1e24147`, 123 MB. Construida con Cloud Build (1 min 3 s).
+- Cloud Run `aliada-optimizer`, revisión `aliada-optimizer-00001-wvt`, URL `https://aliada-optimizer-925852091572.southamerica-east1.run.app`. **min 0 / máx 1 instancia, concurrencia 1, CPU solo durante solicitudes (facturación por solicitud), sin CPU boost**, 1 vCPU / 2 GiB, timeout 300 s, ingreso público (la autenticación la hace el servicio contra Supabase Auth en cada solicitud).
+- Variables: `SUPABASE_URL` y `SUPABASE_PUBLIC_KEY` (rol anon, tomadas del bundle público de Horarios), `AH2_ALLOWED_BRANCH=091`, `AH2_ALLOWED_ORIGIN=https://horarios.aliadaapps.com`.
+- Secret Manager (réplica São Paulo): `ah2-allowed-user-id` y `ah2-pilot-options`, hoy con valores **provisorios que bloquean todo acceso** (`PENDIENTE-PROPIETARIO` y `{}`); accesibles solo por la cuenta de servicio de ejecución.
+- Presupuesto de guardia **USD 1** en la cuenta de facturación, filtrado al proyecto, con alertas al 1 %, 50 % y 100 %.
+
+### Controles verificados (desde Cloud Build, datos sintéticos)
+Sin JWT → 401 `SESSION_REQUIRED` (estado, optimizar); JWT inválido → 401; origen ajeno → 403 `ORIGIN_DENIED` (incluido preflight); preflight del origen productivo → 204 con `Access-Control-Allow-Origin: https://horarios.aliadaapps.com` exacto; ruta inexistente → 404. `/healthz` no llega al contenedor (ruta reservada de Cloud Run); el frontend no la usa (`/v1/sesion`, `/v1/estado`, `/v1/optimizar`).
+
+### Costo
+Todo dentro de los tramos gratuitos: Cloud Build ~2 min de 2.500/mes; Artifact Registry 123 MB de 0,5 GB; Secret Manager 2 versiones activas de 6; Cloud Run en reposo = 0 instancias (free tier mensual: 180.000 vCPU-s, 360.000 GiB-s, 2 M solicitudes; una generación de 120 s ≈ 120 vCPU-s y 240 GiB-s). Bucket de fuentes de Cloud Build ~0,7 MB. No es promesa de factura cero; el presupuesto de USD 1 alerta ante cualquier consumo.
+
+### Rollback
+- Servicio: `gcloud run services delete aliada-optimizer --region southamerica-east1` (el frontend productivo no lo usa todavía) o volver a una revisión anterior con `gcloud run services update-traffic`.
+- Frontend: producción sigue en el deploy bloqueado `6afba0e1c0b8e64caa476f2c` (commit `a7006e4`), verificado en lectura; sin cambios en Netlify. Prestify sin cambios.
+
+### Falta para publicar (datos del propietario, no autenticación)
+1. **ID de usuario Supabase (Auth) del supervisor autorizado de la 091** → versión nueva de `ah2-allowed-user-id`.
+2. **Configuración privada vigente** (`Aliada_091_S48_config_piloto_privada.json`: perfiles EVENTUAL, topes 12/8, condiciones, excepción de apertura con los IDs reales de producción) → versión nueva de `ah2-pilot-options`. Revisar vigencias para la semana a generar.
+3. Con ambos: nueva revisión de Cloud Run, preview Netlify del SHA de #61 con `VITE_AH2_HIBRIDO_091=true` y `VITE_AH2_OPTIMIZER_URL` = URL del servicio, recorrido autenticado real, conteos antes/después y promoción solo de al-iada según `docs/PUBLICACION_HIBRIDO_091.md`. Una preview usa otro origen: habilitarlo temporalmente y volver al canónico.
+
+---
+
+## RELEVO ANTERIOR — facturación/API informadas; sesión Google presente, consola y Shell inaccesibles · 20/11/2026
 
 **Nueva información del propietario:** proyecto `aliada-horarios` creado, facturación vinculada y API Cloud Run habilitada. Autoriza completar despliegue CP-SAT, conexión y publicación controlada 091, con consumo mínimo y **cero instancias mínimas/en reposo**; sin Prestify ni gastos no autorizados. No pedir nuevamente crear proyecto, vincular facturación, habilitar esa API ni aprobar el alcance funcional.
 
