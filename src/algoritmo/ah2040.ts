@@ -19,7 +19,10 @@ import type {InputAlgoritmo,ResultadoSemanal} from './types'
 import {ejecutarAlgoritmo} from './orquestador'
 
 export const MODOS_AH2040=['P0','P1','P2','P2E','P3'] as const
-export type ModoAH2040=typeof MODOS_AH2040[number]
+/** PT (laboratorio de disponibilidad de caja): límite semanal estricto caja(e) ≤ caja(a) contra TODO AUX con
+ *  capacidad efectiva de caja, haya o no solapamiento. Solo mide el costo de la lectura literal. */
+export const MODOS_VALIDOS_AH2040=[...MODOS_AH2040,'PT'] as const
+export type ModoAH2040=typeof MODOS_VALIDOS_AH2040[number]
 export interface ParAH2040 {eventualId:string;auxId:string}
 export interface ConfigAH2040 {modo:ModoAH2040;pares?:ParAH2040[]}
 export interface RelacionAH2040 {eventualId:string;auxId:string;ventana:string[]|null;origen:string}
@@ -76,6 +79,14 @@ export function relacionesAH2040(input:InputAlgoritmo,cfg:ConfigAH2040){
    else notas.push({codigo:'PAR_NO_COMPARABLE',...par,oportunidadesFueraDeAux:[...O[e]].filter(x=>!K[a].has(x)).length/2})
   }
   for(const e of ordenar(Object.keys(O)))if(!rels.some(r=>r.eventualId===e))notas.push({codigo:'EVENTUAL_SIN_PAR',eventualId:e})
+  return {rels,notas}
+ }
+ if(cfg.modo==='PT'){
+  for(const e of ordenar(Object.keys(O))){
+   const comparables=ordenar(Object.keys(K)).filter(a=>K[a].size>0)
+   if(!O[e].size||!comparables.length)notas.push({codigo:'EVENTUAL_SIN_AUX_COMPARABLE',eventualId:e})
+   if(O[e].size)for(const a of comparables)rels.push({eventualId:e,auxId:a,ventana:null,origen:'PT-limite-semanal-estricto'})
+  }
   return {rels,notas}
  }
  const base=cfg.modo==='P3'?capacidadDeterminada(K):K

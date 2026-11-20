@@ -269,6 +269,8 @@ export function convertirInputAV2(
     supervision_apertura_externa: opciones?.supervision_apertura_externa,
     max_caja_eventual_slots: opciones?.max_caja_eventual_slots && Object.fromEntries(Object.entries(opciones.max_caja_eventual_slots).map(([id,n])=>[ident.v2PorUi.get(id) ?? id,n])),
     reservas_sector_eventual: opciones?.reservas_sector_eventual && Object.fromEntries(Object.entries(opciones.reservas_sector_eventual).map(([id,m])=>[ident.v2PorUi.get(id) ?? id,m])),
+    // Perfiles persistentes de disponibilidad de caja: IDs de UI → IDs del motor (mismo criterio que reservas).
+    disponibilidad_caja_eventual: opciones?.disponibilidad_caja_eventual && {...opciones.disponibilidad_caja_eventual,perfiles:opciones.disponibilidad_caja_eventual.perfiles.map(p=>({...p,colaboradorId:ident.v2PorUi.get(p.colaboradorId) ?? p.colaboradorId}))},
     max_bloques_caja_eventual_dia: opciones?.maxBloquesCajaEventualDia,
     eventuales_caja_hora_limite: opciones?.eventualesCajaHoraLimite,
     excepciones,

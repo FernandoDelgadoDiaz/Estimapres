@@ -1,4 +1,86 @@
-## PUNTO ÚNICO DE RETOMA — integración híbrida · evaluación AH2-040 · 20/11/2026 (Argentina), Claude
+## PUNTO ÚNICO DE RETOMA — disponibilidad efectiva de caja EVENTUAL · 20/11/2026, Claude
+
+**Estado: AVANCE DE LABORATORIO VERIFICABLE.** Protección operativa de cualquier EVENTUAL implementada y probada con datos sintéticos en A y B. **AH2-040 NO está completada**: faltan reglas de negocio. Nada homologado ni publicable.
+Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las siguientes son historia.
+
+**Aclaración vigente del propietario (19/11/2026):** EVENTUAL no implica reposición, maestranza ni puesto específico; puede provenir de cualquier función. Sus horas contratadas o su presencia no son automáticamente horas de caja. No crear perfiles sectoriales predeterminados. P3 sigue siendo propuesta técnica, no aprobación de AH2-040; su costo de cobertura cero no equivale a proteger la carga semanal eventual.
+
+### Ramas y SHAs
+- Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
+  - base verificada `859c5d763738b3a48bb993d0a77811d5d95ddc8b` (documental del propietario, sobre `5f24417`, con CI verde);
+  - el código, las pruebas y la documentación de esta entrega están en el commit que contiene esta sección. El SHA exacto figura en el PR.
+- aliada-optimizer PR #6 (borrador), `feat/integracion-aliada-work-claude`:
+  - base verificada `a7c560748601a8cd0de5b87ec2f7acd012f03776`;
+  - entrega **`5ebf637e2453fa3515944c21ce512446300b18a4`**.
+- Sin force-push. AH2-036–039 y la comparación P0–P3 no se rehicieron.
+
+### Cambios concretos
+- **Disponibilidad efectiva individual para caja**, distinta de la presencia. El campo opt-in `disponibilidad_caja_eventual` contiene perfiles por persona y sucursal, versionados por vigencia: se reutilizan semana a semana sin recarga.
+  - Acreditación explícita: `NO_ACREDITADA`, `PRESENCIA_MENOS_RESERVAS` o `TODA_LA_PRESENCIA`, con fuente.
+  - Reservas fijas de la función habitual, sin rótulo de sector ni puesto (un campo `sector` o `puesto` se rechaza).
+  - Horas mínimas de función habitual, máximo semanal opcional y horas contractuales informativas.
+  - Se compila sobre los campos **existentes**: `reservas_sector_eventual` (unión) y `max_caja_eventual_slots` (mínimo). Sin restricciones paralelas.
+  - A compila en `ejecutarAlgoritmo`; B, en `validate_input`. El adaptador traduce los IDs de la interfaz a los del motor.
+  - Módulos: `src/algoritmo/disponibilidadCajaEventual.ts` ↔ `optimizer/ev_caja.py`.
+- **Validaciones y diagnósticos:** sin perfil, perfil ambiguo, no acreditado, sin detalle, contradictorio o con función mayor que la presencia, la persona queda con **0 h de caja** y un diagnóstico que bloquea la publicación. Jamás se interpreta la presencia como caja.
+  - Advertencias: presencia mayor que contrato, reserva fuera de presencia y perfil desconocido.
+  - Un EVENTUAL acreditado sin tope conserva `POLITICA_EV_COMPARACION_PENDIENTE`.
+  - Sin valores por defecto.
+- **Verificadores independientes A/B:** caja sin acreditar, caja en reserva, caja sobre el tope y caja fuera de presencia.
+- **Reporte por persona (A = B):**
+  - FULL/PART: contrato y caja.
+  - AUX: presencia, caja, supervisión y K.
+  - EVENTUAL: acreditación, contrato, presencia, horas reservadas, función mínima, tope y su origen, disponibilidad efectiva, caja, disponibilidad restante y función habitual realizada.
+- **Análisis EVENTUAL > AUX:** clases COMPARABLE, PARCIALMENTE_COMPARABLE, NO_COMPARABLE y AUX_SOLO_SUPERVISION, con la causa en horas (AUX ausente, AUX sin capacidad, dentro de la capacidad) y la ventana P3.
+  - Modo de medición **PT**: límite semanal estricto contra todo AUX con capacidad de caja.
+  - Los modos P0–P3 no cambian.
+- **Evidencia:**
+  - `docs/EV_DISPONIBILIDAD_CAJA.md`;
+  - `docs/evidencia/ev-disponibilidad-caja.csv` (50 filas A/B);
+  - fixtures A `evCajaCasos.json` y `evCajaResultadosB.json`;
+  - aliada-optimizer `results/ev_caja/` (entradas y planes A/B);
+  - MASTER: notas de laboratorio en AH2-037 y AH2-040-P3, **sin cambio de estado**.
+
+### Pruebas ejecutadas (resultados reales, locales)
+- A: TypeScript OK; **508 Vitest aprobadas, 8 omitidas** (9 nuevas en `ev-caja-disponibilidad.test.ts`); build OK. ESLint sin configuración en el repositorio; no ejecutado. Playwright: verificar `browser` en la CI del PR.
+- B: **109 pytest aprobadas, 1 omitida** (15 nuevas en `tests/test_ev_caja.py`).
+- Laboratorio: 5 casos × 5 modos (HEREDADO, P0, P3, P2E, PT).
+  - Las 25 corridas B terminaron OPTIMAL (26 s, semilla 20261119, un worker).
+  - 0 infracciones en los tres verificadores de ambos motores.
+  - Los 25 planes B se validaron con A, con reporte y excesos idénticos. Diagnósticos idénticos.
+- **Resultados clave (faltantes en horas, B / A):**
+  - Caso 1: HEREDADO 26 / 42,5 → P0 80 / 90. La cobertura heredada era aparente: invadía 17 h de reservas, 23,5 h sin acreditar y 35 h por encima de la función mínima o del máximo (B).
+  - P3 = P0 en los 5 casos: P3 no protege la carga semanal.
+  - El caso 3 es NO_COMPARABLE (exceso de 44 h con el AUX ausente). Con el límite estricto PT pierde 44 h de cobertura sin pasar horas a ningún AUX.
+  - Caso 4: P2E/PT −32 h (B) y −34 h (A).
+  - Ningún par COMPARABLE con exceso en B. En A aparece solo con roles AUX intercambiables (límite heurístico conocido).
+
+### Decisiones
+- No se impuso ninguna fórmula de equidad ni límite semanal nuevo. PT y P2E son modos de medición.
+- P3 queda PROPUESTA. No se tomó ninguna decisión normativa nueva.
+
+### Bloqueos (pendientes del propietario)
+1. Homologar la comparabilidad de AH2-040 (P3 recomendada) y decidir si se suma un límite por totales, con el costo medido.
+2. Política para un EVENTUAL sin perfil acreditado: 0 h de caja más bloqueo (laboratorio) o solo bloqueo de publicación.
+3. Quién acredita, revisión y vigencias indefinidas.
+4. Valores reales de la 091.
+5. Persistencia y permisos: requieren una migración autorizada.
+6. Tres o más AUX.
+
+Sin merge, deploy, migraciones, Supabase, Netlify, Prestify, gastos ni datos reales. PR #60 y #6 siguen en borrador.
+
+### PRÓXIMO PASO EXACTO (para Work)
+1. Verificar los HEAD de #60 y #6 y sus checks: `test-build`, `browser` y `offline`.
+2. Presentar al propietario `docs/EV_DISPONIBILIDAD_CAJA.md` §4 y `docs/AH2-040_EVALUACION.md`, y obtener las decisiones 1–3 de los bloqueos.
+3. Con esas decisiones:
+   - convertir el campo opt-in en regla de la política v1 en A, B y ambos validadores (con versión);
+   - diseñar la persistencia de perfiles por sucursal y vigencia (migración **solo con autorización**) y una pantalla de alta y revisión que no exija recarga semanal;
+   - agregar el reporte por persona al PDF y al resumen del supervisor.
+4. Cargar valores reales de la 091 solo en un ensayo offline autorizado, sin datos reales en GitHub.
+
+---
+
+## RELEVO ANTERIOR (historia) — evaluación AH2-040 · 19/11/2026, Claude
 
 **Estado: LISTO PARA REVISIÓN DEL PROPIETARIO.** Evaluación AH2-040 completada en laboratorio. Ninguna alternativa aprobada; la política v1 sigue **no publicable**.
 Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es el único estado operativo vigente; las secciones siguientes son historia.

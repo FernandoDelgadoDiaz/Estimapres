@@ -1,3 +1,4 @@
+import {compilarDisponibilidadCaja} from './disponibilidadCajaEventual'
 import {prevalidarCondiciones,ErrorCondiciones,costePreferencias,guiarPreferencias} from './condicionesSupervisor'
 import {auditarEscenario} from './auditoriaV2'
 // src/algoritmo/orquestador.ts
@@ -91,7 +92,9 @@ function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correr
  *     dentro de su disponibilidad, con distribucion equitativa (menos
  *     horas-caja acumuladas primero).
  */
-export function ejecutarAlgoritmo(input: InputAlgoritmo): ResultadoSemanal {
+export function ejecutarAlgoritmo(entrada: InputAlgoritmo): ResultadoSemanal {
+  // Laboratorio AH2-037/040: perfiles de disponibilidad de caja EVENTUAL → reservas/topes existentes.
+  const input = compilarDisponibilidadCaja(entrada).input
   if(!input.condiciones_supervisor&&!input.auditoria_condiciones)return construirResultado(input, correrCascada(input));
   const prepared=prevalidarCondiciones(input)
   if(prepared.conflictos.length)throw new ErrorCondiciones('PREFLIGHT_BLOQUEADO',prepared.conflictos)
