@@ -10,6 +10,7 @@ export interface RegistroHibrido {
  version:1; algoritmo:'ah2-hibrido-091-v1'; origen:'A'|'B'; estadoB:string; hashEntrada:string|null
  /** Snapshot acotado a la semana, sin JWT ni usuario Auth. Revalida ediciones y reexportación. */
  entrada:InputAlgoritmo; uiPorMotor:Record<string,string>
+ minimosCajeros?:EntradaMultiArranque['contexto']['minimosCajeros']
 }
 export interface EntradaIntegrada {entrada:EntradaMultiArranque;servicio:string;token:string}
 export async function generarSemanaIntegrada(e:EntradaIntegrada,onProgreso?:(p:EventoProgreso)=>void,signal?:AbortSignal):Promise<ResultadoAsignacion> {
@@ -26,7 +27,7 @@ export async function generarSemanaIntegrada(e:EntradaIntegrada,onProgreso?:(p:E
  const resultado=convertirOutputDeV2(salida.propuesta,cajeros,auxiliares,eventuales)
  const ids=asignarIdentidadesV2([...cajeros,...auxiliares,...eventuales])
  resultado.hibrido={version:1,algoritmo:'ah2-hibrido-091-v1',origen:salida.origen,estadoB:salida.estadoB,hashEntrada:salida.hashEntrada,
-  entrada:input,uiPorMotor:Object.fromEntries([...ids.uiPorV2].map(([k,p])=>[k,p.id]))}
+  entrada:input,minimosCajeros:structuredClone(e.entrada.contexto.minimosCajeros??[]),uiPorMotor:Object.fromEntries([...ids.uiPorV2].map(([k,p])=>[k,p.id]))}
  resultado.alertas.push(salida.origen==='B'?'Motor híbrido: se eligió una propuesta mejor validada.':`Motor híbrido: se conserva A como respaldo validado (${salida.estadoB}).`)
  return resultado
 }

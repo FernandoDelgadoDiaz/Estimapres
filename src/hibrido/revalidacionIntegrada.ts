@@ -44,7 +44,7 @@ export function revalidarIntegrado(r:ResultadoAsignacion,ctx:ContextoValidacionS
   // Auditar recompila las condiciones, domingo, perfiles y comparación DIAS desde el snapshot.
   // Sus marcas «laboratorio» no son una infracción: la habilitación acotada la gobierna AH2-041.
   const violaciones=[...audit.violaciones,...adicionales,...disp]
-  for(const m of ctx.minimosCajeros??[])for(let d=0;d<7;d++)if(m.dia===-1||m.dia===d)for(let s=m.slotDesde;s<m.slotHasta;s++)if((cob[d]?.[s]??0)<m.cantidad)violaciones.push({codigo:'OP_MIN_CAJEROS',nivel:'OPERATIVA',dia:d,detalle:'No se alcanza el mínimo de cajas configurado.'})
+  for(const m of snap.minimosCajeros??ctx.minimosCajeros??[])for(let d=0;d<7;d++)if(m.dia===-1||m.dia===d)for(let s=m.slotDesde;s<m.slotHasta;s++)if((cob[d]?.[s]??0)<m.cantidad)violaciones.push({codigo:'OP_MIN_CAJEROS',nivel:'OPERATIVA',dia:d,detalle:'No se alcanza el mínimo de cajas configurado.'})
   const faltanDatos=compilarDisponibilidadCaja(snap.entrada).info?.diagnosticos.filter(d=>d.bloqueaPublicacion)??[]
   for(const d of faltanDatos)violaciones.push({codigo:d.codigo,nivel:'DATOS',detalle:d.detalle,colaboradorId:d.colaboradorId})
   const publicable=violaciones.length===0&&limitaciones.length===0

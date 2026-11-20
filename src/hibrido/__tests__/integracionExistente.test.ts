@@ -75,6 +75,8 @@ describe('misma pantalla → contrato HTTP → resultado → historial/edición 
   h.jornadas[0].esFranco=false;h.jornadas[0].turnos=[{inicio:'08:00',fin:'23:00'}]
   expect(validarResultadoSemana(r,cajeros,aux,ev,ctx).publicable).toBe(false)
   expect(validarResultadoSemana(generado,cajeros,aux,ev,{...ctx,limitaciones:['Sin domingo confirmado.']})).toMatchObject({publicable:false})
+  const min=structuredClone(generado);min.hibrido!.minimosCajeros=[{dia:0,slotDesde:2,slotHasta:3,cantidad:99}]
+  expect(validarResultadoSemana(min,cajeros,aux,ev,ctx).violaciones.map(v=>v.codigo)).toContain('OP_MIN_CAJEROS')
  })
  it('preserva el snapshot en el jsonb existente y exporta el PDF habitual sin migración',()=>{
   const s={id:'week-synthetic',fechaLunes:'2026-11-23',version:1,descripcion:'Integración sintética',generadoEl:'2026-11-20T16:00:00Z',editadoManualmente:false,resumenPorColaborador:{},horarios:generado.horarios,hibrido:generado.hibrido,cajaAux:generado.cajaAux,cajaEventual:generado.cajaEventual} as SemanaHistorial
