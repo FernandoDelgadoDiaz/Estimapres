@@ -5,6 +5,8 @@ Agente que entrega: Claude. Agente receptor: Work (o Claude). Esta sección es e
 
 **Aclaración vigente del propietario (19/11/2026):** EVENTUAL no implica reposición, maestranza ni puesto específico; puede provenir de cualquier función. Sus horas contratadas o su presencia no son automáticamente horas de caja. No crear perfiles sectoriales predeterminados. P3 sigue siendo propuesta técnica, no aprobación de AH2-040; su costo de cobertura cero no equivale a proteger la carga semanal eventual.
 
+**Ratificación operativa del propietario (20/11/2026):** la prioridad de cobertura es FULL/PART 100 % de horas contractuales en caja → AUX elegibles (respetando supervisión) → EVENTUAL residual. **Además, ningún EVENTUAL podrá superar en el total SEMANAL de horas-caja a un AUX efectivamente comparable.** P3 solo controla ventanas compartidas y no basta; los perfiles individuales de disponibilidad protegen funciones habituales pero tampoco sustituyen la equidad semanal. Si imponer la regla reduce cobertura, exhibir faltantes, sin relajar la política. **Pendiente** homologar matemáticamente qué AUX se compara en turnos parcialmente o no coincidentes y en roles rotativos; no asignar pares ni topes inventados ni aprobar P3 sola. El MASTER AH2-040/P3 registra esta decisión; no se autorizó implementación productiva, merge ni despliegue.
+
 ### Ramas y SHAs
 - Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
   - base verificada `859c5d763738b3a48bb993d0a77811d5d95ddc8b` (documental del propietario, sobre `5f24417`, con CI verde);
