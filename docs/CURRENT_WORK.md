@@ -10,6 +10,8 @@
 
 EVENTUAL puede venir de cualquier función. P3 y los perfiles de disponibilidad no sustituyen esta regla.
 
+**Aclaración expresa del propietario (19/11/2026):** AUX y EVENTUAL **sí pueden atender cajas simultáneamente** cuando el POM requiere ambas y se conserva la supervisión. El orden FULL/PART→AUX→EVENTUAL determina la prioridad de asignación, **no exclusividad de franjas**. No confundir este permiso con la regla semanal comparativa ni con el test de solapamiento de horarios. La regla semanal sigue obligatoria; el caso S9 de una hora de superposición no está homologado como criterio general. MASTER AH2-036 actualizado solo documentalmente, sin cambios en producción. Próxima revisión técnica: pruebas explícitas de simultaneidad y definición no arbitraria de comparabilidad S9 sin alterar políticas aprobadas.
+
 ### Ramas y SHAs
 - Estimapres PR #60 (borrador), `feat/ah2-integracion-hibrida-work-claude`:
   - base verificada `5a92b7d2eb1149fc8982cb365fc9cbcaef570805`;
