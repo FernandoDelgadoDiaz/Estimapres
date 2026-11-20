@@ -1,4 +1,29 @@
-## PUNTO ÚNICO DE RETOMA — ensayo privado 091: POM real leído, excepción de apertura implementada; dotación real NO accesible · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — ensayo privado 091: dotación recuperada por ChatGPT · 20/11/2026
+
+**Estado: DATOS DE DOTACIÓN RECUPERADOS; ensayo real todavía no ejecutado.** El propietario autorizó expresamente consultas y exportación de solo lectura. ChatGPT pudo acceder al proyecto Supabase correcto de Horarios, exclusivamente a la sucursal 091 y a la cuenta de la dotación activa. El impedimento de acceso de Claude se resuelve mediante archivo privado `dotacion.json`, entregado al propietario para adjuntarlo a Claude. Ningún dato personal, horario individual ni archivo de dotación se incorpora al repositorio o CI.
+
+### Datos y verificaciones agregadas
+- Semana del POM ya validada: 23–29/11/2026, 402 horas-caja. No volver a extraer si el archivo privado original sigue disponible.
+- Dotación base activa: 15 personas (4 FULL de 48 h, 4 PART de 32 h, 3 AUX, 4 EVENTUAL). Horas contractuales de caja: 320 h antes de la exclusión manual previamente decidida; 272 h de los siete cajeros incluidos en el cálculo automático. Respetar dicha exclusión; no modificar la regla persistida de la persona excluida.
+- Verificación de presencia AUX: máximo dos simultáneos y cobertura de presencia AUX en todas las franjas 08:00–23:00 de la semana según los horarios registrados. No hace falta homologar 3+ AUX para este ensayo concreto. La excepción de apertura AH2-037 se mantiene aprobada e implementada.
+- Se recuperaron reglas de la misma cuenta de la dotación (incluidos toggles inactivos); el archivo privado contiene las opciones, el registro de reglas y la excepción de apertura. No aplicar reglas de otra cuenta por compartir código de sucursal.
+- **Faltan los perfiles acreditados EVENTUAL** (acreditación, reservas de función habitual y tope solo si está aprobado). El archivo no inventa ni sustituye perfiles por presencia. Antecedente domingo anterior no consultado: indicar que no está verificado, no inventarlo.
+- `dotacion.json` es formato de pantalla del ejecutor `ensayo-privado.local.test.ts`, no incluye POM; el usuario adjunta el archivo privado a Claude. Sus identificadores son alias locales de ensayo, no IDs persistidos. Mantenerlo fuera de ambos repositorios.
+
+### Base de ejecución
+- Estimapres PR #60, borrador, código `77ca315821a6aaac4a365b11510ef03921020bf8` (HEAD documental posterior: consultar PR).
+- aliada-optimizer PR #6, borrador, `64cbbef7ec6feb5ed5eaab1bed618d1eb522802b`.
+- No reabrir AH2-037 ni DIAS; no rehacer las pruebas previas de laboratorio.
+
+### Próximo paso exacto
+1. Claude recibe el archivo privado `dotacion.json` y valida su contenido contra el ejecutor y MASTER. Resolver exclusivamente perfiles de caja EVENTUAL ausentes con el propietario; si una regla no está disponible, no inferirla. Respetar la exclusión manual, horas de contrato, reglas registradas y el scope de la excepción de apertura. No pedir otra vez la dotación.
+2. Con perfiles completos y el POM privado original `pom.pdf`, ejecutar ambos motores localmente: `AH2_ENSAYO_DIR=<carpeta privada> AH2_ENSAYO_SEGUNDOS=120 npx vitest run src/hibrido/__tests__/ensayo-privado.local.test.ts`. Si no existe el POM privado, el propietario debe volver a adjuntarlo.
+3. Entregar comparación A/B, horas caja individuales, cobertura, faltantes, supervisión y PDF no oficial si el plan es válido. Documentar ausencia de antecedente dominical si persiste y no certificar descanso intersemanal sin evidencia. Registrar aquí solo métricas agregadas, no datos personales.
+4. No merge, no despliegue, no escrituras Supabase, no migraciones, no cambios Prestify ni contratación. Piloto web posterior al ensayo.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo privado 091: POM real leído, excepción de apertura implementada; dotación real NO accesible · 20/11/2026, Claude
 
 **Estado: BLOQUEADO SOLO POR DATOS.**
 - El propietario autorizó el ensayo privado con el PDF POM de la semana 23–29/11/2026 y la dotación vigente de la 091 en solo lectura.
