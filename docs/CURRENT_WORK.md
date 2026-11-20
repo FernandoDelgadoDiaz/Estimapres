@@ -1,4 +1,26 @@
-## PUNTO ÚNICO DE RETOMA — proyecto Google Cloud informado; acceso a consola bloqueado · 20/11/2026
+## PUNTO ÚNICO DE RETOMA — facturación/API informadas; sesión Google presente, consola y Shell inaccesibles · 20/11/2026
+
+**Nueva información del propietario:** proyecto `aliada-horarios` creado, facturación vinculada y API Cloud Run habilitada. Autoriza completar despliegue CP-SAT, conexión y publicación controlada 091, con consumo mínimo y **cero instancias mínimas/en reposo**; sin Prestify ni gastos no autorizados. No pedir nuevamente crear proyecto, vincular facturación, habilitar esa API ni aprobar el alcance funcional.
+
+### Evidencia de esta retoma
+
+- Se leyó de nuevo CURRENT_WORK y PR #61: HEAD documental `14f104d6021154076c56a57a9fc31db81c845bab`, sin merge. Código congelado frontend `c5bcc0f604234850d8348f904347e84006a780c2`, backend `5b98417c2d960d940e195f01d4c8e3cd6f0c52fc`; conservar CI aprobada y ensayos, sin repetirlos.
+- Cloud Run sobre la URL exacta del proyecto sigue mostrando **Site Unavailable / Unable to access this site**, incluso tras la recarga de esta retoma.
+- **La sesión Google del propietario sí está presente:** abrir el acceso oficial de Google redirigió a su Cuenta de Google autenticada. No se pidieron ni leyeron contraseñas, tokens o cookies. Una pestaña nueva de verificación de Cloud Run con esa sesión siguió mostrando el mismo error. No confundir este bloqueo con falta de login Google.
+- Cloud Shell del mismo proyecto (`https://shell.cloud.google.com/?project=aliada-horarios`) también devolvió Site Unavailable. Se registró el obstáculo, sin intentos de eludir controles ni otros proveedores. No hay conector suficiente Cloud Run ni gcloud/configuración/ADC/credencial Google en el entorno local.
+- No se pudo inspeccionar IAM, facturación/cuotas o configuración efectiva de Cloud Run; las acciones del propietario son información recibida, no verificadas desde consola. **No se desplegó, conectó ni publicó. Cero instancias no fue aplicado todavía.** No recursos remotos creados, permisos cambiados, datos operativos transferidos/escritos, merges, cambios Netlify/Prestify ni gastos por esta retoma.
+
+### Continuación exacta
+
+La ejecución requiere un entorno con acceso operativo a la consola o Cloud Shell de Google Cloud, o un cliente autorizado ya autenticado. La cuenta Google del navegador ya está autenticada; no volver a solicitar credenciales solo por este error. No insistir en cambiar proyecto/facturación/API para resolver el acceso del entorno.
+
+Con acceso efectivo, verificar proyecto/cuenta/costos reales y desplegar el contenedor aprobado con `min-instances=0`, facturación por solicitudes y límite inicial de una instancia/concurrencia uno; seleccionar CPU/memoria mínimas compatibles con la ejecución validada y sin CPU permanente. Esta es la configuración deseada, no una configuración aplicada ni una promesa de factura cero. Si la operación implica gastos no cubiertos/autorizados, presentar costo concreto antes de ejecutar. Después controles del servicio, sesión real, conteos, rollback y publicación únicamente 091/al-iada según `docs/PUBLICACION_HIBRIDO_091.md`.
+
+Este relevo es solo documental. El código con CI aprobada permanece en los SHAs anteriores; no repetir instalación/build/tests por este documento.
+
+---
+
+## RELEVO ANTERIOR — proyecto Google Cloud informado; acceso a consola bloqueado · 20/11/2026
 
 **Orden actual del propietario:** informa que creó el proyecto Google Cloud `aliada-horarios` y autoriza desplegar CP-SAT, conectarlo a Horarios y completar la publicación controlada exclusivamente para 091. Sin instalar otros servicios, generar gastos sin autorización ni afectar Prestify. No volver a pedir autorización funcional; interrumpir solo por autenticación/costos, salvo un bloqueo técnico de acceso que impida materialmente continuar.
 
