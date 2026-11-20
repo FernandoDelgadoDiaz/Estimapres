@@ -173,7 +173,7 @@ function reglaAFila(r: ReglaConfigurable): Omit<FilaRegla, 'created_at'> {
   }
 }
 
-function filaARegla(f: FilaRegla): ReglaConfigurable {
+export function filaARegla(f: FilaRegla): ReglaConfigurable {
   const p = f.parametros ?? {}
   return {
     id: f.id,

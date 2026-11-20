@@ -46,6 +46,8 @@ it.skipIf(!dir||!existsSync(`${dir}/dotacion.json`))('ensayo privado · paso 2: 
  writeFileSync(`${dir}/impedimentos.json`,JSON.stringify({impedimentos},null,1))
  const input=convertirInputAV2(pom.franjas,d.cajeros,d.auxiliares,d.eventuales,d.excepciones??[],{politica_recursos_version:1,...d.opciones,sucursal_id:d.sucursal,semana:(pom.semana.semana??pom.semana).lunes})
  const segundos=Number(process.env.AH2_ENSAYO_SEGUNDOS??30)
+ // Permite reproducir la línea base anterior sin modificar datos ni reglas.
+ if(process.env.AH2_EQUILIBRIO!=='0')input.equilibrio_semanal_version=1
  const ev:EventoProgreso[]=[]
  const s=await generarPropuestaHibrida(input,{id:'ensayo-091',sucursal:d.sucursal,timeoutMs:(segundos+60)*1000,parametros:{segundos,modo:'global',semilla:20261119},
   transporte:transporteProceso({python:process.env.AH2_PYTHON??'python3',cwd:B,plazoMs:(segundos+60)*1000}),onProgreso:e=>ev.push(e)})

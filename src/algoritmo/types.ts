@@ -68,6 +68,8 @@ export interface SesgoTurno {
 
 // Inputs completos al algoritmo
 export interface InputAlgoritmo extends PoliticaRecursos, EntradaCondiciones {
+  /** AH2-038: equilibrio y protección de picos, opt-in de laboratorio. */
+  equilibrio_semanal_version?: 1;
   auditoria_condiciones?: AuditoriaCondiciones
   max_bloques_caja_eventual_dia?: number;
   eventuales_caja_hora_limite?: string;

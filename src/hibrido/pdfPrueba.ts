@@ -25,7 +25,7 @@ export function grillaPlan(p:NonNullable<SalidaUnica['propuesta']>):string[][]{
  return filas
 }
 
-export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:string}):jsPDF{
+export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:string;nombres?:Record<string,string>}):jsPDF{
  const doc=new jsPDF({orientation:'portrait',format:'a4',unit:'mm'})
  const W=doc.internal.pageSize.getWidth()
  const encabezado=()=>{
@@ -37,7 +37,8 @@ export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:stri
  }
  encabezado()
  const tabla=(titulo:string,head:string[],body:(string|number)[][])=>{
-  const y=((doc as unknown as {lastAutoTable?:{finalY:number}}).lastAutoTable?.finalY??18)+6
+  let y=((doc as unknown as {lastAutoTable?:{finalY:number}}).lastAutoTable?.finalY??18)+6
+  if(y>263){doc.addPage();encabezado();y=24}
   doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(titulo,12,y)
   autoTable(doc,{startY:y+2,head:[head],body:body.length?body:[[ 'Sin datos',...head.slice(1).map(()=>'')]],margin:{left:12,right:12,top:20},
    styles:{fontSize:7,cellPadding:1},headStyles:{fillColor:[90,90,90]},didDrawPage:encabezado})
@@ -49,8 +50,12 @@ export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:stri
   ['Excepción apertura AUX único (AH2-037)',s.excepcionApertura.configurada?`configurada · ${s.excepcionApertura.franjasAplicadas} franjas aplicadas`:'no configurada'],
   ['Bloqueos de datos o política',s.bloqueos.length?s.bloqueos.join(', '):'ninguno'],
   ['Publicable','NO'],['Hash de entrada',s.hashEntrada??'—']])
- if(s.propuesta)tabla(`Planificación semanal de caja (propuesta ${s.origen})`,['Persona','Rol',...DIAS],grillaPlan(s.propuesta))
- tabla('Horas por persona',['Persona','Rol','Contrato/presencia','Contrato origen','Tope caja','Caja','Presencia fuera de caja','Disponible caja'],
+ if(s.propuesta)tabla(`Planificación semanal de caja (propuesta ${s.origen})`,['Persona','Rol',...DIAS],grillaPlan(s.propuesta).map(row=>[meta.nombres?.[row[0]]??row[0],...row.slice(1)]))
+ if(s.equilibrioSemanal){
+  tabla('Cobertura por día',['Día','Demanda h','Faltantes h','Cobertura %','Día pico'],s.equilibrioSemanal.porDia.map(x=>[DIAS[x.dia],x.demandaHoras,x.faltantesHoras,x.coberturaPct.toFixed(2),x.diaPico?'sí':'—']))
+  tabla('Equilibrio y picos',['Criterio','Valor'],[['Peor déficit relativo diario',`${s.equilibrioSemanal.peorDeficitPct.toFixed(2)} %`],['Costo de picos (unidades del modelo)',s.equilibrioSemanal.costePicos],['Estado','Validación técnica de prueba; descanso previo no certificado sin antecedente']])
+ }
+ tabla('Horas por persona',['Persona','Rol','Contrato/presencia','Contrato origen','Tope caja','Caja','Fuera de caja (grilla 08-23)','Disponible caja'],
   s.horasPorEmpleado.map(x=>{const r=x as Record<string,unknown>;return [String(r.id),String(r.rol),String(r.horasContractuales??r.horasPresencia??'—'),String(r.contratoOrigen??'—'),
    r.rol==='EVENTUAL'?(r.topeCajaHoras==null?'sin tope':`${r.topeCajaHoras} (${(r.origenTope as string[]|undefined)?.join('; ')??''})`):'—',String(r.horasCaja),String(r.horasFuncionHabitualRealizadas??r.horasSupervisionOFueraDeCaja??'—'),String(r.disponibilidadCajaEfectivaHoras??'—')]}))
  tabla('Faltantes por franja',['Día','Franja','Personas'],s.faltantesPorFranja.map(f=>[f.dia,f.franja,f.personas]))
@@ -58,7 +63,7 @@ export function generarPDFPrueba(s:SalidaUnica,meta:{sucursal:string;semana:stri
  tabla('Conflictos y avisos',['Origen','Código','Detalle'],s.conflictos.map(c=>[c.origen,c.codigo,(c.detalle??'').slice(0,120)]))
  tabla('Condiciones del supervisor',['Id','Modo','Tipo','Persona','Día','Valor'],s.condiciones.solicitadas.map(c=>[c.id,c.modo==='DEBE'?'DEBE':'PREFERIRÍA',c.tipo,c.colaboradorId??'—',c.dia??'—',String(c.valor??'—')]))
  tabla('Disponibilidad de caja EVENTUAL (diagnósticos)',['Persona','Código','Nivel','Bloquea publicación'],s.disponibilidadEventual.diagnosticos.map(d=>[d.colaboradorId,d.codigo,d.nivel,d.bloqueaPublicacion?'sí':'no']))
- tabla('AH2-040: relaciones EVENTUAL ≤ AUX comparable',['EVENTUAL','AUX'],s.comparabilidadAH2040.relaciones.map(r=>[r.eventualId,r.auxId]))
+ tabla('AH2-040: relaciones EVENTUAL <= AUX comparable',['EVENTUAL','AUX'],[...s.comparabilidadAH2040.relaciones.map(r=>[r.eventualId,r.auxId]),...s.comparabilidadAH2040.sinAuxComparable.map(id=>[id,'Sin AUX comparable (DIAS); no se impone tope cero.'])])
  const n=doc.getNumberOfPages()
  for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(7);doc.text(`Página ${i} de ${n} · ${MARCA_NO_OFICIAL}`,W/2,290,{align:'center'})}
  return doc

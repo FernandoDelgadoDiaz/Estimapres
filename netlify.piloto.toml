@@ -1,0 +1,18 @@
+# Usar en un sitio separado. Nunca sustituir la configuración del sitio productivo.
+[build]
+  publish = "dist-piloto"
+  command = "npx tsc --noEmit && npx vite build --config vite.piloto.config.ts"
+
+[[redirects]]
+  from = "/"
+  to = "/piloto-horarios.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store"
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

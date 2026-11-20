@@ -15,7 +15,7 @@ export const ESTADOS_B=['OPTIMAL','FEASIBLE','UNKNOWN','INFEASIBLE','DATOS_INCOM
 export type EstadoB=typeof ESTADOS_B[number]
 export type ModoB='global'|'hybrid'|'sequential'
 export interface ParametrosB {segundos:number;modo:ModoB;semilla:number}
-export interface EntradaB {profile:{branch_id:string;version:number};input:Record<string,unknown>}
+export interface EntradaB {profile:{branch_id:string;version:number};input:Record<string,unknown>;baseline?:PlanB;referencia_validada_a?:boolean}
 export interface SobreSolicitud {version:typeof VERSION_CONTRATO;id:string;hashEntrada:string;entrada:EntradaB;parametros:ParametrosB}
 export interface PlanB {jornadas:Record<string,Jornada[]|unknown[]>;AUX:Record<string,number[][]>;EVENTUAL:Record<string,number[][]>}
 export interface RespuestaB {
@@ -41,19 +41,21 @@ export async function hashEntrada(entrada:unknown):Promise<string>{
 const DIRECTOS=['demanda','colaboradores','presencia_aux','disponibilidad_eventual','excepciones','preferencias_turno','max_francos_dia','max_francos_por_dia',
  'pesos_franja','apertura_solo_aux','sin_aux_cierre','supervisor_jornada_completa','franco_medio_corridos','contratos','max_bloques_caja_eventual_dia',
  'eventuales_caja_hora_limite','politica_recursos_version','supervision_apertura_externa','excepcion_apertura_aux_unico','max_caja_eventual_slots','reservas_sector_eventual',
- 'disponibilidad_caja_eventual','topes_caja_eventual_contrato','comparacion_aux_eventual','condiciones_supervisor','sucursal_id','semana'] as const
+ 'disponibilidad_caja_eventual','topes_caja_eventual_contrato','comparacion_aux_eventual','condiciones_supervisor','sucursal_id','semana','equilibrio_semanal_version'] as const
 /** Campos propios de A, sin efecto en las reglas que B debe cumplir (no se envían). */
 const SOLO_A=new Set(['semillas','omitir_impacto_horas','experimental','cobertura_objetivo_pct','auditoria_condiciones','disponibilidad_caja_compilada'])
 
 export interface TraduccionB {entrada:EntradaB;noTransportables:string[]}
 /** Traduce la entrada de A a la de B. `inicio_minimo_lunes_por_colaborador` (A) ↔ `fin_domingo_anterior` (B): fin = inicio − 24 + 48 franjas. */
-export function aEntradaB(input:InputAlgoritmo,branchId:string):TraduccionB{
+export function aEntradaB(input:InputAlgoritmo,branchId:string,referencia?:ResultadoSemanal):TraduccionB{
  const src=input as unknown as Record<string,unknown>
  const out:Record<string,unknown>={}
  for(const k of DIRECTOS)if(src[k]!==undefined)out[k]=src[k]
  if(input.inicio_minimo_lunes_por_colaborador)out.fin_domingo_anterior=Object.fromEntries(Object.entries(input.inicio_minimo_lunes_por_colaborador).map(([id,n])=>[id,n+24]))
  const noTransportables=Object.keys(src).filter(k=>src[k]!==undefined&&!(DIRECTOS as readonly string[]).includes(k)&&!SOLO_A.has(k)&&k!=='inicio_minimo_lunes_por_colaborador').sort()
- return {entrada:{profile:{branch_id:branchId,version:1},input:out},noTransportables}
+ const slots=(m:Record<string,string[][]>)=>Object.fromEntries(Object.entries(m).map(([id,w])=>[id,w.map(row=>row.flatMap((v,s)=>v==='CAJA'?[s]:[]))]))
+ const baseline=referencia&&input.equilibrio_semanal_version===1?{jornadas:{...referencia.jornadas_full,...referencia.jornadas_part},AUX:slots(referencia.asignacion_aux),EVENTUAL:slots(referencia.asignacion_eventual)}:undefined
+ return {entrada:{profile:{branch_id:branchId,version:1},input:out,...(baseline?{baseline,referencia_validada_a:true}:{})},noTransportables}
 }
 
 export async function crearSobre(id:string,entrada:EntradaB,parametros:ParametrosB):Promise<SobreSolicitud>{

@@ -17,6 +17,7 @@ import {motorAConPolitica,motorASinRelacion,politicaLaboratorioV1} from './polit
 import {compilarDisponibilidadCaja,reporteDisponibilidadCaja,verificarDisponibilidadCaja} from '../algoritmo/disponibilidadCajaEventual'
 import {aEntradaB,crearSobre,planBaResultado,validarRespuesta,type EstadoB,type ParametrosB,type RespuestaB} from './contrato'
 import type {TransporteB} from './transporte'
+import {medirEquilibrio,compararEquilibrio,protegeReferencia} from './equilibrio'
 
 export const VERSION_SALIDA='aliada-salida-unica/1'
 export type Origen='A'|'B'
@@ -42,8 +43,10 @@ function evaluar(input:InputAlgoritmo,r:ResultadoSemanal,raw:InputAlgoritmo){
  return {valido:infracciones.length===0,infracciones,datos,metricas:m}
 }
 
-const mejor=(a:{faltantesHoras:number;sobrantesHoras:number;horasCajaEventual:Record<string,number>},b:typeof a)=>{
+const mejor=(input:InputAlgoritmo,a:ReturnType<typeof metricasAH2040>,b:typeof a)=>{
  const ev=(x:typeof a)=>Object.values(x.horasCajaEventual).reduce((s,y)=>s+y,0)
+ if(input.equilibrio_semanal_version===1)return protegeReferencia(input,a.faltantesPorFranja,b.faltantesPorFranja,a.sobrantesHoras,b.sobrantesHoras)&&
+  compararEquilibrio(medirEquilibrio(input,b.faltantesPorFranja),medirEquilibrio(input,a.faltantesPorFranja),b.sobrantesHoras,a.sobrantesHoras,ev(b),ev(a))<0
  const ka=[a.faltantesHoras,a.sobrantesHoras,ev(a)],kb=[b.faltantesHoras,b.sobrantesHoras,ev(b)]
  for(let i=0;i<3;i++){if(kb[i]<ka[i])return true;if(kb[i]>ka[i])return false}
  return false
@@ -69,7 +72,7 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
  // 2. B por transporte (opcional), con timeout y validación de contrato.
  let estadoB:EstadoB|'NO_EJECUTADO'|'TIMEOUT'|'ERROR_TRANSPORTE'|'RESPUESTA_INVALIDA'='NO_EJECUTADO'
  let respuestaB:RespuestaB|null=null,candB:{r:ResultadoSemanal;e:ReturnType<typeof evaluar>}|null=null
- const {entrada,noTransportables}=aEntradaB(input,op.sucursal)
+ const {entrada,noTransportables}=aEntradaB(input,op.sucursal,candA?.e.valido?candA.r:undefined)
  if(noTransportables.length)conflictos.push({origen:'CONTRATO',codigo:'CAMPOS_NO_TRANSPORTABLES',detalle:noTransportables.join(', ')})
  let hash:string|null=null
  if(op.transporte&&!noTransportables.length){
@@ -102,7 +105,7 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
  // 3. Selección: solo candidatos válidos; B únicamente si es estrictamente mejor.
  const validoA=candA?.e.valido?candA:null,validoB=candB?.e.valido?candB:null
  let origen:Origen|null=null,motivo:string
- if(validoA&&validoB&&mejor(validoA.e.metricas,validoB.e.metricas)){origen='B';motivo='B válido y estrictamente mejor que A (faltantes → sobrantes → horas EVENTUAL).'}
+ if(validoA&&validoB&&mejor(input,validoA.e.metricas,validoB.e.metricas)){origen='B';motivo=input.equilibrio_semanal_version===1?'B válido y mejor según cobertura, protección de picos y equilibrio semanal, sin descubrir picos de A.':'B válido y estrictamente mejor que A (faltantes → sobrantes → horas EVENTUAL).'}
  else if(validoA){origen='A';motivo=validoB?'A y B válidos; B no mejora a A: se conserva A.':op.transporte?`B no utilizable (${estadoB}); se usa A, válido.`:'Solo A (B no ejecutado en esta llamada).'}
  else if(validoB){origen='B';motivo='A inválido o sin resultado; B válido.'}
  else motivo='Ningún candidato cumple las restricciones obligatorias: no se presenta propuesta.'
@@ -146,6 +149,7 @@ function construirSalida(x:{candidatos:Record<'A'|'B',Record<string,unknown>>;si
   origen:x.origen,motivoSeleccion:x.motivo,candidatos:x.candidatos,estadoB:x.estadoB,fasesB:x.respuestaB?.fases??[],hashEntrada:x.hash,
   propuesta:elegido?.r??null,
   coberturaPomPct:m?.coberturaPct??null,demandaHoras:m?.demandaHoras??null,faltantesHoras:m?.faltantesHoras??null,sobrantesHoras:m?.sobrantesHoras??null,
+  equilibrioSemanal:m?{activo:input.equilibrio_semanal_version===1,...medirEquilibrio(input,m.faltantesPorFranja)}:null,
   faltantesPorFranja:franjas(m?.faltantesPorFranja),sobrantesPorFranja:franjas(sobrantes),
   horasPorEmpleado:elegido?reporteDisponibilidadCaja(x.raw,elegido.r as Required<ResultadoSemanal>):[],
   conflictos:[...x.conflictos,...x.datosA.map(d=>({origen:'DATOS' as const,codigo:d.codigo,detalle:d.detalle,colaboradorId:d.colaboradorId}))],

@@ -55,7 +55,7 @@ function App(){
   catch(e){setError(e instanceof ErrorCondiciones?`${e.codigo}. ${e.conflictos.map(c=>`${c.codigo}${c.persona?' · '+c.persona:''}`).join('; ')}. Revisá o quitá las condiciones indicadas; Aliada no las cambia automáticamente.`:e instanceof Error?e.message:'Revisá las condiciones.');return}
   setOcupado(true);const ctrl=new AbortController();cancelar.current=ctrl
   try{
-   const s=await generarPropuestaHibrida(input,{id:crypto.randomUUID().slice(0,32),sucursal,timeoutMs:(segundos+30)*1000,parametros:{segundos,modo:'global',semilla:20261119},
+   const s=await generarPropuestaHibrida({...input,equilibrio_semanal_version:1},{id:crypto.randomUUID().slice(0,32),sucursal,timeoutMs:(segundos+30)*1000,parametros:{segundos,modo:'global',semilla:20261119},
     transporte:cpSat&&usarCpSat?transporteHttpLab('',ctrl.signal):undefined,onProgreso:e=>setProgreso(p=>[...p,e])})
    setSalida(s)
   }catch(e){setError(e instanceof Error?e.message:'No se pudo generar.')}

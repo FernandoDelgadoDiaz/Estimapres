@@ -1,3 +1,50 @@
+## PUNTO ÚNICO DE RETOMA — equilibrio semanal implementado y ensayo real validado; piloto privado preparado · 20/11/2026, Codex
+
+**Estado:** próximo paso registrado ejecutado en laboratorio. No rehacer AH2-036–040 ni pedir otra vez las decisiones aprobadas. Los dos PR permanecen borradores; no hay publicación ni URL nueva de piloto.
+
+### Base y cambios
+- Estimapres #60, rama `feat/ah2-integracion-hibrida-work-claude`, base verificada `a39c8d4e76b525b623c1422bda0734a8d2387c32`. El SHA de esta entrega se confirma en PR; un relevo posterior registra el SHA de código.
+- aliada-optimizer #6, código/CI de contenedor: `2b4fd6f1215ba89e1847de7cfb3357731e26b87e`, sobre `8e3c5e473379d7e3140a2f63dccbfd376b258c6c`. Primer commit funcional B: `db39a4ae6f0706301873183b335198c3eca40060`.
+- A: `equilibrio.ts`, selección híbrida, referencia A dentro del sobre/hash, métricas y PDF diario; activación opt-in en laboratorio/ejecutor privado. B: métricas racionales exactas, objetivos lexicográficos, protección de referencia y desempates semanales. Motor productivo sin activación nueva.
+- Piloto: HTML/build separados; login, SELECT acotados a usuario/sucursal, POM PDF, servicio HTTPS con JWT, configuración de prueba local, propuesta y PDF no oficial. B incluye servidor HTTP, Dockerfile y prueba de imagen en CI. No utiliza puente Vite. Detalles y pendientes: `docs/PILOTO_PRIVADO_MOVIL.md`.
+- Fuente normativa MASTER AH2-032/038; formulación técnica experimental y evidencia en `docs/EQUILIBRIO_SEMANAL_LAB.md`. No se presenta como homologación productiva.
+
+### Ensayo real reproducido y comparado
+Misma entrada privada 23–29/11, dotación y reglas, presupuesto 120 s. Línea base reproducida antes de modificar.
+
+| Día | Demanda h | Faltantes base h | Faltantes nuevos h | Cobertura nueva |
+|---|---:|---:|---:|---:|
+| Lunes | 57,5 | 3 | 8 | 86,087 % |
+| Martes | 57 | 1,5 | 8 | 85,965 % |
+| Miércoles | 55 | 3 | 7,5 | 86,364 % |
+| Jueves | 56 | 4 | 7,5 | 86,607 % |
+| Viernes | 58 | 8 | 8 | 86,207 % |
+| Sábado (pico POM) | 61 | 10 | 0 | 100 % |
+| Domingo | 57,5 | 17,5 | 8 | 86,087 % |
+
+- Total: 402 h demandadas, 355 cubiertas, 88,308 %, 47 faltantes, 0 sobrantes. Recursos: 272 FULL/PART, 39 AUX, 44 EVENTUAL. Cero infracciones en ambos validadores.
+- Peor déficit relativo: 30,435 → 14,035 %. Coste de picos nuevo 0; no empeora ninguna franja pico de A. Se prioriza el día pico y se distribuye el déficit restante según demanda de los demás días.
+- Faltantes, ponderados, sobrantes, picos y peor déficit relativo: OPTIMAL. Desempates siguientes FEASIBLE al agotar 120 s. **Solución completa factible; no óptimo total demostrado.** El certificado del peor déficit depende de los objetivos y protecciones anteriores.
+- Preservados: exclusión manual, horas contractuales completas, jerarquía FULL/PART → AUX → EVENTUAL, supervisión, apertura 08–09, DIAS, topes 12/8, dos bloques y corte 22:00.
+- Antecedente dominical no disponible: no certificar descanso intersemanal ni conformidad jurídica.
+- PDF privado A4 de cinco páginas, resumen antes/después y propuesta, revisado visualmente y entregado como `Aliada_091_S48_equilibrio_prueba.pdf`. POM, dotación, nombres, horarios y salida permanecen fuera de ambos repositorios.
+
+### Verificación real
+- Instalación limpia A: `npm ci`.
+- A: `npx tsc --noEmit`, build productivo y build aislado de piloto aprobados. Vitest: **575 aprobadas / 10 omitidas**; verificación posterior del PDF: 14 de integración + render privado aprobadas. No volver a ejecutar el ensayo solo para generar PDF.
+- B: **160 pytest aprobadas / 1 omisión histórica**. HTTP ejecutó CP-SAT real con entrada sintética; pruebas de identidad/origen/sucursal, límites, hash y formato.
+- Chromium local no arranca por `socket() ... Operation not permitted`: las 24 pruebas se detuvieron antes de sus acciones. **No se informan como aprobadas ni como fallos funcionales.** Exigir CI browser del nuevo SHA. Docker no instalado localmente: CI añadida para construir y ejecutar smoke del contenedor; verificarla antes de declarar imagen probada.
+- CI de los nuevos commits: pendiente al redactar esta sección.
+- Sin consultas nuevas a Supabase real, sin migraciones, escrituras/borrados operativos, merge, deploy manual, cambios Prestify, transferencia de dotación real al servicio externo ni gastos.
+
+### Próximo paso exacto
+1. Verificar checks del HEAD real de #60 y #6, incluido browser y build/smoke del contenedor. Registrar SHAs y resultados sin sobrescribir trabajo concurrente.
+2. Con evidencia satisfactoria, solicitar únicamente la autorización que falta para **infraestructura aislada y envío temporal de datos al servicio privado**, sobre el entregable preparado. No pedir de nuevo topes, apertura, DIAS ni intención de equilibrio.
+3. Tras esa autorización: proyecto/servicio privado y preview separados, usuario/sucursal/origen exactos; verificar Auth y RLS reales solo lectura, configurar perfiles/condiciones de prueba faltantes y completar POM → híbrido efectivo → PDF en iPhone físico. No presentar como terminado el recorrido sin carga semanal adicional hasta habilitar la configuración reutilizable.
+4. Persistencia definitiva, homologación y producción siguen fuera de alcance sin autorización. No fusionar.
+
+---
+
 ## PUNTO ÚNICO DE RETOMA — equilibrio semanal y cobertura pico; piloto privado 091 · 20/11/2026
 
 **Nueva regla de negocio aprobada por el propietario:** equilibrar el déficit de cobertura durante la semana y priorizar tanto franjas como días pico. MASTER AH2-032/038 actualizado en `b4c5949`. El criterio matemático exacto requiere implementación y validación, no otra consulta sobre la intención. No es igualar horas faltantes arbitrariamente ni priorizar un día fijo; identificar demanda pico desde POM y configuración local. Mantener cobertura total máxima factible, restricciones duras y protección de picos.
