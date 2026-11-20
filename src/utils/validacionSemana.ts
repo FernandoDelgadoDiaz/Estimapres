@@ -1,3 +1,4 @@
+import {revalidarIntegrado} from '../hibrido/revalidacionIntegrada'
 // PUB-01 (#12, parte sin migración) — Validación de la semana generada/editada
 // para la UI y el PDF, usando el validador independiente (VAL-01).
 import type { Auxiliar, Colaborador, Eventual, ExcepcionSemanal, Franja, HorarioColaborador, ResultadoAsignacion } from '../types'
@@ -11,8 +12,11 @@ export interface ContextoValidacionSemana {
   necesidad: Franja[]
   excepciones: ExcepcionSemanal[]
   maxFrancosDia?: number
+  maxFrancosPorDia?: number[]
   minimosCajeros?: MinimoFranja[]
   semanaAnterior?: HorarioColaborador[]
+  /** Alternativa explícita: salida del domingo REAL, por ID; null equivale a franco. */
+  finDomingoAnteriorPorId?: Record<string, string | null>
   perfil?: PerfilNormativo
   huecosSupervision?: HuecoSupervision[]
   /**
@@ -58,6 +62,7 @@ export function validarResultadoSemana(
   eventuales: Eventual[],
   ctx: ContextoValidacionSemana,
 ): ResultadoValidacion {
+  if (resultado.hibrido) return revalidarIntegrado(resultado, ctx)
   const roster = [
     ...colaboradores.filter(c => c.tipo === 'FULL' || c.tipo === 'PART').map(c => ({ id: c.id, nombre: c.nombre, contrato: c.tipo as 'FULL' | 'PART' })),
     ...auxiliares.map(a => ({ id: a.id, nombre: a.nombre, contrato: 'AUX' as const, horarioSemanal: a.horarioSemanal })),
@@ -72,15 +77,18 @@ export function validarResultadoSemana(
   }
   const validacion = validarHorario({
     horarios: resultado.horarios,
+    condicionesSupervisor:resultado.condicionesSupervisor,
     roster,
     perfil,
     excepciones: normalizarExcepciones(ctx.excepciones),
     maxFrancosDia: ctx.maxFrancosDia,
+    maxFrancosPorDia: ctx.maxFrancosPorDia,
     necesidad: ctx.necesidad,
     minimosCajeros: ctx.minimosCajeros,
     cajaAux: resultado.cajaAux,
     cajaEventual: resultado.cajaEventual,
     semanaAnterior: ctx.semanaAnterior,
+    finDomingoAnteriorPorId: ctx.finDomingoAnteriorPorId,
     operativa: operativaEfectiva(ctx.operativa),
   })
   const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales, perfil.perfilHorasId)
@@ -89,7 +97,7 @@ export function validarResultadoSemana(
   // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).
   const op = operativaEfectiva(ctx.operativa)
   const huecos = (ctx.huecosSupervision ?? []).filter(h => h.tipo === 'APERTURA' && op.aperturaSoloAux)
-  const limitaciones = [...(ctx.limitaciones?.filter(Boolean) ?? []), ...limitacionesPerfil]
+  const limitaciones = [...(resultado.condicionesSupervisor?['Condiciones de supervisor en laboratorio experimental: no publicable automáticamente.']:[]),...(ctx.limitaciones?.filter(Boolean) ?? []), ...limitacionesPerfil]
   const violaciones = [
     ...validacion.violaciones,
     ...horas.violaciones,

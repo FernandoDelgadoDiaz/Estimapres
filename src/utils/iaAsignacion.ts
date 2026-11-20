@@ -1,5 +1,6 @@
 import { Franja, Colaborador, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual } from '../types'
-import { convertirInputAV2, type OpcionesGeneracion } from '../algoritmo/adapter'
+import { convertirInputAV2, asignarIdentidadesV2, type OpcionesGeneracion } from '../algoritmo/adapter'
+import { entradaMinimaLunesSlots } from './antecedenteDomingo'
 import { normalizarExcepciones } from './preferencias'
 import { generarConMultiArranque } from './generacionMultiArranque'
 import { ejecutarEnWorker } from '../workers/generacionCliente'
@@ -26,6 +27,45 @@ function cederUnCuadro(): Promise<void> {
   return new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)))
 }
 
+export function prepararEntradaAsignacion(
+  necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[],
+  excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion,
+  contextoValidacion?: ContextoValidacionSemana,
+) {
+  const inputV2 = convertirInputAV2(
+    necesidad, cajeros, auxiliares, eventuales,
+    normalizarExcepciones(excepciones), opciones
+  )
+  // Si el supervisor aportó el domingo confirmado, la pasada FULL/PART
+  // impide directamente entradas del lunes que violen las 12 horas.
+  // Los IDs del motor no son necesariamente iguales a los de la UI.
+  const fines = contextoValidacion?.finDomingoAnteriorPorId
+  if (fines) {
+    const personas = [
+      ...cajeros.filter(c => c.tipo === 'FULL' || c.tipo === 'PART'),
+      ...auxiliares.filter(a => a.activo),
+      ...eventuales.filter(e => e.activo),
+    ]
+    const ids = asignarIdentidadesV2(personas).v2PorUi
+    inputV2.inicio_minimo_lunes_por_colaborador = Object.fromEntries(
+      cajeros.filter(c => c.tipo === 'FULL' || c.tipo === 'PART').map(c => {
+        const id = ids.get(c.id)
+        if (!id || !Object.prototype.hasOwnProperty.call(fines, c.id)) {
+          throw new Error(`Falta el domingo confirmado para ${c.nombre}.`)
+        }
+        return [id, entradaMinimaLunesSlots(fines[c.id])]
+      })
+    )
+  }
+  const contexto: ContextoValidacionSemana = contextoValidacion ?? {
+    necesidad, excepciones,
+    maxFrancosDia: opciones?.maxFrancosDia,
+    minimosCajeros: opciones?.demandaMinima,
+    operativa: operativaEfectiva(opciones),
+  }
+  return { input: inputV2, cajeros, auxiliares, eventuales, contexto }
+}
+
 export async function asignarHorariosConIA(
   necesidad: Franja[],
   cajeros: Colaborador[],
@@ -38,19 +78,7 @@ export async function asignarHorariosConIA(
   contextoValidacion?: ContextoValidacionSemana,
   ejecucion?: { signal: AbortSignal; avisarModoCompatible: () => void },
 ): Promise<ResultadoAsignacion> {
-  const inputV2 = convertirInputAV2(
-    necesidad, cajeros, auxiliares, eventuales,
-    normalizarExcepciones(excepciones), opciones
-  )
-  // #7 · AH2-020 (B conjunta): multi-arranque con el motor actual como respaldo; solo se
-  // elige un candidato validado que no reduzca horas de nadie y mejore la cobertura.
-  const contexto: ContextoValidacionSemana = contextoValidacion ?? {
-    necesidad, excepciones,
-    maxFrancosDia: opciones?.maxFrancosDia,
-    minimosCajeros: opciones?.demandaMinima,
-    operativa: operativaEfectiva(opciones),
-  }
-  const entrada = { input: inputV2, cajeros, auxiliares, eventuales, contexto }
+  const entrada = prepararEntradaAsignacion(necesidad, cajeros, auxiliares, eventuales, excepciones, opciones, contextoValidacion)
   const resultado = await ejecutarEnWorker(entrada, ejecucion?.signal)
   if (resultado) return resultado
 

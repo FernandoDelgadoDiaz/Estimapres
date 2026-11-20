@@ -49,6 +49,8 @@ export interface AsignacionCajaColaborador {
 }
 
 export interface ResultadoAsignacion {
+  hibrido?: import('../hibrido/generacionIntegrada').RegistroHibrido
+  condicionesSupervisor?: import('../algoritmo/condicionesTipos').AuditoriaCondiciones
   horarios: HorarioColaborador[]
   coberturaFranjas: number[][]  // [franja][dia] = cajeros asignados
   faltantesFranjas: number[][]  // [franja][dia] = diferencia (negativo = falta)
@@ -81,9 +83,12 @@ export const HORAS_FRANJAS = [
 ]
 
 export interface ExcepcionSemanal {
+  /** ID estable opcional; condiciones nuevas no se vinculan por nombre. */
+  colaboradorId?: string
+  dias?: number[]
   id: string
   colaboradorNombre: string
-  tipo: 'franco_dia' | 'no_antes_de' | 'no_despues_de' | 'siempre_cierre' | 'solo_matutino' | 'solo_nocturno'
+  tipo: 'inicio_no_despues_de' | 'franco_dia' | 'no_antes_de' | 'no_despues_de' | 'siempre_cierre' | 'solo_matutino' | 'solo_nocturno'
   valor?: string
   descripcion: string
 }
@@ -156,6 +161,8 @@ export interface ResumenTurnos {
 }
 
 export interface SemanaHistorial {
+  hibrido?: import('../hibrido/generacionIntegrada').RegistroHibrido
+  condicionesSupervisor?: import('../algoritmo/condicionesTipos').AuditoriaCondiciones
   id: string
   fechaLunes: string   // YYYY-MM-DD
   version: number      // versionado: regenerar la misma semana crea v2, v3...
@@ -190,6 +197,7 @@ export interface SemanaHistorial {
   // fecha) por id de AUX/eventual, mismo formato que horarioSemanal. Permite
   // revalidar presencia/disponibilidad tras ediciones y antes de exportar.
   disponibilidadSemana?: Record<string, string[]>
+  antecedenteDomingo?: import('../utils/antecedenteDomingo').AntecedenteDomingo
   // #38: celdas de eventuales fijadas a mano ("id|día").
   eventualesFijos?: string[]
   // #7: perfil de horas por contrato con que se generó (contratos.ts). Ausente en

@@ -1,3 +1,5 @@
+import { aperturaAuxUnicoAutorizada, erroresDatosRecursos } from './politicaRecursos'
+import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/validadorIndependiente.ts
 // VAL-01 (#10) — Validador independiente del motor.
 //
@@ -92,6 +94,7 @@ export interface Violacion {
 }
 
 export interface EntradaValidacion {
+  condicionesSupervisor?: import('./condicionesTipos').AuditoriaCondiciones
   horarios: HorarioColaborador[]
   /** Contrato y nombre de cada persona (por id de UI). */
   roster: Array<{ id: string; nombre: string; contrato: Contrato; horarioSemanal?: string[] }>
@@ -100,6 +103,7 @@ export interface EntradaValidacion {
   excepciones?: ExcepcionSemanal[]
   /** Tope de francos FULL+PART por día. */
   maxFrancosDia?: number
+  maxFrancosPorDia?: number[]
   /** Demanda POM (31 filas 07:00–22:00) para métricas y mínimos. */
   necesidad?: Franja[]
   /** Mínimo de personas en caja por franja (regla operativa). slotDesde/Hasta: slots de 30 min desde 08:00. */
@@ -108,6 +112,8 @@ export interface EntradaValidacion {
   cajaEventual?: AsignacionCajaColaborador[]
   /** Horarios de la semana anterior (para 12 h domingo → lunes). */
   semanaAnterior?: HorarioColaborador[]
+  /** Salida efectiva del domingo anterior, importada sin usar simulaciones. null = franco. */
+  finDomingoAnteriorPorId?: Record<string, string | null>
   /**
    * #38 — Estado EFECTIVO de las reglas operativas de la sucursal con el que se
    * generó/edita la semana. Si se informa, se validan como reglas obligatorias:
@@ -119,7 +125,7 @@ export interface EntradaValidacion {
   operativa?: OperativaValidacion
 }
 
-export interface OperativaValidacion {
+export interface OperativaValidacion extends PoliticaRecursos {
   maxBloquesCajaEventualDia?: number
   eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
@@ -175,6 +181,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   const v: Violacion[] = []
   const porId = new Map(e.roster.map(r => [r.id, r]))
   const vistos = new Set<string>()
+  validarSnapshotCondiciones(e,v)
 
   for (const h of e.horarios) {
     const persona = porId.get(h.colaboradorId)
@@ -201,19 +208,19 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
 
     if (persona.contrato === 'FULL' || persona.contrato === 'PART') {
       validarContrato(v, h.colaboradorId, nombre, dias, e.perfil.contratos[persona.contrato], persona.contrato)
-      validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior)
-      validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorNombre === nombre))
+      validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior, e.finDomingoAnteriorPorId)
+      validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorId?x.colaboradorId===h.colaboradorId:x.colaboradorNombre === nombre))
     }
   }
 
   // Tope de francos simultáneos (FULL + PART)
-  if (e.maxFrancosDia !== undefined) {
+  if (e.maxFrancosDia !== undefined || e.maxFrancosPorDia) {
     for (let d = 0; d < 7; d++) {
       const n = e.horarios.filter(h => {
         const c = porId.get(h.colaboradorId)?.contrato
         return (c === 'FULL' || c === 'PART') && h.jornadas.some(j => j.dia === d && j.esFranco)
       }).length
-      if (n > e.maxFrancosDia) {
+      if (n > (e.maxFrancosPorDia?.[d]??e.maxFrancosDia??2)) {
         v.push({ codigo: 'OP_MAX_FRANCOS_DIA', nivel: 'OPERATIVA', dia: d, detalle: `${n} francos el ${DIAS[d]} (máximo ${e.maxFrancosDia}).` })
       }
     }
@@ -242,7 +249,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   if (e.operativa) validarReglasOperativas(v, e, e.operativa, porId)
 
   const bloqueantes = v.length
-  return { ok: bloqueantes === 0, publicable: bloqueantes === 0, violaciones: v, metricas }
+  return { ok: bloqueantes === 0, publicable: bloqueantes === 0 && !e.operativa?.politica_recursos_version && !e.condicionesSupervisor, violaciones: v, metricas, ...(e.operativa?.politica_recursos_version?{limitaciones:['Política de recursos v1: alcance AH2-036–038; pendiente homologación de comparabilidad semanal AUX/EVENTUAL AH2-040. No habilita publicación.']}: {}) }
 }
 
 function validarContrato(
@@ -287,13 +294,19 @@ function validarContrato(
 
 function validarDescanso(
   v: Violacion[], id: string, nombre: string, dias: (Bloque[] | null)[], horas: number, semanaAnterior?: HorarioColaborador[],
+  finDomingoAnteriorPorId?: Record<string, string | null>,
 ) {
   // Fin del domingo anterior, si existe
   let finPrevio: number | null = null
-  const prev = semanaAnterior?.find(h => h.colaboradorId === id)
-  if (prev) {
-    const dom = jornadasPorDia(prev)[6]
-    if (dom && dom.length) finPrevio = dom[dom.length - 1].fin - 1440 // relativo al lunes 00:00
+  if (finDomingoAnteriorPorId && Object.prototype.hasOwnProperty.call(finDomingoAnteriorPorId, id)) {
+    const fin = finDomingoAnteriorPorId[id]
+    if (fin !== null) finPrevio = min(fin) - 1440 // relativo al lunes 00:00
+  } else {
+    const prev = semanaAnterior?.find(h => h.colaboradorId === id)
+    if (prev) {
+      const dom = jornadasPorDia(prev)[6]
+      if (dom && dom.length) finPrevio = dom[dom.length - 1].fin - 1440
+    }
   }
   for (let d = 0; d < 7; d++) {
     const b = dias[d]
@@ -315,7 +328,7 @@ function validarDescanso(
 function validarExcepciones(v: Violacion[], id: string, nombre: string, dias: (Bloque[] | null)[], exc: ExcepcionSemanal[]) {
   for (const x of exc) {
     dias.forEach((b, d) => {
-      if (!b) return
+      if (!b || (x.dias && !x.dias.includes(d))) return
       const franco = b.length === 0
       const push = (detalle: string) =>
         v.push({ codigo: `OP_${x.tipo.toUpperCase()}`, nivel: 'OPERATIVA', colaboradorId: id, dia: d, detalle: `${nombre}: ${detalle} (${x.descripcion || x.tipo}).` })
@@ -328,6 +341,9 @@ function validarExcepciones(v: Violacion[], id: string, nombre: string, dias: (B
         }
         case 'no_antes_de':
           if (!franco && x.valor && b[0].ini < min(x.valor)) push(`entra antes de ${x.valor} el ${DIAS[d]}`)
+          break
+        case 'inicio_no_despues_de':
+          if(!franco&&x.valor&&b[0].ini>min(x.valor))push(`entra después del máximo de inicio ${x.valor}`)
           break
         case 'no_despues_de':
           if (!franco && x.valor && b[b.length - 1].fin > min(x.valor)) push(`sale después de ${x.valor} el ${DIAS[d]}`)
@@ -454,6 +470,27 @@ function validarReglasOperativas(
   const evCaja = (e.cajaEventual ?? []).filter(a => porId.get(a.colaboradorId)?.contrato === 'EVENTUAL')
   const enCaja = (m: boolean[][] | undefined, d: number, s: number) => !!m?.[d]?.[s]
 
+  v.push(...erroresDatosRecursos(op,[...porId].filter(([,r])=>r.contrato==='EVENTUAL').map(([id])=>id)).map(detalle=>({codigo:'DATOS_RECURSOS',nivel:'DATOS' as const,detalle})));
+  // AH2-036/037: verificación independiente sobre presencia y caja efectivas.
+  if (op.politica_recursos_version !== undefined) {
+    if (op.politica_recursos_version !== 1) v.push({codigo:'DATOS_POLITICA_RECURSOS',nivel:'DATOS',detalle:'Versión de política no soportada.'})
+    for (const [id,r] of porId) if(r.contrato==='EVENTUAL') {
+      const cap=op.max_caja_eventual_slots?.[id]
+      const m=evCaja.find(x=>x.colaboradorId===id)?.slotsCajaPorDia ?? []
+      const count=m.flat().filter(Boolean).length
+      if(!Number.isInteger(cap) || cap!<0 || cap!>210) v.push({codigo:'POLITICA_EV_COMPARACION_PENDIENTE',nivel:'DATOS',colaboradorId:id,detalle:'Sin tope explícito o dato inválido: falta homologar la comparación semanal AUX/EV.'})
+      else if(count>cap!) v.push({codigo:'OP_EVENTUAL_TOPE_SEMANAL',nivel:'OPERATIVA',colaboradorId:id,detalle:'Supera el máximo semanal individual de caja.'})
+      for(let d=0;d<7;d++) for(let slot=0;slot<30;slot++) if(m[d]?.[slot] && op.reservas_sector_eventual?.[id]?.[d]?.[slot]) v.push({codigo:'OP_EVENTUAL_RESERVA_SECTOR',nivel:'OPERATIVA',colaboradorId:id,dia:d,detalle:'Caja dentro de una reserva sectorial.'})
+    }
+    for(let d=0;d<7;d++) for(let slot=0;slot<30;slot++) {
+      const n=[...presencia.values()].filter(m=>m[d][slot]).length
+      const a=[...auxCaja.values()].filter(m=>m[d]?.[slot]).length
+      const ev=evCaja.filter(m=>m.slotsCajaPorDia[d]?.[slot]).length
+      if(n>2) v.push({codigo:'POLITICA_AUX_MULTIPLE',nivel:'DATOS',dia:d,detalle:'Generalización para más de dos AUX pendiente.'})
+      if(slot<2 && op.aperturaSoloAux && demanda(d,slot)>0 && n===1 && !aperturaAuxUnicoAutorizada(op,d,slot)) v.push({codigo:'POLITICA_APERTURA_SUPERVISION',nivel:'DATOS',dia:d,detalle:'AUX único de apertura: falta supervisor distinto autorizado o la excepción local AH2-037 para esta franja.'})
+      if(slot>=2 && slot<=(sinAuxCierre?27:28) && n===2 && demanda(d,slot)>fp[d][slot] && a<1) v.push({codigo:'OP_PRIORIDAD_AUX',nivel:'OPERATIVA',dia:d,detalle:`AUX elegible sin caja con demanda residual; eventuales usados: ${ev}.`})
+    }
+  }
   // AUX en caja fuera de su presencia / al cierre
   for (const [id, m] of auxCaja) {
     const pres = presencia.get(id)
@@ -504,7 +541,7 @@ function validarReglasOperativas(
       const a = auxEn(s), ev = evEn(s), f = fp[d][s]
       const h = horaDeSlot(s)
       if (op.aperturaSoloAux) {
-        if (a.length !== 1) problemas.push(`${h}: ${a.length} AUX en caja (debe ser exactamente 1)`)
+        if (a.length !== (op.politica_recursos_version && demanda(d,s)===0 ? 0 : 1)) problemas.push(`${h}: ${a.length} AUX en caja (debe ser exactamente 1)`)
         if (f > 0) problemas.push(`${h}: ${f} FULL/PART en caja (la apertura es solo AUX)`)
         if (ev.length) problemas.push(`${h}: ${ev.length} eventual(es) en caja`)
       } else {
@@ -564,4 +601,24 @@ function validarReglasOperativas(
 
 function rangos(horas: string[]): string {
   return horas.length > 4 ? `${horas[0]}…${horas[horas.length - 1]} (${horas.length} medias horas)` : horas.join(', ')
+}
+
+/** Relectura independiente del snapshot, sin llamar al compilador ni al optimizador. */
+function validarSnapshotCondiciones(e:EntradaValidacion,v:Violacion[]){
+ const snap=e.condicionesSupervisor;if(!snap)return
+ for(const c of snap.aplicadas){if(c.modo!=='DEBE')continue
+  const push=(dia:number|undefined,detalle:string)=>v.push({codigo:'OP_CONDICION_SUPERVISOR',nivel:'OPERATIVA',dia,colaboradorId:c.colaboradorId,detalle:`${c.id}: ${detalle}`})
+  const h=e.horarios.find(h=>h.colaboradorId===c.colaboradorId)
+  if(c.tipo==='exclusion_manual'){if(h)push(undefined,'persona gestionada manualmente incluida en cálculo automático');continue}
+  if(c.tipo==='max_francos'){
+   for(const d of c.dias){const n=e.horarios.filter(h=>['FULL','PART'].includes(e.roster.find(p=>p.id===h.colaboradorId)?.contrato??'')&&h.jornadas.find(j=>j.dia===d)?.esFranco).length;if(n>Number(c.valor))push(d,`francos ${n} superan ${c.valor}`)}
+   continue
+  }
+  if(!h){push(undefined,'falta horario bajo condición obligatoria');continue}
+  const dias=jornadasPorDia(h)
+  for(const d of c.dias){const b=dias[d];if(!b){push(d,'falta jornada');continue}
+   if(c.tipo==='franco'&&b.length)push(d,'trabaja con franco obligatorio')
+   if(c.tipo==='turno'&&b.length){const w=c.ventana;if(!w||b[0].ini<480+w.min*30||b[0].ini>480+w.max*30||b[b.length-1].fin>480+w.fin*30)push(d,'turno fuera de ventana obligatoria')}
+  }
+ }
 }

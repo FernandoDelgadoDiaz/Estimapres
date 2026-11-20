@@ -76,6 +76,8 @@ export default function UltimoHorarioPage() {
     cajaEventual: ultimaSemana.cajaEventual,
     eventualesFijos: ultimaSemana.eventualesFijos,
     cumplimientoHoras: ultimaSemana.cumplimientoHoras,
+    hibrido: ultimaSemana.hibrido,
+    condicionesSupervisor: ultimaSemana.condicionesSupervisor,
   } : null, [ultimaSemana])
 
   // #38: semanas históricas sin los datos necesarios → nunca VALIDADO; se explica qué falta.

@@ -2,7 +2,11 @@ import { minutosDesdeMedianoche } from '../utils/timeUtils'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual, JornadaResumida, HorarioColaborador } from '../types'
 import { minutosAsignados } from '../utils/horasSemanales'
-import { asignarHorariosConIA } from '../utils/iaAsignacion'
+import {configuracionAutenticada,opcionesIntegradas,usaHibrido,verificarDatosActuales,type DotacionBase} from '../hibrido/integracion'
+import {getSucursalActual} from '../utils/sucursal'
+import type {EdicionTopes} from '../hibrido/topesContrato'
+import {ejecutarHibridoEnWorker} from '../workers/hibridoCliente'
+import { asignarHorariosConIA, prepararEntradaAsignacion } from '../utils/iaAsignacion'
 import type { OpcionesGeneracion } from '../algoritmo/adapter'
 import type { ContextoValidacionSemana } from '../utils/validacionSemana'
 import { recalcularSemanaTrasEdicion, type ContextoRecalculo } from '../utils/recalculoSemana'
@@ -100,6 +104,7 @@ export function useAsignacion() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const [progreso, setProgreso] = useState('')
   const [modoCompatible, setModoCompatible] = useState(false)
   const activa = useRef<AbortController | null>(null)
 
@@ -122,14 +127,29 @@ export function useAsignacion() {
     necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[],
     fechas: string[], excepciones: ExcepcionSemanal[], opciones: OpcionesGeneracion,
     contextoValidacion: ContextoValidacionSemana, alCompletar: (resultado: ResultadoAsignacion) => void,
+    motor?: {anterior:boolean;topes?:EdicionTopes;base?:DotacionBase},
   ) => {
     if (activa.current) return
     const ejecucion = new AbortController()
     activa.current = ejecucion
     setLoading(true)
+    setProgreso('Preparando el horario…')
     setError(null)
     try {
-      const generado = await asignarHorariosConIA(
+      let generado: ResultadoAsignacion
+      const sucursal=getSucursalActual()
+      if(usaHibrido(sucursal,motor?.anterior)) {
+        setProgreso('Verificando el acceso al motor híbrido…')
+        const cfg=await configuracionAutenticada(sucursal,ejecucion.signal)
+        if(!motor?.base)throw new Error('Falta el contexto de dotación y reglas del motor híbrido.')
+        await verificarDatosActuales(cfg.usuario,sucursal,motor.base)
+        const entrada=prepararEntradaAsignacion(necesidad,cajeros,auxiliares,eventuales,excepciones,
+          opcionesIntegradas(opciones,cfg.opciones,sucursal,fechas[0],motor?.topes),contextoValidacion)
+        generado=await ejecutarHibridoEnWorker({entrada,token:cfg.token,servicio:cfg.servicio},ejecucion.signal,p=>{
+          if(activa.current!==ejecucion)return
+          setProgreso(p.etapa==='A_INICIO'?'Preparando propuesta de respaldo…':p.etapa==='B_ENVIO'?'Buscando una mejor distribución semanal…':p.etapa==='B_FASE'?'Optimizando cobertura y equilibrio semanal…':'Validando la propuesta…')
+        },()=>setModoCompatible(true))
+      } else generado = await asignarHorariosConIA(
         necesidad, cajeros, auxiliares, eventuales, fechas, excepciones, opciones, contextoValidacion,
         {
           signal: ejecucion.signal,
@@ -181,6 +201,7 @@ export function useAsignacion() {
     generarHorarios,
     cancelarGeneracion,
     modoCompatible,
+    progreso,
     editarJornada,
     reset,
   }

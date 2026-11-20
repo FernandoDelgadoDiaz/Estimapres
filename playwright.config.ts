@@ -15,6 +15,6 @@ export default defineConfig({
     command: 'npm run dev -- --host 127.0.0.1 --port 4176 --strictPort',
     url,
     reuseExistingServer: false,
-    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' },
+    env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '', VITE_AH2_HIBRIDO_091: 'true', VITE_AH2_OPTIMIZER_URL: 'https://optimizer.example' },
   },
 })
