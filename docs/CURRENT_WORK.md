@@ -1,4 +1,15 @@
-## PUNTO ÚNICO DE RETOMA — CP-SAT desplegado en Cloud Run (bloqueado por diseño hasta cargar usuario y configuración privada) · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — CP-SAT operativo para 091 en Cloud Run; falta solo la parte Netlify · 20/11/2026, Claude
+
+**Hecho:** el propietario entregó el UID Supabase verificado y la configuración privada original de la 091 (perfiles EVENTUAL, topes 12/8, exclusión manual, excepción de apertura). Validada contra `Config` y `ev_caja` del backend `5b98417` antes de cargarla. Secret Manager: `ah2-allowed-user-id` v2 y `ah2-pilot-options` v2 (v1 provisorias **deshabilitadas**). Revisión **`aliada-optimizer-00002-b77`** sirve 100 % con esos secretos; arranque sin errores; controles negativos repetidos desde Cloud Build: 401 sin sesión/JWT inválido, 403 origen ajeno, preflight solo `https://horarios.aliadaapps.com`. Rollback del servicio: `gcloud run services update-traffic aliada-optimizer --region southamerica-east1 --to-revisions aliada-optimizer-00001-wvt=100` (revisión que rechaza todo) o borrar el servicio. Ningún dato personal en repositorios.
+
+**Bloqueo actual (Netlify, no Google):** el conector Netlify de Claude lee pero devuelve **403 al escribir variables de entorno**, y el despliegue por CLI quedó bloqueado por los permisos de la sesión Claude. Falta, con la sesión Netlify del propietario o un conector con permiso de escritura:
+1. En al-iada → Environment variables (scope builds, contexto all): `VITE_AH2_HIBRIDO_091=true` y `VITE_AH2_OPTIMIZER_URL=https://aliada-optimizer-925852091572.southamerica-east1.run.app`.
+2. Rebuild del deploy preview de #61 (o un push documental a la rama) → Claude habilita temporalmente el origen exacto de esa preview en Cloud Run (`AH2_ALLOWED_ORIGIN`), el propietario inicia sesión y genera la semana 23–29/11 de la 091, Claude verifica logs/latencia/conteos y vuelve el origen al canónico.
+3. Merge de #61 a `main` (producción sigue bloqueada: el build no se publica solo) y **Publish deploy** de ese build en al-iada por el propietario. Rollback: republicar `6afba0e1c0b8e64caa476f2c`. Prestify no se toca.
+
+---
+
+## RELEVO ANTERIOR — CP-SAT desplegado en Cloud Run (bloqueado por diseño hasta cargar usuario y configuración privada) · 20/11/2026, Claude
 
 **Acceso resuelto:** gcloud autenticado con la cuenta del propietario (rol `owner` en `aliada-horarios`, facturación `017DA5-3AEF78-DC684E` vinculada). Nota del entorno Claude: la variable preconfigurada `CLOUDSDK_AUTH_ACCESS_TOKEN` debe quitarse (`unset`) para usar la sesión gcloud; `*.run.app` no es alcanzable desde el proxy del entorno, por eso los controles HTTP se ejecutan desde Cloud Build.
 
