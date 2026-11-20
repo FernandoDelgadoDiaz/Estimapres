@@ -1,4 +1,35 @@
-## PUNTO ÚNICO DE RETOMA — equilibrio semanal implementado y ensayo real validado; piloto privado preparado · 20/11/2026, Codex
+## PUNTO ÚNICO DE RETOMA — equilibrio validado y CI aprobada; habilitación del piloto pendiente · 20/11/2026
+
+**Código verificado y guardado. No rehacer las etapas terminadas.** Propietario: Fernando; fuente normativa: MASTER. Ambos PR siguen abiertos y en borrador.
+
+| Componente | SHA exacto de código/infra probado | Evidencia |
+|---|---|---|
+| Estimapres #60 | `aa410f74717e5c02bc7041204354a99cce8dedeb` | [CI 44767440886](https://github.com/FernandoDelgadoDiaz/Estimapres/actions/runs/44767440886): test-build y browser SUCCESS; build de piloto incluido; navegador 22 aprobadas / 2 omitidas |
+| aliada-optimizer #6 | `361d7271b417d55a8a80fa10b104697d19de2d61` | [CI 44767721664](https://github.com/FernandoDelgadoDiaz/aliada-optimizer/actions/runs/44767721664): pytest, smoke de optimización, build Docker y smoke HTTP del contenedor SUCCESS |
+
+El commit que contiene este relevo es documental y puede tener SHA posterior: confirmar HEAD en los PR, sin confundirlo con los SHAs de código anteriores.
+
+### Resultado que debe conservarse
+- Ensayo privado 091, 23–29/11: demanda 402 h, cubiertas 355 (88,308 %), faltantes 47 y sobrantes 0.
+- Nuevo déficit lunes–domingo: **8 / 8 / 7,5 / 7,5 / 8 / 0 / 8 h**. Base reproducida: 3 / 1,5 / 3 / 4 / 8 / 10 / 17,5 h. Sábado pico cubierto al 100 %; peor déficit relativo 30,435 → 14,035 %.
+- Primeros cinco objetivos OPTIMAL, desempates finales FEASIBLE dentro de 120 s. Solución completa factible, no óptimo total. Sin infracciones A/B, mismas 272 h FULL/PART, 39 AUX y 44 EVENTUAL. Reglas aprobadas intactas.
+- Sin antecedente dominical ni certificación jurídica. Formulación experimental en `docs/EQUILIBRIO_SEMANAL_LAB.md`; no homologación productiva.
+- **Documentos privados conservados para retoma:** `Aliada_091_S48_equilibrio_prueba.pdf` (cinco páginas, revisado) y `Aliada_091_S48_equilibrio_checkpoint.zip` (entrada, resultados base/nuevo, configuración y manifiesto SHA-256). Recuperar estos archivos privados si desaparece la carpeta temporal; no repetir extracción o cálculo ni pedir de nuevo dotación/POM cuando el checkpoint basta. No subirlos a GitHub.
+
+### Qué está verificado y qué falta
+- A local: 575 Vitest aprobadas / 10 omitidas, TypeScript, build productivo y build separado del piloto. B local y CI: 160 pytest / 1 omisión histórica. HTTP con CP-SAT real sintético probado.
+- Chromium local bloqueado por el entorno; la CI remota **sí** aprobó browser. El smoke móvil nuevo comprueba el bloqueo por falta de configuración a 390 px; **no** equivale a un ensayo real autenticado en iPhone.
+- Docker no está instalado localmente; **la imagen sí se construyó y ejecutó en CI**, health HTTP y rechazo de solicitud sin autorización aprobados. Se corrigió una carrera de la prueba inicial para esperar la disponibilidad HTTP durante el arranque; no se relajó autenticación.
+- Piloto separado preparado: `piloto-horarios.html`, `vite.piloto.config.ts`, `netlify.piloto.toml`, Auth/SELECT acotados, POM y transporte HTTPS. Servicio B en `optimizer/http_pilot.py`. Detalles: `docs/PILOTO_PRIVADO_MOVIL.md`.
+- **No existe URL privada nueva.** Faltan infraestructura autorizada, configuración real de usuario/sucursal/origen, comprobación de RLS real y ensayo en Safari físico. Perfiles/condiciones/topes de prueba quedan en memoria; persistencia definitiva no aplicada.
+- No se consultó ni escribió Supabase real en esta sesión; sin migraciones, merge, deploy manual, cambios Prestify, gasto ni envío de datos reales al servicio externo.
+
+### Próximo paso exacto
+Habilitar el piloto aislado **solo tras autorización específica de infraestructura y envío temporal de la dotación/horarios al servicio privado**. Usar el código y contenedor preparados, confirmar proyecto/cuenta y condiciones de facturación antes de crear recursos, configurar el sitio separado y las listas de acceso, verificar Auth/RLS reales en lectura y completar POM → híbrido efectivo → PDF en iPhone. No pedir de nuevo decisiones de apertura, topes 12/8, DIAS, contrato EVENTUAL ni intención de equilibrio. No tocar producción ni fusionar. Si no existe esa autorización/acceso, informar este bloqueo concreto; no fingir una URL habilitada.
+
+---
+
+## RELEVO ANTERIOR — implementación del equilibrio y preparación del piloto · 20/11/2026, Codex
 
 **Estado:** próximo paso registrado ejecutado en laboratorio. No rehacer AH2-036–040 ni pedir otra vez las decisiones aprobadas. Los dos PR permanecen borradores; no hay publicación ni URL nueva de piloto.
 
