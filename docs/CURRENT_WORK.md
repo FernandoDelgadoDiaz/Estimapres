@@ -1,4 +1,22 @@
-## PUNTO ÚNICO DE RETOMA — ensayo real definitivo 091 con topes EVENTUAL 12/8 EJECUTADO · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — equilibrio semanal y cobertura pico; piloto privado 091 · 20/11/2026
+
+**Nueva regla de negocio aprobada por el propietario:** equilibrar el déficit de cobertura durante la semana y priorizar tanto franjas como días pico. MASTER AH2-032/038 actualizado en `b4c5949`. El criterio matemático exacto requiere implementación y validación, no otra consulta sobre la intención. No es igualar horas faltantes arbitrariamente ni priorizar un día fijo; identificar demanda pico desde POM y configuración local. Mantener cobertura total máxima factible, restricciones duras y protección de picos.
+
+### Base verificada
+- Estimapres #60, código `4347703b2a3340a05650a0ec397a522db1a9f810`, CI success; HEAD documental posterior: consultar PR.
+- aliada-optimizer #6, `8e3c5e473379d7e3140a2f63dccbfd376b258c6c`, CI success. Ambos borradores, sin merge.
+- Ensayo real 23–29/11: demanda 402 h, cobertura 355 h (88,308 %), faltantes 47 h, sobrantes 0 h. A y B coinciden; B OPTIMAL en seis fases. Faltantes diarios lunes a domingo: 3 / 1,5 / 3 / 4 / 8 / 10 / 17,5 h. Recursos: 272 h FULL/PART, 39 AUX, 44 EVENTUAL.
+- Reutilizar POM, dotación y configuración privados existentes. Mantener reglas aprobadas: contratos, exclusión manual, prioridad FULL/PART → AUX → EVENTUAL, excepción 08–09, DIAS, topes locales 12/8, dos bloques diarios y corte 22:00.
+
+### Próximo paso exacto — Claude
+1. Implementar y probar criterio de equilibrio semanal y protección de días/franjas pico en laboratorio. Calcular demanda diaria, cobertura relativa y déficit por franja según el POM; documentar definición de picos y precedencia de objetivos. Maximizar cobertura global, proteger picos y evitar concentración del déficit. Medir equilibrio respecto de demanda diaria (incluido peor déficit relativo), no simplemente repartir 47 h en siete partes. No degradar otros objetivos protegidos ni reglas obligatorias. Si hay conflicto entre protección pico y equilibrio, informar compensación verificable. Mantener prioridades y topes de recursos, sin inventar ponderaciones comerciales ni fijar domingo como pico. Aplicar criterios coherentes en selección híbrida, con candidato A como referencia; no conservar A automáticamente si B mejora el nuevo objetivo aprobado.
+2. Comparar con la línea base real, mismo POM/dotación/reglas y presupuesto de 120 s; mostrar antes/después por día: demanda, faltantes, cobertura %, valor de objetivos pico/equilibrio y comprobación de restricciones; total de faltantes <=47 h y sin nuevos sobrantes. Entregar PDF A4 privado de la mejor solución válida, declarar si es óptima o factible y no certificar descanso previo sin datos. Tests sintéticos de picos en días distintos, semanas con demanda desigual, empates, capacidad insuficiente y reglas de recursos. Registrar solo resultados agregados.
+3. Avanzar hacia piloto web privado para iPhone: preparar preview aislada con lector POM, autenticación/RLS, dotación activa y motor híbrido efectivo; contenedor y HTTP CP-SAT, no puente Vite de desarrollo. Configuración local editable de prueba, persistencia diseñada pero no aplicada. Identificar paso mínimo para habilitar URL y solicitar únicamente autorización necesaria de infraestructura/datos si faltara. No contratar, desplegar productivo, aplicar migraciones, escribir Supabase, transferir datos reales externamente, modificar Prestify ni fusionar.
+4. Actualizar CURRENT_WORK, pruebas y SHAs. No reabrir decisiones aprobadas.
+
+---
+
+## RELEVO ANTERIOR (historia) — ensayo real definitivo 091 con topes EVENTUAL 12/8 EJECUTADO · 20/11/2026, Claude
 
 **Estado: ENSAYO DEFINITIVO EJECUTADO; configuración editable implementada en A, B, contrato, validadores, laboratorio y PDF.** Resultado privado de laboratorio, no publicable. Datos reales solo en la carpeta privada; aquí, métricas agregadas.
 
