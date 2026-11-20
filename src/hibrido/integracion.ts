@@ -7,6 +7,7 @@ import {getSucursalActual} from '../utils/sucursal'
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
 import type {EdicionTopes} from './topesContrato'
 import {editarTopes} from './topesContrato'
+import {cargarConfiguracionMotor,resolverConfiguracion,type FilaConfigMotor,type TrazaConfig} from './configuracionPersistente'
 
 export interface ConfigDespliegueHibrido {habilitado:boolean;servicio:string}
 export function configHibrido():ConfigDespliegueHibrido {
@@ -15,7 +16,16 @@ export function configHibrido():ConfigDespliegueHibrido {
 export function usaHibrido(sucursal:string,anterior=false,cfg=configHibrido()) {
  return sucursal==='091'&&!anterior&&cfg.habilitado&&/^https:\/\//.test(cfg.servicio)
 }
-export async function configuracionAutenticada(sucursal:string,signal?:AbortSignal,cfg=configHibrido()) {
+export type FuenteConfig='persistida'|'servicio'
+/**
+ * Configuración privada del motor para la sucursal. Precedencia (AH2-042):
+ * 1. Si la sucursal tiene ALGUNA fila en `configuracion_motor_sucursal` (activa o no: ya se importó o configuró), la
+ *    configuración guardada es la ÚNICA fuente, para siempre: se resuelve para la semana (permanentes + excepciones).
+ *    Desactivar reglas NUNCA devuelve la sucursal a Secret Manager; sin reglas vigentes, el motor recibe solo lo vigente.
+ * 2. Solo si la sucursal nunca guardó configuración (o la tabla todavía no existe), se usa la del servicio (transición).
+ * El servicio se consulta siempre: verifica identidad, sucursal y origen y despierta CP-SAT.
+ */
+export async function configuracionAutenticada(sucursal:string,signal?:AbortSignal,cfg=configHibrido(),semana?:string) {
  if(!usaHibrido(sucursal,false,cfg)||!supabase)throw new Error('El motor híbrido no está habilitado para esta sucursal.')
  const {data:{user},error}=await supabase.auth.getUser()
  if(error||!user||user.is_anonymous)throw new Error('Iniciá sesión nuevamente para usar el motor híbrido.')
@@ -31,7 +41,20 @@ export async function configuracionAutenticada(sucursal:string,signal?:AbortSign
  for(const k of ['disponibilidad_caja_eventual','topes_caja_eventual_contrato','condiciones_supervisor','excepcion_apertura_aux_unico'] as const) {
   if(sesion.configuracion[k]!==undefined)Object.assign(opciones,{[k]:sesion.configuracion[k]})
  }
- return {opciones,token:await token(),servicio:cfg.servicio,usuario:user.id}
+ const persistida=await cargarConfiguracionMotor(supabase,user.id,sucursal)
+ const filas:FilaConfigMotor[]=persistida.filas.filter(f=>f.activa)
+ let fuente:FuenteConfig='servicio',traza:TrazaConfig[]=[],efectivas=opciones
+ if(persistida.filas.length){
+  fuente='persistida'
+  if(semana){
+   const r=resolverConfiguracion(filas,sucursal,semana)
+   // Un conflicto bloquea solo la generación híbrida de esa semana, con su detalle; no se envía una configuración parcial.
+   if(r.conflictos.length)throw new Error(`La configuración del motor tiene conflictos para la semana del ${semana}: ${r.conflictos.map(c=>c.detalle).join(' ')} Corregilos en Reglas → Configuración del motor o usá el motor anterior.`)
+   efectivas=r.opciones;traza=r.traza
+  }
+  else efectivas={}
+ }
+ return {opciones:efectivas,opcionesServicio:opciones,fuente,traza,filas:persistida.filas,tablaDisponible:persistida.disponible,token:await token(),servicio:cfg.servicio,usuario:user.id}
 }
 export function opcionesIntegradas(base:OpcionesGeneracion,privadas:OpcionesGeneracion,sucursal:string,semana:string,topes?:EdicionTopes):OpcionesGeneracion {
  if(sucursal!=='091')throw new Error('La activación inicial corresponde únicamente a la 091.')

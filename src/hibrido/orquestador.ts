@@ -174,8 +174,8 @@ function construirSalida(x:{candidatos:Record<'A'|'B',Record<string,unknown>>;si
   bloqueos:[...new Set([...x.datosA.map(d=>d.codigo),...(x.info?.diagnosticos??[]).filter(d=>d.bloqueaPublicacion).map(d=>d.codigo),...x.conflictos.filter(c=>c.origen==='B'||c.origen==='DATOS').map(c=>c.codigo)]
    .map(c=>c.replace(/[-]/g,'_').split(':')[0]).filter(c=>c.startsWith('POLITICA_')||c.startsWith('DATOS_')||c.startsWith('EV_CAJA')))].sort(),
   excepcionApertura:{configurada:!!input.excepcion_apertura_aux_unico?.some(r=>r.some(Boolean)),
-   franjasAplicadas:elegido?input.demanda.reduce((a,row,d)=>a+[0,1].filter(s=>input.excepcion_apertura_aux_unico?.[d]?.[s]&&row[s]>0&&Object.values(elegido.r.asignacion_aux).filter(m=>m[d][s]!=='NO_PRESENTE').length===1&&Object.values(elegido.r.asignacion_aux).some(m=>m[d][s]==='CAJA')).length,0):0,
-   regla:'AH2-037: AUX único atiende caja sentado en la apertura 08:00–09:00 (excepción local aprobada); cuenta como hora-caja AUX.'},
+   franjasAplicadas:elegido?input.demanda.reduce((a,row,d)=>a+row.map((_,s)=>s).filter(s=>input.excepcion_apertura_aux_unico?.[d]?.[s]&&row[s]>0&&Object.values(elegido.r.asignacion_aux).filter(m=>m[d][s]!=='NO_PRESENTE').length===1&&Object.values(elegido.r.asignacion_aux).some(m=>m[d][s]==='CAJA')).length,0):0,
+   regla:'AH2-037/042: en las franjas autorizadas por la sucursal, el AUX único atiende caja sentado sin otro supervisor de pie (excepción local aprobada); cuenta como hora-caja AUX.'},
   supervision:elegido?Object.keys(input.presencia_aux).sort().map(id=>({auxId:id,porDia:elegido.r.asignacion_aux[id].map((row,d)=>({dia:DIAS[d],
    presenteHoras:row.filter(v=>v!=='NO_PRESENTE').length/2,cajaHoras:row.filter(v=>v==='CAJA').length/2,supervisionHoras:row.filter(v=>v==='PARADO').length/2}))})):[],
  }

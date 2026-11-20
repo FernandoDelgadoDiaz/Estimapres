@@ -140,7 +140,7 @@ export function useAsignacion() {
       const sucursal=getSucursalActual()
       if(usaHibrido(sucursal,motor?.anterior)) {
         setProgreso('Verificando el acceso al motor híbrido…')
-        const cfg=await configuracionAutenticada(sucursal,ejecucion.signal)
+        const cfg=await configuracionAutenticada(sucursal,ejecucion.signal,undefined,fechas[0])
         if(!motor?.base)throw new Error('Falta el contexto de dotación y reglas del motor híbrido.')
         await verificarDatosActuales(cfg.usuario,sucursal,motor.base)
         const entrada=prepararEntradaAsignacion(necesidad,cajeros,auxiliares,eventuales,excepciones,

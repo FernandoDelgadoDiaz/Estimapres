@@ -1,4 +1,74 @@
-## PUNTO ÚNICO DE RETOMA — prueba real 091 aprobada en preview; fusión de #61 y publicación de al-iada · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-042 segunda ronda de correcciones; PR #62 listo para publicación · 20/11/2026, Claude
+
+**Estado:** las 4 correcciones de la segunda ronda del propietario están implementadas, con pruebas de regresión, en el PR #62 (Estimapres, rama `feat/ah2-config-persistente-sucursal`) y en el PR #6 de aliada-optimizer (rama `feat/integracion-aliada-work-claude`, SHA `ca872838c830cd4b9b8f0eeae3d185f969613a93`). **Migración NO aplicada.** Nada cambiado en Supabase, Netlify, Cloud Run ni Secret Manager. Prestify sin cambios. Las demás reglas aprobadas se conservan.
+
+### Correcciones (segunda ronda)
+1. **Sin prorrateo de máximos semanales.** Topes por contrato: solo por semanas completas (inicio lunes, fin domingo), exigido en el cliente y en la base (`cms_topes_semana_completa`); un cambio dentro de la semana → conflicto. Perfil EVENTUAL: máximo individual y mínimo de función habitual son semanales; si difieren entre días con caja de la misma semana → conflicto explícito (nunca un valor intermedio).
+2. **Sin retorno automático a Secret Manager.** Cuando la sucursal guardó o importó configuración (cualquier fila, activa o no), la guardada es la única fuente para siempre; desactivar todo deja al motor solo con lo vigente. Solo una sucursal que nunca guardó usa el servicio. El editor ya no ofrece reimportar si hay filas.
+3. **Condiciones del supervisor día por día.** Alcance = tipo de condición + persona (también en la columna generada `alcance`). La excepción temporal rige solo en sus días y la permanente en los demás; cada tramo continuo va al motor con sus fechas reales. Turno homónimo con otra definición → clave propia. «Gestionar manualmente» y «franco y medio corrido» parciales → conflicto (regla del motor).
+4. **Excepción de AUX único sin franja fija.** El validador ya no limita a 08:00–09:00: rige en las franjas autorizadas por la sucursal (matriz 7×30), con un único AUX presente. H-A2, R3, H-A3 sin cambios fuera de eso. Cambiado en A (`politicaRecursos`, pasada 2, AH2-040, comparabilidad, validador independiente, orquestador) y en B (`support`, `domain`, máscaras, comparación). Con matrices que solo autorizan la apertura, resultados idénticos.
+
+### Pruebas de regresión
+- `configuracionPersistente.test.ts` (31): topes por semana completa, perfil con máximo distinto → conflicto / igual → conserva, importar y desactivar todo → fuente persistida, turno temporal miércoles–jueves sobre permanente (verificado con `compilarCondiciones`), franjas libres de AUX único.
+- `excepcionApertura.test.ts` + `aliada-optimizer/tests/test_excepcion_apertura.py`: mismo fixture en A y CP-SAT; AUX único en franja autorizada fuera de la apertura atiende caja; sin autorización queda de pie; A valida el plan de CP-SAT y rechaza sentarlo fuera de la franja (H-A2).
+- SQL (`scripts/db/probar-configuracion-motor.sh`, job `database` en CI): alcance de condiciones por tipo y persona, topes solo semanas completas, más integridad, RLS, atomicidad, historial y concurrencia real.
+
+### Resultados
+Vitest **601 passed / 4 skipped**; pytest **163 passed / 1 skipped**; Playwright **17 passed / 1 skipped**; build OK; SQL OK. Configuración real 091 (local, sin versionar): resuelve idéntica y sin conflictos.
+
+### Para publicar (requiere autorización del propietario)
+0. **CP-SAT:** reconstruir la imagen con aliada-optimizer `ca87283` (Cloud Build) y desplegar una revisión nueva de `aliada-optimizer` (min 0 / max 1). Rollback: revisión `aliada-optimizer-00004-966`. Sin esto, CP-SAT rechaza franjas fuera de 08:00–09:00 y Horarios usa el motor A.
+1. Aprobar y fusionar el PR #6 (aliada-optimizer) y el PR #62.
+2. Autorizar la migración en Supabase al-iada horarios.
+3. Publish deploy en al-iada.
+4. Reglas → Configuración del motor → Importar → revisar → Confirmar.
+5. «Ver semana» y generar. Rollback: cambiar/desactivar reglas en el editor (no vuelve a Secret Manager), republicar deploy anterior o rollback SQL documentado.
+---
+
+## RELEVO ANTERIOR — primera ronda de correcciones AH2-042 · 20/11/2026, Claude
+
+
+**Estado:** concepto AH2-042 **aprobado**; las 6 correcciones pedidas están implementadas y validadas en el PR #62 (borrador). **Migración NO aplicada.** Nada cambiado en Supabase, Netlify, Cloud Run ni Secret Manager. Motor matemático y Prestify sin cambios.
+
+### Correcciones implementadas
+1. **Apertura configurable** por sucursal, día y franja (día, desde, hasta) sobre la grilla del motor; sin horarios fijos en esta capa: la franja admitida la decide el validador del motor (`erroresDatosRecursos`).
+2. **Vigencia por fecha:** resolución día a día; excepciones que empiezan o terminan a mitad de semana. Perfiles: días sin acreditación → reserva de franja completa; reservas por día; cantidades semanales prorrateadas. Topes: prorrateo por días. Condiciones: fechas reales (el motor ya las evalúa por día); «gestionar manualmente» y «franco y medio corrido» exigen semana completa (regla del motor) → conflicto explicado.
+3. **Integridad:** conflictos y reglas inválidas aislados por alcance; el resto se resuelve. Una semana con conflictos bloquea solo la generación híbrida, con detalle (motor anterior disponible). Simulación previa de cada cambio sobre las semanas afectadas: no se guarda si crearía un conflicto.
+4. **Atomicidad y concurrencia:** escrituras solo por `cms_crear`/`cms_reemplazar`/`cms_desactivar`/`cms_importar`; versión + `FOR UPDATE`; exclusión de superposiciones en la base; reemplazo fallido sin cambios; importación todo o nada.
+5. **Editor completo:** reservas horarias + mínimo de función habitual; todas las condiciones (franco, turno con definición, gestionar manualmente, máximo de francos, franco y medio corrido) con DEBE/PREFERIRÍA; Cambiar/Desactivar con versión; «Ver semana» con conflictos.
+6. **Escala e historial:** esquema único, RLS por usuario, índices por usuario/sucursal, `reemplaza_a`, sin borrados.
+
+### Validación
+- Vitest **596 passed / 4 skipped** (28 de AH2-042); Playwright **17 passed / 1 skipped**; tsc y build OK.
+- **Migración probada en Postgres 16 real** (`scripts/db/probar-configuracion-motor.sh`, nuevo job `database` en CI): integridad, RLS, atomicidad, historial y concurrencia real con dos sesiones. La prueba encontró y corrigió un `CHECK` que aceptaba una apertura mal formada (NULL en SQL).
+- Configuración real 091 (local, sin versionar): semana 23–29/11 idéntica a la actual; semana siguiente sin conflictos.
+
+### Para aprobar y publicar (propietario)
+1. Aprobar el PR #62.
+2. Autorizar la migración en Supabase al-iada horarios (Claude puede aplicarla con el conector si se autoriza explícitamente).
+3. Fusionar y Publish deploy en al-iada.
+4. Reglas → Configuración del motor → Importar → revisar → Confirmar (decidir si los perfiles EVENTUAL quedan permanentes).
+5. «Ver semana» y generar. Rollback: desactivar reglas (vuelve el servicio), republicar deploy anterior o rollback SQL documentado.
+---
+
+## RELEVO ANTERIOR — motor híbrido 091 PUBLICADO en Horarios · 20/11/2026, Claude
+
+**Estado: PUBLICADO.** #61 fusionado a `main` (merge `e91dd19f0e9499a261a527184bac41c6337313aa`, CI verde en `c5bcc0f`/`cd250de`). El propietario publicó en al-iada el deploy **`6b00af11bb927938de720319`** (commit `e91dd19`, producción, **bloqueado** contra auto publicación); `horarios.aliadaapps.com` sirve el bundle con `VITE_AH2_HIBRIDO_091=true` y `VITE_AH2_OPTIMIZER_URL` del servicio. Otras sucursales mantienen el generador anterior; en la 091 el selector conserva el respaldo por generación.
+
+**Servicio CP-SAT:** Cloud Run `aliada-optimizer` (proyecto `aliada-horarios`, `southamerica-east1`), imagen `optimizer:5b98417` (`sha256:c855db31…`), revisión **`aliada-optimizer-00004-966`**, min 0 / máx 1, concurrencia 1, facturación por solicitud, origen permitido solo `https://horarios.aliadaapps.com`, usuario y configuración 091 en Secret Manager (v2). Presupuesto de guardia USD 1. Prueba real: `POST /v1/optimizar` 200 en 125,6 s; conteos Supabase idénticos antes/después.
+
+**Rollback (en orden de alcance):**
+1. Por generación: selector «Usar motor anterior» en Nueva semana.
+2. Solo el híbrido: `VITE_AH2_HIBRIDO_091=false` en al-iada + rebuild de `main` + Publish deploy.
+3. Frontend completo: Netlify al-iada → Deploys → `6afba0e1c0b8e64caa476f2c` (commit `a7006e4`) → Publish deploy; mantener bloqueo.
+4. Servicio: `gcloud run services update-traffic aliada-optimizer --region southamerica-east1 --to-revisions <revisión>=100` o `gcloud run services delete aliada-optimizer --region southamerica-east1` (la app cae al respaldo A).
+Sin migraciones: ningún rollback requiere revertir datos. Prestify sin cambios.
+
+**Pendientes no bloqueantes:** antecedente del domingo previo sigue SIN VERIFICAR si no se confirma en la app; Safari de escritorio no probado (iPhone visto por el propietario); vigencias de la configuración privada son 23–29/11: para semanas siguientes hay que cargar una versión nueva de `ah2-pilot-options` (no se renuevan solas). Notas del entorno Claude: `unset CLOUDSDK_AUTH_ACCESS_TOKEN` antes de gcloud; `*.run.app` solo alcanzable vía Cloud Build.
+
+---
+
+## RELEVO ANTERIOR — prueba real 091 aprobada en preview; fusión de #61 y publicación de al-iada · 20/11/2026, Claude
 
 **Prueba real autenticada (preview `deploy-preview-61--al-iada.netlify.app`, build de `cd250de`, código = `c5bcc0f`):** el propietario inició sesión y generó la semana 23–29/11 de la 091 con el híbrido; no guardó. Cloud Run (revisión `00003-mtl`, origen temporal de la preview): `GET /v1/sesion` 200 (0,7–0,9 s), `POST /v1/optimizar` **200 en 125,6 s**, sin advertencias ni errores. Supabase al-iada horarios (solo lectura, usuario/091) **idéntico antes y después**: colaboradores 17 (15 activos), reglas 5 (4 activas), semanas_historial 18 (1 de la semana 23/11, previa del 19/11), correcciones 38, aprendizajes 0. Los 5 IDs de la configuración privada existen, activos, 091 y del mismo usuario. Visualización en iPhone aceptada por el propietario (uso principal en computadora).
 

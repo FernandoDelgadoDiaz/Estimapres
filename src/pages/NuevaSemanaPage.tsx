@@ -248,12 +248,14 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const [configHibrida,setConfigHibrida]=useState<OpcionesGeneracion>()
   const [topesHibridos,setTopesHibridos]=useState<EdicionTopes>()
   const [errorConfigHibrida,setErrorConfigHibrida]=useState('')
+  const [fuenteConfigHibrida,setFuenteConfigHibrida]=useState<'persistida'|'servicio'>()
   useEffect(()=>{
     if(!hibridoDisponible)return
     const ctrl=new AbortController()
-    void configuracionAutenticada(sucursal,ctrl.signal).then(c=>{if(!ctrl.signal.aborted)setConfigHibrida(c.opciones)}).catch(()=>{if(!ctrl.signal.aborted)setErrorConfigHibrida('No se pudo cargar la configuración del motor híbrido. Podés usar el motor anterior.')})
+    setErrorConfigHibrida('')
+    void configuracionAutenticada(sucursal,ctrl.signal,undefined,esLunesISO(lunesSemana)?lunesSemana:undefined).then(c=>{if(!ctrl.signal.aborted){setConfigHibrida(c.opciones);setFuenteConfigHibrida(c.fuente)}}).catch((e:unknown)=>{if(!ctrl.signal.aborted)setErrorConfigHibrida(e instanceof Error&&/conflictos/.test(e.message)?e.message:'No se pudo cargar la configuración del motor híbrido. Podés usar el motor anterior.')})
     return()=>ctrl.abort()
-  },[hibridoDisponible,sucursal,autorSesion])
+  },[hibridoDisponible,sucursal,autorSesion,lunesSemana])
   useLayoutEffect(()=>{cancelarGeneracion()},[cancelarGeneracion,motorAnterior,topesHibridos])
   let topesMostrados=topesHibridos
   try {topesMostrados??=configHibrida&&lunesSemana?topesVigentes(configHibrida.topes_caja_eventual_contrato,sucursal,lunesSemana):undefined}catch{/* La generación rechaza una configuración inválida. */}
@@ -1230,7 +1232,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               <p>Motor híbrido habilitado para la sucursal 091. Conserva una propuesta de respaldo y valida la mejora antes de usarla.</p>
               <label><input type="checkbox" checked={motorAnterior} disabled={loadingAsignacion} onChange={e=>setMotorAnterior(e.target.checked)}/> Usar motor anterior para esta generación</label>
               {!motorAnterior&&errorConfigHibrida&&<p role="alert">{errorConfigHibrida}</p>}
-              {!motorAnterior&&topesMostrados&&<details><summary>Máximos semanales de caja EVENTUAL</summary><p>Se cargan desde la configuración privada. Los cambios de abajo se aplican a esta generación.</p>
+              {!motorAnterior&&fuenteConfigHibrida&&<p className="nota">Configuración del motor: {fuenteConfigHibrida==='persistida'?'reglas guardadas de la sucursal (permanentes y excepciones vigentes esta semana).':'configuración del servicio (transición: esta sucursal todavía no importó ni guardó su configuración).'}</p>}
+              {!motorAnterior&&topesMostrados&&<details><summary>Máximos semanales de caja EVENTUAL</summary><p>Se cargan desde la configuración de la sucursal. Los cambios de abajo se aplican solo a esta generación; para cambiarlos de forma permanente o por un período, usá Reglas → Configuración del motor.</p>
                 {(['FULL','PART'] as const).map(k=><fieldset key={k}><legend>EVENTUAL {k}</legend>
                   <label><input type="checkbox" checked={topesMostrados[k].activo} disabled={loadingAsignacion} onChange={e=>setTopesHibridos({...topesMostrados,[k]:{...topesMostrados[k],activo:e.target.checked}})}/> Aplicar máximo</label>
                   <label>Horas semanales<input type="number" min="0" max="84" step="0.5" value={topesMostrados[k].horas??''} disabled={loadingAsignacion||!topesMostrados[k].activo} onChange={e=>setTopesHibridos({...topesMostrados,[k]:{...topesMostrados[k],horas:e.target.value===''?null:Number(e.target.value)}})}/></label>

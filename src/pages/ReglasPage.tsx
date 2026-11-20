@@ -2,6 +2,9 @@ import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
 import { useMemo, useState } from 'react'
 import { DIAS_SEMANA, ReglaConfigurable, TipoReglaColaborador, TipoReglaLocal } from '../types'
 import { useReglas } from '../hooks/useReglas'
+import { ConfiguracionMotorPanel } from '../components/reglas/ConfiguracionMotorPanel'
+import { usaHibrido } from '../hibrido/integracion'
+import { getSucursalActual } from '../utils/sucursal'
 import { useColaboradores } from '../hooks/useColaboradores'
 import {
   validarConflictosReglas,
@@ -186,6 +189,8 @@ export default function ReglasPage() {
           Restricciones que el algoritmo aplica en cada generación. Se guardan por sucursal y podés activarlas o pausarlas sin borrarlas.
         </p>
       </div>
+
+      {usaHibrido(getSucursalActual()) && <ConfiguracionMotorPanel sucursal={getSucursalActual()} />}
 
       {/* Reglas operativas de la sucursal (toggles con default) */}
       <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', padding: '24px', marginBottom: '24px' }}>
