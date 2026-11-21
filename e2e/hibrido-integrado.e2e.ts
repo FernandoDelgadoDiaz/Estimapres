@@ -62,6 +62,7 @@ test('activación 091 en Nueva semana y opción inmediata de usar el motor anter
  await page.goto('/nueva-semana')
  await page.locator('input[type=file]').first().setInputFiles({name:'pom-sintetico.pdf',mimeType:'application/pdf',buffer:pdfPom()})
  const anterior=page.getByRole('checkbox',{name:'Usar motor anterior para esta generación'})
+ await page.getByText('Opciones de esta generación').click()
  await expect(anterior).toBeVisible();await expect(anterior).not.toBeChecked()
  await anterior.check();await expect(anterior).toBeChecked()
  await page.addInitScript(()=>localStorage.setItem('aliada_sucursal_actual','092'))
