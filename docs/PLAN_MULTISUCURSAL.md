@@ -131,7 +131,7 @@ Supuesto: 1 vCPU y 2 GiB por generación, unos 125 s cada una. Precios de lista 
 1. ~~Aprobar el plan~~: aprobado como horizonte; corto plazo, 40 locales (21/11/2026).
 2. **Locales piloto** (2 o 3).
 3. ~~Roles~~: un usuario por local y el supervisor es el administrador (21/11/2026).
-4. **Supabase:** confirmar el plan actual y si se pasa a Pro.
+4. ~~Supabase~~: el proyecto está en el plan gratuito (organización «Solo pausados»). El propietario tiene un plan Pro y lo va a usar **al ampliar a más locales**; por ahora sigue la 091 como piloto en producción real (21/11/2026).
 5. **Presupuesto máximo** de Google Cloud y alerta, por ejemplo USD 30 por mes.
 6. **Validación jurídica:** quién revisa las reglas laborales.
 
