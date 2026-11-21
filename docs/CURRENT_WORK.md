@@ -1,4 +1,29 @@
-## PUNTO ÚNICO DE RETOMA — AH2-043 reparto con prioridad a picos + corrección del PDF; PR listo, sin publicar · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-043 corregido (sin concentrar en el miércoles); Cloud Run pendiente de la nueva imagen · 21/11/2026, Claude
+
+**Estado:** publicación de AH2-043 autorizada por el propietario (21/11). Primera versión ya fusionada (Estimapres #64 `d0ea79e`, aliada-optimizer #7 `c0602af`) y Cloud Run con `optimizer:b81462f` (revisión `aliada-optimizer-00006-5wg`), pero **el Publish deploy de Netlify no se hizo**: producción sigue con `6b0177b930ae92e7fd26bc4c` (equilibrio v1). El propietario detectó que esa versión **concentraba los faltantes en el miércoles** (22 %). Corregido en una segunda versión (este PR + PR de aliada-optimizer, rama `feat/ah2-043-equilibrio-dias`). **No publicar `d0ea79e`.**
+
+### Corrección
+- Día pico **proporcional** (100 · demanda del día / día más fuerte), no escalado del más flojo (0) al más fuerte (100).
+- **Equilibrio entre días** dentro del reparto: la F-ésima media hora faltante de un mismo día cuesta F × peso del día.
+- Sin cambios en restricciones, faltante total ni corrección del PDF (cobertura medida por el orquestador).
+
+### Evidencia (semana 23–29/11 real, A + CP-SAT local, 120 s)
+| | v1 (producción) | v2 primera (no publicada) | v2 corregida |
+|---|---|---|---|
+| Cobertura / faltantes | 88,3 % / 47 h | 88,3 % / 47 h | 88,3 % / 47 h |
+| Franjas con 2+ cajas faltantes | 26 | 0 | **0** |
+| Faltantes en la franja máxima del día | 0 | 0 | 0 |
+| Faltante por día | 0–15 % (sáb 0) | Mié 22 %, Jue 20 %, Vie 4 % | **Lun–Vie 12–13 %, Sáb y Dom 10 %** |
+
+### Pruebas
+pytest **167 passed / 1 skipped** (nueva: dos días casi iguales no concentran el faltante en el más flojo); Vitest **603 passed / 4 skipped**; Playwright **17 passed / 1 skipped**; build OK.
+
+### Para publicar (autorizado)
+1. Fusionar el PR de aliada-optimizer, imagen nueva y revisión de Cloud Run. Rollback: `aliada-optimizer-00006-5wg` / `00005-rsm`.
+2. Fusionar el PR de Estimapres; el propietario hace Publish deploy del deploy de ese merge. Rollback: `6b0177b930ae92e7fd26bc4c`.
+3. Generar 23/11 de nuevo y revisar el PDF.
+
+## RELEVO ANTERIOR — AH2-043 primera versión (reemplazada: concentraba en el miércoles) · 21/11/2026, Claude
 
 **Estado:** AH2-042 **publicado completo** (Netlify `main@ff6fcd4`, deploy `6b0177b930ae92e7fd26bc4c`, publicado 21/11 10:53 UTC; Cloud Run `aliada-optimizer-00005-rsm`). El propietario generó la semana 23–29/11 en producción: 88,3 %, 47 h faltantes (límite de dotación), reglas cumplidas. A partir de ese análisis pidió (21/11): corregir el PDF y que el motor **balancee y priorice horas y días pico**. Implementado como AH2-043 en PR de Estimapres (rama `feat/ah2-043-reparto-picos`) y de aliada-optimizer (misma rama, SHA `b81462ffeacf456a6dc4ab07f302f1ebd8e5b16f`). **No publicado.**
 
