@@ -89,3 +89,43 @@ export function ResumenCobertura({ resumen, maxTramos = 4 }: { resumen: ResumenS
     </div>
   )
 }
+
+/** Interruptor accesible (sí/no). */
+export function Interruptor({ activo, onCambiar, etiqueta, disabled }: { activo: boolean; onCambiar: (v: boolean) => void; etiqueta: string; disabled?: boolean }) {
+  return (
+    <button type="button" role="switch" aria-checked={activo} aria-label={etiqueta} disabled={disabled} onClick={() => onCambiar(!activo)}
+      style={{ width: '46px', height: '26px', borderRadius: '100px', border: 'none', padding: '3px', cursor: disabled ? 'default' : 'pointer', flexShrink: 0,
+        background: activo ? 'var(--accent-strong)' : 'var(--border-hover)', transition: 'background 0.15s', opacity: disabled ? 0.5 : 1 }}>
+      <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,.2)',
+        transform: activo ? 'translateX(20px)' : 'translateX(0)', transition: 'transform 0.15s' }} />
+    </button>
+  )
+}
+
+/** Fila de ajuste: título, una línea de ayuda opcional y el control a la derecha. */
+export function FilaAjuste({ titulo, ayuda, children, id }: { titulo: string; ayuda?: string; children: ReactNode; id?: string }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px 24px', padding: '14px 0', borderTop: '1px solid var(--border)' }}>
+      <div style={{ flex: '1 1 320px' }}>
+        <label htmlFor={id} style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>{titulo}</label>
+        {ayuda && <p style={{ margin: '2px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>{ayuda}</p>}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>{children}</div>
+    </div>
+  )
+}
+
+export const estiloCampo: CSSProperties = {
+  border: '1px solid var(--border)', borderRadius: '10px', padding: '8px 12px', background: 'var(--card)', color: 'var(--text)', fontSize: '14px',
+}
+
+/** Sección de la pantalla de configuración: título, descripción corta y filas. */
+export function Seccion({ titulo, descripcion, children }: { titulo: string; descripcion?: string; children: ReactNode }) {
+  return (
+    <Tarjeta etiqueta={titulo}>
+      <Subtitulo>{titulo}</Subtitulo>
+      {descripcion && <p style={{ margin: '4px 0 8px', fontSize: '14px', color: 'var(--text-muted)' }}>{descripcion}</p>}
+      <div style={{ marginTop: descripcion ? 0 : '8px' }}>{children}</div>
+    </Tarjeta>
+  )
+}

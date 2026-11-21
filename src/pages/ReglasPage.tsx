@@ -1,478 +1,272 @@
-import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
+/**
+ * Configuración de la sucursal (AH2-044): el supervisor ve campos simples. Por detrás:
+ * - reglas de la sucursal (comunes al motor A y a CP-SAT) en `useReglas`;
+ * - en sucursales con motor híbrido, la configuración persistente AH2-042 (historial, versiones, conflictos).
+ * Lo avanzado (historial de versiones, importación, backup) queda en «Opciones avanzadas».
+ */
 import { useMemo, useState } from 'react'
-import { DIAS_SEMANA, ReglaConfigurable, TipoReglaColaborador, TipoReglaLocal } from '../types'
+import { DIAS_SEMANA, type ReglaConfigurable, type TipoReglaColaborador } from '../types'
 import { useReglas } from '../hooks/useReglas'
-import { ConfiguracionMotorPanel } from '../components/reglas/ConfiguracionMotorPanel'
+import { useColaboradores } from '../hooks/useColaboradores'
+import { useEventuales } from '../hooks/useEventuales'
 import { usaHibrido } from '../hibrido/integracion'
 import { getSucursalActual } from '../utils/sucursal'
-import { useColaboradores } from '../hooks/useColaboradores'
-import {
-  validarConflictosReglas,
-  ETIQUETAS_OPERATIVAS,
-  DEFAULTS_OPERATIVOS,
-  type TipoReglaOperativa,
-  reglaCajaEventualVigente,
-} from '../utils/preferencias'
+import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
+import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente } from '../utils/preferencias'
+import { ConfiguracionMotorPanel } from '../components/reglas/ConfiguracionMotorPanel'
+import BackupConfig from '../components/semana/BackupConfig'
+import { Boton, FilaAjuste, Interruptor, Pagina, Seccion, estiloCampo } from '../components/ui/Basicos'
+import { DisponibilidadEventuales, FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
+import { ddmm, filaArmarAMano, proximoLunesISO, temporalesVigentes } from '../hibrido/configuracionSimple'
+import { supabase } from '../lib/supabase'
 
-const TIPOS_OPERATIVOS: TipoReglaOperativa[] = [
-  'apertura_solo_aux',
-  'sin_aux_cierre',
-  'supervisor_jornada_completa',
-  'franco_medio_corridos',
-]
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-  borderRadius: '12px',
-  padding: '10px 14px',
-  background: 'var(--card)',
-  color: 'var(--text)',
-  fontFamily: "'Space Grotesk', sans-serif",
-  fontSize: '14px',
+const TEXTO_OPERATIVA: Record<TipoReglaOperativa, { titulo: string; ayuda: string }> = {
+  apertura_solo_aux: { titulo: 'La caja la abre un supervisor (08:00 a 09:00)', ayuda: 'Apagado: la abre un cajero.' },
+  sin_aux_cierre: { titulo: 'Supervisores fuera de caja después de las 22:00', ayuda: '' },
+  supervisor_jornada_completa: { titulo: 'El supervisor de jornada completa queda siempre de pie', ayuda: 'Cuando hay dos o más supervisores a la vez.' },
+  franco_medio_corridos: { titulo: 'Franco y medio franco en días seguidos', ayuda: 'Para cajeros FULL.' },
 }
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '13px',
-  fontWeight: 600,
-  color: 'var(--text)',
-  marginBottom: '6px',
-}
-
-const TIPOS_COLABORADOR: Array<{ valor: TipoReglaColaborador; etiqueta: string }> = [
-  { valor: 'franco_fijo', etiqueta: 'Franco fijo (siempre el mismo día)' },
-  { valor: 'no_antes_de', etiqueta: 'No puede entrar antes de cierta hora' },
-  { valor: 'no_despues_de', etiqueta: 'No puede salir después de cierta hora' },
-  { valor: 'siempre_manana', etiqueta: 'Siempre turno de mañana' },
-  { valor: 'siempre_cierre', etiqueta: 'Siempre turno de cierre' },
+type QuePersona = TipoReglaColaborador | 'armar_a_mano'
+const QUE_PERSONA: Array<{ valor: QuePersona; texto: string; hibrido?: boolean }> = [
+  { valor: 'franco_fijo', texto: 'Franco fijo' },
+  { valor: 'no_antes_de', texto: 'No entra antes de' },
+  { valor: 'no_despues_de', texto: 'No sale después de' },
+  { valor: 'siempre_manana', texto: 'Siempre de mañana' },
+  { valor: 'siempre_cierre', texto: 'Siempre de cierre' },
+  { valor: 'armar_a_mano', texto: 'Lo armo yo (el sistema no le asigna turnos)', hibrido: true },
 ]
-
-const TIPOS_LOCAL: Array<{ valor: TipoReglaLocal; etiqueta: string }> = [
-  { valor: 'min_cajeros_franja', etiqueta: 'Mínimo de cajeros en una franja horaria' },
-  { valor: 'max_francos_dia', etiqueta: 'Máximo de francos el mismo día' },
-]
+const HORAS = Array.from({ length: 31 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
 
 export default function ReglasPage() {
+  const sucursal = getSucursalActual()
+  const hibrido = usaHibrido(sucursal) && !!supabase
   const { reglas, agregarRegla, actualizarRegla, eliminarRegla, toggleActiva } = useReglas()
   const { colaboradores } = useColaboradores()
+  const { eventuales } = useEventuales()
+  const motor = useConfiguracionMotor(sucursal, hibrido)
+  const motorListo = hibrido && motor.disponible === true
 
-  // ===== Reglas operativas (toggles con default) =====
-  const estadoOperativa = (t: TipoReglaOperativa): boolean => {
-    const r = reglas.find(x => x.ambito === 'local' && x.tipo === t)
-    return r ? r.activa : DEFAULTS_OPERATIVOS[t]
-  }
-  const descOperativa = (t: TipoReglaOperativa, on: boolean) =>
-    `${ETIQUETAS_OPERATIVAS[t].titulo}: ${on ? 'activada' : 'desactivada'}`
-  const toggleOperativa = (t: TipoReglaOperativa) => {
+  // ===== Reglas de la sucursal (interruptores con valor predeterminado) =====
+  const estado = (t: TipoReglaOperativa) => reglas.find(x => x.ambito === 'local' && x.tipo === t)?.activa ?? DEFAULTS_OPERATIVOS[t]
+  const cambiarOperativa = (t: TipoReglaOperativa, v: boolean) => {
     const existente = reglas.find(x => x.ambito === 'local' && x.tipo === t)
-    const nuevo = !(existente ? existente.activa : DEFAULTS_OPERATIVOS[t])
-    if (existente) actualizarRegla(existente.id, { activa: nuevo, descripcion: descOperativa(t, nuevo) })
-    else agregarRegla({ ambito: 'local', tipo: t, activa: nuevo, descripcion: descOperativa(t, nuevo) })
+    const descripcion = `${TEXTO_OPERATIVA[t].titulo}: ${v ? 'sí' : 'no'}`
+    if (existente) actualizarRegla(existente.id, { activa: v, descripcion })
+    else agregarRegla({ ambito: 'local', tipo: t, activa: v, descripcion })
   }
-
-  // Regla 6 (máx francos por día): un único rule max_francos_dia editable
   const reglaMaxFrancos = reglas.find(r => r.ambito === 'local' && r.tipo === 'max_francos_dia')
-  const maxFrancosActual = reglaMaxFrancos?.cantidad ?? 2
   const setMaxFrancos = (n: number) => {
-    const val = Math.max(1, Math.min(6, Math.round(n)))
-    const desc = `Máximo ${val} franco${val === 1 ? '' : 's'} por día`
-    if (reglaMaxFrancos) actualizarRegla(reglaMaxFrancos.id, { cantidad: val, activa: true, descripcion: desc })
-    else agregarRegla({ ambito: 'local', tipo: 'max_francos_dia', cantidad: val, activa: true, descripcion: desc })
+    const val = Math.max(1, Math.min(6, Math.round(n || 1)))
+    const descripcion = `Máximo ${val} franco${val === 1 ? '' : 's'} por día`
+    if (reglaMaxFrancos) actualizarRegla(reglaMaxFrancos.id, { cantidad: val, activa: true, descripcion })
+    else agregarRegla({ ambito: 'local', tipo: 'max_francos_dia', cantidad: val, activa: true, descripcion })
   }
-
-  // Reglas gestionadas arriba (sección operativa): no se listan abajo para no duplicarlas.
   const maxBloques = reglaCajaEventualVigente(reglas, 'max_bloques_caja_eventual_dia')
   const limiteCaja = reglaCajaEventualVigente(reglas, 'eventuales_caja_hora_limite')
-  const TIPOS_GESTIONADOS = new Set<string>([...TIPOS_OPERATIVOS, 'max_francos_dia', 'max_bloques_caja_eventual_dia', 'eventuales_caja_hora_limite'])
-  const reglasListadas = reglas.filter(r => !(r.ambito === 'local' && TIPOS_GESTIONADOS.has(r.tipo)))
-
-  const [ambito, setAmbito] = useState<'colaborador' | 'local'>('colaborador')
-  const [tipo, setTipo] = useState<string>('franco_fijo')
-  const [colaboradorNombre, setColaboradorNombre] = useState('')
-  const [dia, setDia] = useState<number>(-1)
-  const [hora, setHora] = useState('')
-  const [franja, setFranja] = useState('')
-  const [cantidad, setCantidad] = useState<number>(2)
-  const [conVigencia, setConVigencia] = useState(false)
-  const [vigenciaDesde, setVigenciaDesde] = useState('')
-  const [vigenciaHasta, setVigenciaHasta] = useState('')
-  const [errorForm, setErrorForm] = useState('')
-
-  const cajeros = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
   const conflictos = useMemo(() => validarConflictosReglas(reglas, colaboradores), [reglas, colaboradores])
 
-  const cambiarAmbito = (a: 'colaborador' | 'local') => {
-    setAmbito(a)
-    setTipo(a === 'colaborador' ? 'franco_fijo' : 'min_cajeros_franja')
-    setErrorForm('')
-  }
-
-  const describir = (horaDesde?: string, horaHasta?: string): string => {
-    const vigencia = conVigencia && (vigenciaDesde || vigenciaHasta)
-      ? ` (vigente ${vigenciaDesde || 'siempre'} → ${vigenciaHasta || 'sin límite'})`
-      : ''
-    switch (tipo) {
-      case 'franco_fijo': return `${colaboradorNombre}: franco fijo los ${DIAS_SEMANA[dia] ?? '?'}${vigencia}`
-      case 'no_antes_de': return `${colaboradorNombre}: no entra antes de las ${hora}${vigencia}`
-      case 'no_despues_de': return `${colaboradorNombre}: no sale después de las ${hora}${vigencia}`
-      case 'siempre_manana': return `${colaboradorNombre}: siempre turno de mañana${vigencia}`
-      case 'siempre_cierre': return `${colaboradorNombre}: siempre turno de cierre${vigencia}`
-      case 'min_cajeros_franja':
-        return `Mínimo ${cantidad} cajeros ${dia === -1 ? 'todos los días' : `los ${DIAS_SEMANA[dia]}`} de ${horaDesde} a ${horaHasta}${vigencia}`
-      case 'max_francos_dia': return `Máximo ${cantidad} francos por día${vigencia}`
-      default: return ''
-    }
-  }
-
-  const handleAgregar = () => {
-    setErrorForm('')
-    if (ambito === 'colaborador' && !colaboradorNombre) {
-      setErrorForm('Seleccioná un colaborador.')
-      return
-    }
-    if (tipo === 'franco_fijo' && dia < 0) {
-      setErrorForm('Seleccioná el día del franco.')
-      return
-    }
-    if ((tipo === 'no_antes_de' || tipo === 'no_despues_de') && !hora) {
-      setErrorForm('Ingresá la hora.')
-      return
-    }
-    const intervalo = interpretarHorario(franja, { ...opcionesHorarioMotor, maxBloques: 1 })
-    const turno = intervalo.ok ? intervalo.turnos[0] : undefined
-    if (tipo === 'min_cajeros_franja' && !turno) {
-      setErrorForm(intervalo.ok ? 'Ingresá una franja, por ejemplo 12 a 22.' : intervalo.error)
-      return
-    }
-    if ((tipo === 'min_cajeros_franja' || tipo === 'max_francos_dia') && cantidad < 1) {
-      setErrorForm('La cantidad debe ser al menos 1.')
-      return
-    }
-
-    agregarRegla({
-      ambito,
-      tipo: tipo as ReglaConfigurable['tipo'],
-      colaboradorNombre: ambito === 'colaborador' ? colaboradorNombre : undefined,
-      dia: tipo === 'franco_fijo' || tipo === 'min_cajeros_franja' ? dia : undefined,
-      hora: tipo === 'no_antes_de' || tipo === 'no_despues_de' ? hora : undefined,
-      horaDesde: tipo === 'min_cajeros_franja' ? turno?.inicio : undefined,
-      horaHasta: tipo === 'min_cajeros_franja' ? turno?.fin : undefined,
-      cantidad: tipo === 'min_cajeros_franja' || tipo === 'max_francos_dia' ? cantidad : undefined,
-      vigenciaDesde: conVigencia && vigenciaDesde ? vigenciaDesde : undefined,
-      vigenciaHasta: conVigencia && vigenciaHasta ? vigenciaHasta : undefined,
-      descripcion: describir(turno?.inicio, turno?.fin),
-    })
-
-    // limpiar campos de valor, mantener ámbito/tipo para cargas en serie
-    setColaboradorNombre('')
-    setDia(-1)
-    setHora('')
-    setFranja('')
-    setConVigencia(false)
-    setVigenciaDesde('')
-    setVigenciaHasta('')
-  }
-
-  const pideValorDia = tipo === 'franco_fijo' || tipo === 'min_cajeros_franja'
-  const pideHora = tipo === 'no_antes_de' || tipo === 'no_despues_de'
-  const pideFranja = tipo === 'min_cajeros_franja'
-  const pideCantidad = tipo === 'min_cajeros_franja' || tipo === 'max_francos_dia'
+  const cajeros = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
+  const reglasPersona = reglas.filter(r => r.ambito === 'colaborador')
+  const minimos = reglas.filter(r => r.ambito === 'local' && r.tipo === 'min_cajeros_franja')
+  const hoy = new Date().toISOString().slice(0, 10)
+  const temporales = motorListo ? temporalesVigentes(motor.filas, hoy).filter(f => f.tipo === 'condicion_supervisor') : []
+  const nombreDeId = (id: string | null) => colaboradores.find(c => c.id === id)?.nombre ?? eventuales.find(e => e.id === id)?.nombre ?? 'Persona'
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>
-          Reglas del local
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
-          Restricciones que el algoritmo aplica en cada generación. Se guardan por sucursal y podés activarlas o pausarlas sin borrarlas.
-        </p>
-      </div>
+    <Pagina titulo="Configuración" descripcion="Cómo trabaja tu sucursal. El sistema lo tiene en cuenta en cada horario que genera.">
+      {conflictos.length > 0 && (
+        <section aria-label="Avisos" style={{ background: 'var(--warning-bg)', border: '1px solid #fcd34d', borderRadius: '16px', padding: '14px 20px', color: '#78350f', fontSize: '14px' }}>
+          <strong>Algunas reglas no se pueden cumplir del todo</strong>
+          <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>{conflictos.map((c, i) => <li key={i}>{c}</li>)}</ul>
+        </section>
+      )}
+      {hibrido && <MensajesMotor motor={motor} />}
 
-      {usaHibrido(getSucursalActual()) && <ConfiguracionMotorPanel sucursal={getSucursalActual()} />}
+      <Seccion titulo="Apertura, cierre y supervisión">
+        {(['apertura_solo_aux', 'sin_aux_cierre', 'supervisor_jornada_completa'] as const).map(t => (
+          <FilaAjuste key={t} titulo={TEXTO_OPERATIVA[t].titulo} ayuda={TEXTO_OPERATIVA[t].ayuda || undefined}>
+            <Interruptor activo={estado(t)} onCambiar={v => cambiarOperativa(t, v)} etiqueta={TEXTO_OPERATIVA[t].titulo} />
+          </FilaAjuste>
+        ))}
+        {motorListo && <FranjasSupervisorSolo motor={motor} sucursal={sucursal} />}
+      </Seccion>
 
-      {/* Reglas operativas de la sucursal (toggles con default) */}
-      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', padding: '24px', marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '4px' }}>
-          Reglas operativas de la sucursal
-        </h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-          Cómo opera esta sucursal. No son leyes laborales (esas nunca se tocan): configuralas según tu operatoria.
-        </p>
+      <Seccion titulo="Francos">
+        <FilaAjuste titulo="Máximo de cajeros de franco el mismo día" id="max-francos">
+          <input id="max-francos" type="number" min={1} max={6} value={reglaMaxFrancos?.cantidad ?? 2} onChange={e => setMaxFrancos(Number(e.target.value))} style={{ ...estiloCampo, width: '80px', textAlign: 'center' }} />
+        </FilaAjuste>
+        <FilaAjuste titulo={TEXTO_OPERATIVA.franco_medio_corridos.titulo} ayuda={TEXTO_OPERATIVA.franco_medio_corridos.ayuda}>
+          <Interruptor activo={estado('franco_medio_corridos')} onCambiar={v => cambiarOperativa('franco_medio_corridos', v)} etiqueta={TEXTO_OPERATIVA.franco_medio_corridos.titulo} />
+        </FilaAjuste>
+      </Seccion>
 
-        {TIPOS_OPERATIVOS.map(t => {
-          const on = estadoOperativa(t)
-          return (
-            <div key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', padding: '14px 0', borderTop: '1px solid var(--border)' }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
-                  {ETIQUETAS_OPERATIVAS[t].titulo}
-                  <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '8px' }}>
-                    (default: {DEFAULTS_OPERATIVOS[t] ? 'activada' : 'desactivada'})
-                  </span>
-                </p>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{ETIQUETAS_OPERATIVAS[t].descripcion}</p>
-              </div>
-              <button
-                onClick={() => toggleOperativa(t)}
-                style={{
-                  flexShrink: 0, minWidth: '92px', padding: '8px 16px', borderRadius: '100px',
-                  border: '1px solid var(--border)',
-                  background: on ? 'var(--accent)' : 'var(--surface)',
-                  color: on ? 'var(--accent-dark)' : 'var(--text-muted)',
-                  fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-                }}
-              >
-                {on ? 'Activada' : 'Desactivada'}
-              </button>
-            </div>
-          )
-        })}
-
-        <div style={{ padding: '14px 0', borderTop: '1px solid var(--border)' }}>
-          <label style={labelStyle} htmlFor="max-bloques-caja-eventual">Máximo diario de bloques de caja por eventual</label>
-          <select id="max-bloques-caja-eventual" style={inputStyle}
-            value={maxBloques?.activa ? maxBloques.cantidad ?? '' : ''}
+      <Seccion titulo="Eventuales en caja">
+        {motorListo && <MaximosEventuales motor={motor} sucursal={sucursal} />}
+        <FilaAjuste titulo="Tramos de caja por día" ayuda="Cuántas veces por día puede entrar a caja un eventual." id="max-bloques-caja-eventual">
+          <select id="max-bloques-caja-eventual" style={estiloCampo} value={maxBloques?.activa ? maxBloques.cantidad ?? '' : ''}
             onChange={ev => {
               const valor = ev.target.value
-              agregarRegla({
-                ambito: 'local', tipo: 'max_bloques_caja_eventual_dia',
-                activa: valor !== '', cantidad: valor ? Number(valor) : undefined,
-                descripcion: valor ? `Máximo ${valor} bloques de caja por eventual` : 'Sin límite de bloques de caja por eventual',
-              })
-            }}
-          >
+              agregarRegla({ ambito: 'local', tipo: 'max_bloques_caja_eventual_dia', activa: valor !== '', cantidad: valor ? Number(valor) : undefined,
+                descripcion: valor ? `Máximo ${valor} tramos de caja por eventual` : 'Sin límite de tramos de caja por eventual' })
+            }}>
             <option value="">Sin límite</option>
-            {Array.from({ length: 15 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+            {Array.from({ length: 6 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
           </select>
-        </div>
-        <div style={{ padding: '14px 0', borderTop: '1px solid var(--border)' }}>
-          <label style={labelStyle} htmlFor="eventuales-caja-hora-limite">Eventuales fuera de caja desde</label>
-          <select id="eventuales-caja-hora-limite" style={inputStyle}
-            value={limiteCaja?.activa ? limiteCaja.hora ?? '' : ''}
+        </FilaAjuste>
+        <FilaAjuste titulo="No atienden caja después de las" id="eventuales-caja-hora-limite">
+          <select id="eventuales-caja-hora-limite" style={estiloCampo} value={limiteCaja?.activa ? limiteCaja.hora ?? '' : ''}
             onChange={ev => {
               const hora = ev.target.value
-              agregarRegla({
-                ambito: 'local', tipo: 'eventuales_caja_hora_limite',
-                activa: hora !== '', hora: hora || undefined,
-                descripcion: hora ? `Eventuales fuera de caja desde las ${hora}` : 'Sin hora límite de caja para eventuales',
-              })
-            }}
-          >
+              agregarRegla({ ambito: 'local', tipo: 'eventuales_caja_hora_limite', activa: hora !== '', hora: hora || undefined,
+                descripcion: hora ? `Eventuales fuera de caja desde las ${hora}` : 'Sin hora límite de caja para eventuales' })
+            }}>
             <option value="">Sin límite</option>
-            {Array.from({ length: 30 }, (_, i) => {
-              const hora = `${String(8 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`
-              return <option key={hora} value={hora}>{hora}</option>
-            })}
+            {HORAS.slice(2).map(h => <option key={h} value={h}>{h}</option>)}
           </select>
+        </FilaAjuste>
+        {motorListo && <DisponibilidadEventuales motor={motor} sucursal={sucursal} eventuales={eventuales.filter(e => e.activo)} />}
+      </Seccion>
+
+      <Seccion titulo="Reglas por persona" descripcion="Francos fijos, horarios y personas que armás a mano.">
+        <ListaReglas
+          items={[
+            ...reglasPersona.map(r => ({ id: r.id, texto: r.descripcion, periodo: periodo(r.vigenciaDesde, r.vigenciaHasta), activa: r.activa,
+              onPausar: () => toggleActiva(r.id), onQuitar: () => { if (confirm(`¿Quitar «${r.descripcion}»?`)) eliminarRegla(r.id) } })),
+            ...temporales.map(f => ({ id: f.id, texto: `${nombreDeId(f.colaborador_id)}: ${textoCondicion(f.datos)}`, periodo: periodo(f.vigencia_desde, f.vigencia_hasta ?? undefined), activa: true,
+              onQuitar: () => { if (confirm('¿Quitar esta regla?')) void motor.aplicar({ tipo: 'desactivar', anterior: f }, 'Regla quitada.') } })),
+          ]}
+          vacio="No hay reglas por persona."
+        />
+        <FormPersona cajeros={cajeros.map(c => ({ id: c.id, nombre: c.nombre }))} hibrido={motorListo}
+          onRegla={agregarRegla}
+          onArmarAMano={async (id, lunes, semanas) => motor.aplicar({ tipo: 'crear', fila: filaArmarAMano(sucursal, id, lunes, semanas) }, 'Guardado: el sistema no le asignará turnos esas semanas.')} />
+      </Seccion>
+
+      <Seccion titulo="Mínimo de cajeros" descripcion="Para asegurar una cantidad mínima en un horario, aunque el PDF pida menos.">
+        <ListaReglas
+          items={minimos.map(r => ({ id: r.id, texto: r.descripcion, periodo: periodo(r.vigenciaDesde, r.vigenciaHasta), activa: r.activa,
+            onPausar: () => toggleActiva(r.id), onQuitar: () => { if (confirm(`¿Quitar «${r.descripcion}»?`)) eliminarRegla(r.id) } }))}
+          vacio="Sin mínimos: se usa la necesidad del PDF."
+        />
+        <FormMinimo onRegla={agregarRegla} />
+      </Seccion>
+
+      <details>
+        <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', padding: '4px 0' }}>Opciones avanzadas (administración)</summary>
+        <div style={{ display: 'grid', gap: '16px', marginTop: '12px' }}>
+          {usaHibrido(sucursal) && <ConfiguracionMotorPanel sucursal={sucursal} />}
+          <BackupConfig />
         </div>
+      </details>
+    </Pagina>
+  )
+}
 
-        {/* Máximo de francos por día (regla 6) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 0', borderTop: '1px solid var(--border)' }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
-              Máximo de francos por día
-              <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '8px' }}>(default: 2)</span>
-            </p>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              No más de N cajeros FULL+PART con franco el mismo día. Subilo o bajalo según tu dotación.
-            </p>
-          </div>
-          <input
-            type="number" min={1} max={6} value={maxFrancosActual}
-            onChange={e => setMaxFrancos(Number(e.target.value))}
-            style={{ ...inputStyle, width: '80px', textAlign: 'center' }}
-          />
-        </div>
-      </div>
+function periodo(desde?: string, hasta?: string) {
+  if (!desde && !hasta) return 'Siempre'
+  if (desde && hasta) return `Del ${ddmm(desde)} al ${ddmm(hasta)}`
+  return desde ? `Desde el ${ddmm(desde)}` : `Hasta el ${ddmm(hasta!)}`
+}
 
-      {/* Conflictos con reglas duras */}
-      {conflictos.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--accent-strong)', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent-strong)', marginBottom: '8px' }}>
-            ⚠️ Avisos: conflictos con las reglas laborales duras
-          </h4>
-          {conflictos.map((c, i) => (
-            <p key={i} style={{ fontSize: '13px', color: 'var(--text)', marginTop: '4px' }}>• {c}</p>
-          ))}
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Las reglas duras (48h FULL, francos, descansos) nunca se violan: en caso de conflicto se aplican recortadas y acá se explica cómo.
-          </p>
-        </div>
-      )}
+function textoCondicion(d: Record<string, unknown>) {
+  switch (d.tipo) {
+    case 'exclusion_manual': return 'lo armo yo'
+    case 'franco': return `franco el ${DIAS_SEMANA[Number(d.dia)] ?? ''}`
+    case 'turno': return `turno ${String(d.valor ?? '')}`
+    case 'max_francos': return `máximo ${String(d.valor)} francos por día`
+    case 'franco_medio_corrido': return 'franco y medio franco seguidos'
+    default: return 'regla especial'
+  }
+}
 
-      {/* Formulario */}
-      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', padding: '24px', marginBottom: '32px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '16px' }}>
-          Agregar regla
-        </h3>
+interface ItemRegla { id: string; texto: string; periodo: string; activa: boolean; onPausar?: () => void; onQuitar: () => void }
+function ListaReglas({ items, vacio }: { items: ItemRegla[]; vacio: string }) {
+  if (!items.length) return <p style={{ margin: '8px 0', fontSize: '14px', color: 'var(--text-muted)' }}>{vacio}</p>
+  return (
+    <ul style={{ listStyle: 'none', margin: '8px 0', padding: 0 }}>
+      {items.map(r => (
+        <li key={r.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', padding: '10px 0', borderTop: '1px solid var(--border)', opacity: r.activa ? 1 : 0.55 }}>
+          <span style={{ flex: '1 1 300px', fontSize: '14px' }}>{r.texto}</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{r.periodo}</span>
+          {r.onPausar && <Interruptor activo={r.activa} onCambiar={() => r.onPausar!()} etiqueta={`${r.activa ? 'Pausar' : 'Activar'} ${r.texto}`} />}
+          <button type="button" onClick={r.onQuitar} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline' }}>Quitar</button>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-          {(['colaborador', 'local'] as const).map(a => (
-            <button
-              key={a}
-              onClick={() => cambiarAmbito(a)}
-              style={{
-                padding: '8px 20px',
-                borderRadius: '100px',
-                border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-                background: ambito === a ? 'var(--accent)' : 'var(--surface)',
-                color: ambito === a ? 'var(--accent-dark)' : 'var(--text)',
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-              }}
-            >
-              {a === 'colaborador' ? 'Por colaborador' : 'General del local'}
-            </button>
-          ))}
-        </div>
+type NuevaRegla = Omit<ReglaConfigurable, 'id' | 'activa' | 'creadaEl'> & { activa?: boolean }
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-          {ambito === 'colaborador' && (
-            <div>
-              <label style={labelStyle}>Colaborador</label>
-              <select value={colaboradorNombre} onChange={e => setColaboradorNombre(e.target.value)} style={inputStyle}>
-                <option value="">Seleccionar...</option>
-                {cajeros.map(c => (
-                  <option key={c.id} value={c.nombre}>{c.nombre} ({c.tipo})</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label style={labelStyle}>Tipo de regla</label>
-            <select value={tipo} onChange={e => setTipo(e.target.value)} style={inputStyle}>
-              {(ambito === 'colaborador' ? TIPOS_COLABORADOR : TIPOS_LOCAL).map(t => (
-                <option key={t.valor} value={t.valor}>{t.etiqueta}</option>
-              ))}
-            </select>
-          </div>
-
-          {pideValorDia && (
-            <div>
-              <label style={labelStyle}>Día</label>
-              <select value={dia} onChange={e => setDia(Number(e.target.value))} style={inputStyle}>
-                {tipo === 'min_cajeros_franja' && <option value={-1}>Todos los días</option>}
-                {tipo === 'franco_fijo' && <option value={-1}>Seleccionar...</option>}
-                {DIAS_SEMANA.map((d, i) => (
-                  <option key={d} value={i}>{d}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {pideHora && (
-            <div>
-              <label style={labelStyle}>Hora</label>
-              <input type="time" value={hora} onChange={e => setHora(e.target.value)} style={inputStyle} step={1800} />
-            </div>
-          )}
-
-          {pideFranja && (
-            <label style={labelStyle}>Franja horaria
-              <input type="text" value={franja} onChange={e => setFranja(e.target.value)}
-                placeholder="12 a 22" style={inputStyle} />
-            </label>
-          )}
-
-          {pideCantidad && (
-            <div>
-              <label style={labelStyle}>{tipo === 'max_francos_dia' ? 'Máximo de francos' : 'Cantidad mínima'}</label>
-              <input type="number" min={1} max={10} value={cantidad} onChange={e => setCantidad(Number(e.target.value))} style={inputStyle} />
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginTop: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={conVigencia} onChange={e => setConVigencia(e.target.checked)} />
-            Restricción temporal (con fecha desde/hasta)
-          </label>
-          {conVigencia && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '12px' }}>
-              <div>
-                <label style={labelStyle}>Vigente desde</label>
-                <input type="date" value={vigenciaDesde} onChange={e => setVigenciaDesde(e.target.value)} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Vigente hasta</label>
-                <input type="date" value={vigenciaHasta} onChange={e => setVigenciaHasta(e.target.value)} style={inputStyle} />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {errorForm && (
-          <p style={{ color: 'var(--accent-strong)', fontSize: '13px', marginTop: '12px' }}>⚠️ {errorForm}</p>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            {describir() || 'Completá el formulario para ver el resumen de la regla.'}
-          </p>
-          <button
-            onClick={handleAgregar}
-            style={{ background: 'var(--accent)', color: 'var(--accent-dark)', padding: '12px 24px', borderRadius: '100px', border: 'none', fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}
-          >
-            + Agregar regla
-          </button>
-        </div>
-      </div>
-
-      {/* Listado */}
-      <div style={{ background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)' }}>
-            Reglas configuradas ({reglasListadas.length})
-          </h3>
-        </div>
-        {reglasListadas.length === 0 ? (
-          <p style={{ padding: '32px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '14px' }}>
-            Todavía no hay reglas por colaborador ni mínimos de cajeros. Las que agregues acá se aplican automáticamente en cada generación de horarios.
-          </p>
-        ) : (
-          <div>
-            {reglasListadas.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px 24px', borderBottom: '1px solid var(--border)', opacity: r.activa ? 1 : 0.5 }}>
-                <span style={{
-                  fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '100px',
-                  background: r.ambito === 'colaborador' ? 'var(--purple)' : 'var(--accent)',
-                  color: r.ambito === 'colaborador' ? 'var(--bg)' : 'var(--accent-dark)',
-                  whiteSpace: 'nowrap',
-                }}>
-                  {r.ambito === 'colaborador' ? 'COLABORADOR' : 'LOCAL'}
-                </span>
-                <span style={{ flex: 1, fontSize: '14px', color: 'var(--text)' }}>{r.descripcion}</span>
-                {(r.vigenciaDesde || r.vigenciaHasta) && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>⏳ temporal</span>
-                )}
-                <button
-                  onClick={() => toggleActiva(r.id)}
-                  style={{
-                    padding: '6px 14px', borderRadius: '100px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-                    background: r.activa ? 'var(--accent)' : 'var(--surface)',
-                    color: r.activa ? 'var(--accent-dark)' : 'var(--text-muted)',
-                    fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  {r.activa ? 'Activa' : 'Pausada'}
-                </button>
-                <button
-                  onClick={() => { if (confirm(`¿Eliminar la regla "${r.descripcion}"?`)) eliminarRegla(r.id) }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '18px', cursor: 'pointer' }}
-                  title="Eliminar regla"
-                >
-                  🗑
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+function FormPersona({ cajeros, hibrido, onRegla, onArmarAMano }: {
+  cajeros: Array<{ id: string; nombre: string }>; hibrido: boolean
+  onRegla: (r: NuevaRegla) => void; onArmarAMano: (id: string, lunes: string, semanas: number) => Promise<boolean>
+}) {
+  const [persona, setPersona] = useState(''), [que, setQue] = useState<QuePersona>('franco_fijo'), [dia, setDia] = useState(0), [hora, setHora] = useState('09:00')
+  const [temporal, setTemporal] = useState(false), [desde, setDesde] = useState(''), [hasta, setHasta] = useState('')
+  const lunesOpc = useMemo(() => Array.from({ length: 8 }, (_, i) => { const l = new Date(`${proximoLunesISO()}T12:00:00Z`); l.setUTCDate(l.getUTCDate() + 7 * i); return l.toISOString().slice(0, 10) }), [])
+  const [lunes, setLunes] = useState(lunesOpc[0]), [semanas, setSemanas] = useState(1)
+  const [error, setError] = useState('')
+  const nombre = cajeros.find(c => c.id === persona)?.nombre ?? ''
+  const agregar = async () => {
+    setError('')
+    if (!persona) { setError('Elegí una persona.'); return }
+    if (que === 'armar_a_mano') { if (await onArmarAMano(persona, lunes, semanas)) setPersona(''); return }
+    if (temporal && (!desde || !hasta || hasta < desde)) { setError('Indicá desde y hasta (el fin después del inicio).'); return }
+    const txt: Record<TipoReglaColaborador, string> = {
+      franco_fijo: `${nombre}: franco fijo los ${DIAS_SEMANA[dia]}`, no_antes_de: `${nombre}: no entra antes de las ${hora}`,
+      no_despues_de: `${nombre}: no sale después de las ${hora}`, siempre_manana: `${nombre}: siempre de mañana`, siempre_cierre: `${nombre}: siempre de cierre`,
+    } as Record<TipoReglaColaborador, string>
+    onRegla({ ambito: 'colaborador', tipo: que, colaboradorNombre: nombre, dia: que === 'franco_fijo' ? dia : undefined,
+      hora: que === 'no_antes_de' || que === 'no_despues_de' ? hora : undefined,
+      vigenciaDesde: temporal ? desde : undefined, vigenciaHasta: temporal ? hasta : undefined, descripcion: txt[que] })
+    setPersona('')
+  }
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+      <select aria-label="Persona" value={persona} onChange={e => setPersona(e.target.value)} style={estiloCampo}>
+        <option value="">Persona…</option>{cajeros.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+      </select>
+      <select aria-label="Regla" value={que} onChange={e => setQue(e.target.value as QuePersona)} style={estiloCampo}>
+        {QUE_PERSONA.filter(q => hibrido || !q.hibrido).map(q => <option key={q.valor} value={q.valor}>{q.texto}</option>)}
+      </select>
+      {que === 'franco_fijo' && <select aria-label="Día" value={dia} onChange={e => setDia(Number(e.target.value))} style={estiloCampo}>{DIAS_SEMANA.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>}
+      {(que === 'no_antes_de' || que === 'no_despues_de') && <select aria-label="Hora" value={hora} onChange={e => setHora(e.target.value)} style={estiloCampo}>{HORAS.map(h => <option key={h} value={h}>{h}</option>)}</select>}
+      {que === 'armar_a_mano' ? <>
+        <select aria-label="Desde la semana" value={lunes} onChange={e => setLunes(e.target.value)} style={estiloCampo}>{lunesOpc.map(l => <option key={l} value={l}>Semana del {ddmm(l)}</option>)}</select>
+        <select aria-label="Cantidad de semanas" value={semanas} onChange={e => setSemanas(Number(e.target.value))} style={estiloCampo}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n === 1 ? '1 semana' : `${n} semanas`}</option>)}</select>
+      </> : <>
+        <select aria-label="Período" value={temporal ? 't' : 's'} onChange={e => setTemporal(e.target.value === 't')} style={estiloCampo}><option value="s">Siempre</option><option value="t">Entre fechas</option></select>
+        {temporal && <><input aria-label="Desde" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={estiloCampo} /><input aria-label="Hasta" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={estiloCampo} /></>}
+      </>}
+      <Boton onClick={() => void agregar()}>Agregar</Boton>
+      {error && <p role="alert" style={{ flexBasis: '100%', margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{error}</p>}
     </div>
   )
 }
+
+function FormMinimo({ onRegla }: { onRegla: (r: NuevaRegla) => void }) {
+  const [dia, setDia] = useState(-1), [franja, setFranja] = useState(''), [cantidad, setCantidad] = useState(2), [error, setError] = useState('')
+  const agregar = () => {
+    const r = interpretarHorario(franja, { ...opcionesHorarioMotor, maxBloques: 1 })
+    const t = r.ok ? r.turnos[0] : undefined
+    if (!t) { setError(r.ok ? 'Indicá el horario, por ejemplo 12 a 22.' : r.error); return }
+    setError('')
+    onRegla({ ambito: 'local', tipo: 'min_cajeros_franja', dia, horaDesde: t.inicio, horaHasta: t.fin, cantidad: Math.max(1, cantidad),
+      descripcion: `Mínimo ${cantidad} cajeros ${dia === -1 ? 'todos los días' : `los ${DIAS_SEMANA[dia]}`} de ${t.inicio} a ${t.fin}` })
+    setFranja('')
+  }
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+      <select aria-label="Día del mínimo" value={dia} onChange={e => setDia(Number(e.target.value))} style={estiloCampo}>
+        <option value={-1}>Todos los días</option>{DIAS_SEMANA.map((d, i) => <option key={d} value={i}>{d}</option>)}
+      </select>
+      <input aria-label="Horario del mínimo" placeholder="12 a 22" value={franja} onChange={e => setFranja(e.target.value)} style={{ ...estiloCampo, width: '120px' }} />
+      <label style={{ fontSize: '14px', color: 'var(--text-muted)' }}>al menos <input aria-label="Cantidad mínima" type="number" min={1} max={10} value={cantidad} onChange={e => setCantidad(Number(e.target.value))} style={{ ...estiloCampo, width: '70px' }} /> cajeros</label>
+      <Boton onClick={agregar}>Agregar</Boton>
+      {error && <p role="alert" style={{ flexBasis: '100%', margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{error}</p>}
+    </div>
+  )
+}
+
