@@ -61,31 +61,46 @@ export function Boton({ onClick, children, variante = 'primario', disabled }: { 
   return <button type="button" onClick={onClick} disabled={disabled} style={{ ...(variante === 'primario' ? primario : secundario), opacity: disabled ? 0.5 : 1 }}>{children}</button>
 }
 
-/** Tres números de la semana + dónde faltan cajas, en lenguaje del supervisor. */
-export function ResumenCobertura({ resumen, maxTramos = 4 }: { resumen: ResumenSemana; maxTramos?: number }) {
+/** Indicador en mosaico (para el resumen de la semana). */
+function Mosaico({ valor, etiqueta, tono = 'normal' }: { valor: string; etiqueta: string; tono?: Tono }) {
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '14px 16px', background: 'var(--card)' }}>
+      <div style={{ fontSize: '28px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: COLOR[tono], letterSpacing: '-0.5px', lineHeight: 1.1 }}>{valor}</div>
+      <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{etiqueta}</div>
+    </div>
+  )
+}
+
+/** Resumen de la semana: tres números a la izquierda y dónde faltan cajas a la derecha (usa todo el ancho). */
+export function ResumenCobertura({ resumen, maxTramos = 6 }: { resumen: ResumenSemana; maxTramos?: number }) {
   const sinFaltantes = resumen.faltantes.length === 0
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px' }}>
-        <Indicador valor={formatoPct(resumen.coberturaPct)} etiqueta="de la necesidad cubierta" tono={tonoCobertura(resumen.coberturaPct)} />
-        <Indicador valor={formatoHoras(resumen.horasNecesarias)} etiqueta="horas de caja necesarias" />
-        <Indicador valor={formatoHoras(resumen.horasSinCubrir)} etiqueta="horas sin cubrir" tono={resumen.horasSinCubrir > 0 ? 'atencion' : 'bien'} />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', alignContent: 'start' }}>
+        <Mosaico valor={formatoPct(resumen.coberturaPct)} etiqueta="necesidad cubierta" tono={tonoCobertura(resumen.coberturaPct)} />
+        <Mosaico valor={formatoHoras(resumen.horasNecesarias)} etiqueta="horas de caja necesarias" />
+        <Mosaico valor={formatoHoras(resumen.horasSinCubrir)} etiqueta="horas sin cubrir" tono={resumen.horasSinCubrir > 0 ? 'atencion' : 'bien'} />
       </div>
-      {sinFaltantes ? (
-        <p style={{ margin: 0, fontSize: '14px', color: 'var(--success)' }}>Todas las franjas tienen las cajas necesarias.</p>
-      ) : (
-        <div>
-          <p style={{ margin: '0 0 6px', fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>Dónde faltan cajas</p>
-          <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '14px', color: 'var(--text)', display: 'grid', gap: '2px' }}>
-            {resumen.faltantes.slice(0, maxTramos).map(t => (
-              <li key={`${t.dia}-${t.desde}`}>{t.diaNombre} {t.desde}–{t.hasta}: {t.cajas === 1 ? 'falta 1 caja' : `faltan ${t.cajas} cajas`}</li>
-            ))}
-          </ul>
-          {resumen.faltantes.length > maxTramos && (
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>y {resumen.faltantes.length - maxTramos} {resumen.faltantes.length - maxTramos === 1 ? 'tramo más' : 'tramos más'} con menos faltante.</p>
-          )}
-        </div>
-      )}
+      <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '14px 16px' }}>
+        <p style={{ margin: '0 0 8px', fontSize: '13px', fontWeight: 700, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dónde faltan cajas</p>
+        {sinFaltantes ? (
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--success)' }}>Todas las franjas tienen las cajas necesarias.</p>
+        ) : (
+          <>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '4px 16px', fontSize: '14px' }}>
+              {resumen.faltantes.slice(0, maxTramos).map(t => (
+                <li key={`${t.dia}-${t.desde}`} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span><strong>{t.diaNombre}</strong> {t.desde}–{t.hasta}</span>
+                  <span style={{ color: t.cajas > 1 ? 'var(--danger)' : 'var(--warning)', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.cajas === 1 ? '−1 caja' : `−${t.cajas} cajas`}</span>
+                </li>
+              ))}
+            </ul>
+            {resumen.faltantes.length > maxTramos && (
+              <p style={{ margin: '8px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>y {resumen.faltantes.length - maxTramos} {resumen.faltantes.length - maxTramos === 1 ? 'tramo más' : 'tramos más'} con menos faltante (ver la cobertura por franja).</p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

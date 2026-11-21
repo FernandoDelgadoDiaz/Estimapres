@@ -74,3 +74,20 @@ body {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===== Tablas de la app (AH2-044): cuadrícula con líneas, encabezados alineados con las celdas ===== */
+.tabla-contenedor { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: 12px; }
+.tabla-grilla { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; color: var(--text); }
+.tabla-grilla th {
+  background: var(--surface); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.04em; padding: 10px 12px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--border-hover);
+}
+.tabla-grilla td, .tabla-grilla tbody th { padding: 10px 12px; vertical-align: middle; border-bottom: 1px solid var(--border); }
+.tabla-grilla tbody th { background: var(--card); color: var(--text); font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.tabla-grilla tr > * + * { border-left: 1px solid var(--border); }
+.tabla-grilla tbody tr:last-child > * { border-bottom: none; }
+.tabla-grilla .centro { text-align: center; }
+.tabla-grilla .derecha { text-align: right; }
+.tabla-grilla .fijo { position: sticky; left: 0; z-index: 1; }
+.tabla-grilla thead .fijo { z-index: 2; }
+.tabla-grilla .num { font-variant-numeric: tabular-nums; }

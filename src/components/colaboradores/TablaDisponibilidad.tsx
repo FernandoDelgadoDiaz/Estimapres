@@ -100,8 +100,8 @@ function FilaDisponibilidad({ persona, onEdit, onDelete, onToggleActivo, onEdita
   }, 0)
 
   return (
-    <tr className="border-t align-top">
-      <th scope="row" className="w-36 px-2 py-3 text-left text-sm font-semibold break-words">
+    <tr style={{ opacity: persona.activo ? 1 : 0.6 }}>
+      <th scope="row" className="fijo" style={{ overflowWrap: 'anywhere' }}>
         {esEventual
           ? <CampoTexto valor={persona.nombre} etiqueta="Nombre del eventual" onGuardar={nombre => { if (nombre) onEdit(persona.id, { nombre }) }} />
           : persona.nombre}
@@ -111,7 +111,7 @@ function FilaDisponibilidad({ persona, onEdit, onDelete, onToggleActivo, onEdita
         </>}
       </th>
       {DIAS_SEMANA.map((dia, idx) => (
-        <td key={dia} className="px-1 py-2">
+        <td key={dia} style={{ padding: '6px' }}>
           <HorarioEditable valor={persona.horarioSemanal[idx] ?? ''} etiqueta={`${persona.nombre}, ${dia}`}
             onBorrador={valor => setBorradores(prev => ({ ...prev, [idx]: valor }))}
             onGuardar={valor => {
@@ -121,14 +121,7 @@ function FilaDisponibilidad({ persona, onEdit, onDelete, onToggleActivo, onEdita
           />
         </td>
       ))}
-      <td className="w-24 px-2 py-2 text-xs">
-        {onEditarNombre && <button type="button" className="block py-1 underline" onClick={() => onEditarNombre(persona)}>Editar ficha</button>}
-        <button type="button" className="block py-1 underline" onClick={() => onToggleActivo(persona.id)}>{persona.activo ? 'Desactivar' : 'Activar'}</button>
-        <button type="button" className="block py-1 text-red-800 underline" onClick={() => {
-          if (window.confirm(`¿Eliminar a ${persona.nombre}?`)) onDelete(persona.id)
-        }}>Eliminar</button>
-      </td>
-      <td className="w-32 px-2 py-2">
+      <td>
         <ResumenHoras minutos={minutos} tipo={esEventual ? 'EVENTUAL' : 'AUX'} objetivo={esEventual ? persona.maxHorasSemanales : persona.horasSemanales} etiqueta={esEventual ? 'Disponibles' : 'Presencia'} />
         {esEventual && <label className="mt-2 block text-xs">Máximo semanal
           <input key={persona.maxHorasSemanales ?? ''} type="number" min="1" max="168" step="1"
@@ -144,24 +137,32 @@ function FilaDisponibilidad({ persona, onEdit, onDelete, onToggleActivo, onEdita
           />
         </label>}
       </td>
+      <td style={{ fontSize: '13px' }}>
+        {onEditarNombre && <button type="button" className="block py-1 underline" onClick={() => onEditarNombre(persona)}>Editar ficha</button>}
+        <button type="button" className="block py-1 underline" onClick={() => onToggleActivo(persona.id)}>{persona.activo ? 'Desactivar' : 'Activar'}</button>
+        <button type="button" className="block py-1 text-red-800 underline" onClick={() => {
+          if (window.confirm(`¿Eliminar a ${persona.nombre}?`)) onDelete(persona.id)
+        }}>Eliminar</button>
+      </td>
     </tr>
   )
 }
 
 export default function TablaDisponibilidad({ personas, ...acciones }: Props) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white text-gray-900">
-      <table className="w-full min-w-[970px] table-fixed">
-        <thead className="bg-gray-50 text-left text-xs">
+    <div className="tabla-contenedor">
+      <table className="tabla-grilla" style={{ minWidth: '1060px', tableLayout: 'fixed' }}>
+        <colgroup><col style={{ width: '170px' }} />{DIAS_SEMANA.map(d => <col key={d} />)}<col style={{ width: '150px' }} /><col style={{ width: '110px' }} /></colgroup>
+        <thead>
           <tr>
-            <th className="w-36 p-2">Nombre</th>
-            {DIAS_SEMANA.map(dia => <th key={dia} className="p-2">{dia}</th>)}
-            <th className="w-24 p-2">Acciones</th><th className="w-32 p-2">Horas semanales</th>
+            <th className="fijo">Nombre</th>
+            {DIAS_SEMANA.map(dia => <th key={dia} className="centro">{dia}</th>)}
+            <th>Horas semanales</th><th>Acciones</th>
           </tr>
         </thead>
         <tbody>{personas.map(persona => <FilaDisponibilidad key={persona.id} persona={persona} {...acciones} />)}</tbody>
       </table>
-      <p className="border-t bg-gray-50 px-3 py-2 text-xs">Usá medias horas. Por ejemplo, 8 a 12 y 17:30 a 22. Dejá vacío para franco o sin disponibilidad.</p>
+      <p className="px-3 py-2 text-xs" style={{ borderTop: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-muted)' }}>Usá medias horas. Por ejemplo, 8 a 12 y 17:30 a 22. Dejá vacío para franco o sin disponibilidad.</p>
     </div>
   )
 }

@@ -2,7 +2,7 @@
  * Configuración de la sucursal (AH2-044): el supervisor ve campos simples. Por detrás:
  * - reglas de la sucursal (comunes al motor A y a CP-SAT) en `useReglas`;
  * - en sucursales con motor híbrido, la configuración persistente AH2-042 (historial, versiones, conflictos).
- * Lo avanzado (historial de versiones, importación, backup) queda en «Opciones avanzadas».
+ * Lo avanzado (historial de versiones, importación, backup) no se muestra al supervisor.
  */
 import { useMemo, useState } from 'react'
 import { DIAS_SEMANA, type ReglaConfigurable, type TipoReglaColaborador } from '../types'
@@ -12,8 +12,6 @@ import { usaHibrido } from '../hibrido/integracion'
 import { getSucursalActual } from '../utils/sucursal'
 import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
 import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente } from '../utils/preferencias'
-import { ConfiguracionMotorPanel } from '../components/reglas/ConfiguracionMotorPanel'
-import BackupConfig from '../components/semana/BackupConfig'
 import { Boton, FilaAjuste, Interruptor, Pagina, Seccion, estiloCampo } from '../components/ui/Basicos'
 import { FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
 import { ddmm } from '../hibrido/configuracionSimple'
@@ -141,13 +139,6 @@ export default function ReglasPage() {
         <FormMinimo onRegla={agregarRegla} />
       </Seccion>
 
-      <details>
-        <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', padding: '4px 0' }}>Opciones avanzadas (administración)</summary>
-        <div style={{ display: 'grid', gap: '16px', marginTop: '12px' }}>
-          {usaHibrido(sucursal) && <ConfiguracionMotorPanel sucursal={sucursal} />}
-          <BackupConfig />
-        </div>
-      </details>
     </Pagina>
   )
 }
