@@ -58,3 +58,12 @@ describe('AH2-049: reglas por persona visibles antes de generar', () => {
     expect(r[0]).toMatchObject({ excluye: false, texto: 'tiene un franco fijado a mano (preferencia, desde el 02/11)' })
   })
 })
+
+describe('AH2-051: el aprendizaje de la 091 arranca en su paso a producción', () => {
+  it('descarta semanas generadas antes (simulación) y no filtra otras sucursales', async () => {
+    const { desdeInicioAprendizaje } = await import('../integracion')
+    const s = [{ generadoEl: '2026-11-19T15:08:35Z' }, { generadoEl: '2026-11-21T20:45:00Z' }]
+    expect(desdeInicioAprendizaje(s, '091')).toEqual([{ generadoEl: '2026-11-21T20:45:00Z' }])
+    expect(desdeInicioAprendizaje(s, '092')).toHaveLength(2)
+  })
+})

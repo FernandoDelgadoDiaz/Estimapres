@@ -10,6 +10,16 @@ import {editarTopes} from './topesContrato'
 import {cargarConfiguracionMotor,resolverConfiguracion,type FilaConfigMotor,type TrazaConfig} from './configuracionPersistente'
 
 export interface ConfigDespliegueHibrido {habilitado:boolean;servicio:string}
+/**
+ * AH2-051 (decisión del propietario, 21/11/2026): hasta acá la sucursal operó en simulación; el aprendizaje
+ * (rotación y correcciones) arranca de cero desde su paso a producción real. Lo anterior queda archivado.
+ */
+export const INICIO_APRENDIZAJE: Record<string, string> = { '091': '2026-11-21T20:39:00Z' }
+/** Semanas que alimentan el aprendizaje: generadas desde el inicio de producción de la sucursal. */
+export const desdeInicioAprendizaje = <T extends { generadoEl: string }>(semanas: T[], sucursal: string) => {
+ const inicio = INICIO_APRENDIZAJE[sucursal]
+ return inicio ? semanas.filter(s => s.generadoEl >= inicio) : semanas
+}
 export function configHibrido():ConfigDespliegueHibrido {
  return {habilitado:import.meta.env.VITE_AH2_HIBRIDO_091==='true',servicio:import.meta.env.VITE_AH2_OPTIMIZER_URL??''}
 }

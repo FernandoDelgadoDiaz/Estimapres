@@ -1,4 +1,13 @@
-## PUNTO ÚNICO DE RETOMA — AH2-049 reglas por persona visibles (PR) · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-051 aprendizaje desde cero (PR) · 21/11/2026, Claude
+
+**Estado:** `main@87a3cb6` (#75–#77) espera Publish deploy (rollback `6b02005b0d69a4f75257d273`). En PR, para publicar juntos: **#78** (AH2-050, leyenda de horas) y **AH2-051** (rama `claude/ah2-051-aprendizaje-desde-cero`): el aprendizaje de la 091 (rotación, correcciones, criterios) usa solo semanas generadas desde el 21/11 20:39 UTC; lo anterior queda archivado, sin borrar. Pruebas: Vitest 622 passed / 4 skipped; Playwright 20 passed / 1 skipped; build y lint OK.
+
+### Pendiente
+- Fusionar #78 y AH2-051 (autorización) → un solo Publish deploy → generar la semana del 23/11.
+- Resto: ver relevo anterior.
+---
+
+## RELEVO ANTERIOR — AH2-049 reglas por persona visibles (PR) · 21/11/2026, Claude
 
 **Estado:** `main@97101ce` (AH2-047 #75 + AH2-048 #76) espera el Publish deploy del propietario en Netlify (rollback: `6b02005b0d69a4f75257d273`). **Dato de producción cambiado (autorizado):** se desactivó la exclusión manual temporal de Gabriel Silva (fila `eab627c5…`, 23–29/11) con `cms_desactivar`, versión 2, 21/11 21:46 UTC; era la única regla por persona activa en la 091. AH2-049 en PR (rama `claude/ah2-049-reglas-por-persona`): las reglas por persona se muestran en Nueva semana y Personal con botón para quitarlas. Pruebas: Vitest 621 passed / 4 skipped; Playwright 20 passed / 1 skipped; build y lint OK; captura de Personal revisada contra Supabase simulado.
 

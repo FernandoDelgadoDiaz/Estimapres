@@ -1,4 +1,4 @@
-import {configuracionAutenticada,usaHibrido} from '../hibrido/integracion'
+import {configuracionAutenticada,desdeInicioAprendizaje,usaHibrido} from '../hibrido/integracion'
 import {topesVigentes,type EdicionTopes} from '../hibrido/topesContrato'
 import { ReglasPorPersona, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
@@ -196,7 +196,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     [historial, lunesSemana, sucursal, cajerosDomingo.map(c => c.id).join()],
   )
   // Solo las generaciones elegidas para el historial tienen procedencia operativa.
-  const semanasOperativas = useMemo(() => hibridoDisponible?historial.filter(h => h.antecedenteDomingo?.sucursal === sucursal || !!h.hibrido):historial, [historial, sucursal, hibridoDisponible])
+  // AH2-051: el aprendizaje usa solo semanas desde el paso a producción de la sucursal (antes era simulación).
+  const semanasOperativas = useMemo(() => desdeInicioAprendizaje(hibridoDisponible?historial.filter(h => h.antecedenteDomingo?.sucursal === sucursal || !!h.hibrido):historial, sucursal), [historial, sucursal, hibridoDisponible])
   const correccionesOperativas = useMemo(() => {
     if(!hibridoDisponible)return correcciones
     const ids = new Set(semanasOperativas.map(h => h.id))
