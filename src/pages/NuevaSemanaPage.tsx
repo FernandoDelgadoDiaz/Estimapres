@@ -1179,6 +1179,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 eventuales={eventualesActivos}
                 editable
                 onEditarJornada={handleEditarJornada}
+                cajaAux={resultado.cajaAux ?? []}
               />
             </div>
           )}

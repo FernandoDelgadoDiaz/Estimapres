@@ -1,4 +1,13 @@
-## PUNTO ÚNICO DE RETOMA — AH2-047 correcciones del supervisor en PR · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-048 supervisores por horas en caja (PR) · 21/11/2026, Claude
+
+**Estado:** AH2-047 fusionado en `main@9f3eee5` (PR #75); el propietario hace Publish deploy en Netlify (rollback: `6b02005b0d69a4f75257d273`). AH2-048 en PR (rama `claude/ah2-048-aux-en-caja`), sin publicar: la tabla «Horario por persona» muestra a los AUX por sus horas en caja (como el PDF). Pruebas: Vitest 619 passed / 4 skipped; Playwright 20 passed / 1 skipped (nueva `horarios-caja-aux.e2e.ts`); build OK.
+
+### Pendiente
+- Publicar AH2-048 (autorización del propietario) y verificar que la semana del 23/11 quede guardada.
+- Resto: ver relevo anterior.
+---
+
+## RELEVO ANTERIOR — AH2-047 correcciones del supervisor en PR · 21/11/2026, Claude
 
 **Estado:** producción = Netlify deploy `6b02005b0d69a4f75257d273` = `main@d7ec41d` (PR #74, AH2-046: domingo anterior automático, guardado por defecto), publicado 21/11 20:39 UTC. Rollback: `6b01bed8ecf0a43bb39c5131`. Cloud Run `aliada-optimizer-00007-vzq` y Supabase sin cambios. AH2-047 en PR (rama `claude/ah2-047-correcciones-supervisor`), **sin publicar**.
 
