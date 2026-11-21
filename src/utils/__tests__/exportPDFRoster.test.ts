@@ -124,7 +124,7 @@ describe('PDF semanal A4', () => {
         expect(paginaTexto).toContain('Sucursal 900')
         expect(paginaTexto).toContain('Semana 16/11/2026 al 22/11/2026')
         expect(paginaTexto).toContain('Versión 3')
-        expect(paginaTexto).toContain(validacion.publicable ? 'Estado: VALIDADO' : 'Estado: BORRADOR')
+        expect(paginaTexto).toContain(validacion.publicable ? 'Estado: Listo' : 'Estado: Borrador')
         for (const t of texto) {
           expect(t.x).toBeGreaterThan(pdfPt(11))
           expect(t.x + t.ancho).toBeLessThan(ancho - pdfPt(11))
@@ -190,7 +190,7 @@ describe('PDF semanal A4', () => {
     expect(textos.join(' ')).toContain('10:00-10:30 11:00-11:30')
     for (let i = 0; i < cantidad; i++) expect(textos.join(' ')).toContain(`Fin del aviso ${ids(i)}.`)
     if (cantidad === 60) {
-      expect(titulos.get('Validación y faltantes')).toBeGreaterThan(1)
+      expect(titulos.get('Resumen de la semana')).toBeGreaterThan(1)
       for (let i = 0; i < 45; i++) expect(textos.join(' ')).toContain(`Incidencia sintética ${ids(i)}.`)
     }
   })

@@ -1,4 +1,21 @@
-## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor, etapa 1 (menú, Inicio, Horarios) en PR · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor: 4 etapas listas en PR #67, sin publicar · 21/11/2026, Claude
+
+**Estado:** producción sin cambios (Netlify `main@c1b1f0c`, Cloud Run `aliada-optimizer-00007-vzq`). El propietario pidió publicar **las 4 etapas juntas**. Todo está en el PR #67 (rama `feat/ux-etapa1-navegacion`). **Falta:** autorización para fusionar y Publish deploy en Netlify. Sin cambios en motor, validadores, base ni Cloud Run.
+
+### Hecho
+1. **Menú, Inicio y Horarios:** 5 opciones (Inicio, Nueva semana, Horarios, Personal, Configuración); Historial y Efectividad fuera del menú (siguen por detrás; rutas de administración). Inicio con próxima semana + una acción, último horario con cobertura y dónde faltan cajas. Horarios: último + semanas anteriores, edición con registro de correcciones (aprendizaje intacto), **cobertura por franja siempre visible con horas pico marcadas** y cajas de más.
+2. **Configuración:** una página con interruptores y campos (apertura y supervisión, francos, eventuales en caja, reglas por persona, mínimo de cajeros). En la 091 escribe en la configuración persistente AH2-042 (máximos EVENTUAL, horarios de supervisor solo en caja, qué eventuales atienden caja, «lo armo yo»), con simulación de conflictos e historial; rige desde el próximo lunes. Historial de versiones, importación y backup en «Opciones avanzadas».
+3. **Nueva semana:** paso 2 corto (semana con horas necesarias/disponibles, domingo anterior, cambios de la semana, opciones plegadas); resultado con resumen, estado «Listo / Borrador», cobertura con picos y horario por persona. Sin «¡Todo perfecto!» ni códigos.
+4. **PDF y Personal:** estado en palabras («Listo», «Borrador (revisar antes de publicar)», «Sin verificar»), página «Resumen de la semana» con cobertura y lo que hay que revisar, sin códigos ni la página de alertas del motor. Personal: «Supervisores», una línea de activos, acciones en texto, sin notas técnicas.
+
+### Pruebas
+Vitest **613 passed / 4 skipped**; Playwright **18 passed / 1 skipped** (nueva: Configuración); build OK. Pantalla de Configuración de la 091 revisada contra un Supabase simulado con datos sintéticos.
+
+### Para publicar (autorización del propietario)
+Fusionar PR #67 → Publish deploy del deploy de `main` en Netlify. Rollback: deploy `6b0198cdc2dd14bb7be3bb3e`.
+---
+
+## RELEVO ANTERIOR — AH2-044 etapa 1 en PR · 21/11/2026, Claude
 
 **Estado:** producción sin cambios (Netlify `main@c1b1f0c`, Cloud Run `aliada-optimizer-00007-vzq`). Decisión del propietario AH2-044 (MASTER): pantallas simples para el supervisor (computadora; configura y corrige; el aprendizaje de correcciones sigue por detrás). Etapa 1 en PR (rama `feat/ux-etapa1-navegacion`), **sin publicar**.
 

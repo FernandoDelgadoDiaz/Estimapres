@@ -156,7 +156,7 @@ describe('PDF operativo — documento', () => {
     expect(todo).toContain('Horas caja')
     expect(todo).toContain('Horas presencia')
     for (const p of paginas) expect(p).toContain('Sucursal 000 · Semana 16/11/2026 al 22/11/2026 · Versión 4')
-    expect(paginas.every(p => p.includes('Estado: VALIDADO'))).toBe(true)
+    expect(paginas.every(p => p.includes('Estado: Listo'))).toBe(true)
     // Antes: 6 páginas. #7 agrega la página de alertas con el costo de la prioridad de horas PART.
     expect(paginas.length).toBeLessThanOrEqual(5)
     expect(todo).toContain('Prioridad de horas PART')
@@ -205,7 +205,7 @@ describe('PDF operativo — documento', () => {
     })
     const paginas = await inspeccionar(doc, 'pdf-s47-historico.pdf')
     const todo = paginas.join(' ')
-    expect(paginas.every(p => p.includes('Estado: SIN VERIFICAR'))).toBe(true)
+    expect(paginas.every(p => p.includes('Estado: Sin verificar'))).toBe(true)
     expect(todo).toContain(PRESENCIA_NO_REGISTRADA)
     expect(todo).not.toContain('06:00-14:00') // la disponibilidad actual del eventual no se usa
   })
@@ -214,7 +214,8 @@ describe('PDF operativo — documento', () => {
     const r = generar(OPERATIVA_S47)
     const malo = { ...r, cajaEventual: r.cajaEventual!.map(e => e.colaboradorId === 'ev-M' ? { ...e, slotsCajaPorDia: e.slotsCajaPorDia.map((f, d) => f.map((x, s) => x || (d !== 5 && s < 2))) } : e) }
     const paginas = await inspeccionar(pdf(malo), 'pdf-s47-borrador.pdf')
-    expect(paginas.every(p => p.includes('Estado: BORRADOR'))).toBe(true)
-    expect(paginas.join(' ')).toContain('OP_APERTURA_COMPOSICION')
+    expect(paginas.every(p => p.includes('Estado: Borrador'))).toBe(true)
+    expect(paginas.join(' ')).toContain('Para revisar')
+    expect(paginas.join(' ')).not.toContain('OP_APERTURA_COMPOSICION')
   })
 })

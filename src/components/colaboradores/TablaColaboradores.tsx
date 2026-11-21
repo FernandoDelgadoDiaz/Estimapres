@@ -69,32 +69,10 @@ export default function TablaColaboradores({
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => onToggleActivo(col.id)}
-                    className="text-gray-500 hover:text-gray-700"
-                    title={col.activo ? 'Desactivar' : 'Activar'}
-                  >
-                    {col.activo ? (
-                      <span className="text-xl">🔴</span>
-                    ) : (
-                      <span className="text-xl">🟢</span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => onEdit(col)}
-                    className="text-blue-500 hover:text-blue-700"
-                    title="Editar"
-                  >
-                    <span className="text-xl">✏️</span>
-                  </button>
-                  <button
-                    onClick={() => onDelete(col.id)}
-                    className="text-red-500 hover:text-red-700"
-                    title="Eliminar"
-                  >
-                    <span className="text-xl">🗑️</span>
-                  </button>
+                <div className="flex gap-4">
+                  <button onClick={() => onEdit(col)} className="font-semibold underline" style={{ color: 'var(--text)' }}>Editar</button>
+                  <button onClick={() => onToggleActivo(col.id)} className="underline" style={{ color: 'var(--text-muted)' }}>{col.activo ? 'Desactivar' : 'Activar'}</button>
+                  <button onClick={() => onDelete(col.id)} className="underline" style={{ color: 'var(--danger)' }}>Eliminar</button>
                 </div>
               </td>
             </tr>

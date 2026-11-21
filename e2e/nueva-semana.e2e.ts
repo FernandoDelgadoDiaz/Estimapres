@@ -93,7 +93,7 @@ test('POM → demanda → horario nominal → validación → PDF, con excepció
   await page.getByRole('button', { name: 'Exportar a PDF' }).click()
   const archivo = await (await descarga).path()
   const texto = (await textoPDFNode(new Uint8Array(await readFile(archivo!)))).replace(/\s+/g, ' ')
-  for (const contenido of ['Sucursal 900', 'Semana 16/11/2026 al 22/11/2026', 'Estado: VALIDADO', 'Full A', 'Validación y faltantes']) {
+  for (const contenido of ['Sucursal 900', 'Semana 16/11/2026 al 22/11/2026', 'Estado: Listo', 'Full A', 'Resumen de la semana', 'Cobertura:']) {
     expect(texto).toContain(contenido)
   }
   expect(texto).not.toContain('Persona de referencia')

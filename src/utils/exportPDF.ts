@@ -225,7 +225,12 @@ export function generarPDF(
     meta.version !== undefined ? `Versión ${meta.version}` : null,
     meta.marcaNoGuardado,
   ].filter(Boolean).join('  ·  ')
-  const estado = meta.estado?.split(':')[0] ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
+  // AH2-044: estado en palabras del supervisor (sin códigos ni perfiles normativos).
+  const estadoCodigo = meta.estado?.split(':')[0] ?? (meta.validacion ? (meta.validacion.publicable ? 'VALIDADO' : 'BORRADOR') : undefined)
+  const estado = estadoCodigo === 'VALIDADO' ? 'Listo'
+    : estadoCodigo === 'BORRADOR' ? 'Borrador (revisar antes de publicar)'
+    : estadoCodigo === 'SIN VERIFICAR' ? 'Sin verificar (falta información)'
+    : estadoCodigo
 
   // Páginas que ya tienen encabezado: un cuadro que empieza a mitad de página no
   // vuelve a dibujarlo encima (evita textos superpuestos).
@@ -377,38 +382,41 @@ export function generarPDF(
 
   // Desde acá (validación y alertas, textos largos) vuelve el interlineado general.
   doc.setLineHeightFactor(1.48)
-  if (meta.validacion) {
+  // AH2-044: una página de resumen en lenguaje del supervisor (sin niveles ni códigos internos).
+  // Los avisos técnicos de generación (motor elegido, faltantes por franja ya resumidos) no se imprimen.
+  const avisos = [...new Set([
+    ...resultado.alertas.filter(a => !/^Motor híbrido/.test(a) && !/^Falta \d+ cajero/.test(a)),
+    ...(meta.validacion?.advertencias ?? []),
+  ])].map(sanitizarTexto)
+  if (meta.validacion || avisos.length) {
     doc.addPage()
-    const { violaciones, limitaciones = [] } = meta.validacion
-    const titulo = 'Validación y faltantes'
+    const { violaciones = [], limitaciones = [] } = meta.validacion ?? {}
+    const titulo = 'Resumen de la semana'
+    // Cobertura medida por el validador: cubiertas = asignadas − de más; necesarias = cubiertas + faltantes.
+    const suma = (m: number[][]) => m.reduce((a, f) => a + f.reduce((b, x) => b + x, 0), 0)
+    const cubiertas = metricas ? suma(metricas.cobertura) - suma(metricas.sobrantes) : 0
+    const necesarias = metricas ? cubiertas + suma(metricas.faltantes) : 0
+    const pct = metricas && necesarias > 0 ? (cubiertas / necesarias) * 100 : resultado.porcentajeCobertura
+    const cobertura = `${pct.toFixed(1).replace('.', ',')} %`
     const detalle = metricas
-      ? `Horas-caja faltantes: ${metricas.horasCajaFaltantes}  ·  sobrantes: ${metricas.horasCajaSobrantes}`
-      : undefined
-    if (violaciones.length > 0 || limitaciones.length > 0) {
+      ? `Cobertura: ${cobertura}  ·  horas sin cubrir: ${metricas.horasCajaFaltantes}  ·  cajas de más: ${metricas.horasCajaSobrantes} h`
+      : `Cobertura: ${cobertura}`
+    const filas = [
+      ...violaciones.map(x => [x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', sanitizarTexto(x.detalle)]),
+      ...limitaciones.map(l => ['', `Falta información: ${sanitizarTexto(l)}`]),
+      ...avisos.map(a => ['', a]),
+    ]
+    if (filas.length > 0) {
       tabla(titulo, {
-        head: [['Nivel', 'Código', 'Día', 'Detalle']],
-        body: [
-          ...violaciones.map(x => [x.nivel, x.codigo, x.dia !== undefined ? DIAS_SEMANA[x.dia] : '', x.detalle]),
-          // #38: limitaciones de datos (semana histórica): no se declara VALIDADO.
-          ...limitaciones.map(l => ['DATOS', 'SIN_VERIFICAR', '', l]),
-        ],
-        columnStyles: { 0: { cellWidth: 30 }, 1: { cellWidth: 59, fontSize: 8 }, 2: { cellWidth: 14 }, 3: { cellWidth: ancho - 103 } },
+        head: [['Día', 'Para revisar']],
+        body: filas,
+        columnStyles: { 0: { cellWidth: 16 }, 1: { cellWidth: ancho - 16 } },
       }, detalle)
     } else {
       encabezado(titulo, detalle)
       doc.setFontSize(10)
-      doc.text('Sin violaciones de reglas normativas ni operativas.', MARGEN, INICIO_TABLA + 6)
+      doc.text('Cumple todas las reglas de la sucursal.', MARGEN, INICIO_TABLA + 6)
     }
-  }
-
-  const alertas = [...resultado.alertas, ...(meta.validacion?.advertencias ?? [])]
-  if (alertas.length > 0) {
-    doc.addPage()
-    tabla('Alertas de generación', {
-      head: [['N.º', 'Detalle']],
-      body: alertas.map((alerta, i) => [i + 1, sanitizarTexto(alerta)]),
-      columnStyles: { 0: { cellWidth: 14 }, 1: { cellWidth: ancho - 14 } },
-    }, `Cobertura al generar: ${resultado.porcentajeCobertura.toFixed(1)} %`)
   }
 
   const paginas = doc.getNumberOfPages()
