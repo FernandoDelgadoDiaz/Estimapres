@@ -1,4 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { ReglasPorPersona, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
+import { proximoLunesISO } from '../hibrido/configuracionSimple'
+import { usaHibrido } from '../hibrido/integracion'
+import { getSucursalActual } from '../utils/sucursal'
 import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
@@ -115,8 +119,14 @@ export default function ColaboradoresPage() {
     eventualesActivos: eventualesActivos.length,
   }
 
+  // AH2-049: reglas manuales por persona que van a regir la próxima semana (nunca ocultas).
+  const sucursal = getSucursalActual()
+  const motorConfig = useConfiguracionMotor(sucursal, usaHibrido(sucursal))
+  const nombrePorId = useMemo(() => Object.fromEntries([...colaboradores, ...auxiliares, ...eventuales].map(p => [p.id, p.nombre])), [colaboradores, auxiliares, eventuales])
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <ReglasPorPersona motor={motorConfig} lunes={proximoLunesISO()} nombrePorId={nombrePorId} />
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',

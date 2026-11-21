@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { aplicarCambio, cargarConfiguracionMotor, HORAS_GRILLA, type Cambio, type FilaConfigMotor, type FranjaApertura } from '../../hibrido/configuracionPersistente'
-import { cambioPermanente, datosTopes, ddmm, leerTopes, normalizarFranjas, permanenteVigente, proximoLunesISO } from '../../hibrido/configuracionSimple'
+import { cambioPermanente, datosTopes, ddmm, leerTopes, normalizarFranjas, permanenteVigente, proximoLunesISO, reglasPersonaEnSemana } from '../../hibrido/configuracionSimple'
 import { Boton, FilaAjuste, estiloCampo } from '../ui/Basicos'
 import { DIAS_SEMANA } from '../../types'
 
@@ -147,3 +147,34 @@ export function MensajesMotor({ motor }: { motor: EstadoMotor }) {
   )
 }
 
+
+/**
+ * AH2-049: reglas manuales por persona que afectan la semana (p. ej. «no se incluye en la generación»).
+ * Se muestran con el nombre y un botón para quitarlas; quitar desactiva la regla con historial.
+ */
+export function ReglasPorPersona({ motor, lunes, nombrePorId, alCambiar }: {
+  motor: EstadoMotor; lunes: string; nombrePorId: Record<string, string>; alCambiar?: () => void
+}) {
+  const reglas = useMemo(() => reglasPersonaEnSemana(motor.filas, lunes), [motor.filas, lunes])
+  if (!reglas.length) return motor.aviso || motor.error ? <div style={{ margin: '0 0 12px' }}><MensajesMotor motor={motor} /></div> : null
+  return (
+    <div data-testid="reglas-por-persona" role="status" style={{
+      margin: '0 0 12px', padding: '12px 16px', borderRadius: '12px', fontSize: '14px',
+      background: 'var(--warning-bg)', border: '1px solid #fcd34d', color: '#78350f',
+    }}>
+      <p style={{ margin: 0, fontWeight: 700 }}>Reglas por persona para la semana del {ddmm(lunes)}</p>
+      <ul style={{ margin: '6px 0 0', padding: 0, listStyle: 'none', display: 'grid', gap: '6px' }}>
+        {reglas.map(r => (
+          <li key={r.fila.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <span><strong>{(r.colaboradorId && nombrePorId[r.colaboradorId]) || 'Persona sin identificar'}</strong> {r.texto}.</span>
+            <Boton variante="secundario" disabled={motor.ocupado}
+              onClick={async () => { if (await motor.aplicar({ tipo: 'desactivar', anterior: r.fila }, 'Regla quitada. Queda en el historial.')) alCambiar?.() }}>
+              {r.excluye ? 'Incluir' : 'Quitar regla'}
+            </Boton>
+          </li>
+        ))}
+      </ul>
+      <MensajesMotor motor={motor} />
+    </div>
+  )
+}
