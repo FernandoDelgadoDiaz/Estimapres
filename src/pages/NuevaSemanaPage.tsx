@@ -1,7 +1,7 @@
 import {configuracionAutenticada,usaHibrido} from '../hibrido/integracion'
 import {topesVigentes,type EdicionTopes} from '../hibrido/topesContrato'
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
@@ -18,7 +18,6 @@ import PreviewNecesidad from '../components/semana/PreviewNecesidad'
 import CoberturaLive from '../components/semana/CoberturaLive'
 import { Indicador, ResumenCobertura, Tarjeta, formatoHoras } from '../components/ui/Basicos'
 import { rangoSemana, resumirHorarios } from '../utils/resumenSemana'
-import { ddmm } from '../hibrido/configuracionSimple'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import { generarPDF } from '../utils/exportPDF'
 import { validarResultadoSemana, estadoValidacion, estadoSupervisor, type ContextoValidacionSemana } from '../utils/validacionSemana'
@@ -44,7 +43,7 @@ import {
 } from '../utils/preferencias'
 import { format, startOfWeek } from 'date-fns'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
-import { leerAntecedenteDomingo, domingoAnteriorISO, type AntecedenteDomingo } from '../utils/antecedenteDomingo'
+import { antecedenteDesdeHistorial } from '../utils/antecedenteDomingo'
 import { es } from 'date-fns/locale'
 
 type Paso = 'upload' | 'revisar' | 'resultado'
@@ -80,11 +79,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const [lunesSemana, setLunesSemana] = useState('')
   const [origenSemana, setOrigenSemana] = useState<'pdf' | 'manual'>('manual')
   const [avisoSemana, setAvisoSemana] = useState<string | null>(null)
-  const [domingoCargado, setAntecedenteDomingo] = useState<AntecedenteDomingo | null>(null)
-  const [errorAntecedente, setErrorAntecedente] = useState<string | null>(null)
-  const revisionImportacion = useRef(0)
-  const [salidasDomingo, setSalidasDomingo] = useState<Record<string, string>>({})
-  const [modoPrueba, setModoPrueba] = useState(() => usaHibrido(getSucursalActual()))
+  // La 091 está en producción real (decisión del propietario, 21/11/2026): por defecto se guarda; la prueba se activa a mano.
+  const [modoPrueba, setModoPrueba] = useState(false)
   const [avisosPOM, setAvisosPOM] = useState<string[]>([])
   // PUB-01 (#12): contexto con el que se generó la semana, para validarla (y revalidarla tras ediciones).
   const [ctxValidacion, setCtxValidacion] = useState<(ContextoValidacionSemana & { fechas: string[]; auxiliares: typeof auxiliaresActivos; eventuales: typeof eventualesActivos }) | null>(null)
@@ -98,10 +94,6 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const aplicarSemana = (lunes: string, origen: 'pdf' | 'manual') => {
     setLunesSemana(lunes)
     setOrigenSemana(origen)
-    setAntecedenteDomingo(null)
-    setErrorAntecedente(null)
-    revisionImportacion.current++
-    setSalidasDomingo({})
     const f = new Date(lunes + 'T12:00:00')
     setSemanaDesc(`Semana ${format(f, 'w', { locale: es })} - ${format(f, 'MMMM yyyy', { locale: es })}`)
   }
@@ -192,12 +184,14 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const sucursal = getSucursalActual()
   const hibridoDisponible=usaHibrido(sucursal)
   const cajerosDomingo = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
-  const antecedenteDomingo = domingoCargado?.lunes === lunesSemana && domingoCargado.sucursal === sucursal &&
-    cajerosDomingo.length === Object.keys(domingoCargado.finPorId).length &&
-    cajerosDomingo.every(c => Object.prototype.hasOwnProperty.call(domingoCargado.finPorId, c.id))
-    ? domingoCargado : null
+  // AH2-046: el domingo anterior sale del horario guardado de la semana previa (sin carga manual).
+  const antecedenteDomingo = useMemo(
+    () => (lunesSemana ? antecedenteDesdeHistorial(historial, lunesSemana, cajerosDomingo, sucursal) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [historial, lunesSemana, sucursal, cajerosDomingo.map(c => c.id).join()],
+  )
   // Solo las generaciones elegidas para el historial tienen procedencia operativa.
-  const semanasOperativas = useMemo(() => hibridoDisponible?historial.filter(h => h.antecedenteDomingo?.sucursal === sucursal):historial, [historial, sucursal, hibridoDisponible])
+  const semanasOperativas = useMemo(() => hibridoDisponible?historial.filter(h => h.antecedenteDomingo?.sucursal === sucursal || !!h.hibrido):historial, [historial, sucursal, hibridoDisponible])
   const correccionesOperativas = useMemo(() => {
     if(!hibridoDisponible)return correcciones
     const ids = new Set(semanasOperativas.map(h => h.id))
@@ -289,10 +283,6 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     // PUB-01: semana anterior guardada (para 12 h domingo → lunes) y contexto de validación.
     // #7 · AH2-020: se arma ANTES de generar para que el multi-arranque valide cada candidato
     // con exactamente el mismo contexto que luego usa esta pantalla.
-    if (hibridoDisponible && !modoPrueba && !antecedenteDomingo) {
-      setErrorAntecedente('Para guardar una semana, confirmá las salidas programadas del domingo anterior.')
-      return
-    }
     const lunesPrevio = new Date(new Date(fechaLunes + 'T12:00:00').getTime() - 7 * 86_400_000).toISOString().slice(0, 10)
     const previas = historial.filter(h => h.fechaLunes === lunesPrevio)
     const previa = previas[previas.length - 1]
@@ -304,7 +294,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       minimosCajeros: opciones.demandaMinima,
       semanaAnterior: hibridoDisponible?undefined:previa?.horarios,
       finDomingoAnteriorPorId: antecedenteDomingo?.finPorId,
-      ...(hibridoDisponible&&!antecedenteDomingo ? { limitaciones: ['Sin antecedente dominical confirmado: no se puede comprobar el descanso de domingo a lunes.'] } : {}),
+      ...(hibridoDisponible&&!antecedenteDomingo ? { limitaciones: ['No hay horario guardado de la semana anterior: el descanso del lunes no se pudo verificar.'] } : {}),
       auxiliares: disponibilidad.auxiliares,
       eventuales: disponibilidad.eventuales,
       huecosSupervision: disponibilidad.huecosSupervision,
@@ -313,7 +303,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
 
     void generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx, res => {
       setCtxValidacion(ctx)
-      if (hibridoDisponible && !modoPrueba && !validarResultadoSemana(res, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, ctx).publicable) {
+      // Se guarda si cumple las reglas; la falta de la semana anterior (solo una limitación de datos) no lo impide.
+      if (hibridoDisponible && !modoPrueba && validarResultadoSemana(res, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, ctx).violaciones.length > 0) {
         // Mostrar resultado y motivos, pero impedir su incorporación al historial.
         setSemanaGuardadaId(null)
         setPaso('resultado')
@@ -327,7 +318,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       // Guardar solamente una generación operativa elegida por el supervisor.
       const semana = agregarSemana({
         fechaLunes,
-        antecedenteDomingo: antecedenteDomingo ?? undefined,
+        antecedenteDomingo: antecedenteDomingo ? { lunes: antecedenteDomingo.lunes, domingo: antecedenteDomingo.domingo, sucursal: antecedenteDomingo.sucursal, finPorId: antecedenteDomingo.finPorId } : undefined,
         descripcion: semanaDesc || `Semana del ${fechaLunes}`,
         horarios: res.horarios,
         resumenPorColaborador: resumirTurnos(res.horarios, nombrePorId),
@@ -432,10 +423,6 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     setExcepciones([])
     setExcepcionesDisponibilidad([])
     setCtxValidacion(null)
-    setAntecedenteDomingo(null)
-    setErrorAntecedente(null)
-    revisionImportacion.current++
-    setSalidasDomingo({})
     setModoPrueba(hibridoDisponible)
     setMostrarExcepciones(false)
     setSemanaGuardadaId(null)
@@ -643,93 +630,19 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               <Indicador valor={`${formatoHoras(horasNecesariasEstimadas)}`} etiqueta="horas de caja necesarias (según el PDF)" />
               <Indicador valor={`${formatoHoras(horasDisponibles)}`} etiqueta="horas disponibles del personal activo" tono={horasDisponibles >= horasNecesariasEstimadas ? 'normal' : 'atencion'} />
             </div>
+            {hibridoDisponible && fechasSemana.length > 0 && (
+              <p data-testid="descanso-lunes" style={{ margin: '0 0 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
+                {antecedenteDomingo
+                  ? `Descanso del lunes: se calcula con el horario guardado de la ${rangoSemana(antecedenteDomingo.lunesOrigen).toLowerCase()}.`
+                  : 'No hay horario guardado de la semana anterior: esta vez no se verifica el descanso del lunes.'}
+              </p>
+            )}
             {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--warning)' }}>Con el personal activo no alcanza para cubrir toda la necesidad: van a quedar horas sin cubrir.</p>}
             <details>
               <summary style={{ cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}>Ver necesidad de cajas por franja</summary>
               <div style={{ marginTop: '12px' }}><VistaDemanda necesidad={necesidad} /></div>
             </details>
           </div>
-
-          {hibridoDisponible && fechasSemana.length > 0 && (
-            <div data-testid="antecedente-domingo" style={{
-              background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px',
-              padding: '20px 24px', color: 'var(--text)',
-            }}>
-              <h3 style={{ fontWeight: 800, fontSize: '18px', fontFamily: "'Syne', sans-serif", margin: '0 0 6px' }}>Domingo anterior ({ddmm(domingoAnteriorISO(fechasSemana[0]))})</h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 12px' }}>
-                Indicá a qué hora salió cada cajero (o si tuvo franco) para respetar su descanso del lunes.
-              </p>
-              <details style={{ marginBottom: '8px' }}><summary style={{ cursor: 'pointer', fontSize: '13px', color: 'var(--text-muted)' }}>Importar desde un archivo</summary>
-              <input data-testid="archivo-domingo" type="file" accept=".json,application/json" disabled={cargandoDotacion}
-                onChange={async e => {
-                  const input = e.currentTarget
-                  const archivo = input.files?.[0]
-                  if (!archivo) return
-                  const revision = ++revisionImportacion.current
-                  try {
-                    const contenido: unknown = JSON.parse(await archivo.text())
-                    if (revision !== revisionImportacion.current) return
-                    const domingo = leerAntecedenteDomingo(contenido, fechasSemana[0], cajerosDomingo, sucursal)
-                    setAntecedenteDomingo(domingo)
-                    setSalidasDomingo(Object.fromEntries(Object.entries(domingo.finPorId).map(([id, fin]) => [id, fin ?? 'franco'])))
-                    setErrorAntecedente(null)
-                  } catch (err) {
-                    if (revision !== revisionImportacion.current) return
-                    setAntecedenteDomingo(null)
-                    setErrorAntecedente(err instanceof Error ? err.message : 'No se pudo importar el antecedente.')
-                  } finally {
-                    input.value = ''
-                  }
-                }}
-              />
-              </details>
-              {antecedenteDomingo && (
-                <div data-testid="domingo-confirmado" style={{ marginTop: '8px', fontWeight: 600 }}>
-                  <p>Domingo {antecedenteDomingo.domingo}: {Object.keys(antecedenteDomingo.finPorId).length} cajeros cargados. Revisá las salidas:</p>
-                  <ul style={{ fontSize: '12px', fontWeight: 400, columns: 2 }}>
-                    {colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART').map(c => (
-                      <li key={c.id}>{c.nombre}: {antecedenteDomingo.finPorId[c.id] ?? 'FRANCO'}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {errorAntecedente && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAntecedente}</p>}
-              <div aria-label="Salidas del domingo" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBlock: 12 }}>
-                {cajerosDomingo.map(c => (
-                  <label key={c.id}>{c.nombre}
-                    <select aria-label={`Última salida de ${c.nombre}`} value={salidasDomingo[c.id] ?? ''} onChange={e => {
-                      revisionImportacion.current++
-                      const valor = e.target.value
-                      setSalidasDomingo(prev => ({ ...prev, [c.id]: valor }))
-                      setAntecedenteDomingo(null)
-                      setErrorAntecedente(null)
-                    }}>
-                      <option value="">Sin confirmar</option>
-                      <option value="franco">Franco</option>
-                      {Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
-                        .map(hora => <option key={hora} value={hora}>{hora}</option>)}
-                    </select>
-                  </label>
-                ))}
-              </div>
-              <button type="button" onClick={() => {
-                try {
-                  setAntecedenteDomingo(leerAntecedenteDomingo({
-                    sucursal, lunes: lunesSemana, domingo: domingoAnteriorISO(lunesSemana),
-                    finPorId: Object.fromEntries(cajerosDomingo.map(c => [c.id, salidasDomingo[c.id] === 'franco' ? null : salidasDomingo[c.id]])),
-                  }, lunesSemana, cajerosDomingo, sucursal))
-                  setErrorAntecedente(null)
-                } catch (err) {
-                  setErrorAntecedente(err instanceof Error ? err.message : 'No se pudo confirmar el domingo.')
-                }
-              }} style={{ padding: '8px 16px', borderRadius: '100px', border: '1px solid var(--border)', background: 'var(--card)', fontWeight: 600, cursor: 'pointer' }}>Confirmar horarios del domingo</button>
-              {!antecedenteDomingo && (
-                <p style={{ fontSize: '13px', color: 'var(--warning)', marginTop: '8px' }}>
-                  Si no lo confirmás, el horario queda sin verificar el descanso del lunes.
-                </p>
-              )}
-            </div>
-          )}
 
           {cargandoDotacion && <p role="status">Cargando dotación…</p>}
           {errorDotacion && <p role="alert">No se pudo cargar la dotación. Recargá la página antes de generar.</p>}

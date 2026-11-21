@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Colaborador, HorarioColaborador } from '../../types'
 import { PERFIL_MOTOR_ACTUAL, validarHorario } from '../../algoritmo/validadorIndependiente'
-import { entradaMinimaLunesSlots, leerAntecedenteDomingo, domingoAnteriorISO } from '../antecedenteDomingo'
+import { entradaMinimaLunesSlots, leerAntecedenteDomingo, domingoAnteriorISO, antecedenteDesdeHistorial } from '../antecedenteDomingo'
 import { convertirInputAV2 } from '../../algoritmo/adapter'
 import { ejecutarAlgoritmo } from '../../algoritmo/orquestador'
 import { CAJEROS_S47, AUX_S47, EVENTUALES_S47, OPERATIVA_S47 } from '../../algoritmo/__tests__/fixtures/semana47Anonimizada'
@@ -67,4 +67,25 @@ describe('Antecedente del domingo planificado, separado de simulaciones', () => 
     expect(lunes.length).toBeGreaterThan(0)
     expect(lunes.every(j => j.bloques[0].slot_inicio >= 5)).toBe(true)
   }, 20_000)
+})
+
+describe('AH2-046: domingo anterior desde la semana guardada', () => {
+  const cajeros = [
+    { id: 'a', nombre: 'A', tipo: 'FULL' as const, horasSemanales: 48, activo: true },
+    { id: 'b', nombre: 'B', tipo: 'PART' as const, horasSemanales: 32, activo: true },
+    { id: 'n', nombre: 'Nuevo', tipo: 'PART' as const, horasSemanales: 32, activo: true },
+  ]
+  const j = (fin: string | null) => Array.from({ length: 7 }, (_, dia) => dia === 6 && fin
+    ? { dia, esFranco: false, turnos: [{ inicio: '09:00', fin: '13:00' }, { inicio: '17:00', fin }] }
+    : { dia, esFranco: dia === 6, turnos: [] as { fin: string }[] })
+  const semana = (version: number, finA: string) => ({ fechaLunes: '2026-11-16', version, horarios: [{ colaboradorId: 'a', jornadas: j(finA) }, { colaboradorId: 'b', jornadas: j(null) }] })
+  it('usa la última versión de la semana previa: último fin del domingo, franco = null y altas nuevas = null', () => {
+    const r = antecedenteDesdeHistorial([semana(1, '21:00'), semana(2, '22:30')], '2026-11-23', cajeros, '091')
+    expect(r).toEqual({ lunes: '2026-11-23', domingo: '2026-11-22', sucursal: '091', lunesOrigen: '2026-11-16', finPorId: { a: '22:30', b: null, n: null } })
+    expect(entradaMinimaLunesSlots(r!.finPorId.a)).toBe(5) // 22:30 + 12 h = 10:30 → 5 medias horas desde las 08:00
+  })
+  it('sin semana previa guardada devuelve null (no bloquea; se informa como limitación)', () => {
+    expect(antecedenteDesdeHistorial([semana(1, '22:00')], '2026-11-30', cajeros, '091')).toBeNull()
+    expect(antecedenteDesdeHistorial([], 'no-es-lunes', cajeros, '091')).toBeNull()
+  })
 })
