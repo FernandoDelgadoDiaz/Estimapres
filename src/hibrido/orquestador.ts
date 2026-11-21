@@ -18,6 +18,7 @@ import {compilarDisponibilidadCaja,reporteDisponibilidadCaja,verificarDisponibil
 import {aEntradaB,crearSobre,planBaResultado,validarRespuesta,type EstadoB,type ParametrosB,type RespuestaB} from './contrato'
 import type {TransporteB} from './transporte'
 import {medirEquilibrio,compararEquilibrio,protegeReferencia} from './equilibrio'
+import {repartirEventuales} from './repartoEventual'
 
 export const VERSION_SALIDA='aliada-salida-unica/1'
 export type Origen='A'|'B'
@@ -109,8 +110,16 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
  else if(validoA){origen='A';motivo=validoB?'A y B válidos; B no mejora a A: se conserva A.':op.transporte?`B no utilizable (${estadoB}); se usa A, válido.`:'Solo A (B no ejecutado en esta llamada).'}
  else if(validoB){origen='B';motivo='A inválido o sin resultado; B válido.'}
  else motivo='Ningún candidato cumple las restricciones obligatorias: no se presenta propuesta.'
- const elegido=origen==='A'?validoA:origen==='B'?validoB:null
+ let elegido=origen==='A'?validoA:origen==='B'?validoB:null
  avisar('SELECCION',origen?`Propuesta: ${origen}`:'Sin propuesta válida')
+ // AH2-054: reparto parejo de horas de caja de eventuales entre días (misma cobertura y totales). Se revalida.
+ if(elegido){
+  const r2=repartirEventuales(input,elegido.r)
+  if(r2!==elegido.r){
+   const e2=evaluar(input,r2,raw)
+   if(e2.valido&&e2.metricas.faltantesHoras===elegido.e.metricas.faltantesHoras&&e2.metricas.sobrantesHoras===elegido.e.metricas.sobrantesHoras)elegido={r:r2,e:e2}
+  }
+ }
  // Contrafáctico con el mismo motor A sin la relación semanal: faltantes atribuibles a la regla (estimación).
  let sinRelacion:number[][]|null=null
  if(elegido&&!op.motorA){try{sinRelacion=metricasAH2040(input,motorASinRelacion(input)).faltantesPorFranja}catch{sinRelacion=null}}

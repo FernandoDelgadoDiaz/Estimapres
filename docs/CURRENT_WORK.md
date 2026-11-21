@@ -1,4 +1,19 @@
-## PUNTO ÚNICO DE RETOMA — Primera semana real guardada; AH2-053 en PR · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — v4 del 23/11 en uso; AH2-054 en PR · 21/11/2026, Claude
+
+**Estado:** producción = Netlify `main@490e294` (AH2-047…053) y Cloud Run `aliada-optimizer-00008-zpp` (`optimizer:5ee87b1`, AH2-053; rollback `aliada-optimizer-00007-vzq`). **Semana 23/11 versión 4** (21/11 23:13 UTC): 99,3 % de cobertura, 3 h sin cubrir, estado «Listo», sin preferencias heredadas y sin cajeros después de las 22:30; el propietario la considera correcta. La mejora 95,5 → 99,3 % vino sobre todo de quitar las 7 preferencias heredadas de la v2 (eventuales +9 h y supervisores +5,5 h de caja).
+
+**Hallazgo:** en producción el motor CP-SAT no llega en 120 s a cerrar la primera fase (faltantes): v3 FEASIBLE, v4 UNKNOWN; las fases posteriores (sobrantes, reparto, preferencias) no se aplican. Pendiente evaluar si conviene más tiempo o reordenar objetivos.
+
+**AH2-054 (PR, sin publicar):** reparto parejo de horas de caja de eventuales entre días, como paso posterior validado (rama `claude/ah2-054-reparto-eventual`). No requiere Cloud Run. Pruebas: Vitest 627 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK.
+
+### Pendiente
+- Publicar AH2-054 (autorización) → regenerar o usar la v4.
+- Verificar que las preferencias, cuando vuelvan a existir, nunca bajen la cobertura (propuesto al propietario).
+- Configuración por local de la salida máxima de cajeros en pantalla.
+- Resto: ver relevos anteriores.
+---
+
+## RELEVO ANTERIOR — Primera semana real guardada; AH2-053 en PR · 21/11/2026, Claude
 
 **Estado:** producción = Netlify `main@488f75c` (AH2-047…052) una vez publicado por el propietario (rollback `6b021ba4879fb3820039d6b9`). **Semana 23/11, versión 3** guardada 21/11 22:38 UTC: 8 cajeros (con Gabriel Silva), Maite 6 h, cobertura 95,5 % (18 h sin cubrir: cierre 21:00–21:30, jueves 11–14 sin segundo supervisor), estado «Listo», motor B. Primera semana real de la 091.
 
