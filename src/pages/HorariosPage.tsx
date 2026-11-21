@@ -231,6 +231,16 @@ export default function HorariosPage() {
               : <p style={{ margin: 0, color: 'var(--text-muted)' }}>Esta semana se guardó sin la necesidad de cajas: no se puede calcular la cobertura.</p>}
           </Tarjeta>
 
+          {/* Cobertura por franja: a simple vista dónde falta, dónde sobra y cuáles son las horas pico. */}
+          {necesidadFranjas && (
+            <CoberturaLive
+              necesidadFranjas={necesidadFranjas}
+              horarios={ultimaSemana.horarios}
+              cajaAux={ultimaSemana.cajaAux}
+              aproximado={!ultimaSemana.necesidadFranjas}
+            />
+          )}
+
           {/* La validación completa corre siempre por detrás; solo se muestra si hay algo para revisar. */}
           {(problemas.length > 0 || avisosHoras.length > 0) && (
             <section data-testid="estado-validacion" aria-label="Para revisar" style={{
@@ -253,17 +263,6 @@ export default function HorariosPage() {
             onEditarJornada={handleEditarJornada}
           />
 
-          {necesidadFranjas && (
-            <details>
-              <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text)', padding: '4px 0 12px' }}>Ver cobertura por franja horaria</summary>
-              <CoberturaLive
-                necesidadFranjas={necesidadFranjas}
-                horarios={ultimaSemana.horarios}
-                cajaAux={ultimaSemana.cajaAux}
-                aproximado={!ultimaSemana.necesidadFranjas}
-              />
-            </details>
-          )}
         </>
       )}
     </Pagina>

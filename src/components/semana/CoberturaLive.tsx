@@ -31,9 +31,13 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
     return { cobertura: r.cobertura, pctCumplimiento: r.pct }
   }, [necesidadFranjas, horarios, cajaAux])
 
+  // Hora pico de cada día: la franja de mayor necesidad (se marca con un recuadro).
+  const picoDia = useMemo(() => Array.from({ length: 7 }, (_, d) => Math.max(0, ...necesidadFranjas.map(f => f?.[d] ?? 0))), [necesidadFranjas])
+
   const estiloCelda = (x: number, y: number): React.CSSProperties => {
     if (y <= 0) return { background: 'var(--surface)', color: 'var(--text-dim)' }
-    if (x >= y) return { background: '#dcfce7', color: '#166534', fontWeight: 600 }
+    if (x > y) return { background: '#dbeafe', color: '#1e40af', fontWeight: 600 }
+    if (x === y) return { background: '#dcfce7', color: '#166534', fontWeight: 600 }
     if (x === y - 1) return { background: '#fef3c7', color: '#92400e', fontWeight: 600 }
     return { background: '#fee2e2', color: '#991b1b', fontWeight: 700 }
   }
@@ -69,13 +73,13 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontSize: '32px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: colorPct, letterSpacing: '-0.5px' }}>
-            {pctCumplimiento.toFixed(1)}%
+            {pctCumplimiento.toFixed(1).replace('.', ',')} %
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>cubierto</div>
         </div>
       </div>
 
-      <div style={{ overflowX: 'auto', maxHeight: '340px', overflowY: 'auto' }}>
+      <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
             <tr style={{ background: 'var(--surface)' }}>
@@ -101,8 +105,9 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
                   {DIAS_SEMANA.map((_, dia) => {
                     const y = necesidadFranjas[fi]?.[dia] ?? 0
                     const x = cobertura[fi][dia]
+                    const pico = y > 0 && y === picoDia[dia]
                     return (
-                      <td key={dia} style={{ padding: '6px 12px', textAlign: 'center', ...estiloCelda(x, y) }}>
+                      <td key={dia} title={pico ? 'Hora pico del día' : undefined} style={{ padding: '6px 12px', textAlign: 'center', ...estiloCelda(x, y), ...(pico ? { boxShadow: 'inset 0 0 0 2px #111827', fontWeight: 800 } : {}) }}>
                         {y > 0 ? `${x}/${y}` : '–'}
                       </td>
                     )
@@ -115,9 +120,11 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
       </div>
 
       <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#dcfce7', border: '1px solid #86efac', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Cubierto (X ≥ Y)</span>
-        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Falta 1 (X = Y−1)</span>
-        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Falta más (X &lt; Y−1)</span>
+        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#dcfce7', border: '1px solid #86efac', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Cubierto</span>
+        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Falta 1 caja</span>
+        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Faltan 2 o más</span>
+        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Sobran cajas</span>
+        <span><span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--card)', border: '2px solid #111827', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Hora pico del día</span>
       </div>
     </div>
   )
