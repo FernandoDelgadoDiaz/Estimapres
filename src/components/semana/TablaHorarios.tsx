@@ -148,61 +148,18 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', minWidth: '980px', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
-          <thead style={{ background: 'var(--surface)' }}>
+        <table className="tabla-grilla" style={{ minWidth: '1060px', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '170px' }} /><col style={{ width: '96px' }} />
+            {DIAS_SEMANA.map(d => <col key={d} />)}
+            <col style={{ width: '120px' }} />
+          </colgroup>
+          <thead>
             <tr>
-              <th style={{
-                padding: '8px',
-                textAlign: 'left',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                position: 'sticky',
-                left: 0,
-                background: 'var(--surface)',
-                width: '140px',
-              }}>
-                Colaborador
-              </th>
-              <th style={{
-                padding: '8px',
-                textAlign: 'left',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                width: '75px',
-              }}>
-                Tipo
-              </th>
-              {DIAS_SEMANA.map((dia) => (
-                <th
-                  key={dia}
-                  style={{
-                    padding: '8px',
-                    textAlign: 'center',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    width: '91px',
-                  }}
-                >
-                  {dia}
-                </th>
-              ))}
-              <th style={{
-                padding: '8px',
-                textAlign: 'left',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                width: '135px',
-              }}>
-                Horas semanales
-              </th>
+              <th className="fijo">Persona</th>
+              <th className="centro">Tipo</th>
+              {DIAS_SEMANA.map(dia => <th key={dia} className="centro">{dia}</th>)}
+              <th className="centro">Horas</th>
             </tr>
           </thead>
           <tbody>
@@ -239,20 +196,11 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
               const tipoStyle = tiposColor[tipo] || tiposColor.FULL
 
               return (
-                <tr key={horario.colaboradorId} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{
-                    padding: '8px',
-                    overflowWrap: 'anywhere',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: 'var(--text)',
-                    position: 'sticky',
-                    left: 0,
-                    background: 'var(--card)',
-                  }}>
+                <tr key={horario.colaboradorId}>
+                  <td className="fijo" style={{ overflowWrap: 'anywhere', fontWeight: 600, background: 'var(--card)' }}>
                     {nombre}
                   </td>
-                  <td style={{ padding: '8px', whiteSpace: 'nowrap', width: '75px' }}>
+                  <td className="centro" style={{ whiteSpace: 'nowrap' }}>
                     <span
                       style={{
                         display: 'inline-flex',
@@ -278,10 +226,8 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                         key={diaIndex}
                         title={editable ? 'Clic para editar esta jornada' : undefined}
                         style={{
-                          padding: '8px',
-                          fontSize: '11px',
-                          verticalAlign: 'top',
-                          width: '91px',
+                          padding: '8px 6px',
+                          fontSize: '12px',
                           textAlign: 'center',
                           color: isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
                           fontStyle: isFrancoReal ? 'italic' : 'normal',
@@ -304,7 +250,7 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                       </td>
                     )
                   })}
-                  <td className="align-top p-2 break-words">
+                  <td className="centro" style={{ overflowWrap: 'anywhere' }}>
                     <ResumenHoras minutos={minutos} tipo={tipo} objetivo={objetivoDe(horario.colaboradorId)} />
                     {horario.errores.length > 0 && (
                       <div style={{ fontSize: '10px', color: 'var(--danger)' }}>

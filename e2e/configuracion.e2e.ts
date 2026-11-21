@@ -61,10 +61,9 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await page.getByRole('listitem').filter({ hasText: 'Part A: franco fijo' }).getByRole('button', { name: 'Quitar' }).click()
   await expect(page.getByText('Part A: franco fijo los Mié')).toHaveCount(0)
 
-  // Lo avanzado queda escondido
-  await expect(page.getByText('Exportar JSON')).not.toBeVisible()
-  await page.getByText('Opciones avanzadas (administración)').click()
-  await expect(page.getByText(/Exportar JSON/)).toBeVisible()
+  // Sin opciones avanzadas en la pantalla del supervisor (decisión del propietario).
+  await expect(page.getByText('Opciones avanzadas')).toHaveCount(0)
+  await expect(page.getByText('Exportar JSON')).toHaveCount(0)
 
   // Lo guardado es lo que usa la generación: misma regla de la sucursal, sin duplicados.
   const reglas = await page.evaluate(() => JSON.parse(localStorage.getItem('aliada_reglas_configurables::900') ?? '[]') as Array<{ tipo: string; activa: boolean; cantidad?: number }>)

@@ -80,7 +80,7 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+        <table className="tabla-grilla" style={{ fontSize: '12px' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
             <tr style={{ background: 'var(--surface)' }}>
               <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', position: 'sticky', left: 0, background: 'var(--surface)' }}>
