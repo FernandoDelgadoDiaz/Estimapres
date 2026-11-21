@@ -1,4 +1,31 @@
-## PUNTO ÚNICO DE RETOMA — AH2-042 segunda ronda de correcciones; PR #62 listo para publicación · 20/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-042 publicado en backend; falta solo Publish deploy en Netlify · 21/11/2026, Claude
+
+**Estado:** publicación autorizada por el propietario (20/11/2026). Backend completo; la interfaz nueva espera el **Publish deploy** de `main@e8032c1` en Netlify (al-iada, producción bloqueada). Deploy activo al 21/11: `6b00af11bb927938de720319` (anterior). Prestify sin cambios.
+
+### Hecho
+- **Cloud Run (CP-SAT):** revisión `aliada-optimizer-00005-rsm`, imagen `optimizer:ca87283`, 100 % del tráfico; mín. 0 / máx. 1 instancia; CPU solo por solicitud. Controles de seguridad (origen, JWT, rutas, CORS) idénticos a la revisión anterior.
+- **PR fusionados:** Estimapres #62 → `main` (`e8032c1`); aliada-optimizer #6 → `feat/minimo-impacto-semanal` (`f255dfc`). La cadena aliada-optimizer #1–#5 (borradores) sigue abierta hacia `main`; no afecta producción porque Cloud Run ya corre `ca87283`.
+- **Migración AH2-042 aplicada** en Supabase al-iada horarios (por el propietario desde el SQL Editor; el conector no mostró la confirmación). Verificado: tabla, restricciones (`cms_sin_superposicion`, `cms_topes_semana_completa`, etc.), RLS, funciones SECURITY DEFINER, sin INSERT directo para `authenticated`, sin ejecución para `anon`.
+- **Configuración 091 importada** con `cms_importar` (identidad del usuario de la 091, todo o nada), desde la configuración del servicio:
+  - Permanentes desde 23/11: perfiles de los 4 EVENTUAL (toda la presencia), máximos FULL 12 h / PART 8 h, AUX único 08:00–09:00 los 7 días.
+  - Temporal: «gestionar manualmente» de un supervisor, 23/11–29/11 (vence sola).
+  - Lectura con RLS como el usuario: correcta. Semana 23–29/11 resuelve igual que la del servicio.
+- **Verificación semana 30/11–06/12 sin Secret Manager:** flujo real de configuración con el servicio devolviendo opciones vacías → fuente `persistida`; A + CP-SAT `ca87283` local con los parámetros de producción (120 s, global, semilla 20261119) sobre la entrada del ensayo 091 llevada a esa semana: **origen B (FEASIBLE) válido**, cobertura **99,6 %**, 1,5 h faltantes, 0 sobrantes, sin infracciones en el validador de A; EVENTUAL FULL 12 h y PART 8 h de caja; la excepción temporal ya no aplica.
+
+### Pendiente
+1. **Propietario:** Netlify → al-iada → Deploys → `main@e8032c1` → **Publish deploy**.
+2. Generar la semana 30/11 en la app con el POM real y confirmar que Nueva semana indica «configuración guardada de la sucursal».
+3. Registrar el resultado aquí.
+
+### Decisiones abiertas
+- Máximos 12/8 importados como **permanentes** (en Secret Manager vencían el 29/11; MASTER los registra como elección de la 091). Se cambian desde Reglas → Configuración del motor si se prefiere otra vigencia.
+- Llevar la cadena aliada-optimizer #1–#5 a `main`.
+
+### Rollback
+Cloud Run: revisión `aliada-optimizer-00004-966`. Netlify: deploy `6b00af11bb927938de720319`. Configuración: cambiar o desactivar reglas desde el editor (no vuelve a Secret Manager). Base: bloque de rollback al final de la migración. Secret Manager intacto (ya no es la fuente de configuración de la 091).
+---
+
+## RELEVO ANTERIOR — AH2-042 segunda ronda de correcciones; PR #62 listo para publicación · 20/11/2026, Claude
 
 **Estado:** las 4 correcciones de la segunda ronda del propietario están implementadas, con pruebas de regresión, en el PR #62 (Estimapres, rama `feat/ah2-config-persistente-sucursal`) y en el PR #6 de aliada-optimizer (rama `feat/integracion-aliada-work-claude`, SHA `ca872838c830cd4b9b8f0eeae3d185f969613a93`). **Migración NO aplicada.** Nada cambiado en Supabase, Netlify, Cloud Run ni Secret Manager. Prestify sin cambios. Las demás reglas aprobadas se conservan.
 
