@@ -20,6 +20,12 @@ export const desdeInicioAprendizaje = <T extends { generadoEl: string }>(semanas
  const inicio = INICIO_APRENDIZAJE[sucursal]
  return inicio ? semanas.filter(s => s.generadoEl >= inicio) : semanas
 }
+/**
+ * Semanas que alimentan el aprendizaje al generar la semana `lunes`: desde el inicio de producción (AH2-051)
+ * y solo ANTERIORES a esa semana (AH2-052: una versión previa de la misma semana no es «la semana anterior»).
+ */
+export const semanasParaAprender = <T extends { generadoEl: string; fechaLunes: string }>(semanas: T[], sucursal: string, lunes: string) =>
+ desdeInicioAprendizaje(semanas, sucursal).filter(s => !lunes || s.fechaLunes < lunes)
 export function configHibrido():ConfigDespliegueHibrido {
  return {habilitado:import.meta.env.VITE_AH2_HIBRIDO_091==='true',servicio:import.meta.env.VITE_AH2_OPTIMIZER_URL??''}
 }
