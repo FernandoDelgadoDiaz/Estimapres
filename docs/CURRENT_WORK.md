@@ -10,7 +10,7 @@ El motor terminó bien (Cloud Run 200, 126 s), pero el horario **no se guardó**
 2. Nueva semana: recuadro rojo «Este horario NO se guardó porque…» + botón **Guardar horario** que se habilita cuando ya no hay incumplimientos.
 3. Horarios: incumplimientos en rojo («No cumple las reglas…»).
 
-Pruebas: Vitest 619 passed / 4 skipped; Playwright 19 passed / 1 skipped; build OK; captura de Horarios revisada.
+Pruebas: Vitest 616 passed / 4 skipped; Playwright 19 passed / 1 skipped; build OK; captura de Horarios revisada.
 
 ### Pendiente / decisiones abiertas
 - **Tope de Maite Oyanarte:** ficha 6 h vs. máximo EVENTUAL PART 8 h en Configuración (el motor usa 8 h; la tabla marca contra 6 h). Definir cuál rige.
