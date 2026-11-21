@@ -18,7 +18,7 @@ interface CoberturaLiveProps {
 }
 
 /**
- * Panel de cobertura EN TIEMPO REAL para el editor de "Último horario":
+ * Panel de cobertura EN TIEMPO REAL para el editor de «Horarios»:
  * compara la necesidad del PDF con la cobertura actual (incluyendo las
  * ediciones del supervisor al instante). Cuentan como caja abierta los
  * cajeros FULL/PART y los bloques de eventuales; los AUX aportan sus bloques
@@ -52,10 +52,10 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
       }}>
         <div style={{ flex: 1, minWidth: '240px' }}>
           <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0 }}>
-            Cobertura vs. necesidad del PDF
+            Cobertura por franja horaria
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Asignados / necesarios por franja. Se actualiza al instante con cada edición.
+            Cajas asignadas / necesarias. Se actualiza al corregir el horario.
           </p>
           {aproximado && (
             <span style={{
@@ -71,7 +71,7 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
           <div style={{ fontSize: '32px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: colorPct, letterSpacing: '-0.5px' }}>
             {pctCumplimiento.toFixed(1)}%
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>cumplimiento</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>cubierto</div>
         </div>
       </div>
 
@@ -118,7 +118,6 @@ export default function CoberturaLive({ necesidadFranjas, horarios, cajaAux = []
         <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#dcfce7', border: '1px solid #86efac', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Cubierto (X ≥ Y)</span>
         <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Falta 1 (X = Y−1)</span>
         <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 3, marginRight: 6, verticalAlign: 'middle' }} />Falta más (X &lt; Y−1)</span>
-        <span style={{ marginLeft: 'auto' }}>Los bloques en CAJA de los AUX provienen de la generación.</span>
       </div>
     </div>
   )

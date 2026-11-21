@@ -205,18 +205,18 @@ test('la edición nominal interpreta intervalos y actualiza horas antes de guard
   await jornada.fill('9 a')
   await expect(page.getByRole('button', { name: 'Guardar cambio' })).toBeDisabled()
   await jornada.fill('08.00 a 13.00 Y 17hs a 22hs')
-  await expect(page.getByRole('row').filter({ has: celda })).toContainText('Asignadas')
+  await expect(page.getByRole('row').filter({ has: celda })).toContainText('49 h') // horas actualizadas antes de guardar
   await page.getByRole('button', { name: /^Guardar (?:cambio|de todos modos)$/ }).click()
   await expect(celda).toContainText('08:00 - 13:00')
   await expect(celda).toContainText('17:00 - 22:00')
   if (process.env.AH2_CAPTURAS) await page.screenshot({ path: process.env.AH2_CAPTURAS + '/edicion-horario.png' })
 })
 
-test('Último Horario reabre la semana guardada y exporta los turnos A4', async ({ page }) => {
+test('Horarios reabre la semana guardada y exporta los turnos A4', async ({ page }) => {
   await preparar(page)
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
   await expect(page.getByRole('heading', { name: 'Horarios generados' })).toBeVisible()
-  await page.goto('/ultimo-horario')
+  await page.goto('/horarios')
   await expect(page.getByRole('row').filter({ hasText: 'Full A' })).toBeVisible()
   const descarga = page.waitForEvent('download')
   await page.getByRole('button', { name: /Exportar PDF/ }).click()
@@ -314,7 +314,7 @@ test('reiniciar y cambiar de pantalla terminan el trabajo activo sin guardar', a
   await expect(generar).toBeEnabled()
   await generar.click()
   await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 1 })
-  await page.getByRole('link', { name: 'Colaboradores' }).click()
+  await page.getByRole('link', { name: 'Personal' }).click()
   await expect(page).toHaveURL(/\/colaboradores$/)
   await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 2 })
   await responderWorker(page, 1)

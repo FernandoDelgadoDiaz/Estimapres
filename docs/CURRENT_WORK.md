@@ -1,4 +1,24 @@
-## PUNTO ÚNICO DE RETOMA — AH2-042 y AH2-043 publicados y verificados en producción · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor, etapa 1 (menú, Inicio, Horarios) en PR · 21/11/2026, Claude
+
+**Estado:** producción sin cambios (Netlify `main@c1b1f0c`, Cloud Run `aliada-optimizer-00007-vzq`). Decisión del propietario AH2-044 (MASTER): pantallas simples para el supervisor (computadora; configura y corrige; el aprendizaje de correcciones sigue por detrás). Etapa 1 en PR (rama `feat/ux-etapa1-navegacion`), **sin publicar**.
+
+### Etapa 1 (hecha)
+- Menú de 5 opciones con íconos de línea: Inicio, Nueva semana, Horarios, Personal, Configuración. Historial y Efectividad fuera del menú (rutas solo para administración; `/ultimo-horario` redirige a `/horarios`).
+- **Inicio:** próxima semana con una acción (Generar / Ver horario / Cargar personal), último horario con cobertura, horas sin cubrir y dónde faltan cajas, y personal en una línea. Sin textos de bienvenida ni instructivos.
+- **Horarios:** abre en el último generado, selector de semanas anteriores (última versión de cada lunes), resumen en vivo, edición con registro de correcciones (sin cambios), validación completa por detrás y visible solo si hay algo que revisar; cobertura por franja desplegable.
+- Barra superior: fecha y sucursal. Tabla de horario: «Horario por persona», sin «Objetivo: Sin configurar» ni leyenda con nombres internos.
+- `src/utils/resumenSemana.ts` (+ pruebas): resumen en lenguaje del supervisor.
+
+### Pruebas
+Vitest **607 passed / 4 skipped**; Playwright **17 passed / 1 skipped**; build OK.
+
+### Próximas etapas
+2. Configuración simple (reglas como campos; configuración del motor 091 integrada; backup a administración).
+3. Nueva semana y resultado sin mensajes técnicos.
+4. PDF y Personal.
+---
+
+## RELEVO ANTERIOR — AH2-042 y AH2-043 publicados y verificados en producción · 21/11/2026, Claude
 
 **Estado:** sin trabajo en curso. Producción:
 - **Netlify (al-iada):** deploy `6b0198cdc2dd14bb7be3bb3e` = `main@c1b1f0c` (Estimapres #65), publicado 21/11 13:16 UTC.
