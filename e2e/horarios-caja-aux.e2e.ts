@@ -17,4 +17,10 @@ test('AH2-048 Horarios: el supervisor muestra sus horas en caja', async ({ page 
   await expect(fila).not.toContainText('08:00 - 16:00')
   await expect(fila).toContainText('Sin caja')
   await expect(fila).toContainText('3 h en caja')
+  // Franco en amarillo (cajeros y supervisores).
+  const francoAux = fila.getByRole('cell').filter({ hasText: 'FRANCO' })
+  await expect(francoAux).toHaveCSS('background-color', 'rgb(254, 240, 138)')
+  const francoCajero = page.getByRole('row',{name:/Cajero Uno/}).getByRole('cell').filter({ hasText: 'FRANCO' })
+  await expect(francoCajero).toHaveCSS('background-color', 'rgb(254, 240, 138)')
+  if (process.env.SP) await page.locator('table.tabla-grilla').last().screenshot({ path: process.env.SP + '/ah2048-tabla.png' })
 })

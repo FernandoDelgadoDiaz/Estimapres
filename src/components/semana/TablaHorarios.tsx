@@ -106,8 +106,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
     aux_supervisor: '#f0f9ff',
     aux_eventual: '#fffbeb',
     eventual_sector: '#faf5ff',
-    franco: '#f8fafc',
-    franco_medio: '#f1f5f9',
+    // AH2-048: franco y medio franco en amarillo (igual que el PDF).
+    franco: '#fef08a',
+    franco_medio: '#fef08a',
   }
 
   if (horarios.length === 0) {
@@ -241,8 +242,10 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   {DIAS_SEMANA.map((_, diaIndex) => {
                     const jornada = horario.jornadas.find(j => j.dia === diaIndex)
                     const rol = jornada?.rol || (jornada?.esFranco ? 'franco' : 'cajero')
-                    const bgColor = rolColor[rol] || 'var(--card)'
                     const isFrancoReal = jornada?.esFranco || rol === 'franco'
+                    // Un EVENTUAL sin caja no está de franco: solo se pinta el franco de cajeros y supervisores.
+                    const diaFranco = tipo !== 'EVENTUAL' && (isFrancoReal || rol === 'franco_medio')
+                    const bgColor = diaFranco ? '#fef08a' : tipo === 'EVENTUAL' && isFrancoReal ? 'var(--card)' : rolColor[rol] || 'var(--card)'
                     const enEdicion = editando?.colaboradorId === horario.colaboradorId && editando?.dia === diaIndex
                     return (
                       <td
@@ -252,8 +255,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           padding: '8px 6px',
                           fontSize: '12px',
                           textAlign: 'center',
-                          color: isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
-                          fontStyle: isFrancoReal ? 'italic' : 'normal',
+                          color: diaFranco ? '#713f12' : isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
+                          fontStyle: isFrancoReal && !diaFranco ? 'italic' : 'normal',
+                          fontWeight: diaFranco ? 700 : undefined,
                           backgroundColor: bgColor,
                           cursor: editable ? 'pointer' : 'default',
                           outline: enEdicion ? '2px solid var(--accent-strong)' : 'none',
