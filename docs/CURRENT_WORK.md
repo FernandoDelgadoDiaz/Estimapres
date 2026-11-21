@@ -1,4 +1,27 @@
-## PUNTO ÚNICO DE RETOMA — AH2-043 corregido (sin concentrar en el miércoles); Cloud Run pendiente de la nueva imagen · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-042 y AH2-043 publicados y verificados en producción · 21/11/2026, Claude
+
+**Estado:** sin trabajo en curso. Producción:
+- **Netlify (al-iada):** deploy `6b0198cdc2dd14bb7be3bb3e` = `main@c1b1f0c` (Estimapres #65), publicado 21/11 13:16 UTC.
+- **Cloud Run:** revisión `aliada-optimizer-00007-vzq`, imagen `optimizer:4e23804` (aliada-optimizer #8), mín. 0 / máx. 1, CPU por solicitud. Controles de seguridad idénticos.
+- **Supabase:** `configuracion_motor_sucursal` con la configuración de la 091 (perfiles EVENTUAL y topes 12/8 permanentes; excepción temporal del supervisor hasta 29/11). Secret Manager ya no es fuente de configuración de la 091.
+
+### Verificación del propietario (semana 23–29/11, generada en producción 21/11 13:28 UTC)
+- Cobertura **88,3 %**, 47 h faltantes (límite de dotación), 0 sobrantes; el PDF muestra «Cobertura al generar: 88.3 %» (antes 0,0 %).
+- **Ninguna franja con 2 o más cajas faltantes**; horas pico de cada día completas.
+- Faltante por día parejo: Lun 11 %, Mar 12 %, Mié 13 %, Jue 12 %, Vie 11 %, Sáb 10 %, Dom 12 %. Peores franjas: 1/2 en aperturas 09:00 y cierres 22:00.
+- Máximos respetados: EVENTUAL FULL 12 h, PART 8 h. FULL 48 h, PART 32 h.
+- Avisos de datos (no infracciones): falta el domingo 22/11 confirmado para verificar el descanso domingo→lunes.
+
+### Pendiente / decisiones abiertas
+- **Interfaz del supervisor (decisión del propietario, 21/11):** la complejidad (motor, validadores, estadísticas) queda por detrás; definir pantalla por pantalla qué ve el supervisor (p. ej. mensajes técnicos del PDF, «SIN VERIFICAR», pantalla de configuración del motor). Registrar como regla de producto en MASTER cuando se defina. No mostrar estadísticas del motor hasta entonces.
+- Máximos 12/8 permanentes (editables desde el editor).
+- Cadena aliada-optimizer #1–#5 hacia `main` (producción no depende de ella).
+
+### Rollback
+Netlify: deploy `6b0177b930ae92e7fd26bc4c` (v1) · Cloud Run: `aliada-optimizer-00006-5wg` o `00005-rsm` · Configuración: editor de reglas · Base: bloque de rollback de la migración.
+---
+
+## RELEVO ANTERIOR — AH2-043 corregido (sin concentrar en el miércoles), antes de publicar · 21/11/2026, Claude
 
 **Estado:** publicación de AH2-043 autorizada por el propietario (21/11). Primera versión ya fusionada (Estimapres #64 `d0ea79e`, aliada-optimizer #7 `c0602af`) y Cloud Run con `optimizer:b81462f` (revisión `aliada-optimizer-00006-5wg`), pero **el Publish deploy de Netlify no se hizo**: producción sigue con `6b0177b930ae92e7fd26bc4c` (equilibrio v1). El propietario detectó que esa versión **concentraba los faltantes en el miércoles** (22 %). Corregido en una segunda versión (este PR + PR de aliada-optimizer, rama `feat/ah2-043-equilibrio-dias`). **No publicar `d0ea79e`.**
 
