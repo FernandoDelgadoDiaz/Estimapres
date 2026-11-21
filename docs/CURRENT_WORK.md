@@ -1,4 +1,13 @@
-## PUNTO ÚNICO DE RETOMA — AH2-050 leyenda de horas (PR) · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-047 a AH2-051 fusionados; falta Publish deploy · 21/11/2026, Claude
+
+**Estado:** en `main`, autorizados por el propietario: #75 (AH2-047), #76 (AH2-048), #77 (AH2-049), #78 (AH2-050, leyenda de horas) y #79 (AH2-051: el aprendizaje de la 091 usa solo semanas generadas desde el 21/11 20:39 UTC; lo anterior queda archivado, sin borrar). Producción sigue en Netlify `6b02005b0d69a4f75257d273` (= `main@d7ec41d`, AH2-046) hasta que el propietario haga **Publish deploy** del último deploy de `main`; ese deploy es también el rollback si algo falla. Dato de producción cambiado (autorizado): exclusión manual de Gabriel Silva desactivada (ver AH2-049). Pruebas en cada PR: Vitest, Playwright, build y lint en verde.
+
+### Pendiente
+- Publish deploy del último `main` (propietario) → generar la semana del 23/11 → verificar que quede guardada (versión 2) y registrar el deploy aquí.
+- Resto: ver relevos anteriores.
+---
+
+## RELEVO ANTERIOR — AH2-050 leyenda de horas (PR) · 21/11/2026, Claude
 
 **Estado:** `main@87a3cb6` (AH2-047 #75, AH2-048 #76, AH2-049 #77) espera el Publish deploy del propietario (rollback: `6b02005b0d69a4f75257d273`). AH2-050 en PR (rama `claude/ah2-050-horas-disponibles`): solo se corrige la leyenda (horas de contrato de cajeros; eventuales y supervisores los calcula el motor al generar). Decisión del propietario: no estimar antes de generar. Pruebas: Vitest 621 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK.
 

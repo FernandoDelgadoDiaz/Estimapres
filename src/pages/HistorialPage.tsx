@@ -5,6 +5,8 @@ import { useCorrecciones } from '../hooks/useCorrecciones'
 import { useReglas } from '../hooks/useReglas'
 import { derivarAprendizajes, derivarCriteriosCobertura, calcularSesgoRotacion, explicarSesgos, clasificarJornadaUI } from '../utils/preferencias'
 import { pendientesSincronizacion } from '../utils/almacen'
+import { desdeInicioAprendizaje } from '../hibrido/integracion'
+import { getSucursalActual } from '../utils/sucursal'
 import { exportarHistorialPDF } from '../utils/exportPDF'
 import BackupConfig from '../components/semana/BackupConfig'
 
@@ -41,14 +43,21 @@ export default function HistorialPage() {
     return () => window.removeEventListener('aliada-sync', handler)
   }, [])
 
-  const aprendizajes = useMemo(() => derivarAprendizajes(correcciones), [correcciones])
+  // AH2-051: lo aprendido cuenta desde el paso a producción de la sucursal (antes era simulación).
+  const sucursal = getSucursalActual()
+  const semanasAprendizaje = useMemo(() => desdeInicioAprendizaje(historial, sucursal), [historial, sucursal])
+  const correccionesAprendizaje = useMemo(() => {
+    const ids = new Set(semanasAprendizaje.map(s => s.id))
+    return correcciones.filter(c => ids.has(c.semanaId))
+  }, [correcciones, semanasAprendizaje])
+  const aprendizajes = useMemo(() => derivarAprendizajes(correccionesAprendizaje), [correccionesAprendizaje])
   const criterios = useMemo(
-    () => derivarCriteriosCobertura(correcciones, { semanas: historial }),
-    [correcciones, historial]
+    () => derivarCriteriosCobertura(correccionesAprendizaje, { semanas: semanasAprendizaje }),
+    [correccionesAprendizaje, semanasAprendizaje]
   )
   const criteriosActivos = criterios.filter(c => c.estado === 'activo')
   const criteriosObservacion = criterios.filter(c => c.estado === 'observacion')
-  const rotacionActiva = useMemo(() => explicarSesgos(calcularSesgoRotacion(historial)), [historial])
+  const rotacionActiva = useMemo(() => explicarSesgos(calcularSesgoRotacion(semanasAprendizaje)), [semanasAprendizaje])
   const semanasOrdenadas = useMemo(
     () => [...historial].sort((a, b) => b.fechaLunes.localeCompare(a.fechaLunes)),
     [historial]
