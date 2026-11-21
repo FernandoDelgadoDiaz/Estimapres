@@ -64,3 +64,27 @@ export function entradaMinimaLunesSlots(fin: string | null): number {
   const minutos = h * 60 + m
   return Math.max(0, Math.ceil((minutos - 12 * 60 - 8 * 60) / 30))
 }
+
+/**
+ * AH2-046: el domingo anterior se toma del horario GUARDADO de la semana previa (última versión),
+ * sin carga manual. Cajeros que no figuran en esa semana (altas nuevas) cuentan como sin trabajo el domingo.
+ * Sin semana previa guardada → null (el descanso del lunes no se puede verificar esa vez).
+ */
+export function antecedenteDesdeHistorial(
+  historial: Array<{ fechaLunes: string; version: number; horarios: Array<{ colaboradorId: string; jornadas: Array<{ dia: number; esFranco: boolean; turnos: Array<{ fin: string }> }> }> }>,
+  lunes: string, cajeros: Colaborador[], sucursal: string,
+): (AntecedenteDomingo & { lunesOrigen: string }) | null {
+  let domingo: string
+  try { domingo = domingoAnteriorISO(lunes) } catch { return null }
+  const previo = new Date(lunes + 'T12:00:00Z'); previo.setUTCDate(previo.getUTCDate() - 7)
+  const lunesPrevio = previo.toISOString().slice(0, 10)
+  const semana = historial.filter(h => h.fechaLunes === lunesPrevio).sort((a, b) => b.version - a.version)[0]
+  if (!semana) return null
+  const finPorId: Record<string, string | null> = {}
+  for (const c of cajeros.filter(x => x.activo && (x.tipo === 'FULL' || x.tipo === 'PART'))) {
+    const j = semana.horarios.find(h => h.colaboradorId === c.id)?.jornadas.find(x => x.dia === 6)
+    const fin = j && !j.esFranco && j.turnos.length ? j.turnos[j.turnos.length - 1].fin.slice(0, 5) : null
+    finPorId[c.id] = fin && /^(?:[01]\d|2[0-3]):(?:00|30)$/.test(fin) ? fin : null
+  }
+  return { lunes, domingo, sucursal, finPorId, lunesOrigen: lunesPrevio }
+}

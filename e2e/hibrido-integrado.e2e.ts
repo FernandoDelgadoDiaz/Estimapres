@@ -70,7 +70,7 @@ test('activación 091 en Nueva semana y opción inmediata de usar el motor anter
  await expect(anterior).toHaveCount(0)
 })
 
-test('091: el domingo anterior se precarga de la semana guardada y el aviso aparece junto al botón',async({page})=>{
+test('091: el descanso del lunes sale del domingo de la semana guardada, sin carga manual',async({page})=>{
  const cajeros=[{id:'c1',nombre:'Cajero Uno',tipo:'FULL',horasSemanales:48,activo:true},{id:'c2',nombre:'Cajero Dos',tipo:'PART',horasSemanales:32,activo:true}]
  const jornadas=(fin:string|null)=>Array.from({length:7},(_,dia)=>dia===6?(fin?{dia,esFranco:false,turnos:[{inicio:'14:00',fin}],horas:8}:{dia,esFranco:true,turnos:[],horas:0}):{dia,esFranco:true,turnos:[],horas:0})
  const previa={id:'s-prev',fechaLunes:'2026-11-09',version:2,descripcion:'Semana anterior',generadoEl:'2026-11-08T12:00:00Z',editadoManualmente:false,resumenPorColaborador:{},
@@ -80,11 +80,11 @@ test('091: el domingo anterior se precarga de la semana guardada y el aviso apar
   localStorage.setItem('aliada_historial_semanas',JSON.stringify([previa]))},{cajeros,previa})
  await page.goto('/nueva-semana')
  await page.locator('input[type=file]').first().setInputFiles({name:'pom-sintetico.pdf',mimeType:'application/pdf',buffer:pdfPom()})
- await expect(page.getByLabel('Última salida de Cajero Uno')).toHaveValue('22:00')
- await expect(page.getByLabel('Última salida de Cajero Dos')).toHaveValue('franco')
- await expect(page.getByText('Completado con el horario guardado de la semana anterior',{exact:false})).toBeVisible()
- await expect(page.getByText('Para generar y guardar, primero confirmá los horarios del',{exact:false})).toBeVisible()
- await page.getByRole('button',{name:'Confirmar horarios del domingo'}).click()
- await expect(page.getByTestId('domingo-confirmado')).toBeVisible()
- await expect(page.getByText('Para generar y guardar, primero confirmá los horarios del',{exact:false})).toHaveCount(0)
+ // POM de la semana 16/11: toma el domingo de la semana 09/11 guardada; no hay sección para cargarlo a mano.
+ await expect(page.getByTestId('descanso-lunes')).toContainText('semana del 09/11 al 15/11')
+ await expect(page.getByText('Domingo anterior',{exact:false})).toHaveCount(0)
+ await expect(page.getByTestId('modo-prueba')).not.toBeChecked()
+ // Otra semana sin semana previa guardada: genera igual, con la nota.
+ await page.getByLabel('Lunes:').fill('2026-11-30')
+ await expect(page.getByTestId('descanso-lunes')).toContainText('No hay horario guardado de la semana anterior')
 })
