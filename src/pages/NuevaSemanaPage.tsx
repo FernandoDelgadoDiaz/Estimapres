@@ -449,10 +449,12 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   ) * 0.5 // Cada franja son 0.5h
 
   // #7: capacidad con la MISMA definición de contrato que usa el motor (ficha acotada al máximo del perfil).
-  const horasDisponibles = colaboradoresActivos.reduce((sum, col) => {
+  const horasCajeros = colaboradoresActivos.reduce((sum, col) => {
     if (col.tipo === 'PART') return sum + resolverContratoHoras('PART', col.horasSemanales, PERFIL_HORAS_VIGENTE).topeHoras
-    return sum + (col.horasSemanales ?? 0)
+    if (col.tipo === 'FULL') return sum + (col.horasSemanales ?? 0)
+    return sum
   }, 0)
+  const horasDisponibles = horasCajeros
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -640,8 +642,13 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', margin: '8px 0 16px' }}>
               <Indicador valor={`${formatoHoras(horasNecesariasEstimadas)}`} etiqueta="horas de caja necesarias (según el PDF)" />
-              <Indicador valor={`${formatoHoras(horasDisponibles)}`} etiqueta="horas disponibles del personal activo" tono={horasDisponibles >= horasNecesariasEstimadas ? 'normal' : 'atencion'} />
+              {/* AH2-050: son solo las horas de contrato de cajeros. Eventuales y supervisores también cubren caja,
+                  pero cuánto lo decide el motor al generar: no se estima acá. */}
+              <Indicador valor={`${formatoHoras(horasDisponibles)}`} etiqueta="horas de contrato de cajeros (FULL y PART)" />
             </div>
+            <p data-testid="capacidad-detalle" style={{ margin: '-8px 0 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
+              Los eventuales y los supervisores completan el resto: cuántas horas cubren lo calcula el motor al generar.
+            </p>
             {hibridoDisponible && fechasSemana.length > 0 && (
               <p data-testid="descanso-lunes" style={{ margin: '0 0 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
                 {antecedenteDomingo
@@ -652,7 +659,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             {hibridoDisponible && esLunesISO(lunesSemana) && (
               <ReglasPorPersona motor={motorConfig} lunes={lunesSemana} nombrePorId={nombrePorId} alCambiar={() => setVersionConfig(v => v + 1)} />
             )}
-            {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--warning)' }}>Con el personal activo no alcanza para cubrir toda la necesidad: van a quedar horas sin cubrir.</p>}
+            {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '13px', color: 'var(--text-muted)' }}>Los cajeros solos no alcanzan para toda la necesidad: el resto lo tienen que cubrir eventuales y supervisores. Al generar vas a ver si queda algo sin cubrir.</p>}
             <details>
               <summary style={{ cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}>Ver necesidad de cajas por franja</summary>
               <div style={{ marginTop: '12px' }}><VistaDemanda necesidad={necesidad} /></div>

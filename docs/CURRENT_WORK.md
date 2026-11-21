@@ -1,4 +1,13 @@
-## PUNTO ÚNICO DE RETOMA — AH2-049 reglas por persona visibles (PR) · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-050 leyenda de horas (PR) · 21/11/2026, Claude
+
+**Estado:** `main@87a3cb6` (AH2-047 #75, AH2-048 #76, AH2-049 #77) espera el Publish deploy del propietario (rollback: `6b02005b0d69a4f75257d273`). AH2-050 en PR (rama `claude/ah2-050-horas-disponibles`): solo se corrige la leyenda (horas de contrato de cajeros; eventuales y supervisores los calcula el motor al generar). Decisión del propietario: no estimar antes de generar. Pruebas: Vitest 621 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK.
+
+### Pendiente
+- Publicar AH2-050 (autorización) y generar la semana del 23/11.
+- Resto: ver relevo anterior.
+---
+
+## RELEVO ANTERIOR — AH2-049 reglas por persona visibles (PR) · 21/11/2026, Claude
 
 **Estado:** `main@97101ce` (AH2-047 #75 + AH2-048 #76) espera el Publish deploy del propietario en Netlify (rollback: `6b02005b0d69a4f75257d273`). **Dato de producción cambiado (autorizado):** se desactivó la exclusión manual temporal de Gabriel Silva (fila `eab627c5…`, 23–29/11) con `cms_desactivar`, versión 2, 21/11 21:46 UTC; era la única regla por persona activa en la 091. AH2-049 en PR (rama `claude/ah2-049-reglas-por-persona`): las reglas por persona se muestran en Nueva semana y Personal con botón para quitarlas. Pruebas: Vitest 621 passed / 4 skipped; Playwright 20 passed / 1 skipped; build y lint OK; captura de Personal revisada contra Supabase simulado.
 

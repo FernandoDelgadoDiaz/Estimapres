@@ -331,3 +331,9 @@ test('un fallo al cargar el Worker usa el motor en modo compatible', async ({ pa
   await expect(page.getByTestId('estado-validacion')).toContainText('Listo: cumple todas las reglas')
   expect(await historialGuardado(page)).toBe(1)
 })
+
+test('AH2-050: la leyenda aclara que son horas de cajeros y que el resto lo calcula el motor', async ({ page }) => {
+  await preparar(page)
+  await expect(page.getByText('horas de contrato de cajeros (FULL y PART)')).toBeVisible()
+  await expect(page.getByTestId('capacidad-detalle')).toContainText('lo calcula el motor al generar')
+})
