@@ -4,7 +4,7 @@
  * historial y simulación de conflictos (`aplicarCambio`). Nada se borra y nada se prorratea.
  * Regla: un cambio permanente rige desde el próximo lunes (los máximos semanales son por semana completa).
  */
-import {sumarDias,type Cambio,type FilaConfigMotor,type FranjaApertura,type NuevaFila,type TipoConfig} from './configuracionPersistente'
+import {type Cambio,type FilaConfigMotor,type FranjaApertura,type NuevaFila,type TipoConfig} from './configuracionPersistente'
 
 export const MOTIVO_SUPERVISOR='Configuración del supervisor'
 
@@ -46,28 +46,6 @@ export function normalizarFranjas(franjas:FranjaApertura[]):{ok:true;franjas:Fra
  for(const f of franjas)if(f.hasta<=f.desde)return {ok:false,error:'Cada franja debe terminar después de empezar.'}
  return {ok:true,franjas:[...franjas].sort((a,b)=>a.dia-b.dia||a.desde.localeCompare(b.desde))}
 }
-
-export type DisponibilidadCaja='TODA_LA_PRESENCIA'|'PRESENCIA_MENOS_RESERVAS'|'NO_ACREDITADA'
-/** Nuevo perfil de un eventual cambiando solo su disponibilidad de caja (conserva contrato, máximos y reservas). */
-export function datosPerfil(actual:Record<string,unknown>|undefined,acreditacion:DisponibilidadCaja,contratoOrigen:'FULL'|'PART'){
- const base:Record<string,unknown>={...(actual??{}),acreditacion,contratoOrigen:(actual?.contratoOrigen as string|undefined)??contratoOrigen,fuente:MOTIVO_SUPERVISOR}
- if(acreditacion!=='PRESENCIA_MENOS_RESERVAS'){delete base.reservas;delete base.horasFuncionHabitualMinimas}
- return base
-}
-
-/**
- * «Lo armo yo» para una persona durante semanas completas (el motor no le asigna turnos): excepción temporal
- * de lunes a domingo. `semanas` ≥ 1.
- */
-export function filaArmarAMano(sucursal:string,colaboradorId:string,lunes:string,semanas:number,motivo=''):NuevaFila{
- const n=Math.max(1,Math.floor(semanas))
- return {sucursal_id:sucursal,clase:'temporal',tipo:'condicion_supervisor',colaborador_id:colaboradorId,vigencia_desde:lunes,vigencia_hasta:sumarDias(lunes,7*n-1),
-  datos:{id:`manual-${colaboradorId.slice(0,8)}-${lunes}`,modo:'DEBE',tipo:'exclusion_manual',colaboradorId},motivo:motivo.trim()||MOTIVO_SUPERVISOR}
-}
-
-/** Excepciones temporales de personas vigentes o futuras (para listarlas con su vencimiento). */
-export const temporalesVigentes=(filas:FilaConfigMotor[],hoy:string)=>filas.filter(f=>f.activa&&f.clase==='temporal'&&(f.vigencia_hasta??'9999')>=hoy)
- .sort((a,b)=>a.vigencia_desde.localeCompare(b.vigencia_desde))
 
 /** Fecha corta «30/11». */
 export const ddmm=(iso:string)=>`${iso.slice(8,10)}/${iso.slice(5,7)}`

@@ -8,7 +8,6 @@ import { useMemo, useState } from 'react'
 import { DIAS_SEMANA, type ReglaConfigurable, type TipoReglaColaborador } from '../types'
 import { useReglas } from '../hooks/useReglas'
 import { useColaboradores } from '../hooks/useColaboradores'
-import { useEventuales } from '../hooks/useEventuales'
 import { usaHibrido } from '../hibrido/integracion'
 import { getSucursalActual } from '../utils/sucursal'
 import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
@@ -16,8 +15,8 @@ import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, 
 import { ConfiguracionMotorPanel } from '../components/reglas/ConfiguracionMotorPanel'
 import BackupConfig from '../components/semana/BackupConfig'
 import { Boton, FilaAjuste, Interruptor, Pagina, Seccion, estiloCampo } from '../components/ui/Basicos'
-import { DisponibilidadEventuales, FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
-import { ddmm, filaArmarAMano, proximoLunesISO, temporalesVigentes } from '../hibrido/configuracionSimple'
+import { FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
+import { ddmm } from '../hibrido/configuracionSimple'
 import { supabase } from '../lib/supabase'
 
 const TEXTO_OPERATIVA: Record<TipoReglaOperativa, { titulo: string; ayuda: string }> = {
@@ -27,14 +26,13 @@ const TEXTO_OPERATIVA: Record<TipoReglaOperativa, { titulo: string; ayuda: strin
   franco_medio_corridos: { titulo: 'Franco y medio franco en días seguidos', ayuda: 'Para cajeros FULL.' },
 }
 
-type QuePersona = TipoReglaColaborador | 'armar_a_mano'
-const QUE_PERSONA: Array<{ valor: QuePersona; texto: string; hibrido?: boolean }> = [
+type QuePersona = TipoReglaColaborador
+const QUE_PERSONA: Array<{ valor: QuePersona; texto: string }> = [
   { valor: 'franco_fijo', texto: 'Franco fijo' },
   { valor: 'no_antes_de', texto: 'No entra antes de' },
   { valor: 'no_despues_de', texto: 'No sale después de' },
   { valor: 'siempre_manana', texto: 'Siempre de mañana' },
   { valor: 'siempre_cierre', texto: 'Siempre de cierre' },
-  { valor: 'armar_a_mano', texto: 'Lo armo yo (el sistema no le asigna turnos)', hibrido: true },
 ]
 const HORAS = Array.from({ length: 31 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
 
@@ -43,7 +41,6 @@ export default function ReglasPage() {
   const hibrido = usaHibrido(sucursal) && !!supabase
   const { reglas, agregarRegla, actualizarRegla, eliminarRegla, toggleActiva } = useReglas()
   const { colaboradores } = useColaboradores()
-  const { eventuales } = useEventuales()
   const motor = useConfiguracionMotor(sucursal, hibrido)
   const motorListo = hibrido && motor.disponible === true
 
@@ -69,9 +66,6 @@ export default function ReglasPage() {
   const cajeros = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
   const reglasPersona = reglas.filter(r => r.ambito === 'colaborador')
   const minimos = reglas.filter(r => r.ambito === 'local' && r.tipo === 'min_cajeros_franja')
-  const hoy = new Date().toISOString().slice(0, 10)
-  const temporales = motorListo ? temporalesVigentes(motor.filas, hoy).filter(f => f.tipo === 'condicion_supervisor') : []
-  const nombreDeId = (id: string | null) => colaboradores.find(c => c.id === id)?.nombre ?? eventuales.find(e => e.id === id)?.nombre ?? 'Persona'
 
   return (
     <Pagina titulo="Configuración" descripcion="Cómo trabaja tu sucursal. El sistema lo tiene en cuenta en cada horario que genera.">
@@ -125,22 +119,17 @@ export default function ReglasPage() {
             {HORAS.slice(2).map(h => <option key={h} value={h}>{h}</option>)}
           </select>
         </FilaAjuste>
-        {motorListo && <DisponibilidadEventuales motor={motor} sucursal={sucursal} eventuales={eventuales.filter(e => e.activo)} />}
       </Seccion>
 
-      <Seccion titulo="Reglas por persona" descripcion="Francos fijos, horarios y personas que armás a mano.">
+      <Seccion titulo="Reglas por persona" descripcion="Francos fijos y horarios de cada cajero.">
         <ListaReglas
           items={[
             ...reglasPersona.map(r => ({ id: r.id, texto: r.descripcion, periodo: periodo(r.vigenciaDesde, r.vigenciaHasta), activa: r.activa,
               onPausar: () => toggleActiva(r.id), onQuitar: () => { if (confirm(`¿Quitar «${r.descripcion}»?`)) eliminarRegla(r.id) } })),
-            ...temporales.map(f => ({ id: f.id, texto: `${nombreDeId(f.colaborador_id)}: ${textoCondicion(f.datos)}`, periodo: periodo(f.vigencia_desde, f.vigencia_hasta ?? undefined), activa: true,
-              onQuitar: () => { if (confirm('¿Quitar esta regla?')) void motor.aplicar({ tipo: 'desactivar', anterior: f }, 'Regla quitada.') } })),
           ]}
           vacio="No hay reglas por persona."
         />
-        <FormPersona cajeros={cajeros.map(c => ({ id: c.id, nombre: c.nombre }))} hibrido={motorListo}
-          onRegla={agregarRegla}
-          onArmarAMano={async (id, lunes, semanas) => motor.aplicar({ tipo: 'crear', fila: filaArmarAMano(sucursal, id, lunes, semanas) }, 'Guardado: el sistema no le asignará turnos esas semanas.')} />
+        <FormPersona cajeros={cajeros.map(c => ({ id: c.id, nombre: c.nombre }))} onRegla={agregarRegla} />
       </Seccion>
 
       <Seccion titulo="Mínimo de cajeros" descripcion="Para asegurar una cantidad mínima en un horario, aunque el PDF pida menos.">
@@ -169,17 +158,6 @@ function periodo(desde?: string, hasta?: string) {
   return desde ? `Desde el ${ddmm(desde)}` : `Hasta el ${ddmm(hasta!)}`
 }
 
-function textoCondicion(d: Record<string, unknown>) {
-  switch (d.tipo) {
-    case 'exclusion_manual': return 'lo armo yo'
-    case 'franco': return `franco el ${DIAS_SEMANA[Number(d.dia)] ?? ''}`
-    case 'turno': return `turno ${String(d.valor ?? '')}`
-    case 'max_francos': return `máximo ${String(d.valor)} francos por día`
-    case 'franco_medio_corrido': return 'franco y medio franco seguidos'
-    default: return 'regla especial'
-  }
-}
-
 interface ItemRegla { id: string; texto: string; periodo: string; activa: boolean; onPausar?: () => void; onQuitar: () => void }
 function ListaReglas({ items, vacio }: { items: ItemRegla[]; vacio: string }) {
   if (!items.length) return <p style={{ margin: '8px 0', fontSize: '14px', color: 'var(--text-muted)' }}>{vacio}</p>
@@ -199,20 +177,14 @@ function ListaReglas({ items, vacio }: { items: ItemRegla[]; vacio: string }) {
 
 type NuevaRegla = Omit<ReglaConfigurable, 'id' | 'activa' | 'creadaEl'> & { activa?: boolean }
 
-function FormPersona({ cajeros, hibrido, onRegla, onArmarAMano }: {
-  cajeros: Array<{ id: string; nombre: string }>; hibrido: boolean
-  onRegla: (r: NuevaRegla) => void; onArmarAMano: (id: string, lunes: string, semanas: number) => Promise<boolean>
-}) {
+function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre: string }>; onRegla: (r: NuevaRegla) => void }) {
   const [persona, setPersona] = useState(''), [que, setQue] = useState<QuePersona>('franco_fijo'), [dia, setDia] = useState(0), [hora, setHora] = useState('09:00')
   const [temporal, setTemporal] = useState(false), [desde, setDesde] = useState(''), [hasta, setHasta] = useState('')
-  const lunesOpc = useMemo(() => Array.from({ length: 8 }, (_, i) => { const l = new Date(`${proximoLunesISO()}T12:00:00Z`); l.setUTCDate(l.getUTCDate() + 7 * i); return l.toISOString().slice(0, 10) }), [])
-  const [lunes, setLunes] = useState(lunesOpc[0]), [semanas, setSemanas] = useState(1)
   const [error, setError] = useState('')
   const nombre = cajeros.find(c => c.id === persona)?.nombre ?? ''
-  const agregar = async () => {
+  const agregar = () => {
     setError('')
     if (!persona) { setError('Elegí una persona.'); return }
-    if (que === 'armar_a_mano') { if (await onArmarAMano(persona, lunes, semanas)) setPersona(''); return }
     if (temporal && (!desde || !hasta || hasta < desde)) { setError('Indicá desde y hasta (el fin después del inicio).'); return }
     const txt: Record<TipoReglaColaborador, string> = {
       franco_fijo: `${nombre}: franco fijo los ${DIAS_SEMANA[dia]}`, no_antes_de: `${nombre}: no entra antes de las ${hora}`,
@@ -229,18 +201,13 @@ function FormPersona({ cajeros, hibrido, onRegla, onArmarAMano }: {
         <option value="">Persona…</option>{cajeros.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
       </select>
       <select aria-label="Regla" value={que} onChange={e => setQue(e.target.value as QuePersona)} style={estiloCampo}>
-        {QUE_PERSONA.filter(q => hibrido || !q.hibrido).map(q => <option key={q.valor} value={q.valor}>{q.texto}</option>)}
+        {QUE_PERSONA.map(q => <option key={q.valor} value={q.valor}>{q.texto}</option>)}
       </select>
       {que === 'franco_fijo' && <select aria-label="Día" value={dia} onChange={e => setDia(Number(e.target.value))} style={estiloCampo}>{DIAS_SEMANA.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>}
       {(que === 'no_antes_de' || que === 'no_despues_de') && <select aria-label="Hora" value={hora} onChange={e => setHora(e.target.value)} style={estiloCampo}>{HORAS.map(h => <option key={h} value={h}>{h}</option>)}</select>}
-      {que === 'armar_a_mano' ? <>
-        <select aria-label="Desde la semana" value={lunes} onChange={e => setLunes(e.target.value)} style={estiloCampo}>{lunesOpc.map(l => <option key={l} value={l}>Semana del {ddmm(l)}</option>)}</select>
-        <select aria-label="Cantidad de semanas" value={semanas} onChange={e => setSemanas(Number(e.target.value))} style={estiloCampo}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n === 1 ? '1 semana' : `${n} semanas`}</option>)}</select>
-      </> : <>
-        <select aria-label="Período" value={temporal ? 't' : 's'} onChange={e => setTemporal(e.target.value === 't')} style={estiloCampo}><option value="s">Siempre</option><option value="t">Entre fechas</option></select>
-        {temporal && <><input aria-label="Desde" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={estiloCampo} /><input aria-label="Hasta" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={estiloCampo} /></>}
-      </>}
-      <Boton onClick={() => void agregar()}>Agregar</Boton>
+      <select aria-label="Período" value={temporal ? 't' : 's'} onChange={e => setTemporal(e.target.value === 't')} style={estiloCampo}><option value="s">Siempre</option><option value="t">Entre fechas</option></select>
+      {temporal && <><input aria-label="Desde" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={estiloCampo} /><input aria-label="Hasta" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={estiloCampo} /></>}
+      <Boton onClick={agregar}>Agregar</Boton>
       {error && <p role="alert" style={{ flexBasis: '100%', margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{error}</p>}
     </div>
   )

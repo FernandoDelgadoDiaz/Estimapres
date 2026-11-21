@@ -34,8 +34,9 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await page.getByLabel('Día', { exact: true }).selectOption('2')
   await page.getByRole('button', { name: 'Agregar' }).first().click()
   await expect(page.getByText('Part A: franco fijo los Mié')).toBeVisible()
-  // «Lo armo yo» solo existe con el motor de la sucursal conectado
+  // Opciones fuera de la pantalla del supervisor (decisión del propietario).
   await expect(page.getByRole('option', { name: /Lo armo yo/ })).toHaveCount(0)
+  await expect(page.getByText('Qué eventuales atienden caja')).toHaveCount(0)
 
   // Mínimo de cajeros con validación del horario
   await page.getByLabel('Horario del mínimo').fill('12 a')

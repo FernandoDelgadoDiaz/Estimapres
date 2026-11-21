@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest'
 import {resolverConfiguracion,simularCambio,validarFila,type FilaConfigMotor} from '../configuracionPersistente'
-import {cambioPermanente,datosPerfil,datosTopes,ddmm,filaArmarAMano,leerTopes,normalizarFranjas,permanenteVigente,proximoLunesISO,temporalesVigentes} from '../configuracionSimple'
+import {cambioPermanente,datosTopes,ddmm,leerTopes,normalizarFranjas,permanenteVigente,proximoLunesISO} from '../configuracionSimple'
 
 const S='091',L='2026-11-23',P='2026-11-30'
 const fila=(p:Partial<FilaConfigMotor>&Pick<FilaConfigMotor,'tipo'|'datos'>):FilaConfigMotor=>({id:crypto.randomUUID(),sucursal_id:S,clase:'permanente',colaborador_id:null,vigencia_desde:L,vigencia_hasta:null,activa:true,motivo:'',version:1,...p})
@@ -38,21 +38,4 @@ describe('configuración simple del supervisor (AH2-044 sobre AH2-042)',()=>{
   const c=cambioPermanente(base,'excepcion_apertura_aux_unico',{franjas:[{dia:0,desde:'08:00',hasta:'09:00'},{dia:6,desde:'21:30',hasta:'22:00'}]},S,P)
   expect(simularCambio(base,c,S)).toEqual([])
  })
- it('disponibilidad de caja de un eventual: cambia solo eso y conserva contrato y horas',()=>{
-  expect(datosPerfil(perfil.datos,'NO_ACREDITADA','PART')).toEqual({acreditacion:'NO_ACREDITADA',contratoOrigen:'FULL',horasContractuales:48,fuente:'Configuración del supervisor'})
-  expect(datosPerfil({acreditacion:'PRESENCIA_MENOS_RESERVAS',reservas:[{dias:[0],desde:'08:00',hasta:'10:00'}],horasFuncionHabitualMinimas:4},'TODA_LA_PRESENCIA','FULL')).not.toHaveProperty('reservas')
-  const c=cambioPermanente(base,'perfil_caja_eventual',datosPerfil(perfil.datos,'NO_ACREDITADA','FULL'),S,P,ev)
-  expect(c).toMatchObject({tipo:'reemplazar',anterior:{id:perfil.id}})
-  expect(simularCambio(base,c,S)).toEqual([])
- })
- it('«lo armo yo» por semanas completas: excepción temporal válida, que vence sola',()=>{
-  const p='00000000-0000-4000-8000-000000000002'
-  const f=filaArmarAMano(S,p,P,2)
-  expect(f).toMatchObject({clase:'temporal',vigencia_desde:P,vigencia_hasta:'2026-12-13',datos:{tipo:'exclusion_manual',modo:'DEBE',colaboradorId:p}})
-  expect(()=>validarFila(f)).not.toThrow()
-  expect(simularCambio(base,{tipo:'crear',fila:f},S)).toEqual([])
-  const conIt=[...base,{...f,id:'t',activa:true}] as FilaConfigMotor[]
-  expect(temporalesVigentes(conIt,'2026-12-01').map(x=>x.id)).toEqual(['t'])
-  expect(temporalesVigentes(conIt,'2026-12-14')).toEqual([])
- })
-})
+  })

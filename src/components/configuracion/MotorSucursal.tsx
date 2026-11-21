@@ -6,9 +6,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { aplicarCambio, cargarConfiguracionMotor, HORAS_GRILLA, type Cambio, type FilaConfigMotor, type FranjaApertura } from '../../hibrido/configuracionPersistente'
-import { cambioPermanente, datosPerfil, datosTopes, ddmm, leerTopes, normalizarFranjas, permanenteVigente, proximoLunesISO, type DisponibilidadCaja } from '../../hibrido/configuracionSimple'
+import { cambioPermanente, datosTopes, ddmm, leerTopes, normalizarFranjas, permanenteVigente, proximoLunesISO } from '../../hibrido/configuracionSimple'
 import { Boton, FilaAjuste, estiloCampo } from '../ui/Basicos'
-import { DIAS_SEMANA, type Eventual } from '../../types'
+import { DIAS_SEMANA } from '../../types'
 
 export interface EstadoMotor {
   disponible: boolean | undefined
@@ -134,46 +134,6 @@ export function MaximosEventuales({ motor, sucursal }: { motor: EstadoMotor; suc
       <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>PART {campo('max-ev-part', part, setPart)} h</label>
       {cambiado && <Boton onClick={guardar} disabled={motor.ocupado || !valido}>Guardar</Boton>}
     </FilaAjuste>
-  )
-}
-
-const DISPONIBILIDAD: Record<DisponibilidadCaja, string> = {
-  TODA_LA_PRESENCIA: 'Atiende caja en toda su presencia',
-  PRESENCIA_MENOS_RESERVAS: 'Atiende caja fuera de su tarea habitual',
-  NO_ACREDITADA: 'No atiende caja',
-}
-
-/** Disponibilidad de caja de cada eventual (por persona). */
-export function DisponibilidadEventuales({ motor, sucursal, eventuales }: { motor: EstadoMotor; sucursal: string; eventuales: Eventual[] }) {
-  const lunes = proximoLunesISO()
-  if (!eventuales.length) return null
-  return (
-    <div style={{ padding: '14px 0', borderTop: '1px solid var(--border)' }}>
-      <p style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Qué eventuales atienden caja</p>
-      <p style={{ margin: '2px 0 10px', fontSize: '13px', color: 'var(--text-muted)' }}>Un eventual sin indicación no se asigna a caja.</p>
-      <div style={{ display: 'grid', gap: '6px' }}>
-        {eventuales.map(ev => {
-          const vigente = permanenteVigente(motor.filas, 'perfil_caja_eventual', lunes, ev.id)
-          const actual = (vigente?.datos as { acreditacion?: DisponibilidadCaja } | undefined)?.acreditacion
-          const contrato = ((vigente?.datos as { contratoOrigen?: 'FULL' | 'PART' } | undefined)?.contratoOrigen) ?? 'FULL'
-          return (
-            <div key={ev.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <span style={{ fontSize: '14px' }}>{ev.nombre}</span>
-              <select aria-label={`Caja de ${ev.nombre}`} value={actual ?? ''} disabled={motor.ocupado}
-                onChange={e => {
-                  const v = e.target.value as DisponibilidadCaja
-                  if (v === 'PRESENCIA_MENOS_RESERVAS' && actual !== v) { alert('Para indicar los horarios de su tarea habitual usá «Opciones avanzadas», al final de la página.'); return }
-                  void motor.aplicar(cambioPermanente(motor.filas, 'perfil_caja_eventual', datosPerfil(vigente?.datos, v, contrato), sucursal, lunes, ev.id), `${ev.nombre}: guardado. ${desdeTexto(lunes)}`)
-                }}
-                style={{ ...estiloCampo, minWidth: '290px' }}>
-                {!actual && <option value="">Sin indicar</option>}
-                {(Object.keys(DISPONIBILIDAD) as DisponibilidadCaja[]).map(k => <option key={k} value={k}>{DISPONIBILIDAD[k]}</option>)}
-              </select>
-            </div>
-          )
-        })}
-      </div>
-    </div>
   )
 }
 
