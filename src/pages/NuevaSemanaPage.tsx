@@ -1,8 +1,8 @@
 import {configuracionAutenticada,usaHibrido} from '../hibrido/integracion'
 import {topesVigentes,type EdicionTopes} from '../hibrido/topesContrato'
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
-import { memo, useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida } from '../types'
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida, type ResultadoAsignacion } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
@@ -74,6 +74,10 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const { historial, agregarSemana, actualizarSemana } = useHistorial()
   const { correcciones, agregarCorreccion } = useCorrecciones()
   const [semanaGuardadaId, setSemanaGuardadaId] = useState<string | null>(null)
+  // AH2-047: generación que no se guardó por incumplir reglas. Se guarda con «Guardar horario»
+  // cuando el supervisor la corrige en la tabla y ya no hay incumplimientos.
+  const guardarPendiente = useRef<((r: ResultadoAsignacion) => string) | null>(null)
+  const [hayPendiente, setHayPendiente] = useState(false)
   const [semanaDesc, setSemanaDesc] = useState('')
   // POM-01 (#8): semana tomada del PDF (encabezado/nombre); manual solo si no se detectó.
   const [lunesSemana, setLunesSemana] = useState('')
@@ -301,22 +305,17 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       operativa, // #38: estado efectivo de las reglas → el validador lo exige
     }
 
+    guardarPendiente.current = null
+    setHayPendiente(false)
     void generarHorarios(necesidad, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, fechas, excepcionesTotales, opciones, ctx, res => {
       setCtxValidacion(ctx)
-      // Se guarda si cumple las reglas; la falta de la semana anterior (solo una limitación de datos) no lo impide.
-      if (hibridoDisponible && !modoPrueba && validarResultadoSemana(res, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, ctx).violaciones.length > 0) {
-        // Mostrar resultado y motivos, pero impedir su incorporación al historial.
-        setSemanaGuardadaId(null)
-        setPaso('resultado')
-        return
-      }
       if (modoPrueba) {
         setSemanaGuardadaId(null)
         setPaso('resultado')
         return
       }
       // Guardar solamente una generación operativa elegida por el supervisor.
-      const semana = agregarSemana({
+      const guardar = (res: ResultadoAsignacion, editado = false) => agregarSemana({
         fechaLunes,
         antecedenteDomingo: antecedenteDomingo ? { lunes: antecedenteDomingo.lunes, domingo: antecedenteDomingo.domingo, sucursal: antecedenteDomingo.sucursal, finPorId: antecedenteDomingo.finPorId } : undefined,
         descripcion: semanaDesc || `Semana del ${fechaLunes}`,
@@ -339,8 +338,17 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
         generacion: res.multiArranque ? registroGeneracion(res.multiArranque) : undefined,
         disponibilidadSemana: Object.fromEntries(
           [...disponibilidad.auxiliares, ...disponibilidad.eventuales].map(p => [p.id, [...p.horarioSemanal]])),
-      })
-      setSemanaGuardadaId(semana.id)
+      }, editado).id
+      // Se guarda si cumple las reglas; la falta de la semana anterior (solo una limitación de datos) no lo impide.
+      if (hibridoDisponible && validarResultadoSemana(res, cajerosActivos, disponibilidad.auxiliares, disponibilidad.eventuales, ctx).violaciones.length > 0) {
+        // Mostrar resultado y motivos; queda pendiente hasta que el supervisor lo corrija y lo guarde.
+        guardarPendiente.current = r => guardar(r, true)
+        setHayPendiente(true)
+        setSemanaGuardadaId(null)
+        setPaso('resultado')
+        return
+      }
+      setSemanaGuardadaId(guardar(res))
       setPaso('resultado')
     }, {anterior:motorAnterior,topes:topesHibridos,base:{cajeros:cajerosActivos,auxiliares:auxiliaresActivos,eventuales:eventualesActivos,reglas}})
   }
@@ -1075,11 +1083,48 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             </div>
           </div>
 
-          {!semanaGuardadaId && (
+          {!semanaGuardadaId && !hayPendiente && (
             <p data-testid="resultado-prueba" role="status" style={{ fontWeight: 700, color: 'var(--text)' }}>
               {modoPrueba ? 'PRUEBA NO GUARDADA' : 'BORRADOR NO GUARDADO'}: este horario no se guardó en Horarios.
             </p>
           )}
+          {/* AH2-047: si no se guardó por incumplir reglas, decirlo claro y permitir guardarlo al corregirlo. */}
+          {!semanaGuardadaId && hayPendiente && validacion && (() => {
+            const corregido = validacion.violaciones.length === 0
+            return (
+              <section data-testid="no-guardado" role="alert" style={{
+                borderRadius: '16px', padding: '16px 20px', fontSize: '14px',
+                background: corregido ? 'var(--success-bg)' : '#fee2e2', color: corregido ? '#14532d' : '#7f1d1d',
+                border: `2px solid ${corregido ? '#86efac' : '#f87171'}`,
+                display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+              }}>
+                <div style={{ flex: '1 1 420px' }}>
+                  <p style={{ margin: 0, fontWeight: 800 }}>
+                    {corregido ? 'Ya cumple las reglas: guardalo para que quede en Horarios.' : 'Este horario NO se guardó porque no cumple estas reglas:'}
+                  </p>
+                  {!corregido && (
+                    <>
+                      <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
+                        {validacion.violaciones.slice(0, 20).map((v, i) => <li key={i}>{v.detalle}</li>)}
+                      </ul>
+                      <p style={{ margin: '8px 0 0' }}>Corregilo en «Horario por persona» (clic en el día) y después tocá «Guardar horario».</p>
+                    </>
+                  )}
+                </div>
+                <button type="button" data-testid="guardar-pendiente" disabled={!corregido || !resultado}
+                  onClick={() => {
+                    if (!resultado || !guardarPendiente.current) return
+                    setSemanaGuardadaId(guardarPendiente.current(resultado))
+                    guardarPendiente.current = null
+                    setHayPendiente(false)
+                  }}
+                  style={{ padding: '10px 18px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '14px',
+                    background: corregido ? 'var(--accent-strong)' : '#e5e7eb', color: corregido ? '#fff' : '#6b7280', cursor: corregido ? 'pointer' : 'not-allowed' }}>
+                  Guardar horario
+                </button>
+              </section>
+            )
+          })()}
           {errorAsignacion && (
             <div style={{
               background: 'var(--surface)',
@@ -1098,7 +1143,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             <Tarjeta etiqueta="Resumen de la semana"><ResumenCobertura resumen={resumenResultado} /></Tarjeta>
           )}
 
-          {validacion && (() => {
+          {validacion && !(hayPendiente && !semanaGuardadaId) && (() => {
             const e = estadoSupervisor(validacion)
             return (
               <section data-testid="estado-validacion" aria-label="Estado del horario" style={{

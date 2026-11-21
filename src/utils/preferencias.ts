@@ -910,6 +910,13 @@ export function validarEdicionManual(
   // Simular la semana con la jornada editada aplicada
   const semana = jornadasSemana.map((j, i) => (i === dia ? jornadaEditada : j))
 
+  // Los intervalos de un EVENTUAL son caja dentro de su presencia, no una jornada:
+  // no aplican el corte de 4 h (H-F7), el máximo de 2 bloques ni el descanso de 12 h
+  // de los cajeros. Sus límites (bloques de caja por día, disponibilidad y tope semanal)
+  // los verifica el validador de la semana con la configuración de la sucursal.
+  const esCajero = tipo === 'FULL' || tipo === 'PART'
+  const esJornada = tipo !== 'EVENTUAL'
+
   // --- Franja de operación 08:00–22:30 ---
   if (!jornadaEditada.esFranco) {
     for (const t of jornadaEditada.turnos) {
@@ -920,20 +927,21 @@ export function validarEdicionManual(
         avisos.push({ severidad: 'error', mensaje: `El turno ${t.inicio}-${t.fin} termina antes de empezar.` })
       }
     }
-    // Cortado: descanso mínimo 4h entre bloques (H-F7)
-    if (jornadaEditada.turnos.length === 2) {
+    // Cortado: descanso mínimo 4h entre bloques (H-F7). Solo jornadas de cajero.
+    if (esCajero && jornadaEditada.turnos.length === 2) {
       const gap = horaAMinutos(jornadaEditada.turnos[1].inicio) - horaAMinutos(jornadaEditada.turnos[0].fin)
       if (gap < 4 * 60) {
         avisos.push({ severidad: 'error', mensaje: `Jornada cortada: el descanso entre bloques es de ${(gap / 60).toFixed(1)}h, mínimo 4h (H-F7).` })
       }
     }
-    if (jornadaEditada.turnos.length > 2) {
+    if (esCajero && jornadaEditada.turnos.length > 2) {
       avisos.push({ severidad: 'error', mensaje: 'Una jornada no puede tener más de 2 bloques (corrida o cortada).' })
     }
   }
 
   // --- Descanso 12h entre este día y los adyacentes (H-D1) ---
   const chequeoDescanso = (previa: JornadaResumida | undefined, siguiente: JornadaResumida | undefined) => {
+    if (!esJornada) return
     if (!previa?.turnos.length || previa.esFranco || jornadaEditada.esFranco) return
     if (siguiente) return
     const finPrev = horaAMinutos(previa.turnos[previa.turnos.length - 1].fin)
@@ -946,7 +954,7 @@ export function validarEdicionManual(
   }
   chequeoDescanso(semana[dia - 1], undefined)
   // día siguiente
-  if (!jornadaEditada.esFranco && dia < 6 && semana[dia + 1]?.turnos.length && !semana[dia + 1].esFranco) {
+  if (esJornada && !jornadaEditada.esFranco && dia < 6 && semana[dia + 1]?.turnos.length && !semana[dia + 1].esFranco) {
     const finHoy = horaAMinutos(jornadaEditada.turnos[jornadaEditada.turnos.length - 1].fin)
     const inicioSig = horaAMinutos(semana[dia + 1].turnos[0].inicio)
     const descanso = (24 * 60 - finHoy) + inicioSig
