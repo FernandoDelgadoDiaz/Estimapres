@@ -1,5 +1,6 @@
 import {configuracionAutenticada,usaHibrido} from '../hibrido/integracion'
 import {topesVigentes,type EdicionTopes} from '../hibrido/topesContrato'
+import { ReglasPorPersona, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida, type ResultadoAsignacion } from '../types'
@@ -249,13 +250,16 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const [topesHibridos,setTopesHibridos]=useState<EdicionTopes>()
   const [errorConfigHibrida,setErrorConfigHibrida]=useState('')
   const [fuenteConfigHibrida,setFuenteConfigHibrida]=useState<'persistida'|'servicio'>()
+  // AH2-049: reglas por persona visibles antes de generar; al quitar una se recarga la configuración.
+  const motorConfig=useConfiguracionMotor(sucursal,hibridoDisponible)
+  const [versionConfig,setVersionConfig]=useState(0)
   useEffect(()=>{
     if(!hibridoDisponible)return
     const ctrl=new AbortController()
     setErrorConfigHibrida('')
     void configuracionAutenticada(sucursal,ctrl.signal,undefined,esLunesISO(lunesSemana)?lunesSemana:undefined).then(c=>{if(!ctrl.signal.aborted){setConfigHibrida(c.opciones);setFuenteConfigHibrida(c.fuente)}}).catch((e:unknown)=>{if(!ctrl.signal.aborted)setErrorConfigHibrida(e instanceof Error&&/conflictos/.test(e.message)?e.message:'No se pudo cargar la configuración del motor híbrido. Podés usar el motor anterior.')})
     return()=>ctrl.abort()
-  },[hibridoDisponible,sucursal,autorSesion,lunesSemana])
+  },[hibridoDisponible,sucursal,autorSesion,lunesSemana,versionConfig])
   useLayoutEffect(()=>{cancelarGeneracion()},[cancelarGeneracion,motorAnterior,topesHibridos])
   let topesMostrados=topesHibridos
   try {topesMostrados??=configHibrida&&lunesSemana?topesVigentes(configHibrida.topes_caja_eventual_contrato,sucursal,lunesSemana):undefined}catch{/* La generación rechaza una configuración inválida. */}
@@ -644,6 +648,9 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                   ? `Descanso del lunes: se calcula con el horario guardado de la ${rangoSemana(antecedenteDomingo.lunesOrigen).toLowerCase()}.`
                   : 'No hay horario guardado de la semana anterior: esta vez no se verifica el descanso del lunes.'}
               </p>
+            )}
+            {hibridoDisponible && esLunesISO(lunesSemana) && (
+              <ReglasPorPersona motor={motorConfig} lunes={lunesSemana} nombrePorId={nombrePorId} alCambiar={() => setVersionConfig(v => v + 1)} />
             )}
             {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--warning)' }}>Con el personal activo no alcanza para cubrir toda la necesidad: van a quedar horas sin cubrir.</p>}
             <details>

@@ -49,3 +49,24 @@ export function normalizarFranjas(franjas:FranjaApertura[]):{ok:true;franjas:Fra
 
 /** Fecha corta «30/11». */
 export const ddmm=(iso:string)=>`${iso.slice(8,10)}/${iso.slice(5,7)}`
+
+/** Suma días a una fecha ISO (YYYY-MM-DD). */
+const sumarDias=(iso:string,n:number)=>{const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
+
+const TEXTO_CONDICION:Record<string,string>={
+ exclusion_manual:'no se incluye en la generación',franco:'tiene un franco fijado a mano',turno:'tiene un turno fijado a mano',
+ max_francos:'tiene un máximo de francos fijado a mano',franco_medio_corrido:'tiene un medio franco fijado a mano',
+}
+
+/**
+ * AH2-049: reglas manuales por persona (`condicion_supervisor`) activas en la semana que empieza en `lunes`.
+ * El supervisor las ve antes de generar y puede quitarlas: ninguna regla por persona queda oculta.
+ */
+export function reglasPersonaEnSemana(filas:FilaConfigMotor[],lunes:string){
+ const domingo=sumarDias(lunes,6)
+ return filas.filter(f=>f.activa&&f.tipo==='condicion_supervisor'&&f.vigencia_desde<=domingo&&(f.vigencia_hasta===null||f.vigencia_hasta>=lunes))
+  .map(f=>{const d=f.datos as {tipo?:string;modo?:string}
+   const que=TEXTO_CONDICION[d.tipo??'']??'tiene una regla manual'
+   const vig=f.vigencia_hasta?`del ${ddmm(f.vigencia_desde)} al ${ddmm(f.vigencia_hasta)}`:`desde el ${ddmm(f.vigencia_desde)}`
+   return {fila:f,colaboradorId:f.colaborador_id,texto:`${que} (${d.modo==='PREFERIRIA'?'preferencia':'obligatoria'}, ${vig})`,excluye:d.tipo==='exclusion_manual'&&d.modo!=='PREFERIRIA'}})
+}

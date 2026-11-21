@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest'
 import {resolverConfiguracion,simularCambio,validarFila,type FilaConfigMotor} from '../configuracionPersistente'
-import {cambioPermanente,datosTopes,ddmm,leerTopes,normalizarFranjas,permanenteVigente,proximoLunesISO} from '../configuracionSimple'
+import {cambioPermanente,datosTopes,ddmm,leerTopes,normalizarFranjas,permanenteVigente,proximoLunesISO,reglasPersonaEnSemana} from '../configuracionSimple'
 
 const S='091',L='2026-11-23',P='2026-11-30'
 const fila=(p:Partial<FilaConfigMotor>&Pick<FilaConfigMotor,'tipo'|'datos'>):FilaConfigMotor=>({id:crypto.randomUUID(),sucursal_id:S,clase:'permanente',colaborador_id:null,vigencia_desde:L,vigencia_hasta:null,activa:true,motivo:'',version:1,...p})
@@ -39,3 +39,22 @@ describe('configuración simple del supervisor (AH2-044 sobre AH2-042)',()=>{
   expect(simularCambio(base,c,S)).toEqual([])
  })
   })
+
+describe('AH2-049: reglas por persona visibles antes de generar', () => {
+  const fila = (extra: Record<string, unknown>) => ({ id: 'r1', sucursal_id: '091', clase: 'temporal', tipo: 'condicion_supervisor', colaborador_id: 'g1', vigencia_desde: '2026-11-23', vigencia_hasta: '2026-11-29', activa: true, version: 1, motivo: 'x',
+    datos: { id: 'e', modo: 'DEBE', tipo: 'exclusion_manual', colaboradorId: 'g1' }, ...extra }) as never
+  it('muestra la exclusión que toca la semana y no las de otras semanas ni las desactivadas', () => {
+    const r = reglasPersonaEnSemana([fila({})], '2026-11-23')
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ colaboradorId: 'g1', excluye: true })
+    expect(r[0].texto).toBe('no se incluye en la generación (obligatoria, del 23/11 al 29/11)')
+    expect(reglasPersonaEnSemana([fila({})], '2026-11-30')).toEqual([])
+    expect(reglasPersonaEnSemana([fila({})], '2026-11-16')).toEqual([])
+    expect(reglasPersonaEnSemana([fila({ activa: false })], '2026-11-23')).toEqual([])
+    expect(reglasPersonaEnSemana([fila({ tipo: 'topes_caja_eventual_contrato' })], '2026-11-23')).toEqual([])
+  })
+  it('las permanentes y las de otro tipo también se muestran', () => {
+    const r = reglasPersonaEnSemana([fila({ vigencia_hasta: null, vigencia_desde: '2026-11-02', datos: { modo: 'PREFERIRIA', tipo: 'franco' } })], '2026-11-23')
+    expect(r[0]).toMatchObject({ excluye: false, texto: 'tiene un franco fijado a mano (preferencia, desde el 02/11)' })
+  })
+})
