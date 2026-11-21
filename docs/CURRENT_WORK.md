@@ -1,4 +1,37 @@
-## PUNTO ÚNICO DE RETOMA — AH2-042 publicado en backend; falta solo Publish deploy en Netlify · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-043 reparto con prioridad a picos + corrección del PDF; PR listo, sin publicar · 21/11/2026, Claude
+
+**Estado:** AH2-042 **publicado completo** (Netlify `main@ff6fcd4`, deploy `6b0177b930ae92e7fd26bc4c`, publicado 21/11 10:53 UTC; Cloud Run `aliada-optimizer-00005-rsm`). El propietario generó la semana 23–29/11 en producción: 88,3 %, 47 h faltantes (límite de dotación), reglas cumplidas. A partir de ese análisis pidió (21/11): corregir el PDF y que el motor **balancee y priorice horas y días pico**. Implementado como AH2-043 en PR de Estimapres (rama `feat/ah2-043-reparto-picos`) y de aliada-optimizer (misma rama, SHA `b81462ffeacf456a6dc4ab07f302f1ebd8e5b16f`). **No publicado.**
+
+### Cambios
+1. **PDF «Cobertura al generar: 0.0 %»:** cuando gana CP-SAT su propuesta no trae `cobertura_total_pct`; ahora el resultado usa la cobertura medida por el orquestador (validadores de A) para A y B.
+2. **Motor (equilibrio v2):** tras faltantes, faltantes ponderados y sobrantes, el faltante restante se reparte con coste convexo por franja (1 + 2 + … + k) × prioridad = peso × (100 + hora pico + día pico). Detalle en MASTER AH2-043. Igual en CP-SAT y en el selector de A (prueba de paridad). v1 intacta.
+
+### Evidencia (semana 23–29/11 real, A + CP-SAT local, 120 s, parámetros de producción)
+| | v1 (hoy) | v2 (AH2-043) |
+|---|---|---|
+| Cobertura / faltantes / sobrantes | 88,3 % / 47 h / 0 | 88,3 % / 47 h / 0 |
+| Franjas con 2+ cajas faltantes | 26 | **0** |
+| Faltantes en la franja máxima de cada día | 0 | 0 |
+| Faltantes en franjas ≥ 80 % del máximo del día | 5,5 h | 4,5 h |
+| Sábado (día pico) | 0 h | 0 h |
+| Peores franjas | Vie 16:00 0/4, Mié/Lun/Dom 0/2 | 1/2 en aperturas 09:00 y cierres 22:00 |
+| Domingo 21:30 / 22:00 | 3/5 / 0/2 | 5/5 / 1/2 |
+Los faltantes caen en los días de menor demanda (miércoles 22 %, jueves 20 %), de a una caja.
+
+### Pruebas
+pytest **166 passed / 1 skipped**; Vitest **603 passed / 4 skipped**; Playwright **17 passed / 1 skipped**; build OK.
+
+### Para publicar (requiere autorización del propietario)
+1. Fusionar el PR de aliada-optimizer, reconstruir la imagen con `b81462f` y desplegar revisión nueva (mín. 0 / máx. 1). Rollback: `aliada-optimizer-00005-rsm`.
+2. Fusionar el PR de Estimapres y Publish deploy en Netlify. Rollback: deploy `6b0177b930ae92e7fd26bc4c`.
+3. Orden: primero Cloud Run (acepta v1 y v2), después Netlify.
+
+### Decisiones abiertas
+- Escala de prioridad (100–300). Si el propietario quiere que los días flojos absorban menos faltante, se reduce el peso de «día pico».
+- Máximos 12/8 permanentes (de AH2-042); cadena aliada-optimizer #1–#5 hacia `main`.
+---
+
+## RELEVO ANTERIOR — AH2-042 publicado en backend; falta Publish deploy (luego publicado) · 21/11/2026, Claude
 
 **Estado:** publicación autorizada por el propietario (20/11/2026). Backend completo; la interfaz nueva espera el **Publish deploy** de `main@e8032c1` en Netlify (al-iada, producción bloqueada). Deploy activo al 21/11: `6b00af11bb927938de720319` (anterior). Prestify sin cambios.
 

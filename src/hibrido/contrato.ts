@@ -54,7 +54,7 @@ export function aEntradaB(input:InputAlgoritmo,branchId:string,referencia?:Resul
  if(input.inicio_minimo_lunes_por_colaborador)out.fin_domingo_anterior=Object.fromEntries(Object.entries(input.inicio_minimo_lunes_por_colaborador).map(([id,n])=>[id,n+24]))
  const noTransportables=Object.keys(src).filter(k=>src[k]!==undefined&&!(DIRECTOS as readonly string[]).includes(k)&&!SOLO_A.has(k)&&k!=='inicio_minimo_lunes_por_colaborador').sort()
  const slots=(m:Record<string,string[][]>)=>Object.fromEntries(Object.entries(m).map(([id,w])=>[id,w.map(row=>row.flatMap((v,s)=>v==='CAJA'?[s]:[]))]))
- const baseline=referencia&&input.equilibrio_semanal_version===1?{jornadas:{...referencia.jornadas_full,...referencia.jornadas_part},AUX:slots(referencia.asignacion_aux),EVENTUAL:slots(referencia.asignacion_eventual)}:undefined
+ const baseline=referencia&&(input.equilibrio_semanal_version===1||input.equilibrio_semanal_version===2)?{jornadas:{...referencia.jornadas_full,...referencia.jornadas_part},AUX:slots(referencia.asignacion_aux),EVENTUAL:slots(referencia.asignacion_eventual)}:undefined
  return {entrada:{profile:{branch_id:branchId,version:1},input:out,...(baseline?{baseline,referencia_validada_a:true}:{})},noTransportables}
 }
 

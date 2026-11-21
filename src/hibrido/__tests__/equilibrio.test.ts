@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest'
 import type {InputAlgoritmo} from '../../algoritmo/types'
-import {estructuraPicos,medirEquilibrio,compararEquilibrio,protegeReferencia} from '../equilibrio'
+import {estructuraPicos,medirEquilibrio,compararEquilibrio,protegeReferencia,prioridadesFranja,costeReparto,costeConvexo} from '../equilibrio'
 const grid=()=>Array.from({length:7},()=>Array(30).fill(0))
 const input=(demanda:number[][])=>({demanda,presencia_aux:{},disponibilidad_eventual:{},colaboradores:[]} as InputAlgoritmo)
 
@@ -31,5 +31,27 @@ describe('equilibrio semanal y picos',()=>{
   expect(protegeReferencia(i,a,a,0,1)).toBe(false)
   i.pesos_franja=Array(30).fill(1);i.pesos_franja[4]=3
   expect(estructuraPicos(i).mascara[0][4]).toBe(true)
+ })
+})
+
+describe('AH2-043 (v2): reparto con prioridad a horas y días pico',()=>{
+ it('prioridad de hora y día pico y coste convexo, idénticos a CP-SAT',()=>{
+  const m=grid();m[5][20]=6;m[5][28]=2;m[2][20]=3
+  const p=prioridadesFranja(input(m));expect([p[5][20],p[5][28],p[2][20]]).toEqual([300,233,200])
+  expect([0,1,2,3].map(k=>costeConvexo(6,k))).toEqual([0,1,3,6])
+  // Mismo caso y valor que aliada-optimizer/tests/test_weekly_balance.py (paridad exacta).
+  const dem=Array.from({length:7},(_,d)=>Array.from({length:30},(_,s)=>(d*7+s*3)%6))
+  const f=dem.map((r,d)=>r.map((n,s)=>Math.min((d+s)%3,n)))
+  expect(costeReparto({...input(dem),pesos_franja:Array(30).fill(1)},f)).toBe(47100)
+ })
+ it('el selector prefiere repartir de a una caja antes que abrir un hueco, y no toca el pico',()=>{
+  const m=grid();m[0][10]=6;m[0][20]=2;m[0][28]=2
+  const i={...input(m),equilibrio_semanal_version:2 as const}
+  const hueco=grid(),repartido=grid(),pico=grid();hueco[0][20]=2;repartido[0][20]=1;repartido[0][28]=1;pico[0][10]=1;pico[0][20]=1
+  const [h,r,p]=[hueco,repartido,pico].map(f=>medirEquilibrio(i,f))
+  expect(compararEquilibrio(r,h,0,0,0,0)).toBeLessThan(0)
+  expect(compararEquilibrio(r,p,0,0,0,0)).toBeLessThan(0)
+  // En v1 el reparto no participa (coste 0): la regla anterior queda intacta como rollback.
+  expect(medirEquilibrio(input(m),hueco).costeReparto).toBe(0)
  })
 })
