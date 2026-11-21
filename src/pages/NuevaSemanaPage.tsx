@@ -1,7 +1,7 @@
 import {configuracionAutenticada,semanasParaAprender,usaHibrido} from '../hibrido/integracion'
 import {topesVigentes,type EdicionTopes} from '../hibrido/topesContrato'
 import { ReglasPorPersona, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
-import type {OpcionesGeneracion} from '../algoritmo/adapter'
+import {FIN_CAJEROS_POR_DEFECTO,type OpcionesGeneracion} from '../algoritmo/adapter'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida, type ResultadoAsignacion } from '../types'
 import { usePDFParser } from '../hooks/usePDFParser'
@@ -284,6 +284,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       preferenciasPorNombre: sesgosGeneracion, // No aprender de simulaciones si se importó el domingo operativo
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
       maxFrancosDia: capFrancosDeReglas(reglas, fechaLunes),
+      // AH2-053: los cajeros terminan como máximo a las 22:30 (salvo configuración particular del local).
+      cajerosFinHoraLimite: FIN_CAJEROS_POR_DEFECTO,
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
       pesosFranja: pesosFranjaDeCriterios(criteriosCobertura),
       // Reglas operativas de la sucursal (con defaults del negocio)

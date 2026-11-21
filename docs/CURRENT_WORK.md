@@ -1,4 +1,16 @@
-## PUNTO ÚNICO DE RETOMA — Producción con AH2-047…051; AH2-052 en PR · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — Primera semana real guardada; AH2-053 en PR · 21/11/2026, Claude
+
+**Estado:** producción = Netlify `main@488f75c` (AH2-047…052) una vez publicado por el propietario (rollback `6b021ba4879fb3820039d6b9`). **Semana 23/11, versión 3** guardada 21/11 22:38 UTC: 8 cajeros (con Gabriel Silva), Maite 6 h, cobertura 95,5 % (18 h sin cubrir: cierre 21:00–21:30, jueves 11–14 sin segundo supervisor), estado «Listo», motor B. Primera semana real de la 091.
+
+**AH2-053 (PR, sin publicar):** cajeros terminan como máximo a las 22:30 (configurable por local). Estimapres: rama `claude/ah2-053-cierre-cajeros` (no requiere Cloud Run: el límite viaja como excepción «no después de»). aliada-optimizer: rama `feat/ah2-053-cierre-cajeros` (base `feat/minimo-impacto-semanal`), parámetro `cajeros_fin_hora_limite` con 22:30 por defecto; requiere build y deploy de Cloud Run (autorización). Pruebas: Vitest 625 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK; pytest 168 passed / 1 skipped.
+
+### Pendiente
+- Fusionar AH2-053 Estimapres → Publish deploy. Cloud Run de AH2-053 cuando el propietario lo autorice (no bloquea).
+- Configuración por local de la salida máxima de cajeros en la pantalla de Configuración (hoy: valor por defecto 22:30).
+- Resto: ver relevos anteriores.
+---
+
+## RELEVO ANTERIOR — Producción con AH2-047…051; AH2-052 en PR · 21/11/2026, Claude
 
 **Estado:** producción = Netlify deploy `6b021ba4879fb3820039d6b9` = `main@a951414` (AH2-047 a AH2-051), publicado 21/11 22:33 UTC. Rollback: `6b02005b0d69a4f75257d273`. Semana 23/11: versión 2 guardada 21:22 UTC (87,8 %, origen B) **sin Gabriel Silva** (generada antes de desactivar su exclusión). AH2-052 en PR (rama `claude/ah2-052-rotacion-semanas-previas`): la rotación ya no toma versiones previas de la misma semana. Pruebas: Vitest 623 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK.
 
