@@ -243,10 +243,15 @@ export default function HorariosPage() {
 
           {/* La validación completa corre siempre por detrás; solo se muestra si hay algo para revisar. */}
           {(problemas.length > 0 || avisosHoras.length > 0) && (
-            <section data-testid="estado-validacion" aria-label="Para revisar" style={{
+            <section data-testid="estado-validacion" aria-label="Para revisar" role={problemas.length ? 'alert' : undefined} style={problemas.length ? {
+              background: '#fee2e2', borderRadius: '16px', border: '2px solid #f87171', padding: '16px 24px', color: '#7f1d1d',
+            } : {
               background: 'var(--warning-bg)', borderRadius: '16px', border: '1px solid #fcd34d', padding: '16px 24px', color: '#78350f',
             }}>
-              <p style={{ fontWeight: 700, margin: 0 }}>Revisá antes de publicar</p>
+              {/* AH2-047: un incumplimiento de reglas no es un aviso: se dice claro qué hay que corregir. */}
+              <p style={{ fontWeight: 800, margin: 0 }}>{problemas.length
+                ? `No cumple las reglas: ${problemas.length === 1 ? 'hay 1 punto' : `hay ${problemas.length} puntos`} para corregir antes de publicar. El PDF sale como BORRADOR.`
+                : 'Revisá antes de publicar'}</p>
               <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '14px', display: 'grid', gap: '2px' }}>
                 {problemas.slice(0, 20).map((v, i) => <li key={i}>{v.detalle}</li>)}
                 {avisosHoras.map(aviso => <li key={aviso}>{aviso}</li>)}

@@ -1,4 +1,24 @@
-## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor publicada en producción · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-047 correcciones del supervisor en PR · 21/11/2026, Claude
+
+**Estado:** producción = Netlify deploy `6b02005b0d69a4f75257d273` = `main@d7ec41d` (PR #74, AH2-046: domingo anterior automático, guardado por defecto), publicado 21/11 20:39 UTC. Rollback: `6b01bed8ecf0a43bb39c5131`. Cloud Run `aliada-optimizer-00007-vzq` y Supabase sin cambios. AH2-047 en PR (rama `claude/ah2-047-correcciones-supervisor`), **sin publicar**.
+
+### Qué pasó en la primera generación real (21/11 20:44 UTC)
+El motor terminó bien (Cloud Run 200, 126 s), pero el horario **no se guardó**: el validador encontró incumplimientos y la pantalla solo lo mostraba como «Borrador», sin decir que no se guardaba ni permitir guardarlo tras corregir. El motivo exacto no quedó registrado. Lo que el propietario vio luego en Horarios era la **versión 1 del 23/11** (guardada el 19/11 con correcciones manuales: Carlos Paz lunes 10:00–14:00 / 17:30–22:30 = corte 3,5 h; Maite Oyanarte 8 h 30 contra 6 h de ficha). Además, al corregir en la tabla, a un EVENTUAL se le exigía el corte de 4 h entre intervalos de caja.
+
+### AH2-047 (PR)
+1. Edición: intervalos de EVENTUAL sin reglas de jornada de cajero (H-F7, 2 bloques, 12 h). Test `edicionManual.test.ts`.
+2. Nueva semana: recuadro rojo «Este horario NO se guardó porque…» + botón **Guardar horario** que se habilita cuando ya no hay incumplimientos.
+3. Horarios: incumplimientos en rojo («No cumple las reglas…»).
+
+Pruebas: Vitest 619 passed / 4 skipped; Playwright 19 passed / 1 skipped; build OK; captura de Horarios revisada.
+
+### Pendiente / decisiones abiertas
+- **Tope de Maite Oyanarte:** ficha 6 h vs. máximo EVENTUAL PART 8 h en Configuración (el motor usa 8 h; la tabla marca contra 6 h). Definir cuál rige.
+- Publicar AH2-047 (autorización del propietario) y volver a generar la semana del 23/11.
+- Resto de pendientes: ver relevo anterior.
+---
+
+## RELEVO ANTERIOR — AH2-044 interfaz del supervisor publicada en producción · 21/11/2026, Claude
 
 **Estado:** sin trabajo en curso. Producción:
 - **Netlify (al-iada):** deploy `6b01bed8ecf0a43bb39c5131` = `main@9d7b128` (Estimapres #69: tablas en cuadrícula, resumen a todo el ancho, Configuración sin opciones avanzadas), publicado 21/11 15:56 UTC. Anterior: `6b01b13fecf0a43bb39962db` (#67).

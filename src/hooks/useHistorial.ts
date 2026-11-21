@@ -24,7 +24,8 @@ export function useHistorial() {
    * versión anterior: crea version = max(previa) + 1 (versionado real).
    */
   const agregarSemana = (
-    datos: Omit<SemanaHistorial, 'id' | 'version' | 'generadoEl' | 'editadoManualmente' | 'modificadoEl'>
+    datos: Omit<SemanaHistorial, 'id' | 'version' | 'generadoEl' | 'editadoManualmente' | 'modificadoEl'>,
+    editadoManualmente = false,
   ): SemanaHistorial => {
     const versionesPrevias = historial.filter(s => s.fechaLunes === datos.fechaLunes)
     const version = versionesPrevias.reduce((max, s) => Math.max(max, s.version), 0) + 1
@@ -32,7 +33,7 @@ export function useHistorial() {
       id: uuidv4(),
       version,
       generadoEl: new Date().toISOString(),
-      editadoManualmente: false,
+      editadoManualmente,
       ...datos,
     }
     setHistorial(prev => [...prev, semana].sort(ordenarSemanas))
