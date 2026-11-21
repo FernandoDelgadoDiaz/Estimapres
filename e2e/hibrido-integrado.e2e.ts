@@ -69,3 +69,22 @@ test('activación 091 en Nueva semana y opción inmediata de usar el motor anter
  await page.reload()
  await expect(anterior).toHaveCount(0)
 })
+
+test('091: el domingo anterior se precarga de la semana guardada y el aviso aparece junto al botón',async({page})=>{
+ const cajeros=[{id:'c1',nombre:'Cajero Uno',tipo:'FULL',horasSemanales:48,activo:true},{id:'c2',nombre:'Cajero Dos',tipo:'PART',horasSemanales:32,activo:true}]
+ const jornadas=(fin:string|null)=>Array.from({length:7},(_,dia)=>dia===6?(fin?{dia,esFranco:false,turnos:[{inicio:'14:00',fin}],horas:8}:{dia,esFranco:true,turnos:[],horas:0}):{dia,esFranco:true,turnos:[],horas:0})
+ const previa={id:'s-prev',fechaLunes:'2026-11-09',version:2,descripcion:'Semana anterior',generadoEl:'2026-11-08T12:00:00Z',editadoManualmente:false,resumenPorColaborador:{},
+  horarios:[{colaboradorId:'c1',rolGeneral:'cajero',errores:[],jornadas:jornadas('22:00')},{colaboradorId:'c2',rolGeneral:'cajero',errores:[],jornadas:jornadas(null)}]}
+ await page.addInitScript(({cajeros,previa})=>{if(sessionStorage.getItem('dom'))return;sessionStorage.setItem('dom','1')
+  localStorage.setItem('aliada_sucursal_actual','091');localStorage.setItem('cajeros_colaboradores',JSON.stringify(cajeros))
+  localStorage.setItem('aliada_historial_semanas',JSON.stringify([previa]))},{cajeros,previa})
+ await page.goto('/nueva-semana')
+ await page.locator('input[type=file]').first().setInputFiles({name:'pom-sintetico.pdf',mimeType:'application/pdf',buffer:pdfPom()})
+ await expect(page.getByLabel('Última salida de Cajero Uno')).toHaveValue('22:00')
+ await expect(page.getByLabel('Última salida de Cajero Dos')).toHaveValue('franco')
+ await expect(page.getByText('Completado con el horario guardado de la semana anterior',{exact:false})).toBeVisible()
+ await expect(page.getByText('Para generar y guardar, primero confirmá los horarios del',{exact:false})).toBeVisible()
+ await page.getByRole('button',{name:'Confirmar horarios del domingo'}).click()
+ await expect(page.getByTestId('domingo-confirmado')).toBeVisible()
+ await expect(page.getByText('Para generar y guardar, primero confirmá los horarios del',{exact:false})).toHaveCount(0)
+})
