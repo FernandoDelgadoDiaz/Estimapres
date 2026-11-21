@@ -114,7 +114,7 @@ function horaStrASlot(hora: string): number {
  * Parsea un string de horario como "08:00-16:00" o "08:00-13:00|19:00-23:00"
  * en pares [slot_inicio, slot_fin).
  */
-function parsearRangos(horarioStr: string): Array<[number, number]> {
+export function parsearRangos(horarioStr: string): Array<[number, number]> {
   if (!horarioStr || horarioStr.trim() === '') return [];
   return horarioStr.split('|').map(rango => {
     const partes = rango.trim().split('-');

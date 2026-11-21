@@ -1,6 +1,9 @@
 import {configuracionAutenticada,usaHibrido} from '../hibrido/integracion'
 import {topesVigentes,type EdicionTopes} from '../hibrido/topesContrato'
 import { ReglasPorPersona, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
+import { capacidadSemana } from '../utils/capacidadSemana'
+import { permanenteVigente } from '../hibrido/configuracionSimple'
+import type { FranjaApertura } from '../hibrido/configuracionPersistente'
 import type {OpcionesGeneracion} from '../algoritmo/adapter'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ExcepcionSemanal, DIAS_SEMANA, JornadaResumida, type ResultadoAsignacion } from '../types'
@@ -449,10 +452,29 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   ) * 0.5 // Cada franja son 0.5h
 
   // #7: capacidad con la MISMA definición de contrato que usa el motor (ficha acotada al máximo del perfil).
-  const horasDisponibles = colaboradoresActivos.reduce((sum, col) => {
+  const horasCajeros = colaboradoresActivos.reduce((sum, col) => {
     if (col.tipo === 'PART') return sum + resolverContratoHoras('PART', col.horasSemanales, PERFIL_HORAS_VIGENTE).topeHoras
-    return sum + (col.horasSemanales ?? 0)
+    if (col.tipo === 'FULL') return sum + (col.horasSemanales ?? 0)
+    return sum
   }, 0)
+  // AH2-050: también cubren caja los eventuales (hasta su tope) y los supervisores (cuando hay otro de pie).
+  const capacidad = useMemo(() => {
+    const nec = Array.from({ length: 7 }, (_, d) => Array.from({ length: 30 }, (_, s) => necesidad[s + 2]?.necesidad[d] ?? 0))
+    const lunes = fechasSemana[0] ?? ''
+    const perfil = (id: string) => (motorConfig.filas.find(f => f.activa && f.tipo === 'perfil_caja_eventual' && f.colaborador_id === id && f.vigencia_desde <= lunes && (f.vigencia_hasta === null || f.vigencia_hasta >= lunes))?.datos as { contratoOrigen?: 'FULL' | 'PART' } | undefined)?.contratoOrigen
+    const topeContrato = (id: string) => { const c = perfil(id); const t = c && topesMostrados?.[c]; return t && t.activo && typeof t.horas === 'number' ? t.horas : undefined }
+    const franjasAuxSolo = ((lunes && permanenteVigente(motorConfig.filas, 'excepcion_apertura_aux_unico', lunes)?.datos) as { franjas?: FranjaApertura[] } | undefined)?.franjas
+    return capacidadSemana({
+      necesidad: nec, horasCajeros,
+      eventuales: (disponibilidad?.eventuales ?? []).map(e => {
+        const topes = [e.maxHorasSemanales, topeContrato(e.id)].filter((x): x is number => typeof x === 'number')
+        return { horarioSemanal: e.horarioSemanal, topeHoras: topes.length ? Math.min(...topes) : null }
+      }),
+      auxiliares: (disponibilidad?.auxiliares ?? []).map(a => ({ horarioSemanal: a.horarioSemanal })),
+      franjasAuxSolo,
+    })
+  }, [necesidad, fechasSemana, motorConfig.filas, topesMostrados, horasCajeros, disponibilidad])
+  const horasDisponibles = capacidad.total
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
@@ -640,8 +662,11 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             )}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', margin: '8px 0 16px' }}>
               <Indicador valor={`${formatoHoras(horasNecesariasEstimadas)}`} etiqueta="horas de caja necesarias (según el PDF)" />
-              <Indicador valor={`${formatoHoras(horasDisponibles)}`} etiqueta="horas disponibles del personal activo" tono={horasDisponibles >= horasNecesariasEstimadas ? 'normal' : 'atencion'} />
+              <Indicador valor={`${formatoHoras(horasDisponibles)}`} etiqueta="horas de caja que puede cubrir el personal activo" tono={horasDisponibles >= horasNecesariasEstimadas ? 'normal' : 'atencion'} />
             </div>
+            <p data-testid="capacidad-detalle" style={{ margin: '-8px 0 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
+              Cajeros {formatoHoras(capacidad.cajeros)} · eventuales hasta {formatoHoras(capacidad.eventuales)} (según su presencia y su máximo) · supervisores hasta {formatoHoras(capacidad.supervisores)} (solo cuando hay otro supervisor de pie).
+            </p>
             {hibridoDisponible && fechasSemana.length > 0 && (
               <p data-testid="descanso-lunes" style={{ margin: '0 0 12px', fontSize: '13px', color: 'var(--text-muted)' }}>
                 {antecedenteDomingo
@@ -652,7 +677,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             {hibridoDisponible && esLunesISO(lunesSemana) && (
               <ReglasPorPersona motor={motorConfig} lunes={lunesSemana} nombrePorId={nombrePorId} alCambiar={() => setVersionConfig(v => v + 1)} />
             )}
-            {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--warning)' }}>Con el personal activo no alcanza para cubrir toda la necesidad: van a quedar horas sin cubrir.</p>}
+            {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--warning)' }}>Ni sumando cajeros, eventuales y supervisores alcanza para cubrir toda la necesidad: van a quedar horas sin cubrir.</p>}
             <details>
               <summary style={{ cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}>Ver necesidad de cajas por franja</summary>
               <div style={{ marginTop: '12px' }}><VistaDemanda necesidad={necesidad} /></div>

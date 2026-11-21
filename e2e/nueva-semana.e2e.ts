@@ -331,3 +331,11 @@ test('un fallo al cargar el Worker usa el motor en modo compatible', async ({ pa
   await expect(page.getByTestId('estado-validacion')).toContainText('Listo: cumple todas las reglas')
   expect(await historialGuardado(page)).toBe(1)
 })
+
+test('AH2-050: las horas disponibles suman cajeros, eventuales y supervisores', async ({ page }) => {
+  await preparar(page)
+  const detalle = page.getByTestId('capacidad-detalle')
+  await expect(detalle).toContainText('Cajeros')
+  await expect(detalle).toContainText('eventuales hasta 14')
+  await expect(detalle).toContainText('supervisores hasta')
+})
