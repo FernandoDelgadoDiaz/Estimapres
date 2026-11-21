@@ -8,6 +8,7 @@
 Publicado: menú de 5 opciones, Inicio con el estado de la semana, Horarios (último + anteriores, cobertura por franja con picos marcados), Configuración en una página, Nueva semana corta, PDF en lenguaje del supervisor y Personal simple (detalle en MASTER AH2-044 y en el relevo anterior). «Qué eventuales atienden caja» y «lo armo yo» quedaron solo en Opciones avanzadas: para que un contrato EVENTUAL no atienda caja se usa el máximo semanal en 0 h (decisión del propietario).
 
 ### Pendiente / decisiones abiertas
+- **Plan multi-sucursal propuesto:** `docs/PLAN_MULTISUCURSAL.md` (fases 0–5, costos, decisiones del propietario). Pendiente de aprobación.
 - Revisión del propietario en uso real; ajustes que surjan.
 - Hasta el 21/11 todas las generaciones del día fueron en «modo prueba» (no guardan): para guardar, destildarlo en «Opciones de esta generación». Cambiar de pantalla dentro de la app cancela la generación (cambiar de pestaña del navegador no). Propuesta pendiente: avisar antes de salir mientras se genera.
 - Máximos 12/8 permanentes (editables en Configuración).
