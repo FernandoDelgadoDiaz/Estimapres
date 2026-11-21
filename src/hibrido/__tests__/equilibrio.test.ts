@@ -37,12 +37,12 @@ describe('equilibrio semanal y picos',()=>{
 describe('AH2-043 (v2): reparto con prioridad a horas y días pico',()=>{
  it('prioridad de hora y día pico y coste convexo, idénticos a CP-SAT',()=>{
   const m=grid();m[5][20]=6;m[5][28]=2;m[2][20]=3
-  const p=prioridadesFranja(input(m));expect([p[5][20],p[5][28],p[2][20]]).toEqual([300,233,200])
+  const p=prioridadesFranja(input(m));expect([p[5][20],p[5][28],p[2][20]]).toEqual([300,233,237])
   expect([0,1,2,3].map(k=>costeConvexo(6,k))).toEqual([0,1,3,6])
   // Mismo caso y valor que aliada-optimizer/tests/test_weekly_balance.py (paridad exacta).
   const dem=Array.from({length:7},(_,d)=>Array.from({length:30},(_,s)=>(d*7+s*3)%6))
   const f=dem.map((r,d)=>r.map((n,s)=>Math.min((d+s)%3,n)))
-  expect(costeReparto({...input(dem),pesos_franja:Array(30).fill(1)},f)).toBe(47100)
+  expect(costeReparto({...input(dem),pesos_franja:Array(30).fill(1)},f)).toBe(205150)
  })
  it('el selector prefiere repartir de a una caja antes que abrir un hueco, y no toca el pico',()=>{
   const m=grid();m[0][10]=6;m[0][20]=2;m[0][28]=2

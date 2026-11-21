@@ -14,13 +14,11 @@ export function estructuraPicos(input:InputAlgoritmo){
 }
 
 /** AH2-043 (v2): prioridad entera de cada franja = peso local × (100 + hora pico + día pico).
- * Hora pico: 100 · demanda de la franja / máxima de ese día. Día pico: 100 · (demanda del día − la del día más flojo)
- * / (la del más fuerte − la del más flojo); si todos los días son iguales, 100. Rango 100–300.
+ * Hora pico: 100 · demanda de la franja / máxima de ese día. Día pico: 100 · demanda del día / la del día más fuerte.
  * Misma fórmula entera que CP-SAT (`aliada-optimizer/optimizer/weekly_balance.py`). */
 export function prioridadesFranja(input:InputAlgoritmo){
- const dia=input.demanda.map(row=>row.reduce((a,b)=>a+b,0)),activos=dia.filter(n=>n>0)
- const hi=Math.max(0,...activos),lo=activos.length?Math.min(...activos):0
- return input.demanda.map((row,d)=>{const tope=Math.max(0,...row),pd=hi>lo?Math.floor(100*(dia[d]-lo)/(hi-lo)):100
+ const dia=input.demanda.map(row=>row.reduce((a,b)=>a+b,0)),hi=Math.max(0,...dia)
+ return input.demanda.map((row,d)=>{const tope=Math.max(0,...row),pd=hi?Math.floor(100*dia[d]/hi):0
   return row.map((n,s)=>n>0?(input.pesos_franja?.[s]??1)*(100+Math.floor(100*n/tope)+pd):0)})
 }
 /** Coste convexo de k faltantes en una franja: 1 + 2 + … + k. El segundo faltante de la misma franja cuesta el doble
@@ -29,6 +27,9 @@ export const costeConvexo=(_n:number,k:number)=>k*(k+1)/2
 export function costeReparto(input:InputAlgoritmo,faltantes:number[][]){
  const prio=prioridadesFranja(input);let total=0
  input.demanda.forEach((row,d)=>row.forEach((n,s)=>{if(n>0)total+=prio[d][s]*costeConvexo(n,Math.min(faltantes[d][s],n))}))
+ // Equilibrio entre días: la F-ésima media hora faltante de un mismo día cuesta F × peso del día (100 · demanda / día más fuerte).
+ const dia=input.demanda.map(r=>r.reduce((a,b)=>a+b,0)),hi=Math.max(0,...dia)
+ dia.forEach((n,d)=>{if(!n)return;const f=Math.min(faltantes[d].reduce((a,b)=>a+b,0),n);total+=Math.floor(100*n/hi)*f*(f+1)/2})
  return total
 }
 
