@@ -67,3 +67,16 @@ describe('AH2-051: el aprendizaje de la 091 arranca en su paso a producción', (
     expect(desdeInicioAprendizaje(s, '092')).toHaveLength(2)
   })
 })
+
+describe('AH2-052: al generar una semana se aprende solo de semanas anteriores', () => {
+  it('una versión previa de la misma semana no cuenta como «semana anterior»', async () => {
+    const { semanasParaAprender } = await import('../integracion')
+    const s = [
+      { fechaLunes: '2026-11-16', generadoEl: '2026-11-17T12:00:00Z' }, // simulación
+      { fechaLunes: '2026-11-23', generadoEl: '2026-11-21T21:22:13Z' }, // misma semana, ya en producción
+      { fechaLunes: '2026-11-23', generadoEl: '2026-11-22T10:00:00Z' },
+    ]
+    expect(semanasParaAprender(s, '091', '2026-11-23')).toEqual([])
+    expect(semanasParaAprender(s, '091', '2026-11-30')).toHaveLength(2)
+  })
+})

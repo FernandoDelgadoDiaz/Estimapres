@@ -1,4 +1,13 @@
-## PUNTO ÚNICO DE RETOMA — AH2-047 a AH2-051 fusionados; falta Publish deploy · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — Producción con AH2-047…051; AH2-052 en PR · 21/11/2026, Claude
+
+**Estado:** producción = Netlify deploy `6b021ba4879fb3820039d6b9` = `main@a951414` (AH2-047 a AH2-051), publicado 21/11 22:33 UTC. Rollback: `6b02005b0d69a4f75257d273`. Semana 23/11: versión 2 guardada 21:22 UTC (87,8 %, origen B) **sin Gabriel Silva** (generada antes de desactivar su exclusión). AH2-052 en PR (rama `claude/ah2-052-rotacion-semanas-previas`): la rotación ya no toma versiones previas de la misma semana. Pruebas: Vitest 623 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK.
+
+### Pendiente
+- Publicar AH2-052 (autorización) → regenerar la semana del 23/11 (versión 3, con Gabriel) → verificar.
+- Resto: ver relevos anteriores.
+---
+
+## RELEVO ANTERIOR — AH2-047 a AH2-051 fusionados; falta Publish deploy · 21/11/2026, Claude
 
 **Estado:** en `main`, autorizados por el propietario: #75 (AH2-047), #76 (AH2-048), #77 (AH2-049), #78 (AH2-050, leyenda de horas) y #79 (AH2-051: el aprendizaje de la 091 usa solo semanas generadas desde el 21/11 20:39 UTC; lo anterior queda archivado, sin borrar). Producción sigue en Netlify `6b02005b0d69a4f75257d273` (= `main@d7ec41d`, AH2-046) hasta que el propietario haga **Publish deploy** del último deploy de `main`; ese deploy es también el rollback si algo falla. Dato de producción cambiado (autorizado): exclusión manual de Gabriel Silva desactivada (ver AH2-049). Pruebas en cada PR: Vitest, Playwright, build y lint en verde.
 
