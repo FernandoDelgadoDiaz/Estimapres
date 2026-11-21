@@ -1,7 +1,7 @@
 ## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor publicada en producción · 21/11/2026, Claude
 
 **Estado:** sin trabajo en curso. Producción:
-- **Netlify (al-iada):** deploy `6b01b13fecf0a43bb39962db` = `main@b039d86` (Estimapres #67), publicado 21/11 15:04 UTC.
+- **Netlify (al-iada):** deploy `6b01bed8ecf0a43bb39c5131` = `main@9d7b128` (Estimapres #69: tablas en cuadrícula, resumen a todo el ancho, Configuración sin opciones avanzadas), publicado 21/11 15:56 UTC. Anterior: `6b01b13fecf0a43bb39962db` (#67).
 - **Cloud Run:** revisión `aliada-optimizer-00007-vzq` (`optimizer:4e23804`), sin cambios.
 - **Supabase:** sin cambios.
 
@@ -9,11 +9,12 @@ Publicado: menú de 5 opciones, Inicio con el estado de la semana, Horarios (úl
 
 ### Pendiente / decisiones abiertas
 - Revisión del propietario en uso real; ajustes que surjan.
+- Hasta el 21/11 todas las generaciones del día fueron en «modo prueba» (no guardan): para guardar, destildarlo en «Opciones de esta generación». Cambiar de pantalla dentro de la app cancela la generación (cambiar de pestaña del navegador no). Propuesta pendiente: avisar antes de salir mientras se genera.
 - Máximos 12/8 permanentes (editables en Configuración).
 - Cadena aliada-optimizer #1–#5 hacia `main` (producción no depende de ella).
 
 ### Rollback
-Netlify: deploy `6b0198cdc2dd14bb7be3bb3e` (antes de AH2-044) · Cloud Run: `aliada-optimizer-00006-5wg` / `00005-rsm` · Configuración: editor · Base: bloque de rollback de la migración.
+Netlify: deploy `6b01b13fecf0a43bb39962db` (antes de #69) o `6b0198cdc2dd14bb7be3bb3e` (antes de AH2-044) · Cloud Run: `aliada-optimizer-00006-5wg` / `00005-rsm` · Configuración: editor · Base: bloque de rollback de la migración.
 ---
 
 ## RELEVO ANTERIOR — AH2-044 4 etapas en PR #67 (luego publicado) · 21/11/2026, Claude
