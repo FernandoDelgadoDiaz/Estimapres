@@ -1,7 +1,9 @@
 import { validarResultadoSemana, estadoValidacion } from '../utils/validacionSemana'
 import { useReglas } from '../hooks/useReglas'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { necesidadDeSemana, rangoSemana, resumirHorarios, semanasParaConsultar } from '../utils/resumenSemana'
+import { Boton, Pagina, ResumenCobertura, Tarjeta } from '../components/ui/Basicos'
 import { HORAS_FRANJAS, JornadaResumida, ResultadoAsignacion } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useColaboradores } from '../hooks/useColaboradores'
@@ -17,12 +19,13 @@ import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
 
 /**
- * Muestra el último horario generado (la semana más reciente del historial,
- * persistida en Supabase + localStorage) y permite seguir editándolo aunque
- * se haya cerrado la pantalla de generación. Las ediciones se registran como
- * correcciones (Capacidad 3) y actualizan la semana guardada.
+ * «Horarios» del supervisor: abre en el último horario generado y permite elegir
+ * semanas anteriores (última versión de cada lunes). Se puede corregir con clic en
+ * una celda: cada corrección se registra para el aprendizaje de preferencias de la
+ * sucursal (Capacidad 3) y actualiza la semana guardada. La validación completa
+ * corre por detrás; solo se muestra si hay algo que revisar.
  */
-export default function UltimoHorarioPage() {
+export default function HorariosPage() {
   const { historial, loading, actualizarSemana } = useHistorial()
   const { colaboradoresActivos } = useColaboradores()
   const { auxiliaresActivos } = useAuxiliares()
@@ -32,10 +35,14 @@ export default function UltimoHorarioPage() {
 
   // La semana generada más recientemente (por fecha de generación, no por lunes:
   // regenerar una semana vieja también debe aparecer acá como "último horario").
+  const semanas = useMemo(() => semanasParaConsultar(historial), [historial])
+  const [seleccionId, setSeleccionId] = useState<string | null>(null)
   const ultimaSemana = useMemo(() => {
     if (historial.length === 0) return null
-    return [...historial].sort((a, b) => b.generadoEl.localeCompare(a.generadoEl))[0]
-  }, [historial])
+    const elegida = seleccionId ? historial.find(s => s.id === seleccionId) : undefined
+    return elegida ?? [...historial].sort((a, b) => b.generadoEl.localeCompare(a.generadoEl))[0]
+  }, [historial, seleccionId])
+  const opciones = useMemo(() => ultimaSemana && !semanas.some(s => s.id === ultimaSemana.id) ? [ultimaSemana, ...semanas] : semanas, [semanas, ultimaSemana])
 
   // Incluye AUX y eventuales: sus filas también se muestran y editan acá.
   const nombrePorId = useMemo(
@@ -171,98 +178,60 @@ export default function UltimoHorarioPage() {
     })
   }
 
-  return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      <div>
-        <h1 style={{ fontSize: '36px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>
-          Último horario
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginTop: '8px' }}>
-          El horario generado más reciente, guardado automáticamente. Podés seguir editándolo con clic en una celda.
-        </p>
-      </div>
+  const resumen = useMemo(() => {
+    if (!ultimaSemana) return null
+    const n = necesidadDeSemana(ultimaSemana)
+    return n ? resumirHorarios(ultimaSemana.horarios, n.necesidad, ultimaSemana.cajaAux) : null
+  }, [ultimaSemana])
+  const problemas = validacion?.violaciones ?? []
 
+  return (
+    <Pagina
+      titulo="Horarios"
+      descripcion="Consultá, corregí y exportá los horarios generados. Tus correcciones se guardan y ayudan a mejorar los próximos."
+      acciones={ultimaSemana ? <>
+        {opciones.length > 1 && (
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--text-muted)' }}>
+            Semana
+            <select
+              aria-label="Elegir semana"
+              value={ultimaSemana.id}
+              onChange={e => setSeleccionId(e.target.value)}
+              style={{ padding: '9px 12px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '14px', color: 'var(--text)' }}
+            >
+              {opciones.map(s => <option key={s.id} value={s.id}>{rangoSemana(s.fechaLunes)}</option>)}
+            </select>
+          </label>
+        )}
+        <Boton onClick={handleExportarPDF}>Exportar PDF</Boton>
+      </> : undefined}
+    >
       {loading ? (
-        <div style={{
-          background: 'var(--card)', borderRadius: '16px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-          padding: '40px', textAlign: 'center',
-        }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: '16px' }}>⏳ Cargando el último horario…</p>
-        </div>
+        <Tarjeta><p style={{ margin: 0, color: 'var(--text-muted)' }}>Cargando horarios…</p></Tarjeta>
       ) : !ultimaSemana ? (
-        <div style={{
-          background: 'var(--card)', borderRadius: '16px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-          padding: '40px', textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🕒</div>
-          <h3 style={{ fontSize: '24px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', marginBottom: '8px', letterSpacing: '-0.5px' }}>
-            Todavía no hay horarios generados
-          </h3>
-          <p style={{ color: 'var(--text-muted)', fontFamily: "'Space Grotesk', sans-serif", fontSize: '16px', marginBottom: '24px' }}>
-            Cuando generes un horario en "Nueva Semana" va a quedar guardado acá automáticamente.
-          </p>
-          <Link
-            to="/nueva-semana"
-            style={{
-              display: 'inline-block', background: 'var(--accent)', color: 'var(--accent-dark)',
-              padding: '12px 24px', borderRadius: '100px', textDecoration: 'none',
-              fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '14px', letterSpacing: '-0.2px',
-            }}
-          >
-            Generar nueva semana
+        <Tarjeta estilo={{ textAlign: 'center', padding: '48px 24px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, fontFamily: "'Syne', sans-serif", margin: '0 0 8px' }}>Todavía no hay horarios generados</h2>
+          <p style={{ color: 'var(--text-muted)', margin: '0 0 20px' }}>Cuando generes una semana, va a quedar guardada acá.</p>
+          <Link to="/nueva-semana" style={{ display: 'inline-block', background: 'var(--accent)', color: 'var(--accent-dark)', padding: '10px 20px', borderRadius: '100px', textDecoration: 'none', fontWeight: 700 }}>
+            Generar horario
           </Link>
-        </div>
+        </Tarjeta>
       ) : (
         <>
-          <div style={{
-            background: 'var(--card)', borderRadius: '16px',
-            border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-            padding: '20px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '16px',
-          }}>
-            <div style={{ flex: 1, minWidth: '220px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", color: 'var(--text)', margin: 0 }}>
-                {ultimaSemana.descripcion}
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Semana del lunes {ultimaSemana.fechaLunes} · versión {ultimaSemana.version} · generado {formatearFechaHora(ultimaSemana.generadoEl)}
-                {ultimaSemana.modificadoEl && ` · última modificación ${formatearFechaHora(ultimaSemana.modificadoEl)}`}
-              </p>
-            </div>
-            {ultimaSemana.editadoManualmente && (
-              <span style={{
-                fontSize: '12px', fontWeight: 600, padding: '6px 14px', borderRadius: '100px',
-                background: 'var(--warning-bg)', color: 'var(--warning)',
-              }}>
-                ✏️ Con ediciones manuales
+          <Tarjeta etiqueta="Resumen de la semana">
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", margin: 0 }}>{rangoSemana(ultimaSemana.fechaLunes)}</h2>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Generado el {formatearFechaHora(ultimaSemana.generadoEl)}
+                {ultimaSemana.editadoManualmente && ultimaSemana.modificadoEl && ` · corregido el ${formatearFechaHora(ultimaSemana.modificadoEl)}`}
               </span>
-            )}
-            <Link
-              to="/historial"
-              style={{
-                padding: '10px 20px', border: '1px solid var(--border)', borderRadius: '100px',
-                background: 'var(--card)', color: 'var(--text)', textDecoration: 'none',
-                fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: '13px',
-              }}
-            >
-              Ver historial completo
-            </Link>
-            <button
-              onClick={handleExportarPDF}
-              style={{
-                background: 'var(--accent)', color: 'var(--accent-dark)',
-                padding: '10px 20px', borderRadius: '100px', border: 'none',
-                fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: '13px',
-                letterSpacing: '-0.2px', cursor: 'pointer',
-              }}
-            >
-              📄 Exportar PDF
-            </button>
-          </div>
+            </div>
+            {resumen
+              ? <ResumenCobertura resumen={resumen} />
+              : <p style={{ margin: 0, color: 'var(--text-muted)' }}>Esta semana se guardó sin la necesidad de cajas: no se puede calcular la cobertura.</p>}
+          </Tarjeta>
 
-          {/* Cobertura en tiempo real: el supervisor ve al instante si su
-              edición mejora o empeora la cobertura vs. el PDF */}
+          {/* Cobertura por franja: a simple vista dónde falta, dónde sobra y cuáles son las horas pico. */}
           {necesidadFranjas && (
             <CoberturaLive
               necesidadFranjas={necesidadFranjas}
@@ -272,32 +241,19 @@ export default function UltimoHorarioPage() {
             />
           )}
 
-          <section data-testid="estado-validacion" aria-label="Estado de validación" style={{
-            background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '16px 24px',
-            color: validacion?.publicable ? 'var(--text)' : 'var(--danger, #b91c1c)',
-          }}>
-            <p style={{ fontWeight: 700 }}>
-              {validacion ? `${validacion.publicable ? '✅' : '⛔'} ${estadoValidacion(validacion)}` : '⛔ SIN VERIFICAR: la semana no tiene datos de demanda para validar'}
-            </p>
-            {operativa && (
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                Apertura solo AUX: {operativa.aperturaSoloAux ? 'activada' : 'desactivada'} · Sin AUX en caja al cierre: {operativa.sinAuxCierre ? 'activada' : 'desactivada'} · Supervisor de jornada completa: {operativa.supervisorJornadaCompleta ? 'activada' : 'desactivada'}
-                {!ultimaSemana.configOperativa && ' (semana generada antes de registrar su configuración: se usan las reglas vigentes)'}
-              </p>
-            )}
-            {!!validacion?.violaciones.length && (
-              <ul style={{ marginTop: '8px', fontSize: '13px' }}>
-                {validacion.violaciones.slice(0, 30).map((v, i) => <li key={i}>[{v.nivel}] {v.detalle}</li>)}
+          {/* La validación completa corre siempre por detrás; solo se muestra si hay algo para revisar. */}
+          {(problemas.length > 0 || avisosHoras.length > 0) && (
+            <section data-testid="estado-validacion" aria-label="Para revisar" style={{
+              background: 'var(--warning-bg)', borderRadius: '16px', border: '1px solid #fcd34d', padding: '16px 24px', color: '#78350f',
+            }}>
+              <p style={{ fontWeight: 700, margin: 0 }}>Revisá antes de publicar</p>
+              <ul style={{ margin: '8px 0 0', paddingLeft: '18px', fontSize: '14px', display: 'grid', gap: '2px' }}>
+                {problemas.slice(0, 20).map((v, i) => <li key={i}>{v.detalle}</li>)}
+                {avisosHoras.map(aviso => <li key={aviso}>{aviso}</li>)}
               </ul>
-            )}
-          </section>
-
-          {!!avisosHoras.length && (
-            <section aria-label="Avisos de horas semanales" className="mb-4 rounded border border-amber-300 bg-amber-50 p-4 text-amber-950">
-              <strong>Revisá las horas semanales</strong>
-              <ul className="list-disc pl-5">{avisosHoras.map(aviso => <li key={aviso}>{aviso}</li>)}</ul>
             </section>
           )}
+
           <TablaHorarios
             horarios={ultimaSemana.horarios}
             colaboradores={colaboradoresActivos}
@@ -306,9 +262,10 @@ export default function UltimoHorarioPage() {
             editable
             onEditarJornada={handleEditarJornada}
           />
+
         </>
       )}
-    </div>
+    </Pagina>
   )
 }
 

@@ -65,9 +65,9 @@ export default function DisponibilidadSemana({
 
   return (
     <section aria-labelledby="disponibilidad-semana" className="rounded-2xl border p-6" style={{ background: 'var(--card)', borderColor: 'var(--border)' }}>
-      <h3 id="disponibilidad-semana" className="mb-2 text-xl font-bold">Disponibilidad de AUX y eventuales</h3>
+      <h3 id="disponibilidad-semana" className="mb-2 text-xl font-bold">Supervisores y eventuales esta semana</h3>
       <p className="mb-4 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Se usa el patrón habitual de Colaboradores. Las excepciones se aplican a una fecha de esta planificación y se pierden al salir o recargar.
+        Se usa su horario habitual de Personal. Si alguien cambia un día puntual (ausencia o cambio de horario), cargalo acá.
       </p>
 
       {errores.length > 0 && (
@@ -81,18 +81,18 @@ export default function DisponibilidadSemana({
         {huecos.length > 0 ? (
           <details open className="rounded-lg p-3" style={{ background: 'var(--surface)' }}>
             <summary className="cursor-pointer font-bold">Faltantes de supervisión ({huecos.length})</summary>
-            <p className="my-2">Con estos huecos, el motor genera un borrador y deja a los AUX fuera de caja toda la semana.</p>
+            <p className="my-2">Con estos huecos el horario queda como borrador y los supervisores no atienden caja en toda la semana.</p>
             <ul className="ml-5 list-disc">
               {huecos.map(h => <li key={h.detalle}>{h.detalle}</li>)}
             </ul>
           </details>
-        ) : <p>Supervisión cubierta según las franjas que comprueba el motor.</p>}
+        ) : <p>Hay supervisor en todo el horario de la sucursal.</p>}
       </div>
 
       {personas.length > 0 && (
         <>
           <details className="mb-4">
-            <summary className="cursor-pointer font-semibold">Ver patrón habitual y excepciones aplicadas</summary>
+            <summary className="cursor-pointer font-semibold">Ver horarios de la semana</summary>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
@@ -121,7 +121,7 @@ export default function DisponibilidadSemana({
           </details>
 
           <details>
-            <summary className="cursor-pointer font-semibold">Cargar excepción por fecha</summary>
+            <summary className="cursor-pointer font-semibold">Cargar un cambio puntual</summary>
             <form className="mt-3 grid gap-3 sm:grid-cols-2" onSubmit={agregar}>
               <label>Persona
                 <select className="block w-full rounded border p-2" required value={colaboradorId} onChange={e => setColaboradorId(e.target.value)}>

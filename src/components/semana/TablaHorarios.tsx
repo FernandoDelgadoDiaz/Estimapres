@@ -136,14 +136,14 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
           color: 'var(--text)',
           letterSpacing: '-0.5px',
         }}>
-          Horarios asignados por colaborador
+          Horario por persona
         </h3>
         <p style={{
           color: 'var(--text-muted)',
           fontSize: '12px',
           marginTop: '4px',
         }}>
-          {horarios.length} colaboradores con horarios generados
+          Hacé clic en un día para corregirlo.
         </p>
       </div>
 
@@ -403,30 +403,14 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
         </div>
       )}
 
-      {/* Leyenda de colores */}
-      <div style={{
-        padding: '16px 24px',
-        borderTop: '1px solid var(--border)',
-        background: 'var(--surface)',
-      }}>
-        <h4 style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}>
-          Leyenda de roles
-        </h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-          {Object.entries(rolColor).map(([rol, color]) => (
-            <div key={rol} style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{
-                width: '16px',
-                height: '16px',
-                borderRadius: '4px',
-                marginRight: '8px',
-                border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-                backgroundColor: color,
-              }}></div>
-              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{rol}</span>
-            </div>
-          ))}
-        </div>
+      {/* Leyenda de colores, en lenguaje del supervisor */}
+      <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+        {([['aux_supervisor', 'Supervisor'], ['eventual_sector', 'Eventual en caja'], ['franco', 'Franco']] as const).map(([rol, texto]) => (
+          <span key={rol} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+            <span style={{ width: '14px', height: '14px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: rolColor[rol] }} />
+            {texto}
+          </span>
+        ))}
       </div>
     </div>
   )

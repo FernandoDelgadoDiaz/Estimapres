@@ -15,11 +15,13 @@ import DisponibilidadSemana from '../components/semana/DisponibilidadSemana'
 import { prepararDisponibilidadSemana, type ExcepcionDisponibilidad } from '../utils/disponibilidadHabitual'
 import PDFUploader from '../components/semana/PDFUploader'
 import PreviewNecesidad from '../components/semana/PreviewNecesidad'
-import TablaCobertura from '../components/semana/TablaCobertura'
+import CoberturaLive from '../components/semana/CoberturaLive'
+import { Indicador, ResumenCobertura, Tarjeta, formatoHoras } from '../components/ui/Basicos'
+import { rangoSemana, resumirHorarios } from '../utils/resumenSemana'
+import { ddmm } from '../hibrido/configuracionSimple'
 import TablaHorarios from '../components/semana/TablaHorarios'
-import PanelAlertas from '../components/semana/PanelAlertas'
 import { generarPDF } from '../utils/exportPDF'
-import { validarResultadoSemana, estadoValidacion, type ContextoValidacionSemana } from '../utils/validacionSemana'
+import { validarResultadoSemana, estadoValidacion, estadoSupervisor, type ContextoValidacionSemana } from '../utils/validacionSemana'
 import { getSucursalActual } from '../utils/sucursal'
 import { PERFIL_HORAS_VIGENTE, resolverContratoHoras } from '../algoritmo/contratos'
 import { registroGeneracion } from '../utils/generacionMultiArranque'
@@ -401,6 +403,11 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       : null),
     [resultado, ctxValidacion, colaboradoresActivos]
   )
+  // AH2-044: resumen en lenguaje del supervisor (se actualiza con cada corrección).
+  const resumenResultado = useMemo(
+    () => (resultado && necesidad.length ? resumirHorarios(resultado.horarios, necesidad.map(f => f.necesidad), resultado.cajaAux) : null),
+    [resultado, necesidad]
+  )
 
   const handleExportarPDF = () => {
     if (!resultado) return
@@ -602,7 +609,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               marginBottom: '16px',
               letterSpacing: '-0.5px',
             }}>
-              Resumen de necesidad
+              {fechasSemana.length > 0 ? rangoSemana(fechasSemana[0]) : 'Semana'}
             </h3>
             <div data-testid="semana-pom" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', color: 'var(--text)' }}>
               <span style={{ fontWeight: 700 }}>
@@ -632,37 +639,27 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 {avisosPOM.map(a => <li key={a}>{a}</li>)}
               </ul>
             )}
-            <VistaDemanda necesidad={necesidad} />
-          </div>
-
-          {fechasSemana.length > 0 && (
-            <div data-testid="reglas-efectivas" style={{
-              background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '20px 24px', color: 'var(--text)',
-            }}>
-              <p style={{ fontWeight: 700, marginBottom: '8px' }}>Reglas operativas que se aplicarán a esta semana</p>
-              <ul style={{ fontSize: '13px' }}>
-                {Object.entries(resolucionOperativaDeReglas(reglas, fechasSemana[0])).map(([tipo, r]) => (
-                  <li key={tipo} data-testid={`regla-efectiva-${tipo}`}>
-                    <strong>{ETIQUETAS_OPERATIVAS[tipo as keyof typeof ETIQUETAS_OPERATIVAS].titulo}:</strong>{' '}
-                    {r.valor ? 'ACTIVADA' : 'DESACTIVADA'}{' '}
-                    <span style={{ color: 'var(--text-muted)' }}>({r.origen === 'regla' ? 'configurada en Reglas' : 'valor predeterminado'})</span>
-                    {r.conflicto && <span role="alert" style={{ display: 'block', color: 'var(--danger, #b91c1c)' }}>{r.conflicto}</span>}
-                  </li>
-                ))}
-              </ul>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', margin: '8px 0 16px' }}>
+              <Indicador valor={`${formatoHoras(horasNecesariasEstimadas)}`} etiqueta="horas de caja necesarias (según el PDF)" />
+              <Indicador valor={`${formatoHoras(horasDisponibles)}`} etiqueta="horas disponibles del personal activo" tono={horasDisponibles >= horasNecesariasEstimadas ? 'normal' : 'atencion'} />
             </div>
-          )}
+            {horasDisponibles < horasNecesariasEstimadas && <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--warning)' }}>Con el personal activo no alcanza para cubrir toda la necesidad: van a quedar horas sin cubrir.</p>}
+            <details>
+              <summary style={{ cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}>Ver necesidad de cajas por franja</summary>
+              <div style={{ marginTop: '12px' }}><VistaDemanda necesidad={necesidad} /></div>
+            </details>
+          </div>
 
           {hibridoDisponible && fechasSemana.length > 0 && (
             <div data-testid="antecedente-domingo" style={{
               background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px',
               padding: '20px 24px', color: 'var(--text)',
             }}>
-              <h3 style={{ fontWeight: 700, marginBottom: '8px' }}>Antecedente planificado del domingo {domingoAnteriorISO(fechasSemana[0])}</h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                Seleccioná la última salida programada o Franco para cada cajero y confirmá la lista.
-                También podés importar un JSON de esta sucursal. AUX y eventuales conservan su disponibilidad.
+              <h3 style={{ fontWeight: 800, fontSize: '18px', fontFamily: "'Syne', sans-serif", margin: '0 0 6px' }}>Domingo anterior ({ddmm(domingoAnteriorISO(fechasSemana[0]))})</h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: '0 0 12px' }}>
+                Indicá a qué hora salió cada cajero (o si tuvo franco) para respetar su descanso del lunes.
               </p>
+              <details style={{ marginBottom: '8px' }}><summary style={{ cursor: 'pointer', fontSize: '13px', color: 'var(--text-muted)' }}>Importar desde un archivo</summary>
               <input data-testid="archivo-domingo" type="file" accept=".json,application/json" disabled={cargandoDotacion}
                 onChange={async e => {
                   const input = e.currentTarget
@@ -685,6 +682,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                   }
                 }}
               />
+              </details>
               {antecedenteDomingo && (
                 <div data-testid="domingo-confirmado" style={{ marginTop: '8px', fontWeight: 600 }}>
                   <p>Domingo {antecedenteDomingo.domingo}: {Object.keys(antecedenteDomingo.finPorId).length} cajeros cargados. Revisá las salidas:</p>
@@ -724,16 +722,12 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 } catch (err) {
                   setErrorAntecedente(err instanceof Error ? err.message : 'No se pudo confirmar el domingo.')
                 }
-              }}>Confirmar salidas programadas</button>
+              }} style={{ padding: '8px 16px', borderRadius: '100px', border: '1px solid var(--border)', background: 'var(--card)', fontWeight: 600, cursor: 'pointer' }}>Confirmar horarios del domingo</button>
               {!antecedenteDomingo && (
-                <p style={{ fontSize: '13px', color: 'var(--danger)', marginTop: '8px' }}>
-                  Sin domingo confirmado, la prueba quedará SIN VERIFICAR. No se utilizará una versión experimental como antecedente.
+                <p style={{ fontSize: '13px', color: 'var(--warning)', marginTop: '8px' }}>
+                  Si no lo confirmás, el horario queda sin verificar el descanso del lunes.
                 </p>
               )}
-              <label style={{ display: 'block', marginTop: '12px', fontSize: '14px', fontWeight: 600 }}>
-                <input data-testid="modo-prueba" type="checkbox" checked={modoPrueba} onChange={e => setModoPrueba(e.target.checked)} />
-                {' '}Modo prueba: no guardar horario ni correcciones en el historial
-              </label>
             </div>
           )}
 
@@ -763,230 +757,14 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
             padding: '32px',
           }}>
-            <h3 style={{
-              fontSize: '24px',
-              fontWeight: 800,
-              fontFamily: "'Syne', sans-serif",
-              color: 'var(--text)',
-              marginBottom: '16px',
-              letterSpacing: '-0.5px',
-            }}>
-              Colaboradores activos esta semana
-            </h3>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ minWidth: '100%', borderCollapse: 'collapse' }}>
-                <thead style={{ background: 'var(--surface)' }}>
-                  <tr>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      Nombre
-                    </th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      Tipo
-                    </th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      Horas Sem.
-                    </th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                      Estado
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {colaboradoresActivos.map((col) => (
-                    <tr key={col.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.nombre}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          padding: '4px 12px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          borderRadius: '100px',
-                          background: col.tipo === 'FULL' ? 'var(--accent)' :
-                                    col.tipo === 'PART' ? 'var(--purple)' : 'var(--surface)',
-                          color: col.tipo === 'FULL' ? 'var(--accent-dark)' :
-                                 col.tipo === 'PART' ? 'var(--bg)' : 'var(--text)',
-                        }}>
-                          {col.tipo}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '14px', color: 'var(--text)' }}>{col.horasSemanales !== undefined ? `${col.horasSemanales}h` : 'Sin dato'}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          padding: '4px 12px',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          borderRadius: '100px',
-                          background: 'var(--accent)',
-                          color: 'var(--accent-dark)',
-                        }}>
-                          Activo
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div style={{
-              marginTop: '24px',
-              padding: '20px',
-              background: 'var(--surface)',
-              borderRadius: '12px',
-            }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px',
-                marginBottom: '16px',
-              }}>
-                <div>
-                  <h4 style={{
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    color: 'var(--text)',
-                    marginBottom: '4px',
-                  }}>
-                    Horas necesarias estimadas
-                  </h4>
-                  <p style={{
-                    fontSize: '32px',
-                    fontWeight: 800,
-                    fontFamily: "'Syne', sans-serif",
-                    color: 'var(--text)',
-                    letterSpacing: '-0.5px',
-                  }}>
-                    {horasNecesariasEstimadas.toFixed(1)}h
-                  </p>
-                  <p style={{
-                    fontSize: '14px',
-                    color: 'var(--text-muted)',
-                  }}>
-                    Basado en la tabla de necesidad
-                  </p>
-                </div>
-                <div>
-                  <h4 style={{
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    color: 'var(--text)',
-                    marginBottom: '4px',
-                  }}>
-                    Horas disponibles máximas
-                  </h4>
-                  <p style={{
-                    fontSize: '32px',
-                    fontWeight: 800,
-                    fontFamily: "'Syne', sans-serif",
-                    color: 'var(--text)',
-                    letterSpacing: '-0.5px',
-                  }}>
-                    {horasDisponibles}h
-                  </p>
-                  <p style={{
-                    fontSize: '14px',
-                    color: 'var(--text-muted)',
-                  }}>
-                    Sumatoria de todos los colaboradores activos
-                  </p>
-                </div>
+            {conflictosReglas.length > 0 && (
+              <div role="alert" style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: 'var(--warning-bg)', color: '#78350f', fontSize: '14px' }}>
+                <strong>Algunas reglas no se pueden cumplir del todo:</strong>
+                <ul style={{ margin: '4px 0 0', paddingLeft: '18px' }}>{conflictosReglas.map((c, k) => <li key={k}>{c}</li>)}</ul>
               </div>
-              <div style={{ marginTop: '16px' }}>
-                <div style={{
-                  height: '8px',
-                  background: 'var(--surface)',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      background: 'var(--accent)',
-                      width: `${Math.min(100, (horasDisponibles / horasNecesariasEstimadas) * 100)}%`,
-                    }}
-                  ></div>
-                </div>
-                <p style={{
-                  fontSize: '14px',
-                  color: 'var(--text-muted)',
-                  marginTop: '8px',
-                }}>
-                  {horasDisponibles >= horasNecesariasEstimadas
-                    ? '✅ Horas suficientes para cubrir la necesidad'
-                    : '⚠️ Puede haber faltantes de cobertura'}
-                </p>
-              </div>
-            </div>
-
-            {/* Reglas y preferencias que se aplicarán en esta generación */}
-            <div style={{
-              marginTop: '32px',
-              padding: '24px',
-              border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-              borderRadius: '16px',
-              background: 'var(--card)',
-            }}>
-              <h3 style={{
-                fontSize: '20px',
-                fontWeight: 800,
-                fontFamily: "'Syne', sans-serif",
-                color: 'var(--text)',
-                letterSpacing: '-0.5px',
-                marginBottom: '12px',
-              }}>
-                Reglas y preferencias que se aplicarán
-              </h3>
-              <p style={{ fontSize: '14px', color: 'var(--text)' }}>
-                ⚙️ {reglasActivas.length === 0
-                  ? 'No hay reglas configuradas (podés crearlas en la pestaña "Reglas").'
-                  : `${reglasActivas.length} regla${reglasActivas.length === 1 ? '' : 's'} activa${reglasActivas.length === 1 ? '' : 's'} del local se aplicarán automáticamente.`}
-              </p>
-              {frasesPreferencias.length > 0 && (
-                <div style={{ marginTop: '8px' }}>
-                  <p style={{ fontSize: '14px', color: 'var(--text)' }}>🔄 Rotación y preferencias aprendidas:</p>
-                  {frasesPreferencias.map((f, i) => (
-                    <p key={i} style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '20px', marginTop: '2px' }}>• {f}</p>
-                  ))}
-                </div>
-              )}
-              {criteriosActivos.length > 0 && (
-                <div style={{ marginTop: '8px' }}>
-                  <p style={{ fontSize: '14px', color: 'var(--text)' }}>🎯 Criterios de cobertura que esta propuesta ya incorpora:</p>
-                  {criteriosActivos.map((c, i) => (
-                    <p key={i} style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '20px', marginTop: '2px' }}>• {c.descripcion}</p>
-                  ))}
-                </div>
-              )}
-              {conflictosReglas.length > 0 && (
-                <div style={{
-                  marginTop: '12px',
-                  padding: '12px 16px',
-                  border: '1px solid var(--accent-strong)',
-                  borderRadius: '12px',
-                  background: 'var(--surface)',
-                }}>
-                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent-strong)' }}>
-                    ⚠️ Conflictos con reglas laborales duras (se informan, nunca se violan):
-                  </p>
-                  {conflictosReglas.map((c, i) => (
-                    <p key={i} style={{ fontSize: '13px', color: 'var(--text)', marginTop: '4px' }}>• {c}</p>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            )}
             {/* Sección de excepciones semanales */}
-            <div style={{
-              marginTop: '32px',
-              padding: '24px',
-              border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-              borderRadius: '16px',
-              background: 'var(--card)',
-            }}>
+            <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{
                   fontSize: '20px',
@@ -995,7 +773,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                   color: 'var(--text)',
                   letterSpacing: '-0.5px',
                 }}>
-                  Excepciones semanales (opcional)
+                  Cambios de cajeros esta semana (opcional)
                 </h3>
                 <button
                   onClick={() => setMostrarExcepciones(!mostrarExcepciones)}
@@ -1228,8 +1006,39 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 ⚠ No se encontró la tabla de necesidad de cajas en el PDF. Verificá que el archivo sea correcto.
               </p>
             )}
+            <details style={{ marginTop: '24px' }}>
+              <summary style={{ cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px' }}>Opciones de esta generación</summary>
+              <div style={{ display: 'grid', gap: '16px', marginTop: '12px' }}>
+                <div style={{ fontSize: '14px' }}>
+                  <p style={{ margin: 0 }}>Se aplican {reglasActivas.length === 1 ? '1 regla' : `${reglasActivas.length} reglas`} de tu Configuración{frasesPreferencias.length + criteriosActivos.length > 0 ? ' y lo que la app aprendió de tus correcciones:' : '.'}</p>
+                  {frasesPreferencias.length + criteriosActivos.length > 0 && (
+                    <ul style={{ margin: '4px 0 0', paddingLeft: '18px', color: 'var(--text-muted)' }}>
+                      {frasesPreferencias.map((f, k) => <li key={`p${k}`}>{f}</li>)}
+                      {criteriosActivos.map((c, k) => <li key={`c${k}`}>{c.descripcion}</li>)}
+                    </ul>
+                  )}
+                </div>
+                {fechasSemana.length > 0 && (
+            <div data-testid="reglas-efectivas" style={{ color: 'var(--text)', fontSize: '14px' }}>
+              <p style={{ fontWeight: 600, margin: '0 0 6px' }}>Configuración que se aplica esta semana</p>
+              <ul style={{ fontSize: '13px' }}>
+                {Object.entries(resolucionOperativaDeReglas(reglas, fechasSemana[0])).map(([tipo, r]) => (
+                  <li key={tipo} data-testid={`regla-efectiva-${tipo}`}>
+                    <strong>{ETIQUETAS_OPERATIVAS[tipo as keyof typeof ETIQUETAS_OPERATIVAS].titulo}:</strong>{' '}
+                    {r.valor ? 'sí' : 'no'}{' '}
+                    <span style={{ color: 'var(--text-muted)' }}>({r.origen === 'regla' ? 'según tu Configuración' : 'predeterminado'})</span>
+                    {r.conflicto && <span role="alert" style={{ display: 'block', color: 'var(--danger, #b91c1c)' }}>{r.conflicto}</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+              <label style={{ display: 'block', marginTop: '12px', fontSize: '14px', fontWeight: 600 }}>
+                <input data-testid="modo-prueba" type="checkbox" checked={modoPrueba} onChange={e => setModoPrueba(e.target.checked)} />
+                {' '}Modo prueba: no guardar horario ni correcciones en el historial
+              </label>
             {hibridoDisponible&&<section aria-label="Motor de horarios" style={{marginTop:24}}>
-              <p>Motor híbrido habilitado para la sucursal 091. Conserva una propuesta de respaldo y valida la mejora antes de usarla.</p>
               <label><input type="checkbox" checked={motorAnterior} disabled={loadingAsignacion} onChange={e=>setMotorAnterior(e.target.checked)}/> Usar motor anterior para esta generación</label>
               {!motorAnterior&&errorConfigHibrida&&<p role="alert">{errorConfigHibrida}</p>}
               {!motorAnterior&&fuenteConfigHibrida&&<p className="nota">Configuración del motor: {fuenteConfigHibrida==='persistida'?'reglas guardadas de la sucursal (permanentes y excepciones vigentes esta semana).':'configuración del servicio (transición: esta sucursal todavía no importó ni guardó su configuración).'}</p>}
@@ -1240,6 +1049,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                 </fieldset>)}
               </details>}
             </section>}
+              </div>
+            </details>
             {errorAsignacion && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAsignacion}</p>}
             {loadingAsignacion && (
               <p role="status" style={{ color: 'var(--text-muted)' }}>
@@ -1280,7 +1091,6 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                   </>
                 ) : (
                   <>
-                    <span style={{ fontSize: '20px', marginRight: '8px' }}>🚀</span>
                     Generar horarios automáticamente
                   </>
                 )}
@@ -1347,7 +1157,6 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                   cursor: 'pointer',
                 }}
               >
-                <span style={{ marginRight: '8px' }}>📄</span>
                 Exportar a PDF
               </button>
             </div>
@@ -1355,7 +1164,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
 
           {!semanaGuardadaId && (
             <p data-testid="resultado-prueba" role="status" style={{ fontWeight: 700, color: 'var(--text)' }}>
-              {modoPrueba ? 'PRUEBA NO GUARDADA' : 'BORRADOR NO GUARDADO'} — este resultado no fue incorporado al historial de operación.
+              {modoPrueba ? 'PRUEBA NO GUARDADA' : 'BORRADOR NO GUARDADO'}: este horario no se guardó en Horarios.
             </p>
           )}
           {errorAsignacion && (
@@ -1372,44 +1181,35 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             </div>
           )}
 
-          {validacion && (
-            <div data-testid="estado-validacion" style={{
-              background: 'var(--card)', borderRadius: '16px', border: '1px solid var(--border)', padding: '20px 24px',
-              color: validacion.publicable ? 'var(--text)' : 'var(--danger, #b91c1c)',
-            }}>
-              <p style={{ fontWeight: 700 }}>{validacion.publicable ? '✅' : '⛔'} {estadoValidacion(validacion)}</p>
-              {validacion.metricas && (
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Horas-caja faltantes: {validacion.metricas.horasCajaFaltantes} · sobrantes: {validacion.metricas.horasCajaSobrantes}
-                </p>
-              )}
-              {!!validacion.advertencias?.length && (
-                <ul className="mt-2 list-disc pl-5 font-semibold text-amber-900">
-                  {validacion.advertencias.map(a => <li key={a}>{a}</li>)}
-                </ul>
-              )}
-              {validacion.violaciones.length > 0 && (
-                <ul style={{ marginTop: '8px', fontSize: '13px' }}>
-                  {validacion.violaciones.slice(0, 30).map((v, i) => <li key={i}>[{v.nivel}] {v.detalle}</li>)}
-                  {validacion.violaciones.length > 30 && <li>… y {validacion.violaciones.length - 30} más (ver PDF).</li>}
-                </ul>
-              )}
-            </div>
+          {resumenResultado && (
+            <Tarjeta etiqueta="Resumen de la semana"><ResumenCobertura resumen={resumenResultado} /></Tarjeta>
           )}
 
-          <PanelAlertas
-            alertas={resultado.alertas}
-            porcentajeCobertura={resultado.porcentajeCobertura}
-          />
+          {validacion && (() => {
+            const e = estadoSupervisor(validacion)
+            return (
+              <section data-testid="estado-validacion" aria-label="Estado del horario" style={{
+                borderRadius: '16px', padding: '14px 20px', fontSize: '14px',
+                background: e.listo ? 'var(--success-bg)' : 'var(--warning-bg)', color: e.listo ? '#14532d' : '#78350f',
+                border: `1px solid ${e.listo ? '#86efac' : '#fcd34d'}`,
+              }}>
+                <p style={{ margin: 0, fontWeight: 700 }}>{e.titulo}</p>
+                {e.items.length > 0 && (
+                  <ul style={{ margin: '6px 0 0', paddingLeft: '18px' }}>
+                    {e.items.slice(0, 20).map((t, i) => <li key={i}>{t}</li>)}
+                    {e.items.length > 20 && <li>… y {e.items.length - 20} más (ver PDF).</li>}
+                  </ul>
+                )}
+              </section>
+            )
+          })()}
 
-          {tablasVisibles >= 1 && (
-            <div style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 450px' }}>
-              <TablaCobertura
-                coberturaFranjas={resultado.coberturaFranjas}
-                faltantesFranjas={resultado.faltantesFranjas}
-                necesidadFranjas={necesidad.map(f => f.necesidad)}
-              />
-            </div>
+          {tablasVisibles >= 1 && necesidad.length > 0 && (
+            <CoberturaLive
+              necesidadFranjas={necesidad.map(f => f.necesidad)}
+              horarios={resultado.horarios}
+              cajaAux={resultado.cajaAux}
+            />
           )}
 
           {tablasVisibles >= 2 && (

@@ -153,6 +153,17 @@ export function validarHorasAsignadas(
 }
 
 /** Texto de estado para UI y PDF. */
+/**
+ * Estado en lenguaje del supervisor (AH2-044): sin códigos ni perfiles normativos.
+ * «Listo» solo si cumple todas las reglas; si no, «Borrador» con lo que hay que revisar.
+ */
+export function estadoSupervisor(v: ResultadoValidacion): { listo: boolean; titulo: string; items: string[] } {
+  if (v.publicable) return { listo: true, titulo: 'Listo: cumple todas las reglas de la sucursal.', items: v.advertencias ?? [] }
+  if (v.violaciones.length === 0 && v.limitaciones?.length) return { listo: false, titulo: 'Falta información para verificar el horario.', items: [...v.limitaciones, ...(v.advertencias ?? [])] }
+  const n = v.violaciones.length
+  return { listo: false, titulo: `Borrador: ${n === 1 ? 'hay 1 punto' : `hay ${n} puntos`} para revisar antes de publicar.`, items: [...v.violaciones.map(x => x.detalle), ...(v.limitaciones ?? []), ...(v.advertencias ?? [])] }
+}
+
 export function estadoValidacion(v: ResultadoValidacion, perfil: PerfilNormativo = PERFIL_MOTOR_ACTUAL): string {
   const base = v.publicable
     ? 'VALIDADO: sin violaciones de reglas'

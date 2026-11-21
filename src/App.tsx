@@ -1,9 +1,9 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import InicioPage from './pages/InicioPage'
 import ColaboradoresPage from './pages/ColaboradoresPage'
 import NuevaSemanaPage from './pages/NuevaSemanaPage'
-import UltimoHorarioPage from './pages/UltimoHorarioPage'
+import HorariosPage from './pages/HorariosPage'
 import ReglasPage from './pages/ReglasPage'
 import HistorialPage from './pages/HistorialPage'
 import EfectividadPage from './pages/EfectividadPage'
@@ -41,10 +41,14 @@ function App() {
             <Route path="/" element={<InicioPage />} />
             <Route path="/colaboradores" element={<ColaboradoresPage />} />
             <Route path="/nueva-semana" element={<NuevaSemanaPage autorSesion={auth.usuario?.id} />} />
-            <Route path="/ultimo-horario" element={<UltimoHorarioPage />} />
+            <Route path="/horarios" element={<HorariosPage />} />
+            <Route path="/ultimo-horario" element={<Navigate to="/horarios" replace />} />
             <Route path="/reglas" element={<ReglasPage />} />
+            {/* Fuera del menú del supervisor (decisión del propietario, 21/11/2026): el aprendizaje y la
+                efectividad siguen funcionando por detrás; estas pantallas quedan solo para administración. */}
             <Route path="/historial" element={<HistorialPage />} />
             <Route path="/efectividad" element={<EfectividadPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
       } />

@@ -198,12 +198,13 @@ describe('#38 PDF', () => {
   it('una semana que incumple la apertura sale como BORRADOR en el PDF; la corregida, VALIDADO', async () => {
     const r = generar(ON)
     const malo: ResultadoAsignacion = { ...r, cajaEventual: (r.cajaEventual ?? []).map(e => e.colaboradorId === 'ev-M' ? { ...e, slotsCajaPorDia: e.slotsCajaPorDia.map((f, d) => f.map((x, s) => x || (d !== 5 && s < 2))) } : e) }
-    for (const [res, esperado] of [[malo, /Estado: BORRADOR/], [r, /Estado: VALIDADO/]] as const) {
+    for (const [res, esperado] of [[malo, /Estado: Borrador/], [r, /Estado: Listo/]] as const) {
       const v = validar(res, ON)
       const pdf = generarPDF(res, CAJEROS_S47, 'S47', AUX_S47, EVENTUALES_S47, { sucursal: '000', validacion: v, estado: estadoValidacion(v) })
       const texto = (await textoPDFNode(new Uint8Array(pdf.output('arraybuffer')))).replace(/\s+/g, ' ')
       expect(texto).toMatch(esperado)
-      if (res === malo) expect(texto).toContain('OP_APERTURA_COMPOSICION')
+      // El PDF lista el detalle de la regla incumplida, sin el código interno.
+      if (res === malo) { expect(texto).toContain(v.violaciones.find(x => x.codigo === 'OP_APERTURA_COMPOSICION')!.detalle.slice(0, 25)); expect(texto).not.toContain('OP_APERTURA_COMPOSICION') }
     }
   })
 })

@@ -80,8 +80,9 @@ describe('#38 H-A2 · cero AUX con OFF', () => {
     const { r, v } = correr([], false)
     const pdf = generarPDF(r, CAJEROS_S47, 'S', [], EVENTUALES_S47, { sucursal: '000', validacion: v, estado: estadoValidacion(v) })
     const texto = (await textoPDFNode(new Uint8Array(pdf.output('arraybuffer')))).replace(/\s+/g, ' ')
-    expect(texto).toMatch(/Estado: BORRADOR/)
-    expect(texto).toContain('H-A2')
+    expect(texto).toMatch(/Estado: Borrador/)
+    // El PDF muestra el detalle en lenguaje del supervisor (sin el código interno).
+    expect(texto).toContain(v.violaciones.find(x => x.codigo === 'H-A2')!.detalle.slice(0, 25))
   })
 })
 

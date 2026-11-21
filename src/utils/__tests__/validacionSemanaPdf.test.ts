@@ -70,10 +70,10 @@ describe('PUB-01: PDF con identificación, estado y anexo', () => {
     const texto = (await textoPDFNode(new Uint8Array(pdf.output('arraybuffer')))).replace(/\s+/g, ' ')
     expect(texto).toContain('Sucursal 091')
     expect(texto).toContain('Semana 16/11/2026 al 22/11/2026')
-    expect(texto).toContain('Estado: VALIDADO')
+    expect(texto).toContain('Estado: Listo')
     for (const c of cajeros) expect(texto).toContain(c.nombre)
-    expect(texto).toContain('Validación y faltantes')
-    expect(texto).toContain('Sin violaciones de reglas normativas ni operativas.')
+    expect(texto).toContain('Resumen de la semana')
+    expect(texto).toContain('Cumple todas las reglas de la sucursal.')
   })
 
   it('con violaciones, el anexo las lista y el estado dice BORRADOR', async () => {
@@ -83,14 +83,15 @@ describe('PUB-01: PDF con identificación, estado y anexo', () => {
     const v = validarResultadoSemana(r, cajeros, auxiliares, [], { necesidad, excepciones: [] })
     const pdf = generarPDF(r, cajeros, 'S', [], [], { sucursal: '091', fechas, validacion: v, estado: estadoValidacion(v) })
     const texto = (await textoPDFNode(new Uint8Array(pdf.output('arraybuffer')))).replace(/\s+/g, ' ')
-    expect(texto).toMatch(/Estado: BORRADOR/)
-    expect(texto).toContain('NORM_HORAS_DIA_MAX')
+    expect(texto).toMatch(/Estado: Borrador/)
+    expect(texto).toContain(v.violaciones.find(x => x.codigo === 'NORM_HORAS_DIA_MAX')!.detalle.slice(0, 25))
+    expect(texto).not.toContain('NORM_HORAS_DIA_MAX')
   })
 
   it('sin meta, el PDF se genera como antes (compatibilidad)', async () => {
     const r = await generar()
     const texto = await textoPDFNode(new Uint8Array(generarPDF(r, cajeros, 'S').output('arraybuffer')))
-    expect(texto).not.toContain('Validación y faltantes')
+    expect(texto).not.toContain('Resumen de la semana')
     expect(texto).toContain('HORARIOS DE CAJA - S') // título del cuadro de caja + descripción
   })
 })

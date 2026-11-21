@@ -86,7 +86,7 @@ export default function ColaboradoresPage() {
       return
     }
     if (auxiliares.some(a => a.id !== editorAux.id && a.nombre.trim().replace(/\s+/g, ' ').localeCompare(nombre, 'es', { sensitivity: 'base' }) === 0)) {
-      setErrorAux('Ya hay un auxiliar con ese nombre. Revisá la ficha existente.')
+      setErrorAux('Ya hay un supervisor con ese nombre. Revisá la ficha existente.')
       return
     }
     const horasSemanales = editorAux.horas === '' ? undefined : Number(editorAux.horas)
@@ -132,7 +132,7 @@ export default function ColaboradoresPage() {
             margin: 0,
             letterSpacing: '-0.5px',
           }}>
-            Colaboradores
+            Personal
           </h1>
           <p style={{
             color: 'var(--text-muted)',
@@ -140,7 +140,7 @@ export default function ColaboradoresPage() {
             fontSize: '16px',
             marginTop: '8px',
           }}>
-            Gestiona cajeros, auxiliares y eventuales para la asignación de horarios.
+            Cajeros, supervisores y eventuales de la sucursal, con su horario habitual.
           </p>
         </div>
         {activeTab === 'cajeros' && (
@@ -186,7 +186,7 @@ export default function ColaboradoresPage() {
             }}
           >
             <span style={{ fontSize: '20px', marginRight: '8px' }}>+</span>
-            Agregar auxiliar
+            Agregar supervisor
           </button>
         )}
         {activeTab === 'eventuales' && (
@@ -235,193 +235,19 @@ export default function ColaboradoresPage() {
               }}
             >
               {tab === 'cajeros' && 'Cajeros'}
-              {tab === 'auxiliares' && 'Auxiliares'}
+              {tab === 'auxiliares' && 'Supervisores'}
               {tab === 'eventuales' && 'Eventuales'}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Estadísticas */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-        gap: '16px',
-        marginBottom: '32px',
-      }}>
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            fontFamily: "'Syne', sans-serif",
-            color: 'var(--text)',
-            letterSpacing: '-0.5px',
-          }}>
-            {stats.cajerosTotal}
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--text-muted)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>
-            Cajeros total
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            fontFamily: "'Syne', sans-serif",
-            color: 'var(--text)',
-            letterSpacing: '-0.5px',
-          }}>
-            {stats.cajerosActivos}
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--text-muted)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>
-            Cajeros activos
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            fontFamily: "'Syne', sans-serif",
-            color: 'var(--text)',
-            letterSpacing: '-0.5px',
-          }}>
-            {stats.auxiliaresTotal}
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--text-muted)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>
-            Auxiliares total
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            fontFamily: "'Syne', sans-serif",
-            color: 'var(--text)',
-            letterSpacing: '-0.5px',
-          }}>
-            {stats.auxiliaresActivos}
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--text-muted)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>
-            Auxiliares activos
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            fontFamily: "'Syne', sans-serif",
-            color: 'var(--text)',
-            letterSpacing: '-0.5px',
-          }}>
-            {stats.eventualesTotal}
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--text-muted)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>
-            Eventuales total
-          </div>
-        </div>
-        <div style={{
-          background: 'var(--card)',
-          borderRadius: '12px',
-          padding: '20px',
-          border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{
-            fontSize: '32px',
-            fontWeight: 800,
-            fontFamily: "'Syne', sans-serif",
-            color: 'var(--text)',
-            letterSpacing: '-0.5px',
-          }}>
-            {stats.eventualesActivos}
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: 'var(--text-muted)',
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>
-            Eventuales activos
-          </div>
-        </div>
-      </div>
-
-      {(errorColaboradores || errorAuxiliares || errorEventuales) && (
-        <p role="alert">No se pudo cargar toda la dotación. Recargá la página antes de editar el grupo afectado.</p>
-      )}
-
       {/* Tabla según pestaña */}
       {activeTab === 'cajeros' && (
         <>
-          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div>
-              <span style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: '14px',
-                fontWeight: 600,
-                color: 'var(--text)',
-              }}>
-                Mostrar:{' '}
-              </span>
-              <span style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: '14px',
-                color: 'var(--text)',
-              }}>
-                Todos los cajeros (FULL + PART)
-              </span>
-            </div>
-            <div style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: '14px',
-              color: 'var(--text-muted)',
-            }}>
-              {stats.cajerosActivos} activos de {stats.cajerosTotal} total
-            </div>
-          </div>
+          <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
+            {stats.cajerosActivos} de {stats.cajerosTotal} activos
+          </p>
           <TablaColaboradores
             colaboradores={cajeros}
             onEdit={handleEdit}
@@ -434,7 +260,7 @@ export default function ColaboradoresPage() {
       {activeTab === 'auxiliares' && (
         <>
           <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-            <strong>Patrón habitual de presencia.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
+            Horario habitual de cada supervisor. Los cambios de un día puntual se cargan en Nueva semana.
           </p>
           <TablaDisponibilidad
             personas={auxiliares}
@@ -449,7 +275,7 @@ export default function ColaboradoresPage() {
       {activeTab === 'eventuales' && (
         <>
           <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-            <strong>Patrón habitual de disponibilidad.</strong> Cargá los cambios por fecha en Nueva Semana, durante la revisión del POM.
+            Horario habitual de cada eventual. Los cambios de un día puntual se cargan en Nueva semana.
           </p>
           <TablaDisponibilidad
             personas={eventuales}
@@ -465,7 +291,7 @@ export default function ColaboradoresPage() {
           <form role="dialog" aria-modal="true" aria-labelledby="titulo-editor-aux" onSubmit={guardarAux}
             onKeyDown={e => { if (e.key === 'Escape') setEditorAux(null) }}
             className="w-full max-w-md space-y-4 rounded-xl bg-white p-6 text-gray-900 shadow-xl">
-            <h2 id="titulo-editor-aux" className="text-lg font-bold">{editorAux.id ? 'Editar auxiliar' : 'Agregar auxiliar'}</h2>
+            <h2 id="titulo-editor-aux" className="text-lg font-bold">{editorAux.id ? 'Editar supervisor' : 'Agregar supervisor'}</h2>
             <label className="block text-sm font-medium">Nombre completo
               <input autoFocus required value={editorAux.nombre} className="mt-1 w-full rounded border px-3 py-2"
                 onChange={e => { setEditorAux({ ...editorAux, nombre: e.target.value }); setErrorAux('') }} />
@@ -478,7 +304,7 @@ export default function ColaboradoresPage() {
             {errorAux && <p role="alert" className="text-sm text-red-800">{errorAux}</p>}
             <div className="flex justify-end gap-3">
               <button type="button" className="rounded border px-4 py-2" onClick={() => setEditorAux(null)}>Cancelar</button>
-              <button type="submit" className="rounded bg-teal-800 px-4 py-2 text-white">Guardar auxiliar</button>
+              <button type="submit" className="rounded bg-teal-800 px-4 py-2 text-white">Guardar supervisor</button>
             </div>
           </form>
         </div>
@@ -493,40 +319,6 @@ export default function ColaboradoresPage() {
         />
       )}
 
-      {/* Notas */}
-      <div style={{
-        marginTop: '32px',
-        padding: '20px',
-        background: 'var(--card)',
-        borderRadius: '12px',
-        border: '1px solid var(--border)', boxShadow: 'var(--shadow)',
-      }}>
-        <h4 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 700,
-          fontSize: '16px',
-          color: 'var(--accent-strong)',
-          marginBottom: '8px',
-        }}>
-          Notas importantes
-        </h4>
-        <ul style={{
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontSize: '14px',
-          color: 'var(--text-muted)',
-          paddingLeft: '20px',
-          margin: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-        }}>
-          <li>• Los colaboradores inactivos no participarán en la asignación de horarios.</li>
-          <li>• FULL Time: 48h semanales (3×9h + 2×8h + 1×5h).</li>
-          <li>• PART Time: máximo 32h semanales, solo turno corrido.</li>
-          <li>• AUX: se usan solo si FULL + PART no cubren la necesidad.</li>
-          <li>• Los cambios se guardan automáticamente en el navegador.</li>
-        </ul>
-      </div>
     </div>
   )
 }

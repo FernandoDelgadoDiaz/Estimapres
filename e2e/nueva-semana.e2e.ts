@@ -61,13 +61,15 @@ async function preparar(page: Page, auxiliarInvalido = false, extra: { auxiliare
 }
 
 async function abrirEditor(page: Page) {
-  await page.getByText('Cargar excepción por fecha', { exact: true }).click()
+  await page.getByText('Cargar un cambio puntual', { exact: true }).click()
   await page.getByLabel('Autor', { exact: true }).fill('Supervisor de prueba')
 }
 
 test('POM → demanda → horario nominal → validación → PDF, con excepción de eventual', async ({ page }) => {
   const externas = await preparar(page)
-  await expect(page.getByText('Supervisión cubierta según las franjas que comprueba el motor.')).toBeVisible()
+  await expect(page.getByText('Hay supervisor en todo el horario de la sucursal.')).toBeVisible()
+  await expect(page.getByText('406 h', { exact: true })).toBeVisible()
+  await page.getByText('Ver necesidad de cajas por franja').click()
   await expect(page.getByText('406 horas-caja', { exact: true })).toBeVisible()
   const pico = page.getByRole('row').filter({ has: page.getByRole('cell', { name: '19:30', exact: true }) })
   await expect(pico.getByRole('cell').nth(6)).toHaveText('7')
@@ -77,21 +79,21 @@ test('POM → demanda → horario nominal → validación → PDF, con excepció
   await page.getByLabel('Sin disponibilidad', { exact: true }).check()
   await page.getByLabel('Motivo', { exact: true }).fill('Ausencia de prueba')
   await page.getByRole('button', { name: 'Aplicar excepción' }).click()
-  await page.getByText('Ver patrón habitual y excepciones aplicadas', { exact: true }).click()
+  await page.getByText('Ver horarios de la semana', { exact: true }).click()
   const fila = page.getByRole('row').filter({ hasText: 'Eventual Sintético' })
   await expect(fila.getByRole('cell').nth(5)).toHaveText('Sin disponibilidadExcepción')
   await expect(fila.getByRole('cell').nth(4)).toHaveText('18:00 - 20:00Habitual')
 
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
   await expect(page.getByRole('heading', { name: 'Horarios generados' })).toBeVisible()
-  await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
-  await expect(page.getByTestId('estado-validacion')).toContainText('Horas-caja faltantes:')
+  await expect(page.getByTestId('estado-validacion')).toContainText('Listo: cumple todas las reglas')
+  await expect(page.getByLabel('Resumen de la semana')).toContainText('horas sin cubrir')
   await expect(page.getByText('Full A', { exact: true }).first()).toBeVisible()
   const descarga = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Exportar a PDF' }).click()
   const archivo = await (await descarga).path()
   const texto = (await textoPDFNode(new Uint8Array(await readFile(archivo!)))).replace(/\s+/g, ' ')
-  for (const contenido of ['Sucursal 900', 'Semana 16/11/2026 al 22/11/2026', 'Estado: VALIDADO', 'Full A', 'Validación y faltantes']) {
+  for (const contenido of ['Sucursal 900', 'Semana 16/11/2026 al 22/11/2026', 'Estado: Listo', 'Full A', 'Resumen de la semana', 'Cobertura:']) {
     expect(texto).toContain(contenido)
   }
   expect(texto).not.toContain('Persona de referencia')
@@ -100,11 +102,11 @@ test('POM → demanda → horario nominal → validación → PDF, con excepció
 
 test('genera a partir del POM y el patrón habitual sin cargar excepciones', async ({ page }) => {
   const externas = await preparar(page)
-  await expect(page.getByText('Supervisión cubierta según las franjas que comprueba el motor.')).toBeVisible()
+  await expect(page.getByText('Hay supervisor en todo el horario de la sucursal.')).toBeVisible()
   // #38: el estado efectivo de las reglas operativas se muestra antes de generar
-  await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: ACTIVADA (valor predeterminado)')
+  await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: sí (predeterminado)')
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
-  await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
+  await expect(page.getByTestId('estado-validacion')).toContainText('Listo: cumple todas las reglas')
   await expect(page.getByTestId('estado-validacion')).not.toContainText('OP_APERTURA')
   await expect(page.getByText('Aux A', { exact: true }).first()).toBeVisible()
   // #7 · AH2-020: la semana guardada conserva cómo se generó (jsonb existente, sin migración) y sobrevive a recargar.
@@ -129,8 +131,8 @@ test('#38 apertura OFF sin AUX de 08:00 a 09:00: no exige AUX en la apertura y p
     ],
     reglas: [{ id: 'r-off', ambito: 'local', tipo: 'apertura_solo_aux', activa: false, descripcion: 'Apertura con cajero', creadaEl: '2026-11-01T00:00:00.000Z' }],
   })
-  await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: DESACTIVADA (configurada en Reglas)')
-  await expect(page.getByText('Supervisión cubierta según las franjas que comprueba el motor.')).toBeVisible()
+  await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: no (según tu Configuración)')
+  await expect(page.getByText('Hay supervisor en todo el horario de la sucursal.')).toBeVisible()
   await expect(page.getByText(/ningún supervisor \(AUX\) presente en la apertura/)).toHaveCount(0)
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
   const estado = page.getByTestId('estado-validacion')
@@ -140,7 +142,7 @@ test('#38 apertura OFF sin AUX de 08:00 a 09:00: no exige AUX en la apertura y p
   await expect(estado).not.toContainText('eventual(es) en caja')
   // Con 2 FULL (las únicas jornadas que pueden abrir a las 08:00) no alcanza para 7 días:
   // se informa la imposibilidad, sin sustituir por AUX/eventual ni forzar contratos.
-  await expect(estado).toContainText('BORRADOR')
+  await expect(estado).toContainText('Borrador')
   await expect(estado).toContainText('ningún cajero FULL/PART abre dentro de su contrato')
   expect(externas).toEqual([])
 })
@@ -163,7 +165,7 @@ test('avisa huecos de AUX antes de generar y marca el resultado como borrador', 
   await expect(page.getByRole('alert')).toContainText('Ya existe una excepción')
 
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
-  await expect(page.getByTestId('estado-validacion')).toContainText('BORRADOR')
+  await expect(page.getByTestId('estado-validacion')).toContainText('Borrador')
   await expect(page.getByText('Aux B', { exact: true }).first()).toBeVisible()
   await expect(page.getByTestId('estado-validacion')).toContainText('apertura')
   expect(externas).toEqual([])
@@ -205,18 +207,18 @@ test('la edición nominal interpreta intervalos y actualiza horas antes de guard
   await jornada.fill('9 a')
   await expect(page.getByRole('button', { name: 'Guardar cambio' })).toBeDisabled()
   await jornada.fill('08.00 a 13.00 Y 17hs a 22hs')
-  await expect(page.getByRole('row').filter({ has: celda })).toContainText('Asignadas')
+  await expect(page.getByRole('row').filter({ has: celda })).toContainText('49 h') // horas actualizadas antes de guardar
   await page.getByRole('button', { name: /^Guardar (?:cambio|de todos modos)$/ }).click()
   await expect(celda).toContainText('08:00 - 13:00')
   await expect(celda).toContainText('17:00 - 22:00')
   if (process.env.AH2_CAPTURAS) await page.screenshot({ path: process.env.AH2_CAPTURAS + '/edicion-horario.png' })
 })
 
-test('Último Horario reabre la semana guardada y exporta los turnos A4', async ({ page }) => {
+test('Horarios reabre la semana guardada y exporta los turnos A4', async ({ page }) => {
   await preparar(page)
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
   await expect(page.getByRole('heading', { name: 'Horarios generados' })).toBeVisible()
-  await page.goto('/ultimo-horario')
+  await page.goto('/horarios')
   await expect(page.getByRole('row').filter({ hasText: 'Full A' })).toBeVisible()
   const descarga = page.waitForEvent('download')
   await page.getByRole('button', { name: /Exportar PDF/ }).click()
@@ -314,7 +316,7 @@ test('reiniciar y cambiar de pantalla terminan el trabajo activo sin guardar', a
   await expect(generar).toBeEnabled()
   await generar.click()
   await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 1 })
-  await page.getByRole('link', { name: 'Colaboradores' }).click()
+  await page.getByRole('link', { name: 'Personal' }).click()
   await expect(page).toHaveURL(/\/colaboradores$/)
   await expect.poll(() => estadoWorker(page)).toEqual({ iniciados: 2, terminados: 2 })
   await responderWorker(page, 1)
@@ -326,6 +328,6 @@ test('un fallo al cargar el Worker usa el motor en modo compatible', async ({ pa
   await page.route('**/generacion.worker.ts*', route => route.abort())
   await page.getByRole('button', { name: 'Generar horarios automáticamente' }).click()
   await expect(page.getByRole('heading', { name: 'Horarios generados' })).toBeVisible()
-  await expect(page.getByTestId('estado-validacion')).toContainText('VALIDADO')
+  await expect(page.getByTestId('estado-validacion')).toContainText('Listo: cumple todas las reglas')
   expect(await historialGuardado(page)).toBe(1)
 })
