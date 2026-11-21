@@ -1,4 +1,22 @@
-## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor: 4 etapas listas en PR #67, sin publicar · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-044 interfaz del supervisor publicada en producción · 21/11/2026, Claude
+
+**Estado:** sin trabajo en curso. Producción:
+- **Netlify (al-iada):** deploy `6b01b13fecf0a43bb39962db` = `main@b039d86` (Estimapres #67), publicado 21/11 15:04 UTC.
+- **Cloud Run:** revisión `aliada-optimizer-00007-vzq` (`optimizer:4e23804`), sin cambios.
+- **Supabase:** sin cambios.
+
+Publicado: menú de 5 opciones, Inicio con el estado de la semana, Horarios (último + anteriores, cobertura por franja con picos marcados), Configuración en una página, Nueva semana corta, PDF en lenguaje del supervisor y Personal simple (detalle en MASTER AH2-044 y en el relevo anterior). «Qué eventuales atienden caja» y «lo armo yo» quedaron solo en Opciones avanzadas: para que un contrato EVENTUAL no atienda caja se usa el máximo semanal en 0 h (decisión del propietario).
+
+### Pendiente / decisiones abiertas
+- Revisión del propietario en uso real; ajustes que surjan.
+- Máximos 12/8 permanentes (editables en Configuración).
+- Cadena aliada-optimizer #1–#5 hacia `main` (producción no depende de ella).
+
+### Rollback
+Netlify: deploy `6b0198cdc2dd14bb7be3bb3e` (antes de AH2-044) · Cloud Run: `aliada-optimizer-00006-5wg` / `00005-rsm` · Configuración: editor · Base: bloque de rollback de la migración.
+---
+
+## RELEVO ANTERIOR — AH2-044 4 etapas en PR #67 (luego publicado) · 21/11/2026, Claude
 
 **Estado:** producción sin cambios (Netlify `main@c1b1f0c`, Cloud Run `aliada-optimizer-00007-vzq`). El propietario pidió publicar **las 4 etapas juntas**. Todo está en el PR #67 (rama `feat/ux-etapa1-navegacion`). **Falta:** autorización para fusionar y Publish deploy en Netlify. Sin cambios en motor, validadores, base ni Cloud Run.
 
