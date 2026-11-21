@@ -1,7 +1,42 @@
 # Plan: de la 091 a todas las sucursales
 
-**Estado:** PROPUESTA, pendiente de aprobación del propietario (21/11/2026). No modifica MASTER hasta que se apruebe.
+**Estado:** el propietario aprobó el plan como horizonte (21/11/2026). Objetivo de corto plazo: **40 locales, un usuario por local y el supervisor como administrador** (ver la sección siguiente). La ejecución de cada punto requiere autorización.
 **Base:** evaluación del 21/11/2026. Como piloto en la 091 la app está sólida, es óptima y segura. Para escalar faltan permisos por sucursal, capacidad del motor, datos compartidos por sucursal, unificación de reglas y monitoreo.
+
+---
+
+## Objetivo de corto plazo: 40 locales (decisión del propietario, 21/11/2026)
+
+El plan completo (fases 0 a 5) queda como **horizonte**. El objetivo inmediato es atender **al menos 40 locales**, con estas definiciones del propietario:
+- **Un solo usuario por local.**
+- **El supervisor es el administrador de su local:** configura, genera y corrige. No hay otros roles.
+
+Con eso, el modelo de datos actual (datos por usuario y por sucursal) **ya sirve**. No hace falta migrar los datos a «por sucursal», ni crear roles, ni una pantalla de miembros. Esa parte de la fase 1 queda para el horizonte (varios usuarios por local o un rol regional).
+
+### Alcance mínimo para 40 locales
+| # | Qué | Por qué |
+|---|---|---|
+| A | **Tabla `sucursales`:** código, nombre, usuario asignado, motor híbrido habilitado (sí/no). Cada usuario queda **atado a su local**: se quita el botón «Cambiar sucursal» de la barra superior | Que cada supervisor vea y use solo su local |
+| B | **Motor CP-SAT por sucursal:** autoriza al usuario asignado a la sucursal (lo consulta en la base), sin un usuario fijo en Secret Manager. La configuración del motor sale de la base | Hoy solo acepta un usuario y la 091 |
+| C | **Habilitación por local sin deploy:** el motor híbrido se activa con el campo de la tabla, no con la variable de Netlify de la 091 | Sumar locales sin tocar la infraestructura |
+| D | **Capacidad:** Cloud Run con hasta 5 instancias (0 mínimas) y aviso de espera en lugar de «ocupado» | Con 40 locales generando el mismo día |
+| E | **Alta de locales:** el propietario crea cada usuario (invitación por correo de Supabase) y su fila en `sucursales`. Una guía de una página para el supervisor | Puesta en marcha de 40 locales |
+| F | **Monitoreo de errores**, estadísticas internas de cada generación y alerta de presupuesto | Enterarse de un problema antes que el supervisor |
+| G | **Validación jurídica** de las reglas laborales y **plan de Supabase** adecuado (Pro, con backups diarios) | Requisitos para operar con 40 locales |
+| H | Orden del repositorio del motor (producción desde `main`, despliegue automatizado) | Trazabilidad |
+
+**Puede esperar (horizonte):** varios usuarios por local, roles y regional, unificación completa de los dos sistemas de reglas (la pantalla ya los muestra como uno solo), división de Nueva semana, simulador de dotación y panel regional.
+
+### Secuencia propuesta para 40 locales
+1. Fase 0 en la 091 (uso real y monitoreo: punto F).
+2. Puntos A, B y C en un PR con pruebas; se prueban con la 091 y con un segundo local de prueba.
+3. Punto D y la alerta de presupuesto.
+4. Piloto con 2 o 3 locales (punto E).
+5. Ampliación a 10 locales y después a 40, revisando errores, tiempos y costos entre cada paso.
+6. Los puntos G y H se hacen en paralelo y tienen que estar listos antes de pasar de 10 locales.
+
+### Costo con 40 locales
+40 locales con unas 3 generaciones por semana suman unas 520 generaciones por mes, o unos 65.000 vCPU-s. Eso **entra en el nivel gratuito de Cloud Run: USD 0 por mes**. Supabase Pro cuesta unos USD 25 por mes si hoy está en el plan gratuito.
 
 ---
 
@@ -93,9 +128,9 @@ Supuesto: 1 vCPU y 2 GiB por generación, unos 125 s cada una. Precios de lista 
 
 ## Decisiones del propietario
 
-1. **Aprobar el plan** y el orden de las fases.
-2. **Sucursales piloto** de la fase 4 (2 o 3).
-3. **Roles:** si se necesita el rol regional, o alcanza con supervisor y administrador.
+1. ~~Aprobar el plan~~: aprobado como horizonte; corto plazo, 40 locales (21/11/2026).
+2. **Locales piloto** (2 o 3).
+3. ~~Roles~~: un usuario por local y el supervisor es el administrador (21/11/2026).
 4. **Supabase:** confirmar el plan actual y si se pasa a Pro.
 5. **Presupuesto máximo** de Google Cloud y alerta, por ejemplo USD 30 por mes.
 6. **Validación jurídica:** quién revisa las reglas laborales.
