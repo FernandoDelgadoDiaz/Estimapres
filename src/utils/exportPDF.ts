@@ -76,6 +76,8 @@ const PETROLEO = [21, 74, 78] as const
 export const TITULO_CAJA = 'HORARIOS DE CAJA'
 export const TITULO_PRESENCIA = 'HORARIOS DE PRESENCIA — PERSONAL DE APOYO'
 export const SIN_CAJA = 'Sin caja'
+/** AH2-048: relleno de los días de franco y medio franco (tabla y PDF). */
+export const AMARILLO_FRANCO = [254, 240, 138] as const
 export const NO_DISPONIBLE = 'No disponible'
 export const PRESENCIA_NO_REGISTRADA = 'Presencia no registrada'
 const ANCHO_NOMBRE = 54
@@ -294,7 +296,9 @@ export function generarPDF(
   const anchoDia = (ancho - ANCHO_NOMBRE - ANCHO_TIPO - ANCHO_HORAS) / 7
   const estiloCelda: UserOptions['didParseCell'] = ({ cell, column, section }) => {
     if (section !== 'body' || column.index < 3) return
-    if (cell.raw === 'FRANCO') { cell.styles.fillColor = [232, 238, 240]; cell.styles.fontStyle = 'bold' }
+    // AH2-048: franco y medio franco en amarillo para que se distingan a simple vista.
+    if (cell.raw === 'FRANCO') { cell.styles.fillColor = [...AMARILLO_FRANCO]; cell.styles.fontStyle = 'bold' }
+    else if (typeof cell.raw === 'string' && cell.raw.endsWith('Medio franco')) cell.styles.fillColor = [...AMARILLO_FRANCO]
     else if (cell.raw === SIN_CAJA || cell.raw === NO_DISPONIBLE) cell.styles.textColor = [120, 132, 138]
     else if (cell.raw === PRESENCIA_NO_REGISTRADA) { cell.styles.textColor = [146, 32, 28]; cell.styles.fontStyle = 'italic' }
   }

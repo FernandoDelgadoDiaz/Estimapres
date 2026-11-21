@@ -266,6 +266,7 @@ export default function HorariosPage() {
             eventuales={eventualesActivos}
             editable
             onEditarJornada={handleEditarJornada}
+            cajaAux={ultimaSemana.cajaAux}
           />
 
         </>

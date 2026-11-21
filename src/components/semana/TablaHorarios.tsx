@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, JornadaResumida } from '../../types'
+import { HorarioColaborador, Colaborador, Auxiliar, Eventual, DIAS_SEMANA, JornadaResumida, type AsignacionCajaColaborador } from '../../types'
 import { interpretarHorario, mostrarHorario, opcionesHorarioMotor } from '../../utils/timeUtils'
-import { minutosAsignados } from '../../utils/horasSemanales'
+import { horasLegibles, minutosAsignados } from '../../utils/horasSemanales'
 import ResumenHoras from '../horarios/ResumenHoras'
 import { validarEdicionManual } from '../../utils/preferencias'
 
@@ -13,6 +13,25 @@ interface TablaHorariosProps {
   /** Habilita la edición manual de celdas (Capacidad 3: aprendizaje de correcciones). */
   editable?: boolean
   onEditarJornada?: (colaboradorId: string, dia: number, nueva: JornadaResumida) => void
+  /**
+   * AH2-048: franjas en CAJA de cada supervisor (AUX). Si se pasan, la fila del AUX muestra
+   * solo las horas que está sentado en caja (como los eventuales y el PDF); su jornada
+   * completa queda en el detalle de la celda y se sigue corrigiendo desde el editor.
+   */
+  cajaAux?: AsignacionCajaColaborador[]
+}
+
+/** Intervalos «HH:MM» a partir de las franjas de media hora (08:00 = franja 0). */
+export function intervalosCaja(slots: boolean[] = []): { inicio: string; fin: string }[] {
+  const hora = (s: number) => { const m = 8 * 60 + s * 30; return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` }
+  const out: { inicio: string; fin: string }[] = []
+  for (let s = 0; s < slots.length; s++) {
+    if (!slots[s]) continue
+    const ini = s
+    while (s + 1 < slots.length && slots[s + 1]) s++
+    out.push({ inicio: hora(ini), fin: hora(s + 1) })
+  }
+  return out
 }
 
 interface CeldaEnEdicion {
@@ -21,7 +40,8 @@ interface CeldaEnEdicion {
   dia: number
 }
 
-export default function TablaHorarios({ horarios, colaboradores, auxiliares = [], eventuales = [], editable = false, onEditarJornada }: TablaHorariosProps) {
+export default function TablaHorarios({ horarios, colaboradores, auxiliares = [], eventuales = [], editable = false, onEditarJornada, cajaAux }: TablaHorariosProps) {
+  const cajaPorAux = useMemo(() => new Map((cajaAux ?? []).map(a => [a.colaboradorId, a.slotsCajaPorDia])), [cajaAux])
   const [editando, setEditando] = useState<CeldaEnEdicion | null>(null)
   const [editEsFranco, setEditEsFranco] = useState(false)
   const [textoTurnos, setTextoTurnos] = useState('')
@@ -86,8 +106,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
     aux_supervisor: '#f0f9ff',
     aux_eventual: '#fffbeb',
     eventual_sector: '#faf5ff',
-    franco: '#f8fafc',
-    franco_medio: '#f1f5f9',
+    // AH2-048: franco y medio franco en amarillo (igual que el PDF).
+    franco: '#fef08a',
+    franco_medio: '#fef08a',
   }
 
   if (horarios.length === 0) {
@@ -194,6 +215,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                 ? { esFranco: editEsFranco, turnos: editEsFranco ? [] : editTurnos }
                 : j))
               const tipoStyle = tiposColor[tipo] || tiposColor.FULL
+              // AH2-048: el supervisor se muestra por sus horas en caja (como los eventuales).
+              const cajaFila = tipo === 'AUX' && cajaAux ? (cajaPorAux.get(horario.colaboradorId) ?? []) : null
+              const minutosCaja = cajaFila ? cajaFila.reduce((n, f) => n + (f ?? []).filter(Boolean).length, 0) * 30 : 0
 
               return (
                 <tr key={horario.colaboradorId}>
@@ -218,8 +242,10 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                   {DIAS_SEMANA.map((_, diaIndex) => {
                     const jornada = horario.jornadas.find(j => j.dia === diaIndex)
                     const rol = jornada?.rol || (jornada?.esFranco ? 'franco' : 'cajero')
-                    const bgColor = rolColor[rol] || 'var(--card)'
                     const isFrancoReal = jornada?.esFranco || rol === 'franco'
+                    // Un EVENTUAL sin caja no está de franco: solo se pinta el franco de cajeros y supervisores.
+                    const diaFranco = tipo !== 'EVENTUAL' && (isFrancoReal || rol === 'franco_medio')
+                    const bgColor = diaFranco ? '#fef08a' : tipo === 'EVENTUAL' && isFrancoReal ? 'var(--card)' : rolColor[rol] || 'var(--card)'
                     const enEdicion = editando?.colaboradorId === horario.colaboradorId && editando?.dia === diaIndex
                     return (
                       <td
@@ -229,8 +255,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           padding: '8px 6px',
                           fontSize: '12px',
                           textAlign: 'center',
-                          color: isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
-                          fontStyle: isFrancoReal ? 'italic' : 'normal',
+                          color: diaFranco ? '#713f12' : isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
+                          fontStyle: isFrancoReal && !diaFranco ? 'italic' : 'normal',
+                          fontWeight: diaFranco ? 700 : undefined,
                           backgroundColor: bgColor,
                           cursor: editable ? 'pointer' : 'default',
                           outline: enEdicion ? '2px solid var(--accent-strong)' : 'none',
@@ -238,8 +265,14 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                         }}
                       >
                         {(() => {
+                          const enCaja = cajaFila && jornada && !isFrancoReal ? intervalosCaja(cajaFila[diaIndex]) : null
                           const contenido = !jornada ? '—' : isFrancoReal
                             ? (tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO')
+                            : enCaja
+                            ? <span title={`Jornada completa: ${jornada.turnos.map(t => `${t.inicio} - ${t.fin}`).join(' / ')}`}>
+                                {enCaja.length ? enCaja.map((t, i) => <span key={i} className="block tabular-nums">{t.inicio} - {t.fin}</span>)
+                                  : <span className="block" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin caja</span>}
+                              </span>
                             : <>{jornada.turnos.map((t, i) => <span key={i} className="block tabular-nums">{t.inicio} - {t.fin}</span>)}
                                 {rol === 'franco_medio' && <span className="block">Medio franco</span>}</>
                           return editable && jornada
@@ -251,7 +284,12 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     )
                   })}
                   <td className="centro" style={{ overflowWrap: 'anywhere' }}>
-                    <ResumenHoras minutos={minutos} tipo={tipo} objetivo={objetivoDe(horario.colaboradorId)} />
+                    {cajaFila
+                      ? <div className="space-y-1 tabular-nums leading-snug" style={{ fontSize: '12px' }}>
+                          <div><strong>{horasLegibles(minutosCaja)}</strong> en caja</div>
+                          <div style={{ color: 'var(--text-muted)' }}>Jornada: {horasLegibles(minutos)}</div>
+                        </div>
+                      : <ResumenHoras minutos={minutos} tipo={tipo} objetivo={objetivoDe(horario.colaboradorId)} />}
                     {horario.errores.length > 0 && (
                       <div style={{ fontSize: '10px', color: 'var(--danger)' }}>
                         {horario.errores.map((err, idx) => (
@@ -293,7 +331,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
               Franco
             </label>
             {!editEsFranco && (
-              <label className="min-w-64 text-sm">Intervalos de la jornada
+              <label className="min-w-64 text-sm">{cajaAux && horarios.some(h => h.colaboradorId === editando.colaboradorId && h.rolGeneral === 'aux_supervisor')
+                ? 'Jornada completa del supervisor (las horas en caja se recalculan solas)'
+                : 'Intervalos de la jornada'}
                 <textarea autoFocus rows={Math.max(2, textoTurnos.split('\n').length)}
                   value={textoTurnos} onChange={e => setTextoTurnos(e.target.value)}
                   aria-invalid={!!errorEntrada} className="mt-1 block w-full rounded border bg-white p-2 text-gray-900"
