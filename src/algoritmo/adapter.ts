@@ -268,7 +268,7 @@ export function convertirInputAV2(
     politica_recursos_version: opciones?.politica_recursos_version,
     supervision_apertura_externa: opciones?.supervision_apertura_externa,
     excepcion_apertura_aux_unico: opciones?.excepcion_apertura_aux_unico,
-    max_caja_eventual_slots: opciones?.max_caja_eventual_slots && Object.fromEntries(Object.entries(opciones.max_caja_eventual_slots).map(([id,n])=>[ident.v2PorUi.get(id) ?? id,n])),
+    max_caja_eventual_slots: topesCajaPorPersona(eventuales, opciones?.max_caja_eventual_slots, id => ident.v2PorUi.get(id) ?? id),
     reservas_sector_eventual: opciones?.reservas_sector_eventual && Object.fromEntries(Object.entries(opciones.reservas_sector_eventual).map(([id,m])=>[ident.v2PorUi.get(id) ?? id,m])),
     // Perfiles persistentes de disponibilidad de caja: IDs de UI → IDs del motor (mismo criterio que reservas).
     disponibilidad_caja_eventual: opciones?.disponibilidad_caja_eventual && {...opciones.disponibilidad_caja_eventual,perfiles:opciones.disponibilidad_caja_eventual.perfiles.map(p=>({...p,colaboradorId:ident.v2PorUi.get(p.colaboradorId) ?? p.colaboradorId}))},
@@ -516,4 +516,24 @@ export function avisosImpactoHoras(i?: import('./contratos').ImpactoPrioridadHor
     out.push(`${PREFIJO_IMPACTO_HORAS} cumplir las horas objetivo agrega ${(i.sobrantesConPrioridadHoras - i.sobrantesSinPrioridadHoras).toString().replace('.', ',')} h de sobrante en caja.`);
   }
   return out;
+}
+
+/**
+ * AH2-047: tope semanal de caja de cada EVENTUAL. El máximo de su ficha (Personal → «Máx. horas por semana»)
+ * es su tope individual; el de Configuración por contrato es el techo. La compilación de disponibilidad
+ * toma el menor de todos, así que acá solo se agrega el de la ficha (nunca lo amplía).
+ */
+export function topesCajaPorPersona(
+  eventuales: Eventual[], previos: Record<string, number> | undefined, idMotor: (id: string) => string,
+): Record<string, number> | undefined {
+  const out: Record<string, number> = {}
+  for (const [id, n] of Object.entries(previos ?? {})) out[idMotor(id)] = n
+  for (const ev of eventuales) {
+    const max = ev.maxHorasSemanales
+    if (!ev.activo || typeof max !== 'number' || !Number.isFinite(max) || max < 0) continue
+    const slots = Math.min(210, Math.floor(max * 2))
+    const id = idMotor(ev.id)
+    out[id] = id in out ? Math.min(out[id], slots) : slots
+  }
+  return Object.keys(out).length ? out : undefined
 }
