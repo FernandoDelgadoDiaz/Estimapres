@@ -68,7 +68,9 @@ describe('misma pantalla → contrato HTTP → resultado → historial/edición 
   vi.unstubAllGlobals()
  })
  it('conserva identidad y reglas en el resultado habitual, sin credenciales en el snapshot',()=>{
-  expect(generado.hibrido).toMatchObject({algoritmo:'ah2-hibrido-091-v1',entrada:{sucursal_id:'091',equilibrio_semanal_version:1}})
+  expect(generado.hibrido).toMatchObject({algoritmo:'ah2-hibrido-091-v1',entrada:{sucursal_id:'091',equilibrio_semanal_version:2}})
+  // Regresión: con B elegido, la cobertura del resultado (y del PDF) es la medida por el orquestador, no 0.
+  if(generado.hibrido!.origen==='B')expect(generado.porcentajeCobertura).toBeGreaterThan(0)
   expect(JSON.stringify(generado)).not.toContain('synthetic-token')
   expect(generado.horarios.map(h=>h.colaboradorId).sort()).toEqual([...cajeros,...aux,...ev].map(p=>p.id).sort())
   expect(validarResultadoSemana(generado,cajeros,aux,ev,ctx)).toMatchObject({publicable:true,violaciones:[]})
@@ -92,6 +94,7 @@ describe('misma pantalla → contrato HTTP → resultado → historial/edición 
   vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline')))
   const r=await generarSemanaIntegrada({entrada,servicio:cfg.servicio,token:'synthetic-token'})
   expect(r.hibrido).toMatchObject({origen:'A',estadoB:'ERROR_TRANSPORTE'})
+  expect(r.porcentajeCobertura).toBeGreaterThan(0)
   expect(r.alertas.join(' ')).toContain('respaldo')
  })
  it('una cancelación no produce un resultado tardío',async()=>{

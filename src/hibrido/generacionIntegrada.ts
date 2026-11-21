@@ -17,7 +17,7 @@ export async function generarSemanaIntegrada(e:EntradaIntegrada,onProgreso?:(p:E
  if(e.entrada.input.sucursal_id!=='091')throw new Error('Sucursal no habilitada para el motor híbrido.')
  if(Object.keys(e.entrada.input.disponibilidad_eventual).length&&!e.entrada.input.disponibilidad_caja_eventual)throw new Error('Falta la disponibilidad de caja EVENTUAL acreditada en la configuración privada.')
  if(signal?.aborted)throw new DOMException('Generación cancelada','AbortError')
- const input=politicaLaboratorioV1({...e.entrada.input,equilibrio_semanal_version:1})
+ const input=politicaLaboratorioV1({...e.entrada.input,equilibrio_semanal_version:2})
  const salida=await generarPropuestaHibrida(input,{id:crypto.randomUUID(),sucursal:'091',timeoutMs:150000,
   parametros:{segundos:120,modo:'global',semilla:20261119},transporte:transporteHttpPiloto(e.servicio,async()=>e.token,signal),onProgreso})
  if(signal?.aborted)throw new DOMException('Generación cancelada','AbortError')
@@ -25,6 +25,9 @@ export async function generarSemanaIntegrada(e:EntradaIntegrada,onProgreso?:(p:E
  if(salida.bloqueos.length)throw new Error(`Faltan datos para generar con el motor híbrido: ${salida.bloqueos.join(', ')}.`)
  const {cajeros,auxiliares,eventuales}=e.entrada
  const resultado=convertirOutputDeV2(salida.propuesta,cajeros,auxiliares,eventuales)
+ // La propuesta de CP-SAT no trae `cobertura_total_pct`: se usa la cobertura medida por el orquestador (validadores de A),
+ // la misma para A y B. Sin esto el PDF mostraba «Cobertura al generar: 0.0 %».
+ if(typeof salida.coberturaPomPct==='number')resultado.porcentajeCobertura=salida.coberturaPomPct
  const ids=asignarIdentidadesV2([...cajeros,...auxiliares,...eventuales])
  resultado.hibrido={version:1,algoritmo:'ah2-hibrido-091-v1',origen:salida.origen,estadoB:salida.estadoB,hashEntrada:salida.hashEntrada,
   entrada:input,minimosCajeros:structuredClone(e.entrada.contexto.minimosCajeros??[]),uiPorMotor:Object.fromEntries([...ids.uiPorV2].map(([k,p])=>[k,p.id]))}
