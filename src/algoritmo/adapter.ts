@@ -167,6 +167,8 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
 export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones {
   maxBloquesCajaEventualDia?: number
   eventualesCajaHoraLimite?: string
+  /** AH2-053: último horario de salida de cajeros (FULL/PART), «HH:MM». Por defecto 22:30. */
+  cajerosFinHoraLimite?: string
   preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
   demandaMinima?: Array<{ dia: number; slotDesde: number; slotHasta: number; cantidad: number }>;
   maxFrancosDia?: number;
@@ -183,6 +185,9 @@ export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones
   coberturaObjetivoPct?: number;
 }
 
+/** AH2-053: salida máxima de cajeros si la sucursal no configura otra. */
+export const FIN_CAJEROS_POR_DEFECTO = '22:30'
+
 export function convertirInputAV2(
   necesidad: Franja[],
   cajeros: ColaboradorUI[],
@@ -191,6 +196,14 @@ export function convertirInputAV2(
   excepciones: ExcepcionSemanal[],
   opciones?: OpcionesGeneracion
 ): InputAlgoritmo {
+  // AH2-053: los cajeros terminan como máximo a esta hora (por defecto 22:30). Se expresa como la
+  // excepción «no después de», que ambos motores y el validador ya aplican; un local puede fijar otra.
+  // Sin valor (bancos de prueba y llamadas de bajo nivel) no se limita; la generación de la app siempre lo envía.
+  const finCajeros = opciones?.cajerosFinHoraLimite
+  const excepcionesFinCajeros: ExcepcionSemanal[] = finCajeros && finCajeros < '23:00'
+    ? cajeros.filter(c => (c.tipo === 'FULL' || c.tipo === 'PART') && c.activo !== false)
+        .map(c => ({ id: `fin-cajeros-${c.id}`, colaboradorNombre: c.nombre, tipo: 'no_despues_de', valor: finCajeros, descripcion: 'salida máxima de cajeros de la sucursal' }) as ExcepcionSemanal)
+    : []
   // 1. Demanda 7×30
   const demanda: number[][] = Array.from({ length: 7 }, () => Array(30).fill(0));
   for (const franja of necesidad) {
@@ -275,7 +288,8 @@ export function convertirInputAV2(
     topes_caja_eventual_contrato: opciones?.topes_caja_eventual_contrato,
     max_bloques_caja_eventual_dia: opciones?.maxBloquesCajaEventualDia,
     eventuales_caja_hora_limite: opciones?.eventualesCajaHoraLimite,
-    excepciones,
+    cajeros_fin_hora_limite: finCajeros,
+    excepciones: [...excepciones, ...excepcionesFinCajeros],
     preferencias_turno,
     max_francos_dia: opciones?.maxFrancosDia,
     pesos_franja: opciones?.pesosFranja,

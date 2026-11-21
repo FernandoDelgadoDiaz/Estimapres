@@ -73,6 +73,8 @@ export interface InputAlgoritmo extends PoliticaRecursos, EntradaCondiciones {
   auditoria_condiciones?: AuditoriaCondiciones
   max_bloques_caja_eventual_dia?: number;
   eventuales_caja_hora_limite?: string;
+  /** AH2-053: salida máxima de cajeros FULL/PART («HH:MM», por defecto 22:30). */
+  cajeros_fin_hora_limite?: string;
   demanda: MatrizDemanda;
   /** Inicio mínimo del lunes (slots desde 08:00) por ID INTERNO del motor, derivado del domingo confirmado. */
   inicio_minimo_lunes_por_colaborador?: Record<string, number>;
