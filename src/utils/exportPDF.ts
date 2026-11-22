@@ -65,6 +65,8 @@ export interface MetaPDF {
    * el cuadro de presencia; sin ella se informa «Presencia no registrada».
    */
   presencia?: Record<string, string[]>
+  /** AH2-057: nota de la versión (p. ej. cobertura de una ausencia aprobada por el supervisor). */
+  nota?: string
 }
 
 const fechaAR = (iso: string) => iso.split('-').reverse().join('/')
@@ -78,6 +80,9 @@ export const TITULO_PRESENCIA = 'HORARIOS DE PRESENCIA — PERSONAL DE APOYO'
 export const SIN_CAJA = 'Sin caja'
 /** AH2-048: relleno de los días de franco y medio franco (tabla y PDF). */
 export const AMARILLO_FRANCO = [254, 240, 138] as const
+/** AH2-057: día de ausencia avisada (no es franco). */
+export const AUSENTE = 'AUSENTE'
+export const ROSA_AUSENTE = [254, 202, 202] as const
 export const NO_DISPONIBLE = 'No disponible'
 export const PRESENCIA_NO_REGISTRADA = 'Presencia no registrada'
 const ANCHO_NOMBRE = 54
@@ -126,6 +131,7 @@ export function filasHorariosCaja(resultado: ResultadoAsignacion, nombres: Map<s
     const celdas = Array.from({ length: 7 }, (_, d) => {
       const j = porDia.get(d)
       if (!j) return '-'
+      if (j.ausencia) return AUSENTE
       if (j.esFranco) return 'FRANCO'
       for (const t of j.turnos) minutos += aMin(t.fin) - aMin(t.inicio)
       const bloques = j.turnos.map(t => `${hhmm(t.inicio)}-${hhmm(t.fin)}`).join('\n')
@@ -143,7 +149,7 @@ export function filasHorariosCaja(resultado: ResultadoAsignacion, nombres: Map<s
       const b = bloquesCaja(caja?.slotsCajaPorDia[d])
       if (b.length) return b.join('\n')
       const j = pres?.jornadas.find(x => x.dia === d)
-      return j?.esFranco ? 'FRANCO' : SIN_CAJA
+      return j?.ausencia ? AUSENTE : j?.esFranco ? 'FRANCO' : SIN_CAJA
     })
     const slots = (caja?.slotsCajaPorDia ?? []).reduce((n, f) => n + f.filter(Boolean).length, 0)
     filas.push({ colaboradorId: id, nombre: nombres.get(id)?.nombre ?? caja?.nombre ?? id, tipo: 'AUX', horas: slots / 2, celdas })
@@ -152,7 +158,8 @@ export function filasHorariosCaja(resultado: ResultadoAsignacion, nombres: Map<s
   const idsEv = [...new Set([...resultado.horarios.filter(x => x.rolGeneral === 'eventual_sector').map(h => h.colaboradorId), ...cajaEv.keys()])]
   for (const id of idsEv) {
     const caja = cajaEv.get(id)
-    const celdas = Array.from({ length: 7 }, (_, d) => bloquesCaja(caja?.slotsCajaPorDia[d]).join('\n') || SIN_CAJA)
+    const filaEv = resultado.horarios.find(x => x.colaboradorId === id)
+    const celdas = Array.from({ length: 7 }, (_, d) => bloquesCaja(caja?.slotsCajaPorDia[d]).join('\n') || (filaEv?.jornadas.find(x => x.dia === d)?.ausencia ? AUSENTE : SIN_CAJA))
     const slots = (caja?.slotsCajaPorDia ?? []).reduce((n, f) => n + f.filter(Boolean).length, 0)
     filas.push({ colaboradorId: id, nombre: nombres.get(id)?.nombre ?? caja?.nombre ?? id, tipo: 'EVENTUAL', horas: slots / 2, celdas })
   }
@@ -173,6 +180,7 @@ export function filasPresenciaApoyo(
     let minutos = 0
     const celdas = Array.from({ length: 7 }, (_, d) => {
       const j = porDia.get(d)
+      if (j?.ausencia) return AUSENTE
       if (!j || j.esFranco || !j.turnos.length) return 'FRANCO'
       for (const t of j.turnos) minutos += aMin(t.fin) - aMin(t.inicio)
       return j.turnos.map(t => `${hhmm(t.inicio)}-${hhmm(t.fin)}`).join('\n')
@@ -298,6 +306,7 @@ export function generarPDF(
     if (section !== 'body' || column.index < 3) return
     // AH2-048: franco y medio franco en amarillo para que se distingan a simple vista.
     if (cell.raw === 'FRANCO') { cell.styles.fillColor = [...AMARILLO_FRANCO]; cell.styles.fontStyle = 'bold' }
+    else if (cell.raw === AUSENTE) { cell.styles.fillColor = [...ROSA_AUSENTE]; cell.styles.fontStyle = 'bold' }
     else if (typeof cell.raw === 'string' && cell.raw.endsWith('Medio franco')) cell.styles.fillColor = [...AMARILLO_FRANCO]
     else if (cell.raw === SIN_CAJA || cell.raw === NO_DISPONIBLE) cell.styles.textColor = [120, 132, 138]
     else if (cell.raw === PRESENCIA_NO_REGISTRADA) { cell.styles.textColor = [146, 32, 28]; cell.styles.fontStyle = 'italic' }
@@ -317,7 +326,7 @@ export function generarPDF(
   tabla(TITULO_CAJA, {
     ...estilosCuadro('Horas\ncaja'),
     body: filasCaja.map(f => [f.nombre, f.tipo, horasLegibles(f.horas), ...f.celdas]),
-  }, 'Quién trabaja en caja y en qué franjas. AUX y eventuales: solo sus franjas asignadas a caja (no su presencia).')
+  }, meta.nota ? sanitizarTexto(meta.nota) : 'Quién trabaja en caja y en qué franjas. AUX y eventuales: solo sus franjas asignadas a caja (no su presencia).')
 
   // ===== CUADRO 2 — HORARIOS DE PRESENCIA (AUX + EVENTUAL) =====
   // Presencia o disponibilidad REGISTRADA (no asignaciones del motor): AUX = sus

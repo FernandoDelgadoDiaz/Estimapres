@@ -42,6 +42,12 @@ export interface ContextoRecalculo {
   disponibilidad?: Record<string, string[]>
   /** Celdas de eventuales fijadas a mano ("id|día"). */
   eventualesFijos?: string[]
+  /** AH2-057: disponibilidad de CAJA acreditada por id (7×30). Si está, reemplaza a `disponibilidad` para eventuales. */
+  disponibilidadEventualMatriz?: Record<string, boolean[][]>
+  /** AH2-057: tope semanal de caja por eventual, en medias horas, para la parte que se recalcula. */
+  topesEventualSlots?: Record<string, number>
+  /** AH2-057: franjas reservadas al sector de origen del eventual (7×30). */
+  reservasEventual?: Record<string, boolean[][]>
 }
 
 export interface ResultadoRecalculo extends Pick<ResultadoAsignacion,
@@ -130,20 +136,22 @@ export function recalcularSemanaTrasEdicion(r: ResultadoAsignacion, ctx: Context
     ...cajaEvPrev.keys(),
   ])]
   let cajaEventual: AsignacionCajaColaborador[]
-  const sinDisp = idsEv.filter(id => !ctx.disponibilidad?.[id])
+  const sinDisp = idsEv.filter(id => !ctx.disponibilidadEventualMatriz?.[id] && !ctx.disponibilidad?.[id])
   if (sinDisp.length) {
     // Sin disponibilidad resuelta no se puede reasignar con garantías: se conserva y se avisa.
     cajaEventual = [...cajaEvPrev.values()]
     avisos.push('No se recalcularon los eventuales: falta su disponibilidad resuelta de esta semana (semana anterior a #38). La validación informa cualquier duplicación de cobertura.')
   } else {
     const disponibilidad_eventual: Record<string, MatrizDisponibilidad> = Object.fromEntries(idsEv.map(id => {
-      const disp = matrizHorario(ctx.disponibilidad![id])
+      const disp = ctx.disponibilidadEventualMatriz?.[id] ?? matrizHorario(ctx.disponibilidad![id])
       return [id, DIAS.map(d => disp[d].map(ok => (ok && !fijos.has(`${id}|${d}`) ? 'NO_USADO' : 'NO_DISPONIBLE') as AsignacionEv))]
     }))
     const p3 = ejecutarPasada3({
       demanda, colaboradores: [], presencia_aux: {}, disponibilidad_eventual,
       max_bloques_caja_eventual_dia: ctx.operativa.maxBloquesCajaEventualDia,
       eventuales_caja_hora_limite: ctx.operativa.eventualesCajaHoraLimite,
+      ...(ctx.topesEventualSlots ? { max_caja_eventual_slots: ctx.topesEventualSlots } : {}),
+      ...(ctx.reservasEventual ? { reservas_sector_eventual: ctx.reservasEventual } : {}),
     }, p2)
     cajaEventual = idsEv.map(id => {
       const prev = cajaEvPrev.get(id)

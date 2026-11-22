@@ -244,8 +244,10 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                     const rol = jornada?.rol || (jornada?.esFranco ? 'franco' : 'cajero')
                     const isFrancoReal = jornada?.esFranco || rol === 'franco'
                     // Un EVENTUAL sin caja no está de franco: solo se pinta el franco de cajeros y supervisores.
-                    const diaFranco = tipo !== 'EVENTUAL' && (isFrancoReal || rol === 'franco_medio')
-                    const bgColor = diaFranco ? '#fef08a' : tipo === 'EVENTUAL' && isFrancoReal ? 'var(--card)' : rolColor[rol] || 'var(--card)'
+                    // AH2-057: ausencia avisada (no es franco): en rosa, con el motivo al pasar el mouse.
+                    const ausente = !!jornada?.ausencia
+                    const diaFranco = !ausente && tipo !== 'EVENTUAL' && (isFrancoReal || rol === 'franco_medio')
+                    const bgColor = ausente ? '#fecaca' : diaFranco ? '#fef08a' : tipo === 'EVENTUAL' && isFrancoReal ? 'var(--card)' : rolColor[rol] || 'var(--card)'
                     const enEdicion = editando?.colaboradorId === horario.colaboradorId && editando?.dia === diaIndex
                     return (
                       <td
@@ -255,9 +257,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                           padding: '8px 6px',
                           fontSize: '12px',
                           textAlign: 'center',
-                          color: diaFranco ? '#713f12' : isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
+                          color: ausente ? '#7f1d1d' : diaFranco ? '#713f12' : isFrancoReal ? 'var(--text-muted)' : 'var(--text)',
                           fontStyle: isFrancoReal && !diaFranco ? 'italic' : 'normal',
-                          fontWeight: diaFranco ? 700 : undefined,
+                          fontWeight: diaFranco || ausente ? 700 : undefined,
                           backgroundColor: bgColor,
                           cursor: editable ? 'pointer' : 'default',
                           outline: enEdicion ? '2px solid var(--accent-strong)' : 'none',
@@ -266,7 +268,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
                       >
                         {(() => {
                           const enCaja = cajaFila && jornada && !isFrancoReal ? intervalosCaja(cajaFila[diaIndex]) : null
-                          const contenido = !jornada ? '—' : isFrancoReal
+                          const contenido = !jornada ? '—' : ausente
+                            ? <span title={`Ausente: ${jornada.ausencia!.motivo}`}>AUSENTE<span className="block" style={{ fontWeight: 400, fontSize: '11px' }}>{jornada.ausencia!.motivo}</span></span>
+                            : isFrancoReal
                             ? (tipo === 'EVENTUAL' ? 'Sin caja' : 'FRANCO')
                             : enCaja
                             ? <span title={`Jornada completa: ${jornada.turnos.map(t => `${t.inicio} - ${t.fin}`).join(' / ')}`}>
@@ -391,9 +395,9 @@ export default function TablaHorarios({ horarios, colaboradores, auxiliares = []
 
       {/* Leyenda de colores, en lenguaje del supervisor */}
       <div style={{ padding: '12px 24px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-        {([['aux_supervisor', 'Supervisor'], ['eventual_sector', 'Eventual en caja'], ['franco', 'Franco']] as const).map(([rol, texto]) => (
+        {([['aux_supervisor', 'Supervisor'], ['eventual_sector', 'Eventual en caja'], ['franco', 'Franco'], ['ausente', 'Ausente']] as const).map(([rol, texto]) => (
           <span key={rol} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            <span style={{ width: '14px', height: '14px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: rolColor[rol] }} />
+            <span style={{ width: '14px', height: '14px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: rol === 'ausente' ? '#fecaca' : rolColor[rol] }} />
             {texto}
           </span>
         ))}

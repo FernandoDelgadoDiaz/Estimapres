@@ -2,6 +2,7 @@
 import type {ResultadoAsignacion} from '../types'
 import type {ContextoValidacionSemana} from '../utils/validacionSemana'
 import {auditarEscenario} from '../algoritmo/auditoriaV2'
+import {ausenciasDeHorarios} from '../contingencias/ausencias'
 import {compilarCondiciones} from '../algoritmo/condicionesSupervisor'
 import {compilarDisponibilidadCaja,verificarDisponibilidadCaja} from '../algoritmo/disponibilidadCajaEventual'
 import type {ResultadoSemanal,AsignacionAux,AsignacionEv,Jornada} from '../algoritmo/types'
@@ -37,7 +38,10 @@ export function revalidarIntegrado(r:ResultadoAsignacion,ctx:ContextoValidacionS
   }
   plan.metricas.deficit_por_slot=input.demanda.map((row,d)=>row.map((n,s)=>Math.max(0,n-cob[d][s])))
   plan.metricas.exceso_por_slot=input.demanda.map((row,d)=>row.map((n,s)=>Math.max(0,cob[d][s]-n)))
-  const audit=auditarEscenario(input,plan)
+  // AH2-057: las ausencias se acreditan para el contrato con la jornada comunicada (ids de motor).
+  const motorPorUi=Object.fromEntries(Object.entries(snap.uiPorMotor).map(([m,u])=>[u,m]))
+  const ausencias=ausenciasDeHorarios(r.horarios).map(a=>({...a,colaboradorId:motorPorUi[a.colaboradorId]??a.colaboradorId}))
+  const audit=auditarEscenario(input,plan,ausencias)
   const disp=verificarDisponibilidadCaja(snap.entrada,plan).map(v=>({codigo:String(v.codigo),nivel:'OPERATIVA' as const,detalle:'Disponibilidad o tope de caja EVENTUAL incumplido.',colaboradorId:v.colaboradorId as string|undefined}))
   const limitaciones=[...(ctx.limitaciones??[])]
   if(input.colaboradores.some(p=>['FULL','PART'].includes(p.rol))&&!input.inicio_minimo_lunes_por_colaborador)limitaciones.push('El snapshot no contiene el descanso previo confirmado.')

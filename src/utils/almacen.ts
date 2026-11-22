@@ -228,6 +228,8 @@ export function semanaAFila(s: SemanaHistorial): Omit<FilaSemana, 'created_at'> 
       hibrido: s.hibrido,
       condicionesSupervisor: s.condicionesSupervisor,
       generacion: s.generacion, // #7 · AH2-020 (jsonb existente, sin migración)
+      ausencias: s.ausencias, // AH2-057 (jsonb existente, sin migración)
+      contingencia: s.contingencia,
     },
     metricas: {
       resumenPorColaborador: s.resumenPorColaborador,
@@ -264,6 +266,8 @@ export function filaASemana(f: FilaSemana): SemanaHistorial {
     generacion: h.generacion as SemanaHistorial['generacion'],
     hibrido: h.hibrido as SemanaHistorial['hibrido'],
     condicionesSupervisor: h.condicionesSupervisor as SemanaHistorial['condicionesSupervisor'],
+    ausencias: h.ausencias as SemanaHistorial['ausencias'],
+    contingencia: h.contingencia as SemanaHistorial['contingencia'],
     resumenPorColaborador: (m.resumenPorColaborador as SemanaHistorial['resumenPorColaborador']) ?? {},
     coberturaFranjas: m.coberturaFranjas as number[][] | undefined,
     faltantesFranjas: m.faltantesFranjas as number[][] | undefined,
