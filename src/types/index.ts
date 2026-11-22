@@ -89,6 +89,8 @@ export interface ExcepcionSemanal {
   id: string
   colaboradorNombre: string
   tipo: 'inicio_no_despues_de' | 'franco_dia' | 'no_antes_de' | 'no_despues_de' | 'siempre_cierre' | 'solo_matutino' | 'solo_nocturno'
+    // AH2-056: pedido de turno (cantidad de cortadas FULL en la semana y mínimo de mañanas).
+    | 'cortadas_semana' | 'mananas_min' | 'cortada_inicio_hasta'
   valor?: string
   descripcion: string
 }
@@ -118,6 +120,7 @@ export type TipoReglaColaborador =
   | 'franco_fijo'      // franco siempre el mismo día
   | 'siempre_cierre'   // siempre turno de cierre
   | 'siempre_manana'   // siempre turno de mañana
+  | 'turno'            // AH2-056: pedido de turno (mañana, intermedio, tarde, noche, cortado según contrato)
 
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
@@ -142,6 +145,7 @@ export interface ReglaConfigurable {
   horaDesde?: string         // HH:MM, franja para min_cajeros_franja
   horaHasta?: string
   cantidad?: number          // N para min_cajeros_franja / max_francos_dia
+  turno?: 'manana' | 'intermedio' | 'tarde' | 'noche' | 'cortado' // AH2-056: solo tipo 'turno'
   vigenciaDesde?: string     // YYYY-MM-DD (opcional: restricción temporal)
   vigenciaHasta?: string
   activa: boolean

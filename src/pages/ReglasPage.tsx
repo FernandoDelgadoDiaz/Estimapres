@@ -14,7 +14,8 @@ import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
 import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente } from '../utils/preferencias'
 import { Boton, FilaAjuste, Interruptor, Pagina, Seccion, estiloCampo } from '../components/ui/Basicos'
 import { FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
-import { ddmm } from '../hibrido/configuracionSimple'
+import { ddmm, proximoLunesISO } from '../hibrido/configuracionSimple'
+import { TURNOS, turnosDeContrato, type TurnoPedido } from '../algoritmo/turnos'
 import { supabase } from '../lib/supabase'
 
 const TEXTO_OPERATIVA: Record<TipoReglaOperativa, { titulo: string; ayuda: string }> = {
@@ -26,6 +27,7 @@ const TEXTO_OPERATIVA: Record<TipoReglaOperativa, { titulo: string; ayuda: strin
 
 type QuePersona = TipoReglaColaborador
 const QUE_PERSONA: Array<{ valor: QuePersona; texto: string }> = [
+  { valor: 'turno', texto: 'Turno (pedido)' },
   { valor: 'franco_fijo', texto: 'Franco fijo' },
   { valor: 'no_antes_de', texto: 'No entra antes de' },
   { valor: 'no_despues_de', texto: 'No sale después de' },
@@ -63,6 +65,11 @@ export default function ReglasPage() {
 
   const cajeros = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
   const reglasPersona = reglas.filter(r => r.ambito === 'colaborador')
+  // AH2-056: un pedido de turno que no corresponde al contrato actual no se aplica al generar.
+  const turnoAplica = (r: ReglaConfigurable) => {
+    const tipo = colaboradores.find(c => c.nombre === r.colaboradorNombre)?.tipo
+    return !!r.turno && !!TURNOS[tipo as 'FULL' | 'PART']?.[r.turno]
+  }
   const minimos = reglas.filter(r => r.ambito === 'local' && r.tipo === 'min_cajeros_franja')
 
   return (
@@ -119,15 +126,15 @@ export default function ReglasPage() {
         </FilaAjuste>
       </Seccion>
 
-      <Seccion titulo="Reglas por persona" descripcion="Francos fijos y horarios de cada cajero.">
+      <Seccion titulo="Reglas por persona" descripcion="Pedidos de turno, francos fijos y horarios de cada cajero. Rigen en las fechas que elijas y se aplican solas en cada horario.">
         <ListaReglas
           items={[
-            ...reglasPersona.map(r => ({ id: r.id, texto: r.descripcion, periodo: periodo(r.vigenciaDesde, r.vigenciaHasta), activa: r.activa,
+            ...reglasPersona.map(r => ({ id: r.id, texto: r.tipo === 'turno' && !turnoAplica(r) ? `${r.descripcion} · no aplica a su contrato actual: corregila` : r.descripcion, periodo: periodo(r.vigenciaDesde, r.vigenciaHasta), activa: r.activa,
               onPausar: () => toggleActiva(r.id), onQuitar: () => { if (confirm(`¿Quitar «${r.descripcion}»?`)) eliminarRegla(r.id) } })),
           ]}
           vacio="No hay reglas por persona."
         />
-        <FormPersona cajeros={cajeros.map(c => ({ id: c.id, nombre: c.nombre }))} onRegla={agregarRegla} />
+        <FormPersona cajeros={cajeros.map(c => ({ id: c.id, nombre: c.nombre, tipo: c.tipo }))} onRegla={agregarRegla} />
       </Seccion>
 
       <Seccion titulo="Mínimo de cajeros" descripcion="Para asegurar una cantidad mínima en un horario, aunque el PDF pida menos.">
@@ -168,35 +175,54 @@ function ListaReglas({ items, vacio }: { items: ItemRegla[]; vacio: string }) {
 
 type NuevaRegla = Omit<ReglaConfigurable, 'id' | 'activa' | 'creadaEl'> & { activa?: boolean }
 
-function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre: string }>; onRegla: (r: NuevaRegla) => void }) {
-  const [persona, setPersona] = useState(''), [que, setQue] = useState<QuePersona>('franco_fijo'), [dia, setDia] = useState(0), [hora, setHora] = useState('09:00')
-  const [temporal, setTemporal] = useState(false), [desde, setDesde] = useState(''), [hasta, setHasta] = useState('')
+function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre: string; tipo: string }>; onRegla: (r: NuevaRegla) => void }) {
+  const [persona, setPersona] = useState(''), [que, setQue] = useState<QuePersona>('turno'), [dia, setDia] = useState(0), [hora, setHora] = useState('09:00')
+  const [periodoSel, setPeriodoSel] = useState<'siempre' | 'semana' | 'anio' | 'fechas'>('semana'), [desde, setDesde] = useState(''), [hasta, setHasta] = useState('')
+  const temporal = periodoSel === 'fechas'
+  const [turno, setTurno] = useState<TurnoPedido>('manana')
+  const contrato = cajeros.find(c => c.id === persona)?.tipo ?? ''
+  // AH2-056: solo los turnos del contrato de la persona (un PART no ve «Solo cortado»).
+  const opcionesTurno = turnosDeContrato(contrato)
   const [error, setError] = useState('')
   const nombre = cajeros.find(c => c.id === persona)?.nombre ?? ''
   const agregar = () => {
     setError('')
     if (!persona) { setError('Elegí una persona.'); return }
     if (temporal && (!desde || !hasta || hasta < desde)) { setError('Indicá desde y hasta (el fin después del inicio).'); return }
+    if (que === 'turno' && !opcionesTurno.some(([k]) => k === turno)) { setError('Elegí un turno de su contrato.'); return }
+    // Vigencia: la semana que viene (lunes a domingo), hasta fin de año (desde el próximo lunes), entre fechas o siempre.
+    const lunes = proximoLunesISO()
+    const sumar = (iso: string, n: number) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
+    const vig = periodoSel === 'semana' ? { d: lunes, h: sumar(lunes, 6) } : periodoSel === 'anio' ? { d: lunes, h: `${lunes.slice(0, 4)}-12-31` }
+      : periodoSel === 'fechas' ? { d: desde, h: hasta } : { d: undefined, h: undefined }
     const txt: Record<TipoReglaColaborador, string> = {
       franco_fijo: `${nombre}: franco fijo los ${DIAS_SEMANA[dia]}`, no_antes_de: `${nombre}: no entra antes de las ${hora}`,
       no_despues_de: `${nombre}: no sale después de las ${hora}`, siempre_manana: `${nombre}: siempre de mañana`, siempre_cierre: `${nombre}: siempre de cierre`,
+      turno: `${nombre}: ${(TURNOS[contrato as 'FULL' | 'PART']?.[turno]?.etiqueta ?? '').toLowerCase()}`,
     } as Record<TipoReglaColaborador, string>
     onRegla({ ambito: 'colaborador', tipo: que, colaboradorNombre: nombre, dia: que === 'franco_fijo' ? dia : undefined,
       hora: que === 'no_antes_de' || que === 'no_despues_de' ? hora : undefined,
-      vigenciaDesde: temporal ? desde : undefined, vigenciaHasta: temporal ? hasta : undefined, descripcion: txt[que] })
+      turno: que === 'turno' ? turno : undefined,
+      vigenciaDesde: vig.d, vigenciaHasta: vig.h, descripcion: txt[que] })
     setPersona('')
   }
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
-      <select aria-label="Persona" value={persona} onChange={e => setPersona(e.target.value)} style={estiloCampo}>
-        <option value="">Persona…</option>{cajeros.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+      <select aria-label="Persona" value={persona} onChange={e => { setPersona(e.target.value); setTurno('manana') }} style={estiloCampo}>
+        <option value="">Persona…</option>{cajeros.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.tipo})</option>)}
       </select>
       <select aria-label="Regla" value={que} onChange={e => setQue(e.target.value as QuePersona)} style={estiloCampo}>
         {QUE_PERSONA.map(q => <option key={q.valor} value={q.valor}>{q.texto}</option>)}
       </select>
+      {que === 'turno' && <select aria-label="Turno" value={turno} onChange={e => setTurno(e.target.value as TurnoPedido)} style={estiloCampo} disabled={!persona}>
+        {!persona && <option value="manana">Elegí la persona primero</option>}
+        {opcionesTurno.map(([k, d]) => <option key={k} value={k}>{d.etiqueta}{d.ingreso ? ` (ingreso ${d.ingreso[0]}–${d.ingreso[1]})` : ''}</option>)}
+      </select>}
       {que === 'franco_fijo' && <select aria-label="Día" value={dia} onChange={e => setDia(Number(e.target.value))} style={estiloCampo}>{DIAS_SEMANA.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>}
       {(que === 'no_antes_de' || que === 'no_despues_de') && <select aria-label="Hora" value={hora} onChange={e => setHora(e.target.value)} style={estiloCampo}>{HORAS.map(h => <option key={h} value={h}>{h}</option>)}</select>}
-      <select aria-label="Período" value={temporal ? 't' : 's'} onChange={e => setTemporal(e.target.value === 't')} style={estiloCampo}><option value="s">Siempre</option><option value="t">Entre fechas</option></select>
+      <select aria-label="Período" value={periodoSel} onChange={e => setPeriodoSel(e.target.value as typeof periodoSel)} style={estiloCampo}>
+        <option value="semana">La semana que viene</option><option value="anio">Hasta fin de año</option><option value="siempre">Sin fecha de fin</option><option value="fechas">Elegir fechas</option>
+      </select>
       {temporal && <><input aria-label="Desde" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={estiloCampo} /><input aria-label="Hasta" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={estiloCampo} /></>}
       <Boton onClick={agregar}>Agregar</Boton>
       {error && <p role="alert" style={{ flexBasis: '100%', margin: 0, color: 'var(--danger)', fontSize: '13px' }}>{error}</p>}

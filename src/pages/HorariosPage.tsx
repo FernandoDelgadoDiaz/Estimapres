@@ -103,7 +103,7 @@ export default function HorariosPage() {
       resultadoActual, colaboradoresActivos, auxiliaresActivos.map(conDisp), eventualesActivos.map(conDisp),
       {
         necesidad: HORAS_FRANJAS.map((hora, fi) => ({ hora, necesidad: necesidadFranjas[fi] ?? Array(7).fill(0) })),
-        excepciones: reglasAExcepciones(reglas, ultimaSemana.fechaLunes),
+        excepciones: reglasAExcepciones(reglas, ultimaSemana.fechaLunes, Object.fromEntries(colaboradoresActivos.map(c => [c.nombre, c.tipo]))),
         maxFrancosDia: capFrancosDeReglas(reglas, ultimaSemana.fechaLunes),
         minimosCajeros: demandaMinimaDeReglas(reglas, ultimaSemana.fechaLunes),
         operativa,

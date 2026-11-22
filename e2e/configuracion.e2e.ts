@@ -29,11 +29,23 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await page.getByLabel('No atienden caja después de las').selectOption('21:00')
 
   // Regla por persona: franco fijo
-  await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A' })
+  await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A (PART)' })
   await page.getByLabel('Regla', { exact: true }).selectOption('franco_fijo')
   await page.getByLabel('Día', { exact: true }).selectOption('2')
   await page.getByRole('button', { name: 'Agregar' }).first().click()
   await expect(page.getByText('Part A: franco fijo los Mié')).toBeVisible()
+
+  // AH2-056: pedido de turno. El desplegable muestra solo los turnos del contrato de la persona.
+  await page.getByLabel('Regla', { exact: true }).selectOption('turno')
+  await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A (PART)' })
+  const turnos = page.getByLabel('Turno', { exact: true })
+  await expect(turnos.locator('option')).toHaveText([/Solo mañana/, /Solo tarde/, /Solo noche/])
+  await page.getByLabel('Persona', { exact: true }).selectOption({ index: 1 })
+  await expect(turnos.locator('option')).toHaveText([/Solo mañana/, /Solo intermedio/, /Solo tarde/, /Solo cortado/])
+  await turnos.selectOption('cortado')
+  await page.getByLabel('Período', { exact: true }).selectOption('anio')
+  await page.getByRole('button', { name: 'Agregar' }).first().click()
+  await expect(page.getByText(/: solo cortado$/)).toBeVisible()
   // Opciones fuera de la pantalla del supervisor (decisión del propietario).
   await expect(page.getByRole('option', { name: /Lo armo yo/ })).toHaveCount(0)
   await expect(page.getByText('Qué eventuales atienden caja')).toHaveCount(0)

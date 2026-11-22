@@ -278,7 +278,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     const cajerosActivos = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
 
     // Capacidad 1: reglas configuradas → excepciones + demanda mínima + tope de francos
-    const excepcionesTotales = [...excepciones, ...reglasAExcepciones(reglas, fechaLunes)]
+    const excepcionesTotales = [...excepciones, ...reglasAExcepciones(reglas, fechaLunes, Object.fromEntries(cajerosActivos.map(c => [c.nombre, c.tipo])))]
     const operativa = operativaSemana ?? configOperativaDeReglas(reglas, fechaLunes)
     const opciones = {
       preferenciasPorNombre: sesgosGeneracion, // No aprender de simulaciones si se importó el domingo operativo

@@ -1,4 +1,17 @@
-## PUNTO ÚNICO DE RETOMA — v4 del 23/11 en uso; AH2-054 en PR · 21/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-056 pedido de turno por persona (PR) · 22/11/2026, Claude
+
+**Estado de producción:** Netlify `main@f7f6780` (AH2-047…054), publicado 22/11 17:07 UTC. Cloud Run `aliada-optimizer-00009-9wb` (`optimizer:19a6b52`, 4 vCPU, `AH2_SEARCH_WORKERS=4`, AH2-055), rollback `aliada-optimizer-00008-zpp`. Alertas de presupuesto: US$ 1, US$ 5 y US$ 100. Semana 23/11: última guardada v4 (99,3 %); PDF impreso con eventuales repartidos generado aparte (no guardado como v5).
+
+**AH2-056 en PR (sin publicar):** regla «Turno» por persona con vigencia, en Configuración → Reglas por persona. Estimapres: rama `claude/ah2-056-turnos-por-persona`. aliada-optimizer: rama `feat/ah2-056-turnos-por-persona` (base `feat/minimo-impacto-semanal`). Sin migración (el turno se guarda en `parametros` jsonb de `reglas_configurables`). **Orden de publicación:** primero Cloud Run (el motor actual rechaza los tipos de excepción nuevos), después Netlify. Pruebas: Vitest 636 passed / 4 skipped; Playwright 21 passed / 1 skipped; build y lint OK; pytest 174 passed / 1 skipped; prueba de punta a punta A → CP-SAT → validador de A con pedidos (FULL cortado = 4 cortadas, FULL tarde, PART noche): óptimo y 0 infracciones.
+
+### Pendiente
+- Publicar AH2-056 (autorización): Cloud Run → Netlify.
+- Rangos de ingreso de los turnos editables por sucursal (hoy precargados en código).
+- Configuración por local de la salida máxima de cajeros en pantalla.
+- Resto: ver relevos anteriores.
+---
+
+## RELEVO ANTERIOR — v4 del 23/11 en uso; AH2-054 en PR · 21/11/2026, Claude
 
 **Estado:** producción = Netlify `main@490e294` (AH2-047…053) y Cloud Run `aliada-optimizer-00008-zpp` (`optimizer:5ee87b1`, AH2-053; rollback `aliada-optimizer-00007-vzq`). **Semana 23/11 versión 4** (21/11 23:13 UTC): 99,3 % de cobertura, 3 h sin cubrir, estado «Listo», sin preferencias heredadas y sin cajeros después de las 22:30; el propietario la considera correcta. La mejora 95,5 → 99,3 % vino sobre todo de quitar las 7 preferencias heredadas de la v2 (eventuales +9 h y supervisores +5,5 h de caja).
 

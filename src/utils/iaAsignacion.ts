@@ -1,3 +1,4 @@
+import { resolverCortadasMaximas } from '../algoritmo/pasada1-fullpart'
 import { Franja, Colaborador, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual } from '../types'
 import { convertirInputAV2, asignarIdentidadesV2, type OpcionesGeneracion } from '../algoritmo/adapter'
 import { entradaMinimaLunesSlots } from './antecedenteDomingo'
@@ -63,7 +64,8 @@ export function prepararEntradaAsignacion(
     minimosCajeros: opciones?.demandaMinima,
     operativa: operativaEfectiva(opciones),
   }
-  return { input: inputV2, cajeros, auxiliares, eventuales, contexto }
+  // AH2-056: «Solo cortado» → mayor cantidad de cortadas que admite la semana de la persona (fija para A, B y el validador).
+  return { input: resolverCortadasMaximas(inputV2), cajeros, auxiliares, eventuales, contexto }
 }
 
 export async function asignarHorariosConIA(
