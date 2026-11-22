@@ -1,3 +1,4 @@
+import { excepcionesDeTurno } from '../algoritmo/turnos'
 import type { PoliticaRecursos } from '../algoritmo/politicaRecursos'
 // src/utils/preferencias.ts
 // Motor de dominio (funciones puras) para las tres capacidades configurables:
@@ -596,7 +597,9 @@ function sumarDias(fechaISO: string, dias: number): string {
 /** Traduce las reglas por colaborador vigentes al formato ExcepcionSemanal del algoritmo. */
 export function reglasAExcepciones(
   reglas: ReglaConfigurable[],
-  fechaLunes: string
+  fechaLunes: string,
+  /** AH2-056: contrato (FULL/PART) por nombre, para traducir los pedidos de turno. */
+  contratoPorNombre: Record<string, string> = {},
 ): ExcepcionSemanal[] {
   const excepciones: ExcepcionSemanal[] = []
   for (const r of reglas) {
@@ -621,6 +624,12 @@ export function reglasAExcepciones(
       case 'siempre_manana':
         excepciones.push({ ...base, tipo: 'solo_matutino' })
         break
+      case 'turno': {
+        // Un turno que no corresponde al contrato actual de la persona no se aplica (la pantalla lo marca).
+        const prim = r.turno ? excepcionesDeTurno(base, contratoPorNombre[r.colaboradorNombre] ?? '', r.turno) : null
+        if (prim) excepciones.push(...prim)
+        break
+      }
     }
   }
   return excepciones

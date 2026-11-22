@@ -35,6 +35,7 @@ import type {
   SesgoTurno,
 } from "./types";
 import { estadoObjetivoHoras, type ContratoSlots, type CumplimientoHoras } from "./contratos";
+import { reglasDeTurno } from "./turnos";
 import {
   CATALOGO_FULL_CORRIDAS,
   CATALOGO_FULL_CORTADAS,
@@ -504,10 +505,14 @@ function candidatosDiaFull(
   // R1 "apertura con supervisor": si está activa, el bloque 1 no arranca
   // antes de las 09:00 (slot 2) → ningún cajero cubre la franja 08:00-09:00.
   const b1Min = aperturaSoloAux ? Math.max(2, 0) : 0;
+  // AH2-056: quien pidió «Solo cortado» puede arrancar la cortada hasta las 10:30 (cortada_inicio_hasta).
+  const pedidoCortada = excepciones.find(e => e.tipo === "cortada_inicio_hasta" && e.valor &&
+    (e.colaboradorId ? e.colaboradorId === colab.id : e.colaboradorNombre === colab.nombre));
+  const b1MaxPedido = pedidoCortada ? Math.min(5, (Number(pedidoCortada.valor!.slice(0, 2)) - 8) * 2 + (pedidoCortada.valor!.slice(3) === "30" ? 1 : 0)) : 0;
   for (const cort of CATALOGO_FULL_CORTADAS) {
     const item = cort.tipo === "F-CORT-9" ? 3 : 4;
     for (let ci = 0; ci < cort.composiciones.length; ci++) {
-      for (let b1 = Math.max(cort.b1_inicio_min, b1Min); b1 <= cort.b1_inicio_max; b1++) {
+      for (let b1 = Math.max(cort.b1_inicio_min, b1Min); b1 <= Math.max(cort.b1_inicio_max, b1MaxPedido); b1++) {
         for (const [x, y] of generarParesCortada(cort, b1, ci)) {
           const bloques: Bloque[] = [x, y];
           if (jornadaViolaExcepcion({ colab_id: colab.id, dia, bloques }, excepciones, colab.nombre)) continue;
@@ -590,11 +595,19 @@ const TIENE_ITEM: boolean[][] = (() => {
   return t;
 })();
 
-const COMPOSICIONES_FULL = [
-  { r9: 1, r8: 2, r5: 1, c9: 2, c8: 0 }, // cortadas 9h+9h
-  { r9: 2, r8: 1, r5: 1, c9: 1, c8: 1 }, // cortadas 9h+8h
-  { r9: 3, r8: 0, r5: 1, c9: 0, c8: 2 }, // cortadas 8h+8h
-].map(c => c.r9 * 54 + c.r8 * 18 + c.r5 * 9 + c.c9 * 3 + c.c8);
+/**
+ * Composiciones iniciales con `n` jornadas cortadas (AH2-056: 0–4; por defecto 2).
+ * Siempre 3×9h + 2×8h + 1×5h: las cortadas son 9h (c9 ≤ 2) u 8h (c8 ≤ 2) y el resto corridas.
+ */
+function composicionesFull(n: number): number[] {
+  const out: number[] = [];
+  for (let c9 = 0; c9 <= 2; c9++) {
+    const c8 = n - c9;
+    if (c8 < 0 || c8 > 2) continue;
+    out.push((3 - c9) * 54 + (2 - c8) * 18 + 1 * 9 + c9 * 3 + c8);
+  }
+  return out;
+}
 
 // Estado FULL: s = ((finB·2 + francoUsado)·3 + mañanas)·216 + cnt
 const NUM_ESTADOS_FULL = NUM_BUCKETS_FIN * 2 * 3 * CNT_FULL; // 10368
@@ -634,12 +647,16 @@ function optimizarSemanaFull(
   //   oblig 0 = sin obligación pendiente
   //   oblig 1 = FORCE_MEDIO (ayer se puso el franco → hoy debe ir el 5h)
   //   oblig 2 = FORCE_FRANCO (ayer se puso el 5h → hoy debe ir el franco)
+  // AH2-056: pedido de turno de la persona (cortadas de la semana y mínimo de mañanas).
+  const pedido = reglasDeTurno(excepciones, colab.id, colab.nombre);
+  const nCortadas = pedido.cortadas === 'max' ? 2 : pedido.cortadas;
+  const minMananas = Math.max(0, Math.min(2, pedido.mananas));
   const nOblig = francoMedioCorridos ? 3 : 1;
   const SB = NUM_ESTADOS_FULL;   // estados base (sin oblig)
   const S = SB * nOblig;
 
   let cur = new Float64Array(S).fill(-Infinity);
-  for (const cnt of COMPOSICIONES_FULL) cur[cnt] = 0; // oblig=0, finB=0, franco=0, mañanas=0
+  for (const cnt of composicionesFull(nCortadas)) cur[cnt] = 0; // oblig=0, finB=0, franco=0, mañanas=0
 
   const eleccion = new Int32Array(7 * S).fill(-1);
   const previo = new Int32Array(7 * S);
@@ -704,10 +721,12 @@ function optimizarSemanaFull(
   let mejor_s = -1;
   let mejor_u = -Infinity;
   for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
-    const s = ((finB * 2 + 1) * 3 + 2) * CNT_FULL; // oblig=0 implícito (0*SB)
-    if (cur[s] > mejor_u) {
-      mejor_u = cur[s];
-      mejor_s = s;
+    for (let man = minMananas; man <= 2; man++) {
+      const s = ((finB * 2 + 1) * 3 + man) * CNT_FULL; // oblig=0 implícito (0*SB)
+      if (cur[s] > mejor_u) {
+        mejor_u = cur[s];
+        mejor_s = s;
+      }
     }
   }
   if (mejor_s < 0) return null;
@@ -802,14 +821,18 @@ function optimizarSemanaPart(
   // la mejor utilidad descontando las medias horas que falten para el objetivo.
   let mejor_s = -1;
   let mejor_u = -Infinity;
+  // AH2-056: un pedido de turno (tarde / noche) baja el mínimo de mañanas.
+  const minMananas = Math.max(0, Math.min(2, reglasDeTurno(excepciones, colab.id, colab.nombre).mananas));
   for (let finB = 0; finB < NUM_BUCKETS_FIN; finB++) {
-    for (let usados = 0; usados <= MAX_SLOTS_PART; usados++) {
-      const s = ((finB * 2 + 1) * 3 + 2) * USADOS + usados;
-      if (cur[s] === -Infinity) continue;
-      const v = cur[s] - penHora * Math.max(0, OBJETIVO - usados);
-      if (v > mejor_u) {
-        mejor_u = v;
-        mejor_s = s;
+    for (let man = minMananas; man <= 2; man++) {
+      for (let usados = 0; usados <= MAX_SLOTS_PART; usados++) {
+        const s = ((finB * 2 + 1) * 3 + man) * USADOS + usados;
+        if (cur[s] === -Infinity) continue;
+        const v = cur[s] - penHora * Math.max(0, OBJETIVO - usados);
+        if (v > mejor_u) {
+          mejor_u = v;
+          mejor_s = s;
+        }
       }
     }
   }
@@ -914,4 +937,31 @@ export function factibilidadIndividual(input:InputAlgoritmo,p:Colaborador){
  const pre=Array.from({length:7},()=>Array(31).fill(0)),z=Array(7).fill(0),exc=input.excepciones??[]
  const w=p.rol==='FULL'?optimizarSemanaFull(p,pre,z,z,exc,SESGO_NEUTRO,7,input.apertura_solo_aux??true,input.franco_medio_corridos??false,input.inicio_minimo_lunes_por_colaborador?.[p.id]??0):optimizarSemanaPart(p,pre,z,z,exc,SESGO_NEUTRO,7,contratoPart(input,p.id),PENALIZACION_HORA_FALTANTE,input.inicio_minimo_lunes_por_colaborador?.[p.id]??0)
  return !!w&&slotsSemana(w)===(p.rol==='FULL'?96:contratoPart(input,p.id).objetivoSlots)
+}
+
+/**
+ * AH2-056 · «Solo cortado»: reemplaza `cortadas_semana = max` por la mayor cantidad de cortadas (4 → 0)
+ * que admite la semana de la persona con sus reglas (descanso de 12 h, apertura, salida máxima,
+ * domingo anterior, otras excepciones). El número queda fijo en la entrada, así los dos motores y el
+ * validador usan el mismo valor.
+ */
+export function resolverCortadasMaximas(input: InputAlgoritmo): InputAlgoritmo {
+  const exc = input.excepciones ?? [];
+  if (!exc.some(e => e.tipo === 'cortadas_semana' && e.valor === 'max')) return input;
+  const pre = Array.from({ length: 7 }, () => Array(31).fill(0)), z = Array(7).fill(0);
+  let nuevas = [...exc];
+  for (const p of input.colaboradores.filter(c => c.rol === 'FULL')) {
+    const mia = (e: ExcepcionSemanal) => e.tipo === 'cortadas_semana' && e.valor === 'max' &&
+      (e.colaboradorId ? e.colaboradorId === p.id : e.colaboradorNombre === p.nombre);
+    if (!nuevas.some(mia)) continue;
+    let elegido = 0;
+    for (let n = 4; n >= 0; n--) {
+      const prueba = nuevas.map(e => (mia(e) ? { ...e, valor: String(n) } : e));
+      const w = optimizarSemanaFull(p, pre, z, z, prueba, SESGO_NEUTRO, 7, input.apertura_solo_aux ?? true,
+        input.franco_medio_corridos ?? false, input.inicio_minimo_lunes_por_colaborador?.[p.id] ?? 0);
+      if (w) { elegido = n; break; }
+    }
+    nuevas = nuevas.map(e => (mia(e) ? { ...e, valor: String(elegido) } : e));
+  }
+  return { ...input, excepciones: nuevas };
 }

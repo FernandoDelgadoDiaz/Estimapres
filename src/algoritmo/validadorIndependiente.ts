@@ -1,3 +1,4 @@
+import { reglasDeTurno } from './turnos'
 import { aperturaAuxUnicoAutorizada, erroresDatosRecursos, excepcionAperturaAuxUnico } from './politicaRecursos'
 import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/validadorIndependiente.ts
@@ -207,7 +208,13 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
     })
 
     if (persona.contrato === 'FULL' || persona.contrato === 'PART') {
-      validarContrato(v, h.colaboradorId, nombre, dias, e.perfil.contratos[persona.contrato], persona.contrato)
+      // AH2-056: un pedido de turno fija la cantidad de cortadas FULL de la semana ('max' sin resolver: no se exige).
+      const reglas = e.perfil.contratos[persona.contrato]
+      const pedido = reglasDeTurno(e.excepciones ?? [], h.colaboradorId, nombre)
+      const reglasPersona = persona.contrato === 'FULL' && reglas.jornadasCortadasExactas !== undefined
+        ? { ...reglas, jornadasCortadasExactas: pedido.cortadas === 'max' ? undefined : pedido.cortadas }
+        : reglas
+      validarContrato(v, h.colaboradorId, nombre, dias, reglasPersona, persona.contrato)
       validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior, e.finDomingoAnteriorPorId)
       validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorId?x.colaboradorId===h.colaboradorId:x.colaboradorNombre === nombre))
     }
