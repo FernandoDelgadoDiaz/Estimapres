@@ -26,6 +26,43 @@ export interface JornadaAsignada {
   horas: number
   esFranco: boolean
   rol: 'cajero' | 'aux_supervisor' | 'aux_cierre' | 'aux_eventual' | 'eventual_sector' | 'franco' | 'franco_medio'
+  /**
+   * AH2-057: la persona avisó que no viene ese día. La jornada visible queda vacía (no cubre caja) y se
+   * conserva la jornada comunicada: el validador la acredita para el contrato (composición, horas, descanso),
+   * porque una ausencia no es un franco ni una jornada nueva.
+   */
+  ausencia?: AusenciaJornada
+}
+
+/** AH2-057 · Ausencia sobre una jornada ya comunicada. */
+export interface AusenciaJornada {
+  motivo: string
+  turnosOriginales: Turno[]
+  horasOriginales: number
+  rolOriginal: JornadaAsignada['rol']
+}
+
+/** AH2-057 · Ausencia cargada sobre una semana ya generada (persona, rango y aviso). */
+export interface AusenciaCargada {
+  id: string
+  colaboradorId: string
+  nombre: string
+  desde: string // YYYY-MM-DD
+  hasta: string // YYYY-MM-DD
+  motivo: string
+  /** Día del aviso (YYYY-MM-DD, hora local): la propuesta arranca el día siguiente. */
+  aviso: string
+}
+
+/** AH2-057 · Registro de la versión aprobada por contingencia. */
+export interface ContingenciaAprobada {
+  ausencia: AusenciaCargada
+  opcion: 'menor_impacto' | 'mejor_cobertura'
+  aprobadoPor: string
+  aprobadoEl: string // ISO
+  basadaEnVersion: number
+  desde: string | null // primer día modificado
+  cambios: number
 }
 
 export interface HorarioColaborador {
@@ -176,6 +213,10 @@ export interface SemanaHistorial {
   resumenPorColaborador: Record<string, ResumenTurnos> // key = nombre del colaborador
   horarios: HorarioColaborador[]
   editadoManualmente: boolean
+  /** AH2-057: ausencias cargadas sobre esta semana (se heredan en las versiones siguientes). */
+  ausencias?: AusenciaCargada[]
+  /** AH2-057: esta versión se aprobó como cobertura de una ausencia. */
+  contingencia?: ContingenciaAprobada
   // Snapshot opcional del resto del resultado, para poder re-exportar el PDF
   // completo desde "Último horario" (con las ediciones aplicadas).
   cajaAux?: AsignacionCajaColaborador[]

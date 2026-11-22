@@ -1,3 +1,4 @@
+import { horariosAcreditados } from '../contingencias/ausencias'
 import {revalidarIntegrado} from '../hibrido/revalidacionIntegrada'
 // PUB-01 (#12, parte sin migración) — Validación de la semana generada/editada
 // para la UI y el PDF, usando el validador independiente (VAL-01).
@@ -43,6 +44,8 @@ export interface ContextoValidacionSemana {
    * 31 h; id desconocido → limitación (nunca VALIDADO). Tiene prioridad sobre `perfil`.
    */
   perfilHorasId?: string | null
+  /** AH2-057: ausencias explícitas (además de las marcadas en las jornadas). */
+  ausencias?: import('../contingencias/ausencias').AusenciaValidacion[]
 }
 
 export function operativaEfectiva(op?: Partial<ConfigOperativa>): ConfigOperativa {
@@ -90,8 +93,10 @@ export function validarResultadoSemana(
     semanaAnterior: ctx.semanaAnterior,
     finDomingoAnteriorPorId: ctx.finDomingoAnteriorPorId,
     operativa: operativaEfectiva(ctx.operativa),
+    ausencias: ctx.ausencias,
   })
-  const horas = validarHorasAsignadas(resultado.horarios, colaboradores, eventuales, perfil.perfilHorasId)
+  // AH2-057: una ausencia no descuenta horas de contrato (se acredita la jornada comunicada).
+  const horas = validarHorasAsignadas(horariosAcreditados(resultado.horarios, ctx.ausencias), colaboradores, eventuales, perfil.perfilHorasId)
   // H-A2 (supervisión 09–22) ya la calcula el validador sobre la presencia real
   // (incluida la edición manual); del diagnóstico previo solo se agrega H-A1.
   // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).

@@ -1,6 +1,6 @@
 import { validarResultadoSemana, estadoValidacion } from '../utils/validacionSemana'
 import { useReglas } from '../hooks/useReglas'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { necesidadDeSemana, rangoSemana, resumirHorarios, semanasParaConsultar } from '../utils/resumenSemana'
 import { Boton, Pagina, ResumenCobertura, Tarjeta } from '../components/ui/Basicos'
@@ -17,6 +17,10 @@ import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
 import { getSucursalActual } from '../utils/sucursal'
 import TablaHorarios from '../components/semana/TablaHorarios'
 import CoberturaLive from '../components/semana/CoberturaLive'
+import PanelAusencia, { type PersonaSemana } from '../components/semana/PanelAusencia'
+import { apoyoDeSemana, inicioLunesSiguiente, notaContingencia, versionPorContingencia } from '../contingencias/semana'
+import type { EntradaReparacion } from '../contingencias/reparar'
+import type { AusenciaCargada, SemanaHistorial } from '../types'
 
 /**
  * «Horarios» del supervisor: abre en el último horario generado y permite elegir
@@ -26,7 +30,10 @@ import CoberturaLive from '../components/semana/CoberturaLive'
  * corre por detrás; solo se muestra si hay algo que revisar.
  */
 export default function HorariosPage() {
-  const { historial, loading, actualizarSemana } = useHistorial()
+  const { historial, loading, actualizarSemana, agregarSemana } = useHistorial()
+  // AH2-057: panel de ausencias y aviso de la última versión aprobada.
+  const [panelAusencia, setPanelAusencia] = useState(false)
+  const [aprobada, setAprobada] = useState<SemanaHistorial | null>(null)
   const { colaboradoresActivos } = useColaboradores()
   const { auxiliaresActivos } = useAuxiliares()
   const { eventualesActivos } = useEventuales()
@@ -94,13 +101,14 @@ export default function HorariosPage() {
     !ultimaSemana.necesidadFranjas && 'La demanda del POM no se guardó: se reconstruyó en forma aproximada desde la cobertura.',
   ].filter((x): x is string => !!x), [ultimaSemana])
 
-  // #38: validación COMPLETA (no solo horas) tras cada edición y antes de exportar.
-  const validacion = useMemo(() => {
-    if (!ultimaSemana || !resultadoActual || !necesidadFranjas || !operativa) return null
+  // #38: validación COMPLETA (no solo horas) tras cada edición y antes de exportar. AH2-057: la misma función
+  // revalida cada propuesta de cobertura de una ausencia.
+  const validarCon = useCallback((resultado: ResultadoAsignacion) => {
+    if (!ultimaSemana || !necesidadFranjas || !operativa) return null
     const disp = ultimaSemana.disponibilidadSemana
     const conDisp = <T extends { id: string; horarioSemanal: string[] }>(p: T): T => (disp?.[p.id] ? { ...p, horarioSemanal: disp[p.id] } : p)
     return validarResultadoSemana(
-      resultadoActual, colaboradoresActivos, auxiliaresActivos.map(conDisp), eventualesActivos.map(conDisp),
+      resultado, colaboradoresActivos, auxiliaresActivos.map(conDisp), eventualesActivos.map(conDisp),
       {
         necesidad: HORAS_FRANJAS.map((hora, fi) => ({ hora, necesidad: necesidadFranjas[fi] ?? Array(7).fill(0) })),
         excepciones: reglasAExcepciones(reglas, ultimaSemana.fechaLunes, Object.fromEntries(colaboradoresActivos.map(c => [c.nombre, c.tipo]))),
@@ -114,7 +122,8 @@ export default function HorariosPage() {
         perfilHorasId: ultimaSemana.perfilHorasId,
       },
     )
-  }, [ultimaSemana, resultadoActual, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])
+  }, [ultimaSemana, necesidadFranjas, operativa, colaboradoresActivos, auxiliaresActivos, eventualesActivos, reglas, limitaciones])
+  const validacion = useMemo(() => resultadoActual ? validarCon(resultadoActual) : null, [resultadoActual, validarCon])
   const avisosHoras = validacion?.advertencias ?? []
 
   // PDF con el estado ACTUAL de la semana (ediciones incluidas), reusando el
@@ -133,6 +142,7 @@ export default function HorariosPage() {
       // #38: el PDF lleva el estado real; si hay violaciones sale como BORRADOR.
       validacion: validacion ?? undefined,
       estado: validacion ? estadoValidacion(validacion) : 'SIN VERIFICAR: la semana no tiene datos de demanda para validar',
+      nota: notaContingencia(ultimaSemana),
     })
     pdf.save(`horarios-${ultimaSemana.descripcion.toLowerCase().replace(/ /g, '-')}.pdf`)
   }
@@ -178,6 +188,29 @@ export default function HorariosPage() {
     })
   }
 
+  // AH2-057 · Personas de la semana que pueden ausentarse, y entrada de la búsqueda de cobertura.
+  const personasSemana = useMemo<PersonaSemana[]>(() => !ultimaSemana ? [] : ultimaSemana.horarios.map(h => ({
+    id: h.colaboradorId,
+    nombre: nombrePorId[h.colaboradorId] ?? h.colaboradorId,
+    tipo: h.rolGeneral === 'cajero' ? (colaboradoresActivos.find(c => c.id === h.colaboradorId)?.tipo ?? 'Cajero')
+      : h.rolGeneral === 'aux_supervisor' ? 'Supervisor' : 'Eventual',
+  })).sort((a, b) => a.tipo.localeCompare(b.tipo) || a.nombre.localeCompare(b.nombre)), [ultimaSemana, nombrePorId, colaboradoresActivos])
+
+  const construirEntrada = (ausencia: AusenciaCargada): EntradaReparacion | string => {
+    if (!ultimaSemana || !resultadoActual || !operativa) return 'No hay un horario cargado.'
+    const apoyo = apoyoDeSemana(ultimaSemana, eventualesActivos)
+    if (apoyo.faltan.length || !ultimaSemana.necesidadFranjas) {
+      return `Esta semana se guardó sin ${apoyo.faltan.join(', ')}: no se puede buscar cobertura automática. Corregila a mano en la tabla o volvé a generarla.`
+    }
+    return {
+      base: resultadoActual, fechaLunes: ultimaSemana.fechaLunes, ausencia,
+      necesidadFranjas: ultimaSemana.necesidadFranjas, operativa, nombrePorId,
+      disponibilidadEventual: apoyo.disponibilidadEventual, topesEventualSlots: apoyo.topesEventualSlots, reservasEventual: apoyo.reservasEventual,
+      finCajeros: apoyo.finCajeros, inicioLunesSiguiente: inicioLunesSiguiente(historial, ultimaSemana),
+      validar: r => validarCon(r)?.violaciones ?? [{ codigo: 'SIN_DATOS', detalle: 'No se pudo validar la propuesta.' }],
+    }
+  }
+
   const resumen = useMemo(() => {
     if (!ultimaSemana) return null
     const n = necesidadDeSemana(ultimaSemana)
@@ -203,6 +236,7 @@ export default function HorariosPage() {
             </select>
           </label>
         )}
+        <Boton variante="secundario" onClick={() => { setPanelAusencia(true); setAprobada(null) }}>Cargar ausencia</Boton>
         <Boton onClick={handleExportarPDF}>Exportar PDF</Boton>
       </> : undefined}
     >
@@ -218,6 +252,28 @@ export default function HorariosPage() {
         </Tarjeta>
       ) : (
         <>
+          {aprobada && aprobada.id === ultimaSemana.id && (
+            <section role="status" data-testid="version-aprobada" style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '16px', padding: '14px 20px', color: '#14532d', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <span>Se guardó la <strong>versión {aprobada.version}</strong>. {notaContingencia(aprobada)}</span>
+              <Boton onClick={handleExportarPDF}>Descargar PDF actualizado</Boton>
+            </section>
+          )}
+          {panelAusencia && (
+            <PanelAusencia
+              semana={ultimaSemana}
+              personas={personasSemana}
+              supervisores={auxiliaresActivos.map(a => a.nombre)}
+              construirEntrada={construirEntrada}
+              onCerrar={() => setPanelAusencia(false)}
+              onAprobar={(r, p, ausencia, aprobadoPor) => {
+                const datos = versionPorContingencia(ultimaSemana, p, ausencia, r.diasAusente, aprobadoPor, h => resumirTurnos(h, nombrePorId))
+                const nueva = agregarSemana(datos)
+                setSeleccionId(nueva.id)
+                setAprobada(nueva)
+                setPanelAusencia(false)
+              }}
+            />
+          )}
           <Tarjeta etiqueta="Resumen de la semana">
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Syne', sans-serif", margin: 0 }}>{rangoSemana(ultimaSemana.fechaLunes)}</h2>
@@ -226,6 +282,9 @@ export default function HorariosPage() {
                 {ultimaSemana.editadoManualmente && ultimaSemana.modificadoEl && ` · corregido el ${formatearFechaHora(ultimaSemana.modificadoEl)}`}
               </span>
             </div>
+            {ultimaSemana.contingencia && !(aprobada && aprobada.id === ultimaSemana.id) && (
+              <p data-testid="nota-contingencia" style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--text-muted)' }}>{notaContingencia(ultimaSemana)}</p>
+            )}
             {resumen
               ? <ResumenCobertura resumen={resumen} />
               : <p style={{ margin: 0, color: 'var(--text-muted)' }}>Esta semana se guardó sin la necesidad de cajas: no se puede calcular la cobertura.</p>}

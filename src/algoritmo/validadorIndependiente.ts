@@ -1,5 +1,6 @@
 import { reglasDeTurno } from './turnos'
 import { aperturaAuxUnicoAutorizada, erroresDatosRecursos, excepcionAperturaAuxUnico } from './politicaRecursos'
+import { ausenciasConTurnos, horariosAcreditados, type AusenciaValidacion } from '../contingencias/ausencias'
 import type { PoliticaRecursos } from './politicaRecursos'
 // src/algoritmo/validadorIndependiente.ts
 // VAL-01 (#10) — Validador independiente del motor.
@@ -124,6 +125,11 @@ export interface EntradaValidacion {
    * duplicada indebida (AUX/eventual en caja donde la demanda ya está cubierta).
    */
   operativa?: OperativaValidacion
+  /**
+   * AH2-057 · Ausencias sobre jornadas comunicadas (además de las marcadas en `horarios[].jornadas[].ausencia`).
+   * El contrato y el descanso se validan con la jornada comunicada; la cobertura, con la visible (vacía).
+   */
+  ausencias?: AusenciaValidacion[]
 }
 
 export interface OperativaValidacion extends PoliticaRecursos {
@@ -183,8 +189,13 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   const porId = new Map(e.roster.map(r => [r.id, r]))
   const vistos = new Set<string>()
   validarSnapshotCondiciones(e,v)
+  // AH2-057: contrato, descanso, reglas por persona y francos se miden con la jornada comunicada de los días ausentes.
+  const horariosContrato = horariosAcreditados(e.horarios, e.ausencias)
+  for (const a of ausenciasConTurnos(e.horarios)) {
+    v.push({ codigo: 'DATOS_AUSENCIA_CON_TURNOS', nivel: 'DATOS', colaboradorId: a.colaboradorId, dia: a.dia, detalle: `${porId.get(a.colaboradorId)?.nombre ?? a.colaboradorId}: figura ausente el ${DIAS[a.dia]} pero tiene turnos cargados.` })
+  }
 
-  for (const h of e.horarios) {
+  for (const h of horariosContrato) {
     const persona = porId.get(h.colaboradorId)
     if (!persona) {
       v.push({ codigo: 'DATOS_SIN_ROSTER', nivel: 'DATOS', colaboradorId: h.colaboradorId, detalle: 'El horario no corresponde a ningún colaborador del roster.' })
@@ -223,7 +234,7 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
   // Tope de francos simultáneos (FULL + PART)
   if (e.maxFrancosDia !== undefined || e.maxFrancosPorDia) {
     for (let d = 0; d < 7; d++) {
-      const n = e.horarios.filter(h => {
+      const n = horariosContrato.filter(h => {
         const c = porId.get(h.colaboradorId)?.contrato
         return (c === 'FULL' || c === 'PART') && h.jornadas.some(j => j.dia === d && j.esFranco)
       }).length

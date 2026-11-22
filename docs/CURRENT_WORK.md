@@ -1,4 +1,18 @@
-## PUNTO ÚNICO DE RETOMA — AH2-056 pedido de turno por persona (PR) · 22/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-057 ausencias sobre un horario generado (PR) · 22/11/2026, Claude
+
+**Estado de producción:** Netlify `main@3ccc992` (AH2-047…056; deploy `6b034a7184c8162aa08bc1c5`, rollback `6b022c71209659fc76963615`). Cloud Run `aliada-optimizer-00010-29t` (`optimizer:aaa0f40`, 4 vCPU, `AH2_SEARCH_WORKERS=4`), rollback `00009-9wb`. Semana 23/11: última guardada v4.
+
+**AH2-057 en PR (sin publicar):** Horarios → «Cargar ausencia» → dos propuestas (menor impacto / mejor cobertura) desde el día siguiente al aviso → aprueba el supervisor → versión nueva + PDF. Rama Estimapres `feat/ah2-057-ausencias`. **Solo Netlify** (no requiere Cloud Run ni migración: corre en la app, para cualquier sucursal). Módulos: `src/contingencias/{ausencias,reparar,semana}.ts`, `src/components/semana/PanelAusencia.tsx`; validador con ausencias acreditadas (`validadorIndependiente`, `validacionSemana`, `auditoriaV2`, `revalidacionIntegrada`); recálculo de apoyo con topes, reservas y disponibilidad acreditada (`recalculoSemana`); celda «AUSENTE» en tabla y PDF y nota de versión en el PDF.
+
+**Pruebas:** Vitest 643 passed / 4 skipped (incluye `src/contingencias/__tests__/reparar.test.ts`: congelamiento hasta el aviso, sin horas nuevas, ausencia de eventual, «mejor cobertura» mueve francos cuando conviene, validador acredita la ausencia y detecta contradicciones, versión aprobada). Playwright 22 passed (incluye `e2e/ausencias.e2e.ts` de punta a punta: cargar, proponer, aprobar, versión 2 con AUSENTE, sin violaciones, PDF). Build OK. **Simulación local con la entrada real de la 091 (semana 23/11, sin datos en el repo):** 64 casos (16 personas × 4 rangos); propuestas en 0,2–2,5 s; ninguna propuesta agrega incumplimientos. Ausencia de un cajero: la semana real no tiene franjas con sobrante y los eventuales están en su tope, así que «menor impacto» no cambia a nadie (dice que no hay forma de cubrir más sin agregar horas) y «mejor cobertura» reparte el faltante. Ausencia de un eventual: «mejor cobertura» recupera todo (p. ej. 49 → 42,5 h, igual que sin ausencia). Ausencia de un supervisor: queda apertura o supervisión sin cubrir y la app bloquea la aprobación pidiendo cargar el reemplazo.
+
+### Pendiente
+- Publicar AH2-057 (autorización): fusionar → Publish deploy.
+- Reemplazo de supervisor ausente asistido (hoy se carga a mano la presencia del reemplazo y se vuelve a buscar).
+- Rangos de ingreso de los turnos editables por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
+---
+
+## RELEVO ANTERIOR — AH2-056 pedido de turno por persona (PR) · 22/11/2026, Claude
 
 **Estado de producción:** Netlify `main@f7f6780` (AH2-047…054), publicado 22/11 17:07 UTC. Cloud Run `aliada-optimizer-00009-9wb` (`optimizer:19a6b52`, 4 vCPU, `AH2_SEARCH_WORKERS=4`, AH2-055), rollback `aliada-optimizer-00008-zpp`. Alertas de presupuesto: US$ 1, US$ 5 y US$ 100. Semana 23/11: última guardada v4 (99,3 %); PDF impreso con eventuales repartidos generado aparte (no guardado como v5).
 
