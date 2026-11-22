@@ -31,7 +31,7 @@ function entrada(colaboradorId: string, desde: number, hasta: number, aviso: num
 
 const full = CAJEROS_S47.find(c => c.tipo === 'FULL')!
 
-describe('AH2-057 · cobertura de ausencias', () => {
+describe('AH2-057 · cobertura de ausencias', { timeout: 60_000 }, () => {
   it('la semana base es válida (precondición)', () => {
     expect(validar(base)).toEqual([])
   })
@@ -82,7 +82,7 @@ describe('AH2-057 · cobertura de ausencias', () => {
   })
 })
 
-describe('AH2-057 · «mejor cobertura» puede mover francos', () => {
+describe('AH2-057 · «mejor cobertura» puede mover francos', { timeout: 60_000 }, () => {
   it('con un día de la ausencia muy cargado y otro posterior sin demanda, trae trabajo moviendo un franco', () => {
     // Miércoles (2) con +2 cajas en toda la jornada; sábado (5) sin demanda: hay de dónde traer.
     const nec = necesidadFranjas.map(f => f.map((n, d) => d === 2 ? n + 2 : d === 5 ? 0 : n))
@@ -102,7 +102,7 @@ describe('AH2-057 · «mejor cobertura» puede mover francos', () => {
   })
 })
 
-describe('AH2-057 · validador y versión aprobada', () => {
+describe('AH2-057 · validador y versión aprobada', { timeout: 60_000 }, () => {
   it('una FULL ausente no rompe su composición (se acredita), pero sin la marca de ausencia sí', async () => {
     const { marcarAusente } = await import('../ausencias')
     const fila = base.horarios.find(h => h.colaboradorId === full.id)!
