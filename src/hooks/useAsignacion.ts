@@ -1,3 +1,4 @@
+import { diagnosticoPrevio } from '../utils/diagnosticoGeneracion'
 import { minutosDesdeMedianoche } from '../utils/timeUtils'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { Colaborador, Franja, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual, JornadaResumida, HorarioColaborador } from '../types'
@@ -136,6 +137,13 @@ export function useAsignacion() {
     motor?: {anterior:boolean;topes?:EdicionTopes;base?:DotacionBase},
   ) => {
     if (activa.current) return
+    // AH2-062: si los cambios de la semana hacen imposible el horario, se dice por qué antes de llamar a los motores.
+    const imposibles = diagnosticoPrevio(cajeros, excepciones, { maxFrancosDia: opciones.maxFrancosDia, maxFrancosPorDia: contextoValidacion.maxFrancosPorDia })
+    if (imposibles.length) {
+      setResultado(null)
+      setError(`No se puede generar el horario con estos cambios:\n${imposibles.map(m => `• ${m}`).join('\n')}`)
+      return
+    }
     const ejecucion = new AbortController()
     activa.current = ejecucion
     setLoading(true)

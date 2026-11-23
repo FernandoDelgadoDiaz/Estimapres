@@ -988,7 +988,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             </section>}
               </div>
             </details>
-            {errorAsignacion && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAsignacion}</p>}
+            {errorAsignacion && <p role="alert" data-testid="error-generacion" style={{ color: 'var(--danger)', whiteSpace: 'pre-line', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '12px', padding: '12px 16px' }}>{errorAsignacion}</p>}
             {loadingAsignacion && (avance
               ? <ProgresoGeneracion avance={avance} texto={progreso || 'Aliada está generando el horario…'} />
               : (

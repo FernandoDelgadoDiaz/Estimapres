@@ -1,11 +1,11 @@
-## PUNTO ÚNICO DE RETOMA — AH2-061 sin «Requisitos del PDF» (PR) · 23/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-061 + AH2-062 (un solo PR) · 23/11/2026, Claude
 
 **Estado de producción:** Netlify deploy `6b044052ff7deab93467927d` = `main@ceac427` (AH2-060, publicado 23/11 13:34 UTC; incluye AH2-057…059). Rollback `6b0438c5b4139e0014d732dc` (AH2-059). Cloud Run `aliada-optimizer-00010-29t` sin cambios. Semana 23/11 de la 091: v1–v4 (v4 vigente; v5 de prueba borrada).
 
-**AH2-061 en PR (sin publicar):** se quita el recuadro «Requisitos del PDF» de la carga del POM. Rama `fix/ah2-061-sin-requisitos-pdf`. Solo Netlify. Pruebas: Vitest 648 passed / 4 skipped; Playwright 23 passed; build OK.
+**AH2-061 + AH2-062 en PR #88 (sin publicar; el propietario pidió publicar todo junto):** se quita el recuadro «Requisitos del PDF» (AH2-061) y la app explica en palabras simples por qué no puede generar, con chequeo previo de francos y horarios imposibles (AH2-062). Rama `fix/ah2-061-sin-requisitos-pdf`. Solo Netlify. Pruebas: Vitest 653 passed / 4 skipped; Playwright 24 passed; build OK.
 
 ### Pendiente
-- Publicar AH2-061 (autorización).
+- Publicar AH2-061 + AH2-062 (autorización).
 - Reemplazo asistido de supervisor ausente; motor B en «Mejor cobertura» (opcional); rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
 ---
 
