@@ -358,3 +358,24 @@ test('AH2-060: el modo prueba se ve junto al botón y lo generado no se guarda',
   const despues = await page.evaluate(() => JSON.parse(localStorage.getItem('aliada_historial_semanas::900') ?? '[]').length)
   expect(despues).toBe(antes)
 })
+
+test('AH2-062: con más francos en un día que el máximo, explica por qué no genera (sin códigos)', async ({ page }) => {
+  await preparar(page, false, { reglas: [{ id: 'r-mf', ambito: 'local', tipo: 'max_francos_dia', cantidad: 2, activa: true, descripcion: 'Máximo 2 francos por día', creadaEl: '2026-11-01T00:00:00.000Z' }] })
+  await expect(page.getByText('Hay supervisor en todo el horario de la sucursal.')).toBeVisible()
+  await page.getByRole('button', { name: 'Agregar excepción' }).click()
+  const colaborador = page.locator('select').filter({ has: page.locator('option', { hasText: 'Seleccionar...' }) }).first()
+  const nombres = (await colaborador.locator('option').allTextContents()).filter(t => t !== 'Seleccionar...').slice(0, 3)
+  for (const n of nombres) {
+    await colaborador.selectOption({ label: n })
+    await page.locator('select').filter({ has: page.locator('option[value="Lun"]') }).selectOption('Lun')
+    await page.getByRole('button', { name: /Agregar$/ }).click()
+  }
+  await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
+  const error = page.getByTestId('error-generacion')
+  await expect(error).toContainText('No se puede generar el horario con estos cambios')
+  await expect(error).toContainText('El lunes tienen franco 3 cajeros')
+  await expect(error).toContainText('el máximo es 2 por día')
+  await expect(error).not.toContainText('restricciones obligatorias')
+  await expect(page.getByTestId('progreso-generacion')).toHaveCount(0) // no llama al motor
+  if (process.env.SP) await error.screenshot({ path: process.env.SP + '/ah2062-error.png' })
+})
