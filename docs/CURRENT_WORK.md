@@ -6,8 +6,11 @@
 
 **Primera aplicación real:** la semana del 30/11 es la primera de diciembre → rotación (no continuidad). La continuidad empieza a regir desde la semana del 07/12.
 
+**Punto de retorno (pedido del propietario):** rama `retorno/pre-ah2-063` = `main@1f46a57`; deploy Netlify `6b0445415809b6e33efd8a88`. Pasos en `docs/RETORNO_PRE_AH2-063.md`.
+
 ### Pendiente
 - Publicar AH2-063 (autorización) antes de generar la semana del 30/11.
+- Antes del 07/12: comparar en modo prueba la semana del 07/12 con margen 0 y con margen 2 (motor B real).
 - Medir con la 091 real (motor B incluido) cuántos cambios hay entre semanas de diciembre.
 - Reemplazo asistido de supervisor ausente; rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
 ---
