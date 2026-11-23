@@ -99,12 +99,17 @@ export function actualizarCajaEventual(
   return [...existentes.filter(a => a.colaboradorId !== id), { colaboradorId: id, nombre, slotsCajaPorDia }]
 }
 
+/** AH2-059 · Paso de la generación (0 preparando, 1 respaldo, 2 optimizando, 3 validando) y tiempos. */
+export interface AvanceGeneracion { paso: number; inicio: number; esperadoMs: number }
+
 export function useAsignacion() {
   const [resultado, setResultado] = useState<ResultadoAsignacion | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [progreso, setProgreso] = useState('')
+  // AH2-059: avance para la barra de progreso (paso actual, inicio y duración esperada).
+  const [avance, setAvance] = useState<AvanceGeneracion | null>(null)
   const [modoCompatible, setModoCompatible] = useState(false)
   const activa = useRef<AbortController | null>(null)
 
@@ -114,6 +119,7 @@ export function useAsignacion() {
     activa.current = null
     ejecucion.abort()
     setLoading(false)
+    setAvance(null)
     setModoCompatible(false)
   }, [])
 
@@ -134,6 +140,11 @@ export function useAsignacion() {
     activa.current = ejecucion
     setLoading(true)
     setProgreso('Preparando el horario…')
+    const inicio = Date.now()
+    const sucursalAvance = getSucursalActual()
+    // Motor híbrido: CP-SAT tiene hasta 120 s, más preparación y validación. Motor de la app: segundos.
+    const esperadoMs = usaHibrido(sucursalAvance, motor?.anterior) ? 140_000 : 20_000
+    setAvance({ paso: 0, inicio, esperadoMs })
     setError(null)
     try {
       let generado: ResultadoAsignacion
@@ -147,6 +158,7 @@ export function useAsignacion() {
           opcionesIntegradas(opciones,cfg.opciones,sucursal,fechas[0],motor?.topes),contextoValidacion)
         generado=await ejecutarHibridoEnWorker({entrada,token:cfg.token,servicio:cfg.servicio},ejecucion.signal,p=>{
           if(activa.current!==ejecucion)return
+          setAvance(a => a && { ...a, paso: Math.max(a.paso, p.etapa === 'A_INICIO' || p.etapa === 'A_FIN' ? 1 : p.etapa === 'B_ENVIO' || p.etapa === 'B_FASE' ? 2 : p.etapa === 'PREPARACION' ? 0 : 3) })
           setProgreso(p.etapa==='A_INICIO'?'Preparando propuesta de respaldo…':p.etapa==='B_ENVIO'?'Buscando una mejor distribución semanal…':p.etapa==='B_FASE'?'Optimizando cobertura y equilibrio semanal…':'Validando la propuesta…')
         },()=>setModoCompatible(true))
       } else generado = await asignarHorariosConIA(
@@ -170,6 +182,7 @@ export function useAsignacion() {
       if (activa.current === ejecucion) {
         activa.current = null
         setLoading(false)
+        setAvance(null)
         setModoCompatible(false)
       }
     }
@@ -202,6 +215,7 @@ export function useAsignacion() {
     cancelarGeneracion,
     modoCompatible,
     progreso,
+    avance,
     editarJornada,
     reset,
   }

@@ -1,4 +1,15 @@
-## PUNTO ÚNICO DE RETOMA — AH2-058 turnos sin opciones repetidas (PR) · 23/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-059 barra de progreso al generar (PR) · 23/11/2026, Claude
+
+**Estado de producción:** Netlify deploy `6b042cfd171bf0326c06a3ea` = `main@ea378d4` (**AH2-058 publicado 23/11 12:26 UTC**; incluye AH2-057). Rollback `6b037a9c349bf3265d201eeb` (AH2-057). Cloud Run `aliada-optimizer-00010-29t` sin cambios.
+
+**AH2-059 en PR (sin publicar):** barra de progreso en Nueva semana mientras se genera (tiempo transcurrido, paso y aviso). Rama `feat/ah2-059-barra-progreso`. Solo Netlify. Pruebas: Vitest 648 passed / 4 skipped; Playwright 22 passed (Nueva semana verifica la barra); build OK.
+
+### Pendiente
+- Publicar AH2-059 (autorización).
+- Reemplazo asistido de supervisor ausente; motor B en «Mejor cobertura» (opcional); rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
+---
+
+## RELEVO ANTERIOR — AH2-058 turnos sin opciones repetidas (PR) · 23/11/2026, Claude
 
 **Estado de producción:** Netlify deploy `6b037a9c349bf3265d201eeb` = `main@cdd45a8` (**AH2-057 ausencias, publicado 22/11 23:40 UTC**). Rollback `6b034a7184c8162aa08bc1c5` (AH2-056). Cloud Run `aliada-optimizer-00010-29t` sin cambios.
 

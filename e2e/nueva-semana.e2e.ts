@@ -106,6 +106,10 @@ test('genera a partir del POM y el patrón habitual sin cargar excepciones', asy
   // #38: el estado efectivo de las reglas operativas se muestra antes de generar
   await expect(page.getByTestId('regla-efectiva-apertura_solo_aux')).toContainText('Apertura con supervisor: sí (predeterminado)')
   await page.getByRole('button', { name: /Generar horarios automáticamente/ }).click()
+  // AH2-059: mientras genera se ve una barra de progreso con el tiempo transcurrido.
+  await expect(page.getByRole('progressbar', { name: 'Progreso de la generación' })).toBeVisible()
+  await expect(page.getByTestId('progreso-generacion')).toContainText('Lleva 0:')
+  if (process.env.SP) await page.getByTestId('progreso-generacion').screenshot({ path: process.env.SP + '/ah2059-progreso.png' })
   await expect(page.getByTestId('estado-validacion')).toContainText('Listo: cumple todas las reglas')
   await expect(page.getByTestId('estado-validacion')).not.toContainText('OP_APERTURA')
   await expect(page.getByText('Aux A', { exact: true }).first()).toBeVisible()
