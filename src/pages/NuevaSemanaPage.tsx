@@ -440,7 +440,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     setExcepciones([])
     setExcepcionesDisponibilidad([])
     setCtxValidacion(null)
-    setModoPrueba(hibridoDisponible)
+    // AH2-060: siempre arranca apagado (producción real desde el 21/11); la prueba se marca a mano y se ve junto al botón.
+    setModoPrueba(false)
     setMostrarExcepciones(false)
     setSemanaGuardadaId(null)
     setTablasVisibles(0)
@@ -974,10 +975,6 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
             </div>
           )}
 
-              <label style={{ display: 'block', marginTop: '12px', fontSize: '14px', fontWeight: 600 }}>
-                <input data-testid="modo-prueba" type="checkbox" checked={modoPrueba} onChange={e => setModoPrueba(e.target.checked)} />
-                {' '}Modo prueba: no guardar horario ni correcciones en el historial
-              </label>
             {hibridoDisponible&&<section aria-label="Motor de horarios" style={{marginTop:24}}>
               <label><input type="checkbox" checked={motorAnterior} disabled={loadingAsignacion} onChange={e=>setMotorAnterior(e.target.checked)}/> Usar motor anterior para esta generación</label>
               {!motorAnterior&&errorConfigHibrida&&<p role="alert">{errorConfigHibrida}</p>}
@@ -1002,7 +999,16 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               </p>
             ))}
             {loadingAsignacion && modoCompatible && <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Modo compatible: la pantalla puede pausarse mientras se calcula el horario.</p>}
-            <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+            {/* AH2-060: el modo prueba se ve siempre junto al botón (antes quedaba escondido en «Opciones»). */}
+            <label data-testid="modo-prueba-caja" style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '24px', padding: '12px 16px', borderRadius: '12px', fontSize: '14px',
+              border: modoPrueba ? '2px solid #f59e0b' : '1px solid var(--border)', background: modoPrueba ? '#fef3c7' : 'var(--surface)', color: modoPrueba ? '#78350f' : 'var(--text)' }}>
+              <input data-testid="modo-prueba" type="checkbox" checked={modoPrueba} disabled={loadingAsignacion} onChange={e => setModoPrueba(e.target.checked)} style={{ marginTop: '3px' }} />
+              <span><strong>Modo prueba</strong>: no guarda el horario ni las correcciones en Horarios.
+                {modoPrueba && <span style={{ display: 'block', fontWeight: 700 }}>PRUEBA ACTIVA: lo que generes no va a quedar guardado.</span>}
+                {!modoPrueba && <span style={{ display: 'block', color: 'var(--text-muted)' }}>Apagado: el horario se guarda como una versión nueva de la semana.</span>}
+              </span>
+            </label>
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
               {loadingAsignacion && (
                 <button type="button" className="btn-secondary" onClick={cancelarGeneracion}>
                   Cancelar generación
@@ -1034,7 +1040,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
                   </>
                 ) : (
                   <>
-                    Generar horarios automáticamente
+                    {modoPrueba ? 'Generar prueba (no se guarda)' : 'Generar horarios automáticamente'}
                   </>
                 )}
               </button>
