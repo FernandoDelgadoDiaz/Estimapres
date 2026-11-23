@@ -3,7 +3,9 @@ import { DIAS_SEMANA } from '../types'
 import { useHistorial } from '../hooks/useHistorial'
 import { useCorrecciones } from '../hooks/useCorrecciones'
 import { useReglas } from '../hooks/useReglas'
-import { derivarAprendizajes, derivarCriteriosCobertura, calcularSesgoRotacion, explicarSesgos, clasificarJornadaUI } from '../utils/preferencias'
+import { derivarAprendizajes, derivarCriteriosCobertura, clasificarJornadaUI, reglaVigenteEnSemana } from '../utils/preferencias'
+import { rotacionMensual } from '../utils/rotacionMensual'
+import { useColaboradores } from '../hooks/useColaboradores'
 import { pendientesSincronizacion } from '../utils/almacen'
 import { desdeInicioAprendizaje } from '../hibrido/integracion'
 import { getSucursalActual } from '../utils/sucursal'
@@ -31,7 +33,8 @@ function formatearJornada(j: { esFranco: boolean; turnos: Array<{ inicio: string
 export default function HistorialPage() {
   const { historial, eliminarSemana } = useHistorial()
   const { correcciones, eliminarCorreccion, eliminarCorrecciones } = useCorrecciones()
-  const { backend } = useReglas()
+  const { backend, reglas } = useReglas()
+  const { colaboradores } = useColaboradores()
   const [semanaAbierta, setSemanaAbierta] = useState<string | null>(null)
   const [filtroColab, setFiltroColab] = useState<string>('todas')
   const [pendientesSync, setPendientesSync] = useState<number>(pendientesSincronizacion())
@@ -57,7 +60,19 @@ export default function HistorialPage() {
   )
   const criteriosActivos = criterios.filter(c => c.estado === 'activo')
   const criteriosObservacion = criterios.filter(c => c.estado === 'observacion')
-  const rotacionActiva = useMemo(() => explicarSesgos(calcularSesgoRotacion(semanasAprendizaje)), [semanasAprendizaje])
+  // AH2-063: rotación mensual para la semana siguiente a la última guardada.
+  const rotacionActiva = useMemo(() => {
+    const ultimo = semanasAprendizaje.map(s => s.fechaLunes).sort().pop()
+    if (!ultimo) return []
+    const d = new Date(`${ultimo}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 7)
+    const lunes = d.toISOString().slice(0, 10)
+    const vigentes = reglas.filter(r => r.ambito === 'colaborador' && r.colaboradorNombre && reglaVigenteEnSemana(r, lunes))
+    return rotacionMensual(semanasAprendizaje, lunes, {
+      cajeros: colaboradores.filter(c => c.activo !== false && (c.tipo === 'FULL' || c.tipo === 'PART')).map(c => ({ id: c.id, nombre: c.nombre })),
+      conTurnoPedido: new Set(vigentes.filter(r => r.tipo === 'turno').map(r => r.colaboradorNombre!)),
+      prefierenDomingo: new Set(vigentes.filter(r => r.tipo === 'prefiere_domingos').map(r => r.colaboradorNombre!)),
+    }).explicacion.frases
+  }, [semanasAprendizaje, reglas, colaboradores])
   const semanasOrdenadas = useMemo(
     () => [...historial].sort((a, b) => b.fechaLunes.localeCompare(a.fechaLunes)),
     [historial]
@@ -122,7 +137,7 @@ export default function HistorialPage() {
         </h3>
         {rotacionActiva.length === 0 ? (
           <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-            Sin ajustes de rotación pendientes: los turnos vienen balanceados en las últimas semanas
+            Sin ajustes de rotación todavía: hace falta al menos una semana guardada
             {historial.length === 0 ? ' (todavía no hay semanas guardadas)' : ''}.
           </p>
         ) : (

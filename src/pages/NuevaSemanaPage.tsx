@@ -9,6 +9,7 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import ProgresoGeneracion from '../components/semana/ProgresoGeneracion'
+import { rotacionMensual } from '../utils/rotacionMensual'
 import { useAsignacion } from '../hooks/useAsignacion'
 import { useReglas } from '../hooks/useReglas'
 import { useHistorial } from '../hooks/useHistorial'
@@ -34,7 +35,6 @@ import {
   resolucionOperativaDeReglas,
   ETIQUETAS_OPERATIVAS,
   validarConflictosReglas,
-  calcularSesgoRotacion,
   calcularSesgoAprendizaje,
   derivarAprendizajes,
   derivarCriteriosCobertura,
@@ -42,6 +42,7 @@ import {
   combinarSesgos,
   explicarSesgos,
   resumirTurnos,
+  reglaVigenteEnSemana,
 } from '../utils/preferencias'
 import { format, startOfWeek } from 'date-fns'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
@@ -205,10 +206,19 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     const ids = new Set(semanasOperativas.map(h => h.id))
     return correcciones.filter(c => ids.has(c.semanaId))
   }, [correcciones, semanasOperativas, hibridoDisponible])
+  // AH2-063: rotación mensual (continuidad dentro del mes, rotación al cambiar de mes) y domingos parejos.
+  const rotacion = useMemo(() => {
+    const vigentes = reglas.filter(r => r.ambito === 'colaborador' && r.colaboradorNombre && reglaVigenteEnSemana(r, lunesSemana))
+    return rotacionMensual(semanasOperativas, lunesSemana, {
+      cajeros: colaboradores.filter(c => c.activo !== false && (c.tipo === 'FULL' || c.tipo === 'PART')).map(c => ({ id: c.id, nombre: c.nombre })),
+      conTurnoPedido: new Set(vigentes.filter(r => r.tipo === 'turno').map(r => r.colaboradorNombre!)),
+      prefierenDomingo: new Set(vigentes.filter(r => r.tipo === 'prefiere_domingos').map(r => r.colaboradorNombre!)),
+    })
+  }, [semanasOperativas, lunesSemana, reglas, colaboradores])
   const sesgosGeneracion = useMemo(() => combinarSesgos(
-    calcularSesgoRotacion(semanasOperativas), calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)),
-  ), [semanasOperativas, correccionesOperativas])
-  const frasesPreferencias = useMemo(() => explicarSesgos(sesgosGeneracion), [sesgosGeneracion])
+    rotacion.sesgos, calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)),
+  ), [rotacion, correccionesOperativas])
+  const frasesPreferencias = useMemo(() => [...rotacion.explicacion.frases, ...explicarSesgos(calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)))], [rotacion, correccionesOperativas])
   const conflictosReglas = useMemo(
     () => validarConflictosReglas(reglas, colaboradores),
     [reglas, colaboradores]

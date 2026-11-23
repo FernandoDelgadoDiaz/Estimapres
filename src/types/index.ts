@@ -158,6 +158,7 @@ export type TipoReglaColaborador =
   | 'siempre_cierre'   // siempre turno de cierre
   | 'siempre_manana'   // siempre turno de mañana
   | 'turno'            // AH2-056: pedido de turno (mañana, intermedio, tarde, noche, cortado según contrato)
+  | 'prefiere_domingos' // AH2-063: prefiere trabajar los domingos (preferencia fuerte; los domingos se pagan doble)
 
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria

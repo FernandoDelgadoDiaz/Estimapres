@@ -164,6 +164,8 @@ export interface MetricasCobertura {
 export interface ResultadoSemanal {
   auditoria_condiciones?: AuditoriaCondiciones
   preferencias_manuales_incumplidas?: number
+  /** AH2-063: las preferencias blandas aumentaban el faltante y no se aplicaron. */
+  preferencias_descartadas?: boolean
   semana: { desde: Date; hasta: Date };
   jornadas_full: Record<string, Jornada[]>;
   jornadas_part: Record<string, Jornada[]>;

@@ -16,13 +16,15 @@
 // Selección: solo candidatos que pasan la validación independiente sin violaciones que
 // el respaldo no tenga y que no bajan las horas de NINGUNA persona frente al respaldo.
 // Entre ellos: mayor cobertura; a igual cobertura, menos sobrantes; empate → respaldo.
-import { convertirOutputDeV2 } from '../algoritmo/adapter'
+import { asignarIdentidadesV2, convertirOutputDeV2 } from '../algoritmo/adapter'
+import { horariosAcreditados } from '../contingencias/ausencias'
+import { clasificarJornadaUI } from './preferencias'
 import { compararImpactoHoras, ejecutarAlgoritmo, inputSinPrioridadHoras, tieneObjetivoHoras } from '../algoritmo/orquestador'
 import type { InputAlgoritmo, Jornada, ResultadoSemanal } from '../algoritmo/types'
-import type { Auxiliar, Colaborador, Eventual, ResultadoAsignacion } from '../types'
+import type { Auxiliar, Colaborador, Eventual, HorarioColaborador, ResultadoAsignacion } from '../types'
 import { validarResultadoSemana, type ContextoValidacionSemana } from './validacionSemana'
 
-export type EstrategiaMultiArranque = 'actual' | 'desde-sin-prioridad' | 'full-fijos' | 'alternada-1' | 'alternada-2' | 'alternada-ms-1' | 'alternada-ms-2'
+export type EstrategiaMultiArranque = 'actual' | 'continuidad' | 'desde-sin-prioridad' | 'full-fijos' | 'alternada-1' | 'alternada-2' | 'alternada-ms-1' | 'alternada-ms-2'
 export const ESTRATEGIAS_MULTI_ARRANQUE: EstrategiaMultiArranque[] = ['actual', 'desde-sin-prioridad', 'full-fijos', 'alternada-1', 'alternada-2', 'alternada-ms-1', 'alternada-ms-2']
 /** Cada estrategia que necesita a otra como punto de partida. */
 const DEPENDE_DE: Partial<Record<EstrategiaMultiArranque, EstrategiaMultiArranque>> = {
@@ -127,6 +129,11 @@ export interface EntradaMultiArranque {
   estrategias?: EstrategiaMultiArranque[]
   /** Solo pruebas: reloj en ms (para simular el agotamiento del presupuesto). */
   reloj?: () => number
+  /**
+   * AH2-063 · Semana anterior del MISMO mes (horario guardado, ids de pantalla). Agrega la estrategia «continuidad»
+   * (arranca desde esa semana) y, a igual cobertura, se elige el candidato que menos cambia para los cajeros.
+   */
+  semanaAnterior?: HorarioColaborador[]
 }
 
 export interface SalidaMultiArranque {
@@ -135,7 +142,20 @@ export interface SalidaMultiArranque {
   seleccion: SeleccionMultiArranque
 }
 
+/**
+ * AH2-063 · La cobertura va primero: con preferencias blandas (rotación mensual, domingos, aprendizaje) se compara
+ * contra el mismo multi-arranque sin preferencias y se conservan solo si el faltante no aumenta.
+ */
 export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArranque {
+  const prefs = e.input.preferencias_turno
+  if (!prefs || !Object.keys(prefs).length) return generarConMultiArranqueBase(e)
+  const con = generarConMultiArranqueBase(e)
+  const sin = generarConMultiArranqueBase({ ...e, input: { ...e.input, preferencias_turno: undefined } })
+  const faltante = (x: SalidaMultiArranque) => x.resultadoV2.metricas.deficit_por_slot.flat().reduce((a, b) => a + b, 0)
+  return faltante(con) <= faltante(sin) ? con : sin
+}
+
+function generarConMultiArranqueBase(e: EntradaMultiArranque): SalidaMultiArranque {
   const ahora = e.reloj ?? Date.now
   const t0 = ahora()
   const presupuesto = e.presupuestoMs ?? PRESUPUESTO_MULTI_ARRANQUE_MS
@@ -174,6 +194,34 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
     candidatos.push(ficha(estrategia, x, v.violaciones.length, nuevas.length, motivo))
   }
   const hayTiempo = () => ahora() - t0 < presupuesto
+  // AH2-063 · Continuidad dentro del mes: semillas = jornadas de la semana anterior (ids del motor).
+  let cambiosVsAnterior: ((r: ResultadoSemanal) => number) | undefined
+  if (e.semanaAnterior?.length) {
+    const ids = asignarIdentidadesV2([...e.cajeros, ...e.auxiliares, ...e.eventuales]).v2PorUi
+    const aSlot = (h: string) => { const [a, b] = h.split(':').map(Number); return (a - 8) * 2 + Math.floor(b / 30) }
+    const previas = horariosAcreditados(e.semanaAnterior).filter(h => h.rolGeneral === 'cajero' && ids.has(h.colaboradorId))
+    const semillas: Record<string, Jornada[]> = Object.fromEntries(previas.map(h => {
+      const id = ids.get(h.colaboradorId)!
+      return [id, Array.from({ length: 7 }, (_, d) => {
+        const j = h.jornadas.find(x => x.dia === d)
+        return { colab_id: id, dia: d as Jornada['dia'], bloques: !j || j.esFranco ? [] : j.turnos.map(t => ({ slot_inicio: aSlot(t.inicio), slot_fin: aSlot(t.fin) })) }
+      })]
+    }))
+    const clasePrevia = new Map(previas.map(h => [ids.get(h.colaboradorId)!, h.jornadas]))
+    cambiosVsAnterior = r => Object.entries(semanas(r)).reduce((n, [id, sem]) => {
+      const prev = clasePrevia.get(id)
+      if (!prev) return n
+      return n + sem.filter(j => j.dia !== 6).filter(j => {
+        const a = prev.find(x => x.dia === j.dia)
+        const ui = { esFranco: !j.bloques.length, turnos: j.bloques.map(b => ({ inicio: `${String(8 + Math.floor(b.slot_inicio / 2)).padStart(2, '0')}:${b.slot_inicio % 2 ? '30' : '00'}`, fin: `${String(8 + Math.floor(b.slot_fin / 2)).padStart(2, '0')}:${b.slot_fin % 2 ? '30' : '00'}` })) }
+        return !a || clasificarJornadaUI(a) !== clasificarJornadaUI(ui)
+      }).length
+    }, 0)
+    if (Object.keys(semillas).length && hayTiempo()) {
+      const t = ahora()
+      evaluar('continuidad', { r: ejecutarAlgoritmo({ ...base, semillas }), ms: ahora() - t })
+    }
+  }
   const alternativas = ESTRATEGIAS_MULTI_ARRANQUE.filter(n => n !== 'actual' && pedidas.has(n))
   let sinAlternativas: SeleccionMultiArranque['sinAlternativas']
 
@@ -190,7 +238,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
       const aSem = ejecutarAlgoritmo({ ...sinPrioridad, semillas: semanas(desde) })
       return ejecutarAlgoritmo({ ...base, semillas: semanas(aSem) })
     }
-    const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual'>, () => ResultadoSemanal> = {
+    const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual' | 'continuidad'>, () => ResultadoSemanal> = {
       'desde-sin-prioridad': () => ejecutarAlgoritmo({ ...base, semillas: semanas(a0!) }),
       'full-fijos': () => ejecutarAlgoritmo({ ...base, semillas: { ...respaldo.r.jornadas_full } }),
       'alternada-1': () => alternar(respaldo.r),
@@ -206,7 +254,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
       const previa = DEPENDE_DE[nombre]
       if (!hayTiempo() || (previa && !resultados.has(previa))) { if (pedidas.has(nombre)) omitidas.push(nombre); continue }
       const t = ahora()
-      const r = ejecutores[nombre]()
+      const r = ejecutores[nombre as Exclude<EstrategiaMultiArranque, 'actual' | 'continuidad'>]()
       evaluar(nombre, { r, ms: ahora() - t }, pedidas.has(nombre))
     }
     if (alternativas.length && omitidas.length === alternativas.length) sinAlternativas = 'presupuesto-agotado'
@@ -214,9 +262,14 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
 
   const elegibles = candidatos.filter(c => c.elegible)
   let elegido = candidatos[0]
+  // AH2-063: a igual cobertura, dentro del mes gana el que menos cambia para los cajeros; después, menos sobrantes.
+  const cambios = (c: CandidatoMultiArranque) => cambiosVsAnterior ? cambiosVsAnterior(resultados.get(c.estrategia)!) : 0
   for (const c of elegibles) {
     if (c.coberturaPct > elegido.coberturaPct + EPS) elegido = c
-    else if (Math.abs(c.coberturaPct - elegido.coberturaPct) <= EPS && c.sobrantesHoras < elegido.sobrantesHoras - EPS) elegido = c
+    else if (Math.abs(c.coberturaPct - elegido.coberturaPct) <= EPS) {
+      const dc = cambios(c) - cambios(elegido)
+      if (dc < 0 || (dc === 0 && c.sobrantesHoras < elegido.sobrantesHoras - EPS)) elegido = c
+    }
   }
   const final = resultados.get(elegido.estrategia)!
   const resultadoV2: ResultadoSemanal = {

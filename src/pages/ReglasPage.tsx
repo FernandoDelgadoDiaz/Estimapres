@@ -31,6 +31,8 @@ const QUE_PERSONA: Array<{ valor: QuePersona; texto: string }> = [
   { valor: 'franco_fijo', texto: 'Franco fijo' },
   { valor: 'no_antes_de', texto: 'No entra antes de' },
   { valor: 'no_despues_de', texto: 'No sale después de' },
+  // AH2-063: los domingos se reparten parejo; quien lo pide tiene prioridad (preferencia fuerte, no obligación).
+  { valor: 'prefiere_domingos', texto: 'Prefiere trabajar los domingos' },
   // AH2-058: «Siempre de mañana» y «Siempre de cierre» ya no se ofrecen: son turnos («Solo mañana», «Solo cierre»).
   // Las reglas que ya existen con esos tipos se siguen mostrando y aplicando igual.
 ]
@@ -198,6 +200,7 @@ function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre
     const txt: Record<TipoReglaColaborador, string> = {
       franco_fijo: `${nombre}: franco fijo los ${DIAS_SEMANA[dia]}`, no_antes_de: `${nombre}: no entra antes de las ${hora}`,
       no_despues_de: `${nombre}: no sale después de las ${hora}`, siempre_manana: `${nombre}: siempre de mañana`, siempre_cierre: `${nombre}: siempre de cierre`,
+      prefiere_domingos: `${nombre}: prefiere trabajar los domingos`,
       turno: `${nombre}: ${(TURNOS[contrato as 'FULL' | 'PART']?.[turno]?.etiqueta ?? '').toLowerCase()}`,
     } as Record<TipoReglaColaborador, string>
     onRegla({ ambito: 'colaborador', tipo: que, colaboradorNombre: nombre, dia: que === 'franco_fijo' ? dia : undefined,
