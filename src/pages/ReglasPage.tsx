@@ -31,8 +31,8 @@ const QUE_PERSONA: Array<{ valor: QuePersona; texto: string }> = [
   { valor: 'franco_fijo', texto: 'Franco fijo' },
   { valor: 'no_antes_de', texto: 'No entra antes de' },
   { valor: 'no_despues_de', texto: 'No sale después de' },
-  { valor: 'siempre_manana', texto: 'Siempre de mañana' },
-  { valor: 'siempre_cierre', texto: 'Siempre de cierre' },
+  // AH2-058: «Siempre de mañana» y «Siempre de cierre» ya no se ofrecen: son turnos («Solo mañana», «Solo cierre»).
+  // Las reglas que ya existen con esos tipos se siguen mostrando y aplicando igual.
 ]
 const HORAS = Array.from({ length: 31 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
 

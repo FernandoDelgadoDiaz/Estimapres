@@ -182,7 +182,7 @@ export interface ReglaConfigurable {
   horaDesde?: string         // HH:MM, franja para min_cajeros_franja
   horaHasta?: string
   cantidad?: number          // N para min_cajeros_franja / max_francos_dia
-  turno?: 'manana' | 'intermedio' | 'tarde' | 'noche' | 'cortado' // AH2-056: solo tipo 'turno'
+  turno?: 'manana' | 'intermedio' | 'tarde' | 'noche' | 'cortado' | 'cierre' // AH2-056: solo tipo 'turno'
   vigenciaDesde?: string     // YYYY-MM-DD (opcional: restricción temporal)
   vigenciaHasta?: string
   activa: boolean

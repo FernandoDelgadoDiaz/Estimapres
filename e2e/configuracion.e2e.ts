@@ -39,9 +39,11 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await page.getByLabel('Regla', { exact: true }).selectOption('turno')
   await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A (PART)' })
   const turnos = page.getByLabel('Turno', { exact: true })
-  await expect(turnos.locator('option')).toHaveText([/Solo mañana/, /Solo tarde/, /Solo noche/])
+  await expect(turnos.locator('option')).toHaveText([/Solo mañana/, /Solo tarde/, /Solo noche/, /Solo cierre/])
   await page.getByLabel('Persona', { exact: true }).selectOption({ index: 1 })
-  await expect(turnos.locator('option')).toHaveText([/Solo mañana/, /Solo intermedio/, /Solo tarde/, /Solo cortado/])
+  await expect(turnos.locator('option')).toHaveText([/Solo mañana/, /Solo intermedio/, /Solo tarde/, /Solo cortado/, /Solo cierre/])
+  // AH2-058: sin opciones repetidas fuera de «Turno».
+  await expect(page.getByLabel('Regla', { exact: true }).locator('option')).toHaveText(['Turno (pedido)', 'Franco fijo', 'No entra antes de', 'No sale después de'])
   await turnos.selectOption('cortado')
   await page.getByLabel('Período', { exact: true }).selectOption('anio')
   await page.getByRole('button', { name: 'Agregar' }).first().click()

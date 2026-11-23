@@ -1,4 +1,15 @@
-## PUNTO ÚNICO DE RETOMA — AH2-057 ausencias sobre un horario generado (PR) · 22/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-058 turnos sin opciones repetidas (PR) · 23/11/2026, Claude
+
+**Estado de producción:** Netlify deploy `6b037a9c349bf3265d201eeb` = `main@cdd45a8` (**AH2-057 ausencias, publicado 22/11 23:40 UTC**). Rollback `6b034a7184c8162aa08bc1c5` (AH2-056). Cloud Run `aliada-optimizer-00010-29t` sin cambios.
+
+**AH2-058 en PR (sin publicar):** Reglas por persona sin «Siempre de mañana» ni «Siempre de cierre» (redundantes con «Turno»). Nuevo turno «Solo cierre» para FULL y PART. Las reglas existentes de esos tipos siguen funcionando. Rama `fix/ah2-058-turnos-sin-redundancia`. Solo Netlify. Pruebas: Vitest 645 passed / 4 skipped; Playwright 22 passed; build OK.
+
+### Pendiente
+- Publicar AH2-058 (autorización).
+- Reemplazo asistido de supervisor ausente; motor B en «Mejor cobertura» (opcional); rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
+---
+
+## RELEVO ANTERIOR — AH2-057 ausencias sobre un horario generado (PR) · 22/11/2026, Claude
 
 **Estado de producción:** Netlify `main@3ccc992` (AH2-047…056; deploy `6b034a7184c8162aa08bc1c5`, rollback `6b022c71209659fc76963615`). Cloud Run `aliada-optimizer-00010-29t` (`optimizer:aaa0f40`, 4 vCPU, `AH2_SEARCH_WORKERS=4`), rollback `00009-9wb`. Semana 23/11: última guardada v4.
 
