@@ -10,7 +10,8 @@
  * - Timeout, error de transporte, respuesta inválida o sin solución → se informa y se usa A si es válido.
  * - Nunca publica ni persiste: `publicable` es siempre false y la salida se marca como NO OFICIAL.
  */
-import type {InputAlgoritmo,ResultadoSemanal} from '../algoritmo/types'
+import {cambiosDeTurno,elegirConContinuidad} from '../utils/continuidad'
+import type {InputAlgoritmo,Jornada,ResultadoSemanal} from '../algoritmo/types'
 import {auditarEscenario} from '../algoritmo/auditoriaV2'
 import {mascarasAH2040,metricasAH2040,relacionesAH2040,verificarAH2040,type ConfigAH2040} from '../algoritmo/ah2040'
 import {motorAConPolitica,motorASinRelacion,politicaLaboratorioV1} from './politica'
@@ -27,6 +28,8 @@ export interface Conflicto {origen:'A'|'B'|'TRANSPORTE'|'CONTRATO'|'DATOS';codig
 export interface EventoProgreso {etapa:'PREPARACION'|'A_INICIO'|'A_FIN'|'B_ENVIO'|'B_FASE'|'B_RESPUESTA'|'VALIDACION'|'SELECCION';ms:number;detalle?:string}
 export interface OpcionesHibrido {transporte?:TransporteB;timeoutMs:number;parametros:ParametrosB;id:string;sucursal:string
  onProgreso?:(e:EventoProgreso)=>void
+ /** AH2-063 · Semana anterior del mismo mes (semillas en ids del motor) y margen de cobertura por semana. */
+ continuidad?:{semillas:Record<string,Jornada[]>;margenHoras:number}
  /** Solo pruebas: reemplaza el motor A (por defecto `ejecutarAlgoritmo`). */
  motorA?:(input:InputAlgoritmo)=>ResultadoSemanal}
 
@@ -119,6 +122,18 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
    const e2=evaluar(input,r2,raw)
    if(e2.valido&&e2.metricas.faltantesHoras===elegido.e.metricas.faltantesHoras&&e2.metricas.sobrantesHoras===elegido.e.metricas.sobrantesHoras)elegido={r:r2,e:e2}
   }
+ }
+ // AH2-063: dentro del mes, el horario que menos cambia para los cajeros si no supera el faltante del elegido + margen.
+ if(elegido&&op.continuidad&&Object.keys(op.continuidad.semillas).length){
+  try{
+   const rC=(op.motorA??motorAConPolitica)({...input,semillas:op.continuidad.semillas}),eC=evaluar(input,rC,raw)
+   if(eC.valido){
+    const semC=(r:ResultadoSemanal)=>({...r.jornadas_full,...r.jornadas_part})
+    const actual=elegido,cand={r:rC,e:eC}
+    const gana=elegirConContinuidad([actual,cand],x=>x.e.metricas.faltantesHoras,x=>cambiosDeTurno(semC(x.r),op.continuidad!.semillas),op.continuidad.margenHoras)
+    if(gana===cand){elegido=cand;origen='A';motivo=`Continuidad dentro del mes: cambia menos para los cajeros sin superar el margen de ${op.continuidad.margenHoras} h de cobertura.`}
+   }
+  }catch{/* sin candidato de continuidad: se conserva el elegido */}
  }
  // Contrafáctico con el mismo motor A sin la relación semanal: faltantes atribuibles a la regla (estimación).
  let sinRelacion:number[][]|null=null

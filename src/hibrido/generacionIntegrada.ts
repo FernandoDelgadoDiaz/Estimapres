@@ -4,6 +4,7 @@ import type {EntradaMultiArranque} from '../utils/generacionMultiArranque'
 import type {ResultadoAsignacion} from '../types'
 import {generarPropuestaHibrida,type EventoProgreso} from './orquestador'
 import {explicarSinPropuesta} from '../utils/diagnosticoGeneracion'
+import {semillasDeSemana} from '../utils/continuidad'
 import {transporteHttpPiloto} from './transporteHttpPiloto'
 import {politicaLaboratorioV1} from './politica'
 
@@ -19,7 +20,9 @@ export async function generarSemanaIntegrada(e:EntradaIntegrada,onProgreso?:(p:E
  if(Object.keys(e.entrada.input.disponibilidad_eventual).length&&!e.entrada.input.disponibilidad_caja_eventual)throw new Error('Falta la disponibilidad de caja EVENTUAL acreditada en la configuración privada.')
  if(signal?.aborted)throw new DOMException('Generación cancelada','AbortError')
  const input=politicaLaboratorioV1({...e.entrada.input,equilibrio_semanal_version:2})
- const salida=await generarPropuestaHibrida(input,{id:crypto.randomUUID(),sucursal:'091',timeoutMs:150000,
+ // AH2-063: continuidad dentro del mes (semillas en ids del motor; las mismas identidades que usa la conversión).
+ const continuidad=e.entrada.continuidad?{semillas:semillasDeSemana(e.entrada.continuidad.semanaAnterior,asignarIdentidadesV2([...e.entrada.cajeros,...e.entrada.auxiliares,...e.entrada.eventuales]).v2PorUi),margenHoras:e.entrada.continuidad.margenHoras}:undefined
+ const salida=await generarPropuestaHibrida(input,{id:crypto.randomUUID(),sucursal:'091',timeoutMs:150000,continuidad,
   parametros:{segundos:120,modo:'global',semilla:20261119},transporte:transporteHttpPiloto(e.servicio,async()=>e.token,signal),onProgreso})
  if(signal?.aborted)throw new DOMException('Generación cancelada','AbortError')
  // AH2-062: sin propuesta válida se explica por qué, con nombres y sin códigos.

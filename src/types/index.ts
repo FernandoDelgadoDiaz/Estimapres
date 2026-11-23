@@ -165,6 +165,7 @@ export type TipoReglaLocal =
   | 'max_bloques_caja_eventual_dia'
   | 'eventuales_caja_hora_limite'
   | 'max_francos_dia'    // máximo N francos el mismo día
+  | 'margen_continuidad' // AH2-063: horas de cobertura que se aceptan perder por semana para no cambiar horarios dentro del mes
   // Reglas operativas booleanas (toggles). El campo `activa` de la regla
   // guarda el estado del toggle. Si NO existe una regla de ese tipo, se usa
   // el default del negocio (ver DEFAULTS_OPERATIVOS / configOperativaDeReglas).

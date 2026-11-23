@@ -1,3 +1,4 @@
+import type { Continuidad } from '../utils/continuidad'
 import { diagnosticoPrevio } from '../utils/diagnosticoGeneracion'
 import { minutosDesdeMedianoche } from '../utils/timeUtils'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
@@ -135,6 +136,8 @@ export function useAsignacion() {
     fechas: string[], excepciones: ExcepcionSemanal[], opciones: OpcionesGeneracion,
     contextoValidacion: ContextoValidacionSemana, alCompletar: (resultado: ResultadoAsignacion) => void,
     motor?: {anterior:boolean;topes?:EdicionTopes;base?:DotacionBase},
+    /** AH2-063: semana anterior del mismo mes y margen de cobertura por semana. */
+    continuidad?: Continuidad,
   ) => {
     if (activa.current) return
     // AH2-062: si los cambios de la semana hacen imposible el horario, se dice por qué antes de llamar a los motores.
@@ -163,7 +166,7 @@ export function useAsignacion() {
         if(!motor?.base)throw new Error('Falta el contexto de dotación y reglas del motor híbrido.')
         await verificarDatosActuales(cfg.usuario,sucursal,motor.base)
         const entrada=prepararEntradaAsignacion(necesidad,cajeros,auxiliares,eventuales,excepciones,
-          opcionesIntegradas(opciones,cfg.opciones,sucursal,fechas[0],motor?.topes),contextoValidacion)
+          opcionesIntegradas(opciones,cfg.opciones,sucursal,fechas[0],motor?.topes),contextoValidacion,continuidad)
         generado=await ejecutarHibridoEnWorker({entrada,token:cfg.token,servicio:cfg.servicio},ejecucion.signal,p=>{
           if(activa.current!==ejecucion)return
           setAvance(a => a && { ...a, paso: Math.max(a.paso, p.etapa === 'A_INICIO' || p.etapa === 'A_FIN' ? 1 : p.etapa === 'B_ENVIO' || p.etapa === 'B_FASE' ? 2 : p.etapa === 'PREPARACION' ? 0 : 3) })
@@ -177,6 +180,7 @@ export function useAsignacion() {
             if (activa.current === ejecucion) setModoCompatible(true)
           },
         },
+        continuidad,
       )
       if (activa.current !== ejecucion) return
       // Guardar y mostrar el mismo resultado dentro de la comprobación de vigencia.

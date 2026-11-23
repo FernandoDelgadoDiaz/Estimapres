@@ -9,7 +9,7 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import ProgresoGeneracion from '../components/semana/ProgresoGeneracion'
-import { rotacionMensual } from '../utils/rotacionMensual'
+import { mesDeSemana, rotacionMensual } from '../utils/rotacionMensual'
 import { useAsignacion } from '../hooks/useAsignacion'
 import { useReglas } from '../hooks/useReglas'
 import { useHistorial } from '../hooks/useHistorial'
@@ -43,6 +43,7 @@ import {
   explicarSesgos,
   resumirTurnos,
   reglaVigenteEnSemana,
+  margenContinuidadDeReglas,
 } from '../utils/preferencias'
 import { format, startOfWeek } from 'date-fns'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
@@ -215,10 +216,23 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       prefierenDomingo: new Set(vigentes.filter(r => r.tipo === 'prefiere_domingos').map(r => r.colaboradorNombre!)),
     })
   }, [semanasOperativas, lunesSemana, reglas, colaboradores])
+  // AH2-063: semana anterior del MISMO mes (última versión guardada) y margen de cobertura configurado.
+  const continuidadSemana = useMemo(() => {
+    if (!esLunesISO(lunesSemana)) return undefined
+    const d = new Date(`${lunesSemana}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - 7)
+    const lunesPrevio = d.toISOString().slice(0, 10)
+    const previa = semanasOperativas.filter(s => s.fechaLunes === lunesPrevio).sort((a, b) => b.version - a.version)[0]
+    if (!previa || mesDeSemana(lunesPrevio) !== mesDeSemana(lunesSemana)) return undefined
+    return { semanaAnterior: previa.horarios, margenHoras: margenContinuidadDeReglas(reglas, lunesSemana) }
+  }, [semanasOperativas, lunesSemana, reglas])
   const sesgosGeneracion = useMemo(() => combinarSesgos(
     rotacion.sesgos, calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)),
   ), [rotacion, correccionesOperativas])
-  const frasesPreferencias = useMemo(() => [...rotacion.explicacion.frases, ...explicarSesgos(calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)))], [rotacion, correccionesOperativas])
+  const frasesPreferencias = useMemo(() => [
+    ...(continuidadSemana ? [continuidadSemana.margenHoras > 0
+      ? `Mismo mes que la semana anterior: se mantiene el horario de cada cajero si cubrir más no exige más de ${String(continuidadSemana.margenHoras).replace('.', ',')} h de diferencia.`
+      : 'Mismo mes que la semana anterior: a igual cobertura, se elige el horario que menos cambia.'] : []),
+    ...rotacion.explicacion.frases, ...explicarSesgos(calcularSesgoAprendizaje(derivarAprendizajes(correccionesOperativas)))], [rotacion, correccionesOperativas, continuidadSemana])
   const conflictosReglas = useMemo(
     () => validarConflictosReglas(reglas, colaboradores),
     [reglas, colaboradores]
@@ -369,7 +383,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       }
       setSemanaGuardadaId(guardar(res))
       setPaso('resultado')
-    }, {anterior:motorAnterior,topes:topesHibridos,base:{cajeros:cajerosActivos,auxiliares:auxiliaresActivos,eventuales:eventualesActivos,reglas}})
+    }, {anterior:motorAnterior,topes:topesHibridos,base:{cajeros:cajerosActivos,auxiliares:auxiliaresActivos,eventuales:eventualesActivos,reglas}}, continuidadSemana)
   }
 
   // Capacidad 3: edición manual del resultado + registro de la corrección

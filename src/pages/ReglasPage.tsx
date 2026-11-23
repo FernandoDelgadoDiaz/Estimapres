@@ -11,7 +11,7 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { usaHibrido } from '../hibrido/integracion'
 import { getSucursalActual } from '../utils/sucursal'
 import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
-import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente } from '../utils/preferencias'
+import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente, MARGEN_CONTINUIDAD_HORAS } from '../utils/preferencias'
 import { Boton, FilaAjuste, Interruptor, Pagina, Seccion, estiloCampo } from '../components/ui/Basicos'
 import { FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
 import { ddmm, proximoLunesISO } from '../hibrido/configuracionSimple'
@@ -61,6 +61,14 @@ export default function ReglasPage() {
     if (reglaMaxFrancos) actualizarRegla(reglaMaxFrancos.id, { cantidad: val, activa: true, descripcion })
     else agregarRegla({ ambito: 'local', tipo: 'max_francos_dia', cantidad: val, activa: true, descripcion })
   }
+  // AH2-063: margen de cobertura por semana a cambio de no cambiar los horarios dentro del mes (0 = cobertura siempre primero).
+  const reglaMargen = reglas.find(r => r.ambito === 'local' && r.tipo === 'margen_continuidad')
+  const setMargen = (n: number) => {
+    const val = Math.max(0, Math.min(10, Math.round((Number.isFinite(n) ? n : 2) * 2) / 2))
+    const descripcion = val === 0 ? 'Continuidad dentro del mes: la cobertura va siempre primero' : `Continuidad dentro del mes: hasta ${String(val).replace('.', ',')} h menos de cobertura por semana`
+    if (reglaMargen) actualizarRegla(reglaMargen.id, { cantidad: val, activa: true, descripcion })
+    else agregarRegla({ ambito: 'local', tipo: 'margen_continuidad', cantidad: val, activa: true, descripcion })
+  }
   const maxBloques = reglaCajaEventualVigente(reglas, 'max_bloques_caja_eventual_dia')
   const limiteCaja = reglaCajaEventualVigente(reglas, 'eventuales_caja_hora_limite')
   const conflictos = useMemo(() => validarConflictosReglas(reglas, colaboradores), [reglas, colaboradores])
@@ -91,6 +99,13 @@ export default function ReglasPage() {
           </FilaAjuste>
         ))}
         {motorListo && <FranjasSupervisorSolo motor={motor} sucursal={sucursal} />}
+      </Seccion>
+
+      <Seccion titulo="Rotación de horarios">
+        <FilaAjuste titulo="Dentro del mismo mes, mantener los horarios aunque se cubra un poco menos" id="margen-continuidad"
+          ayuda="Horas de cobertura por semana que se aceptan perder para no cambiarle el horario a los cajeros. Al empezar un mes nuevo los turnos rotan y la cobertura va primero. 0 = la cobertura siempre primero.">
+          <input id="margen-continuidad" aria-label="Horas de margen por semana" type="number" min={0} max={10} step={0.5} value={reglaMargen?.cantidad ?? MARGEN_CONTINUIDAD_HORAS} onChange={e => setMargen(Number(e.target.value))} style={{ ...estiloCampo, width: '80px', textAlign: 'center' }} />
+        </FilaAjuste>
       </Seccion>
 
       <Seccion titulo="Francos">

@@ -1,4 +1,18 @@
-## PUNTO ÚNICO DE RETOMA — AH2-061 + AH2-062 (un solo PR) · 23/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-063 rotación mensual y domingos parejos (PR) · 23/11/2026, Claude
+
+**Estado de producción:** Netlify deploy `6b0445415809b6e33efd8a88` = `main@1f46a57` (AH2-061 + AH2-062, publicado 23/11). Cloud Run `aliada-optimizer-00010-29t` sin cambios. Semana 23/11 de la 091: v1–v4 (v4 vigente).
+
+**AH2-063 en PR (sin publicar):** mes = mes del jueves; continuidad dentro del mes con margen de 2 h por semana (configurable); rotación al cambiar de mes; domingos parejos y regla «Prefiere trabajar los domingos». Rama `feat/ah2-063-rotacion-mensual`. Solo Netlify. Módulos: `src/utils/rotacionMensual.ts`, `src/utils/continuidad.ts`; multi-arranque (estrategia «continuidad» y elección con margen); orquestador híbrido (candidato de continuidad); `ejecutarAlgoritmo` y multi-arranque solo usan preferencias si no aumentan el faltante; Configuración → Rotación de horarios; Historial muestra la rotación de la semana siguiente.
+
+**Primera aplicación real:** la semana del 30/11 es la primera de diciembre → rotación (no continuidad). La continuidad empieza a regir desde la semana del 07/12.
+
+### Pendiente
+- Publicar AH2-063 (autorización) antes de generar la semana del 30/11.
+- Medir con la 091 real (motor B incluido) cuántos cambios hay entre semanas de diciembre.
+- Reemplazo asistido de supervisor ausente; rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
+---
+
+## RELEVO ANTERIOR — AH2-061 + AH2-062 (un solo PR) · 23/11/2026, Claude
 
 **Estado de producción:** Netlify deploy `6b044052ff7deab93467927d` = `main@ceac427` (AH2-060, publicado 23/11 13:34 UTC; incluye AH2-057…059). Rollback `6b0438c5b4139e0014d732dc` (AH2-059). Cloud Run `aliada-optimizer-00010-29t` sin cambios. Semana 23/11 de la 091: v1–v4 (v4 vigente; v5 de prueba borrada).
 

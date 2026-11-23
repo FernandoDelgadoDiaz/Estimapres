@@ -54,17 +54,17 @@ describe('AH2-063 · preferencias que arma', () => {
 })
 
 describe('AH2-063 · con el motor: semanas del mismo mes cambian menos, sin perder cobertura', () => {
-  // Pendiente de decisión del propietario: margen de cobertura aceptable a cambio de continuidad (hoy gana la cobertura).
-  it.skip('la semana siguiente con continuidad cambia menos tipos de turno que sin ella', () => {
+  // Decisión del propietario (23/11): hasta 2 h menos de cobertura por semana a cambio de no cambiar horarios dentro del mes.
+  it('la semana siguiente con continuidad cambia menos tipos de turno que sin ella', () => {
     const base = generar({ ...OPERATIVA_S47, aperturaSoloAux: true })
     const hist = [semana('2026-11-16', base.horarios)]
     const { sesgos } = rotacionMensual(hist, '2026-11-23', { cajeros })
-    // Semana siguiente con una necesidad apenas distinta.
-    const nec = NECESIDAD_S47.map(x => ({ ...x, necesidad: x.necesidad.map((n, d) => d === 3 && n > 2 ? n - 1 : n) }))
+    // Semana siguiente con varias diferencias chicas de necesidad.
+    const nec = NECESIDAD_S47.map((x, i) => ({ ...x, necesidad: x.necesidad.map((n, d) => (d + i) % 5 === 0 && n > 1 ? n - 1 : (d + i) % 7 === 0 ? n + 1 : n) }))
     const correr = (prefs?: typeof sesgos) => {
       const input = convertirInputAV2(nec, CAJEROS_S47, AUX_S47, EVENTUALES_S47, [], { ...OPERATIVA_S47, aperturaSoloAux: true, preferenciasPorNombre: prefs })
       return generarConMultiArranque({ input, cajeros: CAJEROS_S47, auxiliares: AUX_S47, eventuales: EVENTUALES_S47, contexto: { necesidad: nec, excepciones: [], operativa: { ...OPERATIVA_S47, aperturaSoloAux: true } },
-        semanaAnterior: prefs ? base.horarios : undefined }).resultado
+        continuidad: prefs ? { semanaAnterior: base.horarios, margenHoras: 2 } : undefined }).resultado
     }
     const cambios = (r: ReturnType<typeof correr>) => r.horarios.filter(h => h.rolGeneral === 'cajero').reduce((n, h) => {
       const prev = base.horarios.find(x => x.colaboradorId === h.colaboradorId)!
@@ -73,6 +73,23 @@ describe('AH2-063 · con el motor: semanas del mismo mes cambian menos, sin perd
     const falt = (r: ReturnType<typeof correr>) => r.faltantesFranjas.flat().reduce((a, b) => a + b, 0)
     const con = correr(sesgos), sin = correr()
     expect(cambios(con)).toBeLessThan(cambios(sin))
-    expect(falt(con)).toBeLessThanOrEqual(falt(sin))
+    expect(falt(con) / 2).toBeLessThanOrEqual(falt(sin) / 2 + 2) // faltantesFranjas en medias horas; margen 2 h
   }, 120_000)
+})
+
+describe('AH2-063 · elección con margen', () => {
+  it('gana el que menos cambia si no supera el faltante del mejor + margen', async () => {
+    const { elegirConContinuidad } = await import('../continuidad')
+    const c = [{ f: 2.5, cambios: 31 }, { f: 5, cambios: 4 }, { f: 3, cambios: 10 }]
+    expect(elegirConContinuidad(c, x => x.f, x => x.cambios, 2)).toEqual({ f: 3, cambios: 10 })   // 5 h supera 2,5 + 2
+    expect(elegirConContinuidad(c, x => x.f, x => x.cambios, 3)).toEqual({ f: 5, cambios: 4 })
+    expect(elegirConContinuidad(c, x => x.f, x => x.cambios, 0)).toEqual({ f: 2.5, cambios: 31 }) // 0 = cobertura primero
+  })
+})
+
+describe('AH2-063 · sin semana elegida', () => {
+  it('un lunes vacío o inválido no rompe la pantalla', () => {
+    expect(rotacionMensual([], '', { cajeros }).sesgos).toEqual({})
+    expect(rotacionMensual([], 'no-es-fecha', { cajeros }).explicacion.modo).toBe('sin_historia')
+  })
 })

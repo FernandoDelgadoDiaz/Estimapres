@@ -58,6 +58,9 @@ function clasesDeSemana(s: SemanaHistorial): Map<string, Clase[]> {
 }
 
 export function rotacionMensual(historial: SemanaHistorial[], lunes: string, op: OpcionesRotacion): { sesgos: SesgosPorNombre; explicacion: ExplicacionRotacion } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(lunes) || Number.isNaN(Date.parse(`${lunes}T12:00:00Z`))) {
+    return { sesgos: {}, explicacion: { mes: '', modo: 'sin_historia', frases: [] } }
+  }
   const mes = mesDeSemana(lunes)
   const previas = ultimasVersiones(historial.filter(s => s.fechaLunes < lunes)).sort((a, b) => b.fechaLunes.localeCompare(a.fechaLunes))
   const sesgos: SesgosPorNombre = {}

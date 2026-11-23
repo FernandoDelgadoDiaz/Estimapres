@@ -683,6 +683,13 @@ export function capFrancosDeReglas(
   return cap
 }
 
+/** AH2-063 · Margen por defecto: hasta 2 h menos de cobertura por semana para mantener los horarios dentro del mes. */
+export const MARGEN_CONTINUIDAD_HORAS = 2
+export function margenContinuidadDeReglas(reglas: ReglaConfigurable[], fechaLunes: string): number {
+  const r = reglas.find(x => x.ambito === 'local' && x.tipo === 'margen_continuidad' && reglaVigenteEnSemana(x, fechaLunes))
+  return r?.cantidad !== undefined ? Math.max(0, Math.min(10, r.cantidad)) : MARGEN_CONTINUIDAD_HORAS
+}
+
 // ==================== REGLAS OPERATIVAS (toggles) ====================
 // Son reglas del negocio de la sucursal, NO leyes laborales. Cada una es un
 // booleano con un default; el supervisor las activa/desactiva desde Reglas.

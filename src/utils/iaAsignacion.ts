@@ -1,3 +1,4 @@
+import type { Continuidad } from './continuidad'
 import { resolverCortadasMaximas } from '../algoritmo/pasada1-fullpart'
 import { Franja, Colaborador, ResultadoAsignacion, ExcepcionSemanal, Auxiliar, Eventual } from '../types'
 import { convertirInputAV2, asignarIdentidadesV2, type OpcionesGeneracion } from '../algoritmo/adapter'
@@ -32,6 +33,8 @@ export function prepararEntradaAsignacion(
   necesidad: Franja[], cajeros: Colaborador[], auxiliares: Auxiliar[], eventuales: Eventual[],
   excepciones: ExcepcionSemanal[] = [], opciones?: OpcionesGeneracion,
   contextoValidacion?: ContextoValidacionSemana,
+  /** AH2-063: semana anterior del mismo mes y margen de cobertura por semana. */
+  continuidad?: Continuidad,
 ) {
   const inputV2 = convertirInputAV2(
     necesidad, cajeros, auxiliares, eventuales,
@@ -65,7 +68,7 @@ export function prepararEntradaAsignacion(
     operativa: operativaEfectiva(opciones),
   }
   // AH2-056: «Solo cortado» → mayor cantidad de cortadas que admite la semana de la persona (fija para A, B y el validador).
-  return { input: resolverCortadasMaximas(inputV2), cajeros, auxiliares, eventuales, contexto }
+  return { input: resolverCortadasMaximas(inputV2), cajeros, auxiliares, eventuales, contexto, ...(continuidad ? { continuidad } : {}) }
 }
 
 export async function asignarHorariosConIA(
@@ -79,8 +82,9 @@ export async function asignarHorariosConIA(
   /** Contexto de validación de la semana (el mismo que usa la pantalla). Sin él, se arma desde la entrada. */
   contextoValidacion?: ContextoValidacionSemana,
   ejecucion?: { signal: AbortSignal; avisarModoCompatible: () => void },
+  continuidad?: Continuidad,
 ): Promise<ResultadoAsignacion> {
-  const entrada = prepararEntradaAsignacion(necesidad, cajeros, auxiliares, eventuales, excepciones, opciones, contextoValidacion)
+  const entrada = prepararEntradaAsignacion(necesidad, cajeros, auxiliares, eventuales, excepciones, opciones, contextoValidacion, continuidad)
   const resultado = await ejecutarEnWorker(entrada, ejecucion?.signal)
   if (resultado) return resultado
 
