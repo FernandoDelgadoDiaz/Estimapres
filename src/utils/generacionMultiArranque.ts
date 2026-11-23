@@ -16,13 +16,14 @@
 // Selección: solo candidatos que pasan la validación independiente sin violaciones que
 // el respaldo no tenga y que no bajan las horas de NINGUNA persona frente al respaldo.
 // Entre ellos: mayor cobertura; a igual cobertura, menos sobrantes; empate → respaldo.
-import { convertirOutputDeV2 } from '../algoritmo/adapter'
+import { asignarIdentidadesV2, convertirOutputDeV2 } from '../algoritmo/adapter'
+import { cambiosDeTurno, elegirConContinuidad, semillasDeSemana, type Continuidad } from './continuidad'
 import { compararImpactoHoras, ejecutarAlgoritmo, inputSinPrioridadHoras, tieneObjetivoHoras } from '../algoritmo/orquestador'
 import type { InputAlgoritmo, Jornada, ResultadoSemanal } from '../algoritmo/types'
 import type { Auxiliar, Colaborador, Eventual, ResultadoAsignacion } from '../types'
 import { validarResultadoSemana, type ContextoValidacionSemana } from './validacionSemana'
 
-export type EstrategiaMultiArranque = 'actual' | 'desde-sin-prioridad' | 'full-fijos' | 'alternada-1' | 'alternada-2' | 'alternada-ms-1' | 'alternada-ms-2'
+export type EstrategiaMultiArranque = 'actual' | 'continuidad' | 'desde-sin-prioridad' | 'full-fijos' | 'alternada-1' | 'alternada-2' | 'alternada-ms-1' | 'alternada-ms-2'
 export const ESTRATEGIAS_MULTI_ARRANQUE: EstrategiaMultiArranque[] = ['actual', 'desde-sin-prioridad', 'full-fijos', 'alternada-1', 'alternada-2', 'alternada-ms-1', 'alternada-ms-2']
 /** Cada estrategia que necesita a otra como punto de partida. */
 const DEPENDE_DE: Partial<Record<EstrategiaMultiArranque, EstrategiaMultiArranque>> = {
@@ -127,6 +128,12 @@ export interface EntradaMultiArranque {
   estrategias?: EstrategiaMultiArranque[]
   /** Solo pruebas: reloj en ms (para simular el agotamiento del presupuesto). */
   reloj?: () => number
+  /**
+   * AH2-063 · Semana anterior del MISMO mes (horario guardado, ids de pantalla) y margen de cobertura por semana.
+   * Agrega la estrategia «continuidad» (arranca desde esa semana) y elige el candidato que menos cambia para los
+   * cajeros entre los que no superan el faltante del mejor + margen.
+   */
+  continuidad?: Continuidad
 }
 
 export interface SalidaMultiArranque {
@@ -135,7 +142,23 @@ export interface SalidaMultiArranque {
   seleccion: SeleccionMultiArranque
 }
 
+/**
+ * AH2-063 · La cobertura va primero: con preferencias blandas (rotación mensual, domingos, aprendizaje) se compara
+ * contra el mismo multi-arranque sin preferencias y se conservan solo si el faltante no aumenta.
+ */
 export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArranque {
+  const prefs = e.input.preferencias_turno
+  if (!prefs || !Object.keys(prefs).length) return generarConMultiArranqueBase(e)
+  const con = generarConMultiArranqueBase(e)
+  const sin = generarConMultiArranqueBase({ ...e, input: { ...e.input, preferencias_turno: undefined } })
+  const faltante = (x: SalidaMultiArranque) => x.resultadoV2.metricas.deficit_por_slot.flat().reduce((a, b) => a + b, 0) / 2
+  if (!e.continuidad) return faltante(con) <= faltante(sin) ? con : sin
+  const semillas = semillasDeSemana(e.continuidad.semanaAnterior, asignarIdentidadesV2([...e.cajeros, ...e.auxiliares, ...e.eventuales]).v2PorUi)
+  const cambios = (x: SalidaMultiArranque) => cambiosDeTurno(semanas(x.resultadoV2), semillas)
+  return elegirConContinuidad([con, sin], faltante, cambios, e.continuidad.margenHoras)
+}
+
+function generarConMultiArranqueBase(e: EntradaMultiArranque): SalidaMultiArranque {
   const ahora = e.reloj ?? Date.now
   const t0 = ahora()
   const presupuesto = e.presupuestoMs ?? PRESUPUESTO_MULTI_ARRANQUE_MS
@@ -174,6 +197,17 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
     candidatos.push(ficha(estrategia, x, v.violaciones.length, nuevas.length, motivo))
   }
   const hayTiempo = () => ahora() - t0 < presupuesto
+  // AH2-063 · Continuidad dentro del mes: estrategia que arranca desde la semana anterior.
+  let cambiosVsAnterior: ((r: ResultadoSemanal) => number) | undefined
+  if (e.continuidad?.semanaAnterior.length) {
+    const semillas = semillasDeSemana(e.continuidad.semanaAnterior, asignarIdentidadesV2([...e.cajeros, ...e.auxiliares, ...e.eventuales]).v2PorUi)
+    cambiosVsAnterior = r => cambiosDeTurno(semanas(r), semillas)
+    if (Object.keys(semillas).length && hayTiempo()) {
+      const t = ahora()
+      evaluar('continuidad', { r: ejecutarAlgoritmo({ ...base, semillas }), ms: ahora() - t })
+    }
+  }
+
   const alternativas = ESTRATEGIAS_MULTI_ARRANQUE.filter(n => n !== 'actual' && pedidas.has(n))
   let sinAlternativas: SeleccionMultiArranque['sinAlternativas']
 
@@ -190,7 +224,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
       const aSem = ejecutarAlgoritmo({ ...sinPrioridad, semillas: semanas(desde) })
       return ejecutarAlgoritmo({ ...base, semillas: semanas(aSem) })
     }
-    const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual'>, () => ResultadoSemanal> = {
+    const ejecutores: Record<Exclude<EstrategiaMultiArranque, 'actual' | 'continuidad'>, () => ResultadoSemanal> = {
       'desde-sin-prioridad': () => ejecutarAlgoritmo({ ...base, semillas: semanas(a0!) }),
       'full-fijos': () => ejecutarAlgoritmo({ ...base, semillas: { ...respaldo.r.jornadas_full } }),
       'alternada-1': () => alternar(respaldo.r),
@@ -206,7 +240,7 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
       const previa = DEPENDE_DE[nombre]
       if (!hayTiempo() || (previa && !resultados.has(previa))) { if (pedidas.has(nombre)) omitidas.push(nombre); continue }
       const t = ahora()
-      const r = ejecutores[nombre]()
+      const r = ejecutores[nombre as Exclude<EstrategiaMultiArranque, 'actual' | 'continuidad'>]()
       evaluar(nombre, { r, ms: ahora() - t }, pedidas.has(nombre))
     }
     if (alternativas.length && omitidas.length === alternativas.length) sinAlternativas = 'presupuesto-agotado'
@@ -217,6 +251,11 @@ export function generarConMultiArranque(e: EntradaMultiArranque): SalidaMultiArr
   for (const c of elegibles) {
     if (c.coberturaPct > elegido.coberturaPct + EPS) elegido = c
     else if (Math.abs(c.coberturaPct - elegido.coberturaPct) <= EPS && c.sobrantesHoras < elegido.sobrantesHoras - EPS) elegido = c
+  }
+  // AH2-063: dentro del mes, el que menos cambia para los cajeros sin superar el faltante del mejor + margen.
+  if (cambiosVsAnterior && e.continuidad) {
+    const ordenados = [elegido, ...elegibles.filter(c => c !== elegido)]
+    elegido = elegirConContinuidad(ordenados, c => c.faltantesHoras, c => cambiosVsAnterior!(resultados.get(c.estrategia)!), e.continuidad.margenHoras)
   }
   const final = resultados.get(elegido.estrategia)!
   const resultadoV2: ResultadoSemanal = {

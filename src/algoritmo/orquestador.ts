@@ -92,7 +92,24 @@ function medirImpactoHoras(input: InputAlgoritmo, real: ReturnType<typeof correr
  *     dentro de su disponibilidad, con distribucion equitativa (menos
  *     horas-caja acumuladas primero).
  */
+/**
+ * AH2-063 · La cobertura va primero: las preferencias blandas (rotación mensual, reparto de domingos, aprendizaje)
+ * solo se aplican si el horario resultante no tiene más faltante que el mismo motor sin preferencias.
+ */
 export function ejecutarAlgoritmo(entrada: InputAlgoritmo): ResultadoSemanal {
+  const prefs = entrada.preferencias_turno
+  if (!prefs || !Object.keys(prefs).length) return ejecutarAlgoritmoBase(entrada)
+  const faltante = (r: ResultadoSemanal) => r.metricas.deficit_por_slot.flat().reduce((a, b) => a + b, 0)
+  let conPrefs: ResultadoSemanal | null = null, error: unknown = null
+  try { conPrefs = ejecutarAlgoritmoBase(entrada) } catch (e) { error = e }
+  let sinPrefs: ResultadoSemanal | null = null
+  try { sinPrefs = ejecutarAlgoritmoBase({ ...entrada, preferencias_turno: undefined }) } catch (e) { if (!conPrefs) throw error ?? e }
+  if (!conPrefs) return sinPrefs!
+  if (!sinPrefs) return conPrefs
+  return faltante(conPrefs) <= faltante(sinPrefs) ? conPrefs : { ...sinPrefs, preferencias_descartadas: true }
+}
+
+function ejecutarAlgoritmoBase(entrada: InputAlgoritmo): ResultadoSemanal {
   // Laboratorio AH2-037/040: perfiles de disponibilidad de caja EVENTUAL → reservas/topes existentes.
   const input = compilarDisponibilidadCaja(entrada).input
   if(!input.condiciones_supervisor&&!input.auditoria_condiciones)return construirResultado(input, correrCascada(input));

@@ -158,12 +158,14 @@ export type TipoReglaColaborador =
   | 'siempre_cierre'   // siempre turno de cierre
   | 'siempre_manana'   // siempre turno de mañana
   | 'turno'            // AH2-056: pedido de turno (mañana, intermedio, tarde, noche, cortado según contrato)
+  | 'prefiere_domingos' // AH2-063: prefiere trabajar los domingos (preferencia fuerte; los domingos se pagan doble)
 
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
   | 'max_bloques_caja_eventual_dia'
   | 'eventuales_caja_hora_limite'
   | 'max_francos_dia'    // máximo N francos el mismo día
+  | 'margen_continuidad' // AH2-063: horas de cobertura que se aceptan perder por semana para no cambiar horarios dentro del mes
   // Reglas operativas booleanas (toggles). El campo `activa` de la regla
   // guarda el estado del toggle. Si NO existe una regla de ese tipo, se usa
   // el default del negocio (ver DEFAULTS_OPERATIVOS / configOperativaDeReglas).
