@@ -341,3 +341,20 @@ test('AH2-050: la leyenda aclara que son horas de cajeros y que el resto lo calc
   await expect(page.getByText('horas de contrato de cajeros (FULL y PART)')).toBeVisible()
   await expect(page.getByTestId('capacidad-detalle')).toContainText('lo calcula el motor al generar')
 })
+
+test('AH2-060: el modo prueba se ve junto al botón y lo generado no se guarda', async ({ page }) => {
+  await preparar(page)
+  await expect(page.getByText('Hay supervisor en todo el horario de la sucursal.')).toBeVisible()
+  const caja = page.getByTestId('modo-prueba-caja')
+  await expect(caja).toBeVisible() // a la vista, sin abrir «Opciones de esta generación»
+  await expect(page.getByTestId('modo-prueba')).not.toBeChecked()
+  await expect(caja).toContainText('el horario se guarda como una versión nueva')
+  const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('aliada_historial_semanas::900') ?? '[]').length)
+  await page.getByTestId('modo-prueba').check()
+  await expect(caja).toContainText('PRUEBA ACTIVA')
+  if (process.env.SP) await caja.screenshot({ path: process.env.SP + '/ah2060-modo-prueba.png' })
+  await page.getByRole('button', { name: 'Generar prueba (no se guarda)' }).click()
+  await expect(page.getByTestId('resultado-prueba')).toContainText('PRUEBA NO GUARDADA')
+  const despues = await page.evaluate(() => JSON.parse(localStorage.getItem('aliada_historial_semanas::900') ?? '[]').length)
+  expect(despues).toBe(antes)
+})

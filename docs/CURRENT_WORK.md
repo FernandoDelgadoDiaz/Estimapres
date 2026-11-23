@@ -1,4 +1,15 @@
-## PUNTO ÚNICO DE RETOMA — AH2-059 barra de progreso al generar (PR) · 23/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-060 modo prueba visible (PR) · 23/11/2026, Claude
+
+**Estado de producción:** ver relevo anterior (AH2-058 publicado; AH2-059 fusionado en `main@bc2f80a`, pendiente de Publish deploy por el propietario). **Dato de producción cambiado (autorizado):** borrada la v5 de la semana 23/11 de la 091 (prueba con una regla de turno, generada 23/11 12:46 UTC); la semana queda con v1–v4 y la v4 es la vigente. La regla de prueba la borró el propietario.
+
+**AH2-060 en PR (sin publicar):** «Modo prueba» siempre visible junto al botón, botón «Generar prueba (no se guarda)», arranca siempre apagado. Rama `fix/ah2-060-modo-prueba-visible`. Solo Netlify. Pruebas: Vitest 648 passed / 4 skipped; Playwright 23 passed (nueva prueba: con modo prueba no se guarda); build OK.
+
+### Pendiente
+- Publicar AH2-059 y AH2-060 (autorización).
+- Reemplazo asistido de supervisor ausente; motor B en «Mejor cobertura» (opcional); rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
+---
+
+## RELEVO ANTERIOR — AH2-059 barra de progreso al generar (PR) · 23/11/2026, Claude
 
 **Estado de producción:** Netlify deploy `6b042cfd171bf0326c06a3ea` = `main@ea378d4` (**AH2-058 publicado 23/11 12:26 UTC**; incluye AH2-057). Rollback `6b037a9c349bf3265d201eeb` (AH2-057). Cloud Run `aliada-optimizer-00010-29t` sin cambios.
 
