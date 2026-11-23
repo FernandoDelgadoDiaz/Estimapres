@@ -24,8 +24,8 @@ function generar(nombre: string, contrato: string, turno: TurnoPedido) {
 
 describe('AH2-056: el desplegable muestra solo los turnos del contrato', () => {
   it('FULL: mañana, intermedio, tarde, cortado; PART: mañana, tarde, noche (sin cortado)', () => {
-    expect(turnosDeContrato('FULL').map(([k]) => k)).toEqual(['manana', 'intermedio', 'tarde', 'cortado'])
-    expect(turnosDeContrato('PART').map(([k]) => k)).toEqual(['manana', 'tarde', 'noche'])
+    expect(turnosDeContrato('FULL').map(([k]) => k)).toEqual(['manana', 'intermedio', 'tarde', 'cortado', 'cierre'])
+    expect(turnosDeContrato('PART').map(([k]) => k)).toEqual(['manana', 'tarde', 'noche', 'cierre'])
     expect(excepcionesDeTurno({ id: 'x', colaboradorNombre: 'P', descripcion: '' }, 'PART', 'cortado')).toBeNull()
   })
   it('una regla «Turno» vigente se traduce según el contrato; si no corresponde, no se aplica', () => {
@@ -54,6 +54,16 @@ describe('AH2-056: el motor de la app respeta el pedido sin tocar la composició
   it('PART solo noche: ingreso 17:00–18:00', () => {
     const { semana } = generar('Part 1', 'PART', 'noche')
     for (const j of semana) { expect(j.bloques).toHaveLength(1); expect(j.bloques[0].slot_inicio).toBeGreaterThanOrEqual(18); expect(j.bloques[0].slot_inicio).toBeLessThanOrEqual(20) }
+  })
+  // AH2-058: «Solo cierre» reemplaza a la regla suelta «Siempre de cierre» (misma regla del motor).
+  it.each([['Full 1', 'FULL'], ['Part 1', 'PART']] as const)('%s solo cierre: cada jornada que no es mañana corrida termina al cierre', (nombre, contrato) => {
+    const { input, semana } = generar(nombre, contrato, 'cierre')
+    expect(input.excepciones?.some(e => e.tipo === 'siempre_cierre')).toBe(true)
+    for (const j of semana) {
+      const mananaCorrida = j.bloques.length === 1 && j.bloques[0].slot_inicio <= 6
+      if (!mananaCorrida) expect(j.bloques[j.bloques.length - 1].slot_fin).toBeGreaterThanOrEqual(28)
+    }
+    if (contrato === 'FULL') expect(composicion(semana)).toEqual([10, 16, 16, 18, 18, 18])
   })
   it('el resto del personal sigue con 2 cortadas', () => {
     const { input } = generar('Full 1', 'FULL', 'manana')

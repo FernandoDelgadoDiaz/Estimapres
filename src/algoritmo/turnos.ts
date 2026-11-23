@@ -10,9 +10,11 @@
  */
 import type { ExcepcionSemanal } from '../types'
 
-export type TurnoPedido = 'manana' | 'intermedio' | 'tarde' | 'noche' | 'cortado'
+export type TurnoPedido = 'manana' | 'intermedio' | 'tarde' | 'noche' | 'cortado' | 'cierre'
 
-export interface DefTurno { etiqueta: string; ingreso?: [string, string]; cortadas?: number | 'max'; mananasMin?: number; cortadaInicioHasta?: string }
+export interface DefTurno { etiqueta: string; ingreso?: [string, string]; cortadas?: number | 'max'; mananasMin?: number; cortadaInicioHasta?: string
+  /** AH2-058: termina siempre al cierre (misma regla que el antiguo «Siempre de cierre»). */
+  cierre?: boolean }
 
 /** Catálogo por contrato. FULL: mañana, intermedio, tarde, cortado. PART: mañana, tarde, noche. */
 export const TURNOS: Record<'FULL' | 'PART', Partial<Record<TurnoPedido, DefTurno>>> = {
@@ -22,11 +24,14 @@ export const TURNOS: Record<'FULL' | 'PART', Partial<Record<TurnoPedido, DefTurn
     tarde: { etiqueta: 'Solo tarde', ingreso: ['12:00', '15:00'], cortadas: 0, mananasMin: 0 },
     // Cortadas desde las 10:00/10:30 (p. ej. 10–14 / 18–22) para poder encadenarlas con 12 h de descanso.
     cortado: { etiqueta: 'Solo cortado', cortadas: 'max', mananasMin: 0, cortadaInicioHasta: '10:30' },
+    // AH2-058: reemplaza a la regla suelta «Siempre de cierre».
+    cierre: { etiqueta: 'Solo cierre', cierre: true, mananasMin: 0 },
   },
   PART: {
     manana: { etiqueta: 'Solo mañana', ingreso: ['08:00', '10:00'] },
     tarde: { etiqueta: 'Solo tarde', ingreso: ['14:00', '15:00'], mananasMin: 0 },
     noche: { etiqueta: 'Solo noche', ingreso: ['17:00', '18:00'], mananasMin: 0 },
+    cierre: { etiqueta: 'Solo cierre', cierre: true, mananasMin: 0 },
   },
 }
 
@@ -47,6 +52,7 @@ export function excepcionesDeTurno(
   if (contrato === 'FULL' && def.cortadas !== undefined) e('cortadas', 'cortadas_semana', String(def.cortadas))
   if (def.mananasMin !== undefined) e('mananas', 'mananas_min', String(def.mananasMin))
   if (def.cortadaInicioHasta) e('cortada', 'cortada_inicio_hasta', def.cortadaInicioHasta)
+  if (def.cierre) out.push({ ...base, id: `${base.id}_cierre`, tipo: 'siempre_cierre' } as ExcepcionSemanal)
   return out
 }
 
