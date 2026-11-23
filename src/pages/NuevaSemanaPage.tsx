@@ -8,6 +8,7 @@ import { usePDFParser } from '../hooks/usePDFParser'
 import { useColaboradores } from '../hooks/useColaboradores'
 import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
+import ProgresoGeneracion from '../components/semana/ProgresoGeneracion'
 import { useAsignacion } from '../hooks/useAsignacion'
 import { useReglas } from '../hooks/useReglas'
 import { useHistorial } from '../hooks/useHistorial'
@@ -70,7 +71,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   const colaboradoresActivos = useMemo(() => colaboradores.filter(c => c.activo), [colaboradores])
   const auxiliaresActivos = useMemo(() => auxiliares.filter(a => a.activo), [auxiliares])
   const eventualesActivos = useMemo(() => eventuales.filter(e => e.activo), [eventuales])
-  const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, cancelarGeneracion, modoCompatible, progreso, editarJornada, reset: resetAsignacion } = useAsignacion()
+  const { resultado, loading: loadingAsignacion, error: errorAsignacion, generarHorarios, cancelarGeneracion, modoCompatible, progreso, avance, editarJornada, reset: resetAsignacion } = useAsignacion()
   const { reglas, reglasActivas } = useReglas()
   const { historial, agregarSemana, actualizarSemana } = useHistorial()
   const { correcciones, agregarCorreccion } = useCorrecciones()
@@ -991,13 +992,16 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
               </div>
             </details>
             {errorAsignacion && <p role="alert" style={{ color: 'var(--danger)' }}>{errorAsignacion}</p>}
-            {loadingAsignacion && (
+            {loadingAsignacion && (avance
+              ? <ProgresoGeneracion avance={avance} texto={progreso || 'Aliada está generando el horario…'} />
+              : (
               <p role="status" style={{ color: 'var(--text-muted)' }}>
                 {progreso || (modoCompatible
                   ? 'Modo compatible: la pantalla puede pausarse mientras se calcula el horario.'
                   : 'Aliada está generando el horario…')}
               </p>
-            )}
+            ))}
+            {loadingAsignacion && modoCompatible && <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Modo compatible: la pantalla puede pausarse mientras se calcula el horario.</p>}
             <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
               {loadingAsignacion && (
                 <button type="button" className="btn-secondary" onClick={cancelarGeneracion}>
