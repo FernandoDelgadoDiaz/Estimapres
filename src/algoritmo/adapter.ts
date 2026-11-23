@@ -259,14 +259,14 @@ export function convertirInputAV2(
     disponibilidad_eventual[evId] = construirMatrizEventual(ev.horarioSemanal);
   }
 
-  // 5. Preferencias blandas: nombre → id v2
+  // 5. Preferencias blandas: nombre → id v2 (AH2-064: limitadas a ±12, el rango que aceptan A y B)
   let preferencias_turno: InputAlgoritmo['preferencias_turno'];
   if (opciones?.preferenciasPorNombre) {
     preferencias_turno = {};
     for (const [nombre, sesgo] of Object.entries(opciones.preferenciasPorNombre)) {
       // Preferencias aprendidas por nombre: con homónimos aplican a todos (se avisa en la salida).
       for (const id of ident.v2PorNombre.get(normalizarId(nombre)) ?? [normalizarId(nombre)]) {
-        preferencias_turno[id] = sesgo;
+        preferencias_turno[id] = limitarPreferencia(sesgo);
       }
     }
   }
@@ -550,4 +550,27 @@ export function topesCajaPorPersona(
     out[id] = id in out ? Math.min(out[id], slots) : slots
   }
   return Object.keys(out).length ? out : undefined
+}
+
+/**
+ * AH2-064 · Las preferencias blandas se suman de varias fuentes (rotación mensual, domingos, aprendizaje) y pueden
+ * pasar del rango que acepta el motor CP-SAT (−12…+12): si pasaban, B rechazaba TODA la entrada y la app usaba solo A
+ * sin avisar. Se limitan cada valor al rango y se descartan claves que ningún motor entiende.
+ */
+const PREF_MAX = 12
+const CLAVES_PREF = ['manana', 'tarde', 'cierre', 'franco'] as const
+export function limitarPreferencia(s: Partial<SesgoTurno>): Partial<SesgoTurno> {
+  const lim = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? Math.max(-PREF_MAX, Math.min(PREF_MAX, v)) : undefined
+  const out: Partial<SesgoTurno> = {}
+  for (const k of ['manana', 'tarde', 'cierre'] as const) { const v = lim(s[k]); if (v) out[k] = v }
+  if (s.porDia) {
+    const porDia: NonNullable<SesgoTurno['porDia']> = {}
+    for (const [d, sd] of Object.entries(s.porDia)) {
+      const x: Record<string, number> = {}
+      for (const k of CLAVES_PREF) { const v = lim((sd as Record<string, unknown>)[k]); if (v) x[k] = v }
+      if (Object.keys(x).length) porDia[Number(d)] = x
+    }
+    if (Object.keys(porDia).length) out.porDia = porDia
+  }
+  return out
 }

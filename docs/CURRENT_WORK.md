@@ -1,4 +1,18 @@
-## PUNTO ÚNICO DE RETOMA — AH2-063 rotación mensual y domingos parejos (PR) · 23/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-064 límite de preferencias (PR) + auditoría punta a punta · 23/11/2026, Claude
+
+**Estado de producción:** Netlify deploy `6b045cba48b76ef16001de64` = `main@486cd82` (**AH2-063 publicado 23/11 15:34 UTC**). Punto de retorno a la versión sin AH2-063: rama `retorno/pre-ah2-063` y deploy `6b0445415809b6e33efd8a88` (`docs/RETORNO_PRE_AH2-063.md`). Cloud Run `aliada-optimizer-00010-29t` sin cambios.
+
+**AH2-064 en PR (sin publicar):** las preferencias sumadas podían superar ±12 y el motor B rechazaba toda la entrada (la app seguía solo con A sin avisar). Se limitan en el adaptador. Rama `fix/ah2-064-limite-preferencias`. Solo Netlify. Publicar antes de generar la semana del 30/11.
+
+**Siguiente (autorizado por el propietario):** auditoría punta a punta sin tocar producción (base solo lectura): flujo completo con datos de forma real, coherencia A/B/validador, interacciones entre cambios recientes, multisucursal y documentación. Informe con hallazgos por gravedad; nada se corrige sin OK salvo críticos autorizados.
+
+### Pendiente
+- Publicar AH2-064.
+- Auditoría e informe.
+- Antes del 07/12: comparar en modo prueba la semana del 07/12 con margen 0 y con margen 2 (motor B real).
+---
+
+## RELEVO ANTERIOR — AH2-063 rotación mensual y domingos parejos (PR) · 23/11/2026, Claude
 
 **Estado de producción:** Netlify deploy `6b0445415809b6e33efd8a88` = `main@1f46a57` (AH2-061 + AH2-062, publicado 23/11). Cloud Run `aliada-optimizer-00010-29t` sin cambios. Semana 23/11 de la 091: v1–v4 (v4 vigente).
 
