@@ -50,13 +50,10 @@ export default function PDFUploader({ onFileSelect, loading, error }: PDFUploade
       >
         <div className="text-6xl mb-4">📄</div>
         <h3 className="text-xl font-semibold text-gray-800 mb-2">
-          Arrastra tu PDF aquí
+          Arrastrá el PDF acá
         </h3>
-        <p className="text-gray-600 mb-4">
-          O haz clic para seleccionar el archivo con el "Estimado de cajas necesarias"
-        </p>
-        <p className="text-sm text-gray-500 mb-6">
-          El archivo debe contener la tabla semanal de necesidad de cajas (formato estándar).
+        <p className="text-gray-600 mb-6">
+          O hacé clic para elegir el PDF del POM de la semana.
         </p>
         <button
           type="button"
@@ -84,16 +81,6 @@ export default function PDFUploader({ onFileSelect, loading, error }: PDFUploade
         </div>
       )}
 
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-semibold text-gray-800 mb-2">Requisitos del PDF</h4>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Debe contener la tabla titulada "Estimado de cajas necesarias"</li>
-          <li>• Formato: primera fila "Horario" seguida de 7 fechas (MM-DD)</li>
-          <li>• Filas: HH:MM:SS seguido de 7 números (cajas necesarias)</li>
-          <li>• Horario cubierto: 07:00 a 22:00 cada 30 minutos</li>
-          <li>• El sistema buscará automáticamente la tabla en cualquier página</li>
-        </ul>
-      </div>
     </div>
   )
 }
