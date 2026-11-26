@@ -13,7 +13,7 @@
 import {cambiosDeTurno,elegirConContinuidad} from '../utils/continuidad'
 import type {InputAlgoritmo,Jornada,ResultadoSemanal} from '../algoritmo/types'
 import {auditarEscenario} from '../algoritmo/auditoriaV2'
-import {mascarasAH2040,metricasAH2040,relacionesAH2040,verificarAH2040,type ConfigAH2040} from '../algoritmo/ah2040'
+import {balancearIdentidadAux,mascarasAH2040,metricasAH2040,relacionesAH2040,verificarAH2040,type ConfigAH2040} from '../algoritmo/ah2040'
 import {motorAConPolitica,motorASinRelacion,politicaLaboratorioV1} from './politica'
 import {compilarDisponibilidadCaja,reporteDisponibilidadCaja,verificarDisponibilidadCaja} from '../algoritmo/disponibilidadCajaEventual'
 import {aEntradaB,crearSobre,planBaResultado,validarRespuesta,type EstadoB,type ParametrosB,type RespuestaB} from './contrato'
@@ -134,6 +134,17 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
     if(gana===cand){elegido=cand;origen='A';motivo=`Continuidad dentro del mes: cambia menos para los cajeros sin superar el margen de ${op.continuidad.margenHoras} h de cobertura.`}
    }
   }catch{/* sin candidato de continuidad: se conserva el elegido */}
+ }
+ // AH2-069: horas de caja parejas entre supervisores. Donde dos AUX pueden sentarse y uno solo hace falta, B elegía
+ // siempre el primero por orden alfabético; ahora cada tramo va al que lleva menos horas de caja. Misma cobertura;
+ // se revalida y, si algo no valida, se conserva el original.
+ if(elegido){
+  const cfgC=(input as InputAlgoritmo&{comparacion_aux_eventual?:ConfigAH2040}).comparacion_aux_eventual
+  const comparadores=cfgC?new Set(relacionesAH2040(input,cfgC).rels.map(x=>x.auxId)):undefined
+  for(const r2 of [balancearIdentidadAux(input,elegido.r),...(comparadores?.size?[balancearIdentidadAux(input,elegido.r,comparadores)]:[])]){
+   const e2=evaluar(input,r2,raw)
+   if(e2.valido&&e2.metricas.faltantesHoras===elegido.e.metricas.faltantesHoras&&e2.metricas.sobrantesHoras===elegido.e.metricas.sobrantesHoras){elegido={r:r2,e:e2};break}
+  }
  }
  // Contrafáctico con el mismo motor A sin la relación semanal: faltantes atribuibles a la regla (estimación).
  let sinRelacion:number[][]|null=null
