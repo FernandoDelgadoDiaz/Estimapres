@@ -342,6 +342,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       excepciones: excepcionesTotales,
       maxFrancosDia: opciones.maxFrancosDia,
       maxFrancosPorDia: opciones.maxFrancosPorDia,
+      supervisoresDeFranco: supervisoresDeFrancoPorDia(disponibilidad.auxiliares),
       minimosCajeros: opciones.demandaMinima,
       semanaAnterior: hibridoDisponible?undefined:previa?.horarios,
       finDomingoAnteriorPorId: antecedenteDomingo?.finPorId,

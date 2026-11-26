@@ -13,7 +13,7 @@ const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', '
 const aMin = (h?: string) => { if (!h) return NaN; const [a, b] = h.split(':').map(Number); return a * 60 + (b || 0) }
 const lista = (xs: string[]) => xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`
 
-export interface OpcionesDiagnostico { maxFrancosDia?: number; maxFrancosPorDia?: number[] }
+export interface OpcionesDiagnostico { maxFrancosDia?: number; maxFrancosPorDia?: number[]; /** AH2-066: supervisores de franco por día (ya descontados del máximo). */ supervisoresDeFranco?: number[] }
 
 /** Motivos que hacen imposible generar. Vacío si no se detecta ninguno. */
 export function diagnosticoPrevio(cajeros: Colaborador[], excepciones: ExcepcionSemanal[], op: OpcionesDiagnostico = {}): string[] {
@@ -33,7 +33,9 @@ export function diagnosticoPrevio(cajeros: Colaborador[], excepciones: Excepcion
   francosPorDia.forEach((nombres, d) => {
     const max = op.maxFrancosPorDia?.[d] ?? op.maxFrancosDia
     if (max !== undefined && nombres.length > max) {
-      motivos.push(`El ${DIAS[d]} tienen franco ${nombres.length} cajeros (${lista(nombres)}) y el máximo es ${max} por día. Quitá ${nombres.length - max === 1 ? 'un franco' : `${nombres.length - max} francos`} de ese día o cambiá el máximo en Configuración → Francos.`)
+      const aux = op.supervisoresDeFranco?.[d] ?? 0
+      const tope = aux ? `el máximo es ${max + aux} personas por día y ese día ya ${aux === 1 ? 'está de franco un supervisor' : `están de franco ${aux} supervisores`}` : `el máximo es ${max} por día`
+      motivos.push(`El ${DIAS[d]} tienen franco ${nombres.length} cajeros (${lista(nombres)}) y ${tope}. Quitá ${nombres.length - max === 1 ? 'un franco' : `${nombres.length - max} francos`} de ese día o cambiá el máximo en Configuración → Francos.`)
     }
   })
   // Todos los cajeros de franco el mismo día no se puede ni sin máximo.

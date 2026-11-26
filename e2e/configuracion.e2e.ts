@@ -24,7 +24,7 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await expect(apertura).toHaveAttribute('aria-checked', 'false')
 
   // Máximo de francos y eventuales
-  await page.getByLabel('Máximo de cajeros de franco el mismo día').fill('3')
+  await page.getByLabel('Máximo de personas de franco el mismo día (supervisores incluidos)').fill('3')
   await page.getByLabel('Tramos de caja por día').selectOption('2')
   await page.getByLabel('No atienden caja después de las').selectOption('21:00')
 
@@ -63,7 +63,7 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   // Persistencia tras recargar
   await page.reload()
   await expect(page.getByRole('switch', { name: 'La caja la abre un supervisor (08:00 a 09:00)' })).toHaveAttribute('aria-checked', 'false')
-  await expect(page.getByLabel('Máximo de cajeros de franco el mismo día')).toHaveValue('3')
+  await expect(page.getByLabel('Máximo de personas de franco el mismo día (supervisores incluidos)')).toHaveValue('3')
   await expect(page.getByLabel('Tramos de caja por día')).toHaveValue('2')
   await expect(page.getByLabel('No atienden caja después de las')).toHaveValue('21:00')
   await expect(page.getByText('Part A: franco fijo los Mié')).toBeVisible()

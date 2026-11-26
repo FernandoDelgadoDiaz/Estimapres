@@ -141,7 +141,7 @@ export function useAsignacion() {
   ) => {
     if (activa.current) return
     // AH2-062: si los cambios de la semana hacen imposible el horario, se dice por qué antes de llamar a los motores.
-    const imposibles = diagnosticoPrevio(cajeros, excepciones, { maxFrancosDia: opciones.maxFrancosDia, maxFrancosPorDia: contextoValidacion.maxFrancosPorDia })
+    const imposibles = diagnosticoPrevio(cajeros, excepciones, { maxFrancosDia: opciones.maxFrancosDia, maxFrancosPorDia: contextoValidacion.maxFrancosPorDia, supervisoresDeFranco: contextoValidacion.supervisoresDeFranco })
     if (imposibles.length) {
       setResultado(null)
       setError(`No se puede generar el horario con estos cambios:\n${imposibles.map(m => `• ${m}`).join('\n')}`)

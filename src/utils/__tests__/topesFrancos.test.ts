@@ -30,14 +30,20 @@ describe('AH2-066 · topes de francos por día', () => {
     expect(t.cajerosPorDia).toEqual([2, 2, 1, 1, 2, 2, 1])
   })
 
-  it('los francos fijos siempre entran aunque superen el tope', () => {
-    const t = topesFrancosPorDia({ ...base, maximoConfigurado: 1, francosFijosCajeros: [0, 0, 0, 2, 0, 0, 0] })
+  it('en automático los francos fijos siempre entran aunque superen el reparto', () => {
+    const t = topesFrancosPorDia({ ...base, francosFijosCajeros: [0, 0, 0, 2, 0, 0, 0] })
     expect(t.personasPorDia[3]).toBe(3)
     expect(t.cajerosPorDia[3]).toBe(2)
   })
 
-  it('si los topes no alcanzan para el franco de cada cajero, se abre lugar en los días de menos necesidad', () => {
-    const t = topesFrancosPorDia({ ...base, maximoConfigurado: 1, supervisoresDeFranco: [1, 1, 1, 1, 1, 1, 1] })
+  it('con máximo configurado no se sube: el chequeo previo explica el exceso', () => {
+    const t = topesFrancosPorDia({ ...base, maximoConfigurado: 2, francosFijosCajeros: [3, 0, 0, 0, 0, 0, 0] })
+    expect(t.personasPorDia[0]).toBe(2)
+    expect(t.cajerosPorDia[0]).toBe(2)
+  })
+
+  it('en automático, si los topes no alcanzan para el franco de cada cajero, se abre lugar en los días de menos necesidad', () => {
+    const t = topesFrancosPorDia({ ...base, supervisores: 3, supervisoresDeFranco: [2, 2, 2, 2, 2, 2, 2], francosFijosCajeros: Array(7).fill(0) })
     expect(t.cajerosPorDia.reduce((a, b) => a + b, 0)).toBe(9)
     // El primero en recibir lugar es el domingo (el de menos necesidad).
     expect(t.cajerosPorDia[6]).toBeGreaterThanOrEqual(t.cajerosPorDia[5])

@@ -6,10 +6,11 @@
  *  - Si no cargó nada, el tope sale de la dotación repartida en los 7 días: cada persona tiene 1 franco por semana;
  *    los días de MENOS necesidad de cajas reciben el franco extra (ej. 11 personas → 2 en los 4 días más tranquilos
  *    y 1 en los 3 más cargados).
- *  - Los francos que ya están fijados (supervisores sin presencia ese día y cajeros con franco fijo) siempre entran:
- *    el tope de un día nunca queda por debajo de ellos.
- * Los motores reciben el tope que queda para los CAJEROS (tope del día − supervisores de franco ese día), y nunca
- * menos que lo necesario para que cada cajero tenga su franco.
+ *  - En automático, los francos que ya están fijados (supervisores sin presencia ese día y cajeros con franco fijo)
+ *    siempre entran: el tope de un día nunca queda por debajo de ellos. Con un máximo configurado no se sube: si los
+ *    francos fijos lo superan, el chequeo previo lo explica antes de generar.
+ * Los motores reciben el tope que queda para los CAJEROS (tope del día − supervisores de franco ese día); en automático,
+ * nunca menos que lo necesario para que cada cajero tenga su franco.
  */
 export interface EntradaTopesFrancos {
   /** Necesidad de cajas en horas por día (lunes a domingo). */
@@ -45,13 +46,20 @@ export function topesFrancosPorDia(e: EntradaTopesFrancos): TopesFrancos {
     personas = dias.map(() => base)
     for (const d of orden.slice(0, resto)) personas[d]++
   }
-  // Los francos fijos siempre entran.
-  personas = dias.map(d => Math.max(personas[d], (e.supervisoresDeFranco[d] ?? 0) + (e.francosFijosCajeros[d] ?? 0)))
-  const cajeros = dias.map(d => Math.max(personas[d] - (e.supervisoresDeFranco[d] ?? 0), e.francosFijosCajeros[d] ?? 0, 0))
+  const aux = (d: number) => e.supervisoresDeFranco[d] ?? 0
+  const fijos = (d: number) => e.francosFijosCajeros[d] ?? 0
+  if (e.maximoConfigurado !== undefined) {
+    // Máximo de la sucursal: es el tope. Si los francos fijos o los cambios de la semana lo superan, no se sube:
+    // el chequeo previo explica qué día y qué cambiar (AH2-062).
+    return { personasPorDia: personas, cajerosPorDia: dias.map(d => Math.max(personas[d] - aux(d), 0)), origen: 'configurado' }
+  }
+  // Automático: los francos fijos siempre entran.
+  personas = dias.map(d => Math.max(personas[d], aux(d) + fijos(d)))
+  const cajeros = dias.map(d => Math.max(personas[d] - aux(d), fijos(d), 0))
   // Cada cajero necesita su franco: si los topes no alcanzan, se abre lugar en los días de menos necesidad.
   const orden = [...dias].sort((a, b) => (e.necesidadPorDia[a] ?? 0) - (e.necesidadPorDia[b] ?? 0) || a - b)
   for (let i = 0; cajeros.reduce((a, b) => a + b, 0) < e.cajeros; i++) { const d = orden[i % 7]; cajeros[d]++; personas[d]++ }
-  return { personasPorDia: personas, cajerosPorDia: cajeros, origen: e.maximoConfigurado !== undefined ? 'configurado' : 'calculado' }
+  return { personasPorDia: personas, cajerosPorDia: cajeros, origen: 'calculado' }
 }
 
 /** Horas de necesidad por día a partir de la necesidad del POM (franjas de media hora). */

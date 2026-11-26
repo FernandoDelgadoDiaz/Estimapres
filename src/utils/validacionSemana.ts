@@ -14,6 +14,8 @@ export interface ContextoValidacionSemana {
   excepciones: ExcepcionSemanal[]
   maxFrancosDia?: number
   maxFrancosPorDia?: number[]
+  /** AH2-066: supervisores de franco por día (solo para explicar el chequeo previo). */
+  supervisoresDeFranco?: number[]
   minimosCajeros?: MinimoFranja[]
   semanaAnterior?: HorarioColaborador[]
   /** Alternativa explícita: salida del domingo REAL, por ID; null equivale a franco. */
