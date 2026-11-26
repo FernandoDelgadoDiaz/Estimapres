@@ -39,6 +39,6 @@ export async function generarSemanaIntegrada(e:EntradaIntegrada,onProgreso?:(p:E
  const ids=asignarIdentidadesV2([...cajeros,...auxiliares,...eventuales])
  resultado.hibrido={version:1,algoritmo:'ah2-hibrido-091-v1',origen:salida.origen,estadoB:salida.estadoB,hashEntrada:salida.hashEntrada,
   entrada:input,minimosCajeros:structuredClone(e.entrada.contexto.minimosCajeros??[]),uiPorMotor:Object.fromEntries([...ids.uiPorV2].map(([k,p])=>[k,p.id]))}
- resultado.alertas.push(salida.origen==='B'?'Motor híbrido: se eligió una propuesta mejor validada.':`Motor híbrido: se conserva A como respaldo validado (${salida.estadoB}).`)
+ resultado.alertas.push(salida.origen==='B'?'Motor híbrido: se eligió una propuesta mejor validada.':salida.motivoSeleccion?.startsWith('Continuidad')?`Motor híbrido: ${salida.motivoSeleccion}`:`Motor híbrido: se conserva A como respaldo validado (${salida.estadoB}).`)
  return resultado
 }

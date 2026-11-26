@@ -55,9 +55,12 @@ export default function ReglasPage() {
     else agregarRegla({ ambito: 'local', tipo: t, activa: v, descripcion })
   }
   const reglaMaxFrancos = reglas.find(r => r.ambito === 'local' && r.tipo === 'max_francos_dia')
-  const setMaxFrancos = (n: number) => {
-    const val = Math.max(1, Math.min(6, Math.round(n || 1)))
-    const descripcion = `Máximo ${val} franco${val === 1 ? '' : 's'} por día`
+  // AH2-066: el máximo cuenta a todas las personas de caja (supervisores incluidos). Vacío = automático.
+  const maxFrancosActivo = reglaMaxFrancos?.activa ? reglaMaxFrancos.cantidad : undefined
+  const setMaxFrancos = (texto: string) => {
+    if (!texto.trim()) { if (reglaMaxFrancos) actualizarRegla(reglaMaxFrancos.id, { activa: false, descripcion: 'Máximo de francos por día: automático' }); return }
+    const val = Math.max(1, Math.min(6, Math.round(Number(texto) || 1)))
+    const descripcion = `Máximo ${val} persona${val === 1 ? '' : 's'} de franco por día (supervisores incluidos)`
     if (reglaMaxFrancos) actualizarRegla(reglaMaxFrancos.id, { cantidad: val, activa: true, descripcion })
     else agregarRegla({ ambito: 'local', tipo: 'max_francos_dia', cantidad: val, activa: true, descripcion })
   }
@@ -109,8 +112,9 @@ export default function ReglasPage() {
       </Seccion>
 
       <Seccion titulo="Francos">
-        <FilaAjuste titulo="Máximo de cajeros de franco el mismo día" id="max-francos">
-          <input id="max-francos" type="number" min={1} max={6} value={reglaMaxFrancos?.cantidad ?? 2} onChange={e => setMaxFrancos(Number(e.target.value))} style={{ ...estiloCampo, width: '80px', textAlign: 'center' }} />
+        <FilaAjuste titulo="Máximo de personas de franco el mismo día (supervisores incluidos)" id="max-francos"
+          ayuda="Vacío = automático: el personal de caja se reparte en los 7 días y los días de menos necesidad de cajas llevan un franco más. Los francos fijos siempre se respetan.">
+          <input id="max-francos" type="number" min={1} max={6} placeholder="Auto" value={maxFrancosActivo ?? ''} onChange={e => setMaxFrancos(e.target.value)} style={{ ...estiloCampo, width: '80px', textAlign: 'center' }} />
         </FilaAjuste>
         <FilaAjuste titulo={TEXTO_OPERATIVA.franco_medio_corridos.titulo} ayuda={TEXTO_OPERATIVA.franco_medio_corridos.ayuda}>
           <Interruptor activo={estado('franco_medio_corridos')} onCambiar={v => cambiarOperativa('franco_medio_corridos', v)} etiqueta={TEXTO_OPERATIVA.franco_medio_corridos.titulo} />

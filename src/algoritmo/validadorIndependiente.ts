@@ -238,8 +238,9 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
         const c = porId.get(h.colaboradorId)?.contrato
         return (c === 'FULL' || c === 'PART') && h.jornadas.some(j => j.dia === d && j.esFranco)
       }).length
-      if (n > (e.maxFrancosPorDia?.[d]??e.maxFrancosDia??2)) {
-        v.push({ codigo: 'OP_MAX_FRANCOS_DIA', nivel: 'OPERATIVA', dia: d, detalle: `${n} francos el ${DIAS[d]} (máximo ${e.maxFrancosDia}).` })
+      const max = e.maxFrancosPorDia?.[d] ?? e.maxFrancosDia ?? 2
+      if (n > max) {
+        v.push({ codigo: 'OP_MAX_FRANCOS_DIA', nivel: 'OPERATIVA', dia: d, detalle: `${n} francos de cajeros el ${DIAS[d]} (máximo ${max}).` })
       }
     }
   }
