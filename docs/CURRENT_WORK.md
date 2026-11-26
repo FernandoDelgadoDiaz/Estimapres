@@ -5,8 +5,14 @@
 **AH2-068 en PR (sin publicar):** principio general (MASTER): cada regla nueva pisa a la anterior del mismo tema; sin regla nueva, persiste la que estaba. Se suma «Mínimo de cajeros por franja»: la nueva pisa a las que se cruzan (mismo día o todos los días, horarios superpuestos). `src/utils/reglasReemplazo.ts`. Vitest 691 passed / 4 skipped.
 
 ### Pendiente
-- Fusionar y publicar AH2-068 (autorización).
+- (AH2-068 fusionado y publicado: main@5530e2c.)
 - Antes del 07/12: comparar en modo prueba con margen 0 y margen 2.
+### Incidente 26/11 (resuelto): «supervisor de jornada completa» apagado
+- Al borrar duplicados de reglas de la 091 (m2) se borró la copia visible para el local de la app (local_id 6dd2b43e…); la que quedó (f0302f3c…, del 20/07) es de otro local_id y la app no la ve por RLS. La app tomó el valor por defecto (apagado): semana 30/11 v2 con Maida 3 h de caja.
+- Arreglo sin SQL: el propietario volvió a encender la regla en Configuración. v3 (23:39 UTC, origen B): Maida 11,5 h · Heriberto 11,5 h · Silvia 13 h. v3 vigente.
+- Lección: los duplicados se revisan siempre por local_id (lo que la app ve), no solo por sucursal.
+- Rama `fix/ah2-069-caja-aux-pareja` (borrador, sin PR): reparto parejo de la caja entre AUX cuando B desempata por orden alfabético. Menor; pendiente de decidir.
+
 ---
 
 ## RELEVO ANTERIOR — AH2-066 francos parejos (fusionado) · 26/11/2026, Claude
