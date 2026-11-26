@@ -12,7 +12,9 @@
  *      · si no, se borra;
  *      · una que ya terminó (o que no se cruza con la nueva y es anterior) se borra para no acumular;
  *      · una que empieza después de que termina la nueva no se toca (es para otro período futuro).
- *  - «Mínimo de cajeros por franja» admite varias (una por franja): no se reemplaza.
+ *  - «Mínimo de cajeros por franja» (AH2-068): la nueva pisa a las que se cruzan con ella (mismo día o «todos los
+ *    días», y horarios que se superponen). Las de otras franjas siguen: son otro tema.
+ *  Si no se carga ninguna regla nueva, la que estaba sigue rigiendo.
  */
 import type { ReglaConfigurable } from '../types'
 
@@ -24,6 +26,10 @@ export const TIPOS_SUCURSAL_UNICOS: ReadonlySet<string> = new Set([
 /** Tema de una regla por persona: las del mismo tema se reemplazan entre sí. */
 const temaPersona = (tipo: string) => (['turno', 'siempre_manana', 'siempre_cierre'].includes(tipo) ? 'turno' : tipo)
 
+const mismoDia = (a?: number, b?: number) => a === undefined || b === undefined || a === -1 || b === -1 || a === b
+const seCruzanFranjas = (a: Pick<ReglaConfigurable, 'dia' | 'horaDesde' | 'horaHasta'>, b: Pick<ReglaConfigurable, 'dia' | 'horaDesde' | 'horaHasta'>) =>
+  mismoDia(a.dia, b.dia) && (a.horaDesde ?? '00:00') < (b.horaHasta ?? '24:00') && (b.horaDesde ?? '00:00') < (a.horaHasta ?? '24:00')
+
 const diaAnterior = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10) }
 
 export interface Reemplazo { borrar: ReglaConfigurable[]; recortar: Array<{ regla: ReglaConfigurable; vigenciaHasta: string }> }
@@ -33,6 +39,7 @@ export function reemplazoDeReglas(existentes: ReglaConfigurable[], nueva: Omit<R
   const out: Reemplazo = { borrar: [], recortar: [] }
   if (nueva.ambito === 'local') {
     if (TIPOS_SUCURSAL_UNICOS.has(nueva.tipo)) out.borrar = existentes.filter(r => r.ambito === 'local' && r.tipo === nueva.tipo)
+    else if (nueva.tipo === 'min_cajeros_franja') out.borrar = existentes.filter(r => r.ambito === 'local' && r.tipo === 'min_cajeros_franja' && seCruzanFranjas(r, nueva))
     return out
   }
   if (!nueva.colaboradorNombre) return out

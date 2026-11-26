@@ -14,9 +14,17 @@ describe('AH2-067 · la regla nueva reemplaza a la anterior del mismo tema', () 
     const a = r({ tipo: 'supervisor_jornada_completa' }), b = r({ tipo: 'supervisor_jornada_completa' })
     expect(reglasReemplazadas([a, b], { ambito: 'local', tipo: 'supervisor_jornada_completa', descripcion: '' })).toEqual([a, b])
   })
-  it('mínimo de cajeros por franja admite varias', () => {
-    const f = r({ tipo: 'min_cajeros_franja', horaDesde: '10:00', horaHasta: '12:00', cantidad: 3 })
-    expect(reglasReemplazadas([f], { ambito: 'local', tipo: 'min_cajeros_franja', horaDesde: '18:00', horaHasta: '20:00', cantidad: 4, descripcion: '' })).toEqual([])
+  it('mínimo de cajeros por franja: la nueva pisa a la que se cruza; otras franjas siguen', () => {
+    const manana = r({ tipo: 'min_cajeros_franja', dia: -1, horaDesde: '10:00', horaHasta: '12:00', cantidad: 3 })
+    const tarde = r({ tipo: 'min_cajeros_franja', dia: -1, horaDesde: '18:00', horaHasta: '20:00', cantidad: 4 })
+    const sabado = r({ tipo: 'min_cajeros_franja', dia: 5, horaDesde: '11:00', horaHasta: '13:00', cantidad: 5 })
+    // Nueva franja de la tarde: no toca la de la mañana.
+    expect(reglasReemplazadas([manana], { ambito: 'local', tipo: 'min_cajeros_franja', dia: -1, horaDesde: '18:00', horaHasta: '20:00', cantidad: 4, descripcion: '' })).toEqual([])
+    // Mismo horario con otra cantidad: pisa a la anterior.
+    expect(reglasReemplazadas([manana, tarde], { ambito: 'local', tipo: 'min_cajeros_franja', dia: -1, horaDesde: '10:00', horaHasta: '12:00', cantidad: 2, descripcion: '' })).toEqual([manana])
+    // Sábado 11–12 se cruza con «todos los días 10–12» y con «sábado 11–13»; un lunes 11–12 no toca el del sábado.
+    expect(reglasReemplazadas([manana, tarde, sabado], { ambito: 'local', tipo: 'min_cajeros_franja', dia: 5, horaDesde: '11:00', horaHasta: '12:00', cantidad: 4, descripcion: '' })).toEqual([manana, sabado])
+    expect(reglasReemplazadas([sabado], { ambito: 'local', tipo: 'min_cajeros_franja', dia: 0, horaDesde: '11:00', horaHasta: '12:00', cantidad: 4, descripcion: '' })).toEqual([])
   })
   const HOY = '2026-11-26'
   const p = (x: Partial<ReglaConfigurable>) => r({ ambito: 'colaborador', tipo: 'franco_fijo', colaboradorNombre: 'Ana', ...x })

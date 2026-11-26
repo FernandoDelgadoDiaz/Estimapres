@@ -1,4 +1,15 @@
-## PUNTO ÚNICO DE RETOMA — AH2-066 francos parejos (fusionado) · 26/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-068 principio general de reglas (PR) · 26/11/2026, Claude
+
+**Estado:** `main@a2d473b` (AH2-066 + AH2-067 fusionados); publicación en Netlify a cargo del propietario. Cloud Run sin cambios.
+
+**AH2-068 en PR (sin publicar):** principio general (MASTER): cada regla nueva pisa a la anterior del mismo tema; sin regla nueva, persiste la que estaba. Se suma «Mínimo de cajeros por franja»: la nueva pisa a las que se cruzan (mismo día o todos los días, horarios superpuestos). `src/utils/reglasReemplazo.ts`. Vitest 691 passed / 4 skipped.
+
+### Pendiente
+- Fusionar y publicar AH2-068 (autorización).
+- Antes del 07/12: comparar en modo prueba con margen 0 y margen 2.
+---
+
+## RELEVO ANTERIOR — AH2-066 francos parejos (fusionado) · 26/11/2026, Claude
 
 **Estado de producción:** `main@acf59f5` (AH2-065, arreglo de la pantalla en blanco) fusionado; publicación a cargo del propietario. Cloud Run `aliada-optimizer-00010-29t` sin cambios. Punto de retorno sin AH2-063: `docs/RETORNO_PRE_AH2-063.md`.
 
