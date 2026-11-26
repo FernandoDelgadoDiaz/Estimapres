@@ -209,6 +209,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
   }, [correcciones, semanasOperativas, hibridoDisponible])
   // AH2-063: rotación mensual (continuidad dentro del mes, rotación al cambiar de mes) y domingos parejos.
   const rotacion = useMemo(() => {
+    // AH2-065: hasta subir el POM no hay semana elegida: no se calcula la rotación (antes rompía la pantalla).
+    if (!esLunesISO(lunesSemana)) return rotacionMensual([], '', { cajeros: [] })
     const vigentes = reglas.filter(r => r.ambito === 'colaborador' && r.colaboradorNombre && reglaVigenteEnSemana(r, lunesSemana))
     return rotacionMensual(semanasOperativas, lunesSemana, {
       cajeros: colaboradores.filter(c => c.activo !== false && (c.tipo === 'FULL' || c.tipo === 'PART')).map(c => ({ id: c.id, nombre: c.nombre })),
