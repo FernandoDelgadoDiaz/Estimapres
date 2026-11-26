@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ReglaConfigurable } from '../types'
+import { reglasReemplazadas } from '../utils/reglasReemplazo'
 import { cargarReglas, guardarRegla, eliminarReglaRemota, reemplazarReglas, backendActivo } from '../utils/almacen'
 
 /**
@@ -29,8 +30,11 @@ export function useReglas() {
       activa: nueva.activa ?? true,
       creadaEl: new Date().toISOString(),
     }
-    setReglas(prev => [...prev, regla])
-    void guardarRegla(regla)
+    // AH2-067: la regla nueva reemplaza a la anterior del mismo tema (no se acumulan).
+    const reemplazadas = reglasReemplazadas(reglas, nueva)
+    const ids = new Set(reemplazadas.map(r => r.id))
+    setReglas(prev => [...prev.filter(r => !ids.has(r.id)), regla])
+    void guardarRegla(regla).then(() => Promise.all(reemplazadas.map(r => eliminarReglaRemota(r.id))))
     return regla
   }
 

@@ -11,6 +11,8 @@
 ### Pendiente
 - Publicar AH2-066 (deploy de `main@0f0d94e`, «Publish deploy» del propietario).
 
+**AH2-067 en PR #93 (sin publicar):** una regla nueva reemplaza a la anterior del mismo tema (Configuración ya no acumula reglas). `src/utils/reglasReemplazo.ts` + `useReglas.agregarRegla`. Vitest 685 passed / 4 skipped; Playwright 25 passed.
+
 ### Hecho (datos, 26/11, con OK del propietario; SQL pegado por él)
 - m2 de la auditoría: borradas en la 091 dos reglas duplicadas antiguas: «Eventuales fuera de caja desde las 22:00» (vigente: 21:00) y una copia repetida de «Supervisor de jornada completa». Verificado por lectura: quedan una regla por tipo. Sin efecto en la generación.
 - Antes del 07/12: comparar en modo prueba con margen 0 y margen 2.

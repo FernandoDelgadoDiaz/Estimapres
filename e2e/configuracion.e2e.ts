@@ -26,7 +26,11 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   // Máximo de francos y eventuales
   await page.getByLabel('Máximo de personas de franco el mismo día (supervisores incluidos)').fill('3')
   await page.getByLabel('Tramos de caja por día').selectOption('2')
+  // AH2-067: cambiar la hora varias veces deja una sola regla (la última).
+  await page.getByLabel('No atienden caja después de las').selectOption('22:00')
   await page.getByLabel('No atienden caja después de las').selectOption('21:00')
+  await page.getByLabel('Tramos de caja por día').selectOption('3')
+  await page.getByLabel('Tramos de caja por día').selectOption('2')
 
   // Regla por persona: franco fijo
   await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A (PART)' })
@@ -80,7 +84,9 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await expect(page.getByText('Exportar JSON')).toHaveCount(0)
 
   // Lo guardado es lo que usa la generación: misma regla de la sucursal, sin duplicados.
-  const reglas = await page.evaluate(() => JSON.parse(localStorage.getItem('aliada_reglas_configurables::900') ?? '[]') as Array<{ tipo: string; activa: boolean; cantidad?: number }>)
+  const reglas = await page.evaluate(() => JSON.parse(localStorage.getItem('aliada_reglas_configurables::900') ?? '[]') as Array<{ tipo: string; activa: boolean; cantidad?: number; hora?: string }>)
+  expect(reglas.filter(r => r.tipo === 'eventuales_caja_hora_limite')).toEqual([expect.objectContaining({ hora: '21:00', activa: true })])
+  expect(reglas.filter(r => r.tipo === 'max_bloques_caja_eventual_dia')).toEqual([expect.objectContaining({ cantidad: 2, activa: true })])
   expect(reglas.filter(r => r.tipo === 'apertura_solo_aux')).toEqual([expect.objectContaining({ activa: false })])
   expect(reglas.filter(r => r.tipo === 'max_francos_dia')).toEqual([expect.objectContaining({ cantidad: 3, activa: true })])
 })
