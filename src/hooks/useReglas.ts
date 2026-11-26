@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ReglaConfigurable } from '../types'
+import { reemplazoDeReglas } from '../utils/reglasReemplazo'
 import { cargarReglas, guardarRegla, eliminarReglaRemota, reemplazarReglas, backendActivo } from '../utils/almacen'
 
 /**
@@ -29,8 +30,18 @@ export function useReglas() {
       activa: nueva.activa ?? true,
       creadaEl: new Date().toISOString(),
     }
-    setReglas(prev => [...prev, regla])
-    void guardarRegla(regla)
+    // AH2-067: la regla nueva reemplaza a la anterior del mismo tema (no se acumulan).
+    const hoy = new Date().toLocaleDateString('sv-SE') // YYYY-MM-DD local
+    const { borrar, recortar } = reemplazoDeReglas(reglas, nueva, hoy)
+    const ids = new Set(borrar.map(r => r.id))
+    const recorte = new Map(recortar.map(x => [x.regla.id, x.vigenciaHasta]))
+    setReglas(prev => [...prev.filter(r => !ids.has(r.id)).map(r => (recorte.has(r.id) ? { ...r, vigenciaHasta: recorte.get(r.id) } : r)), regla])
+    // En orden (no en paralelo): el respaldo local lee y escribe el mismo almacén.
+    void (async () => {
+      await guardarRegla(regla)
+      for (const r of borrar) await eliminarReglaRemota(r.id)
+      for (const x of recortar) await guardarRegla({ ...x.regla, vigenciaHasta: x.vigenciaHasta })
+    })()
     return regla
   }
 
