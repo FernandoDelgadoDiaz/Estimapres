@@ -160,6 +160,22 @@ export function ejecutarPasada1(input: InputAlgoritmo, reoptimizar = true): Resu
     semanas.set(colab.id, semilla);
   }
 
+  // AH2-066: los francos fijos se reservan antes de repartir. Sin esto, con un tope de 1 en un día, otro cajero
+  // podía tomar ese único lugar antes que quien tiene el franco fijo ahí y la generación quedaba sin plan.
+  const francoFijo = new Map<string, number>();
+  for (const c of orden) {
+    const e = excepciones.find(x => x.tipo === "franco_dia" && !x.dias && (x.colaboradorId ? x.colaboradorId === c.id : x.colaboradorNombre === c.nombre));
+    const d = e ? parseInt(e.valor ?? "-1") : -1;
+    if (d >= 0 && d < 7) francoFijo.set(c.id, d);
+  }
+  const capPara = (id: string): number | number[] => {
+    if (!francoFijo.size) return cap_francos;
+    const cap = Array.isArray(cap_francos) ? [...cap_francos] : new Array(7).fill(cap_francos);
+    // Se descuentan los francos fijos de los demás que todavía no tienen semana asignada.
+    for (const [otro, d] of francoFijo) if (otro !== id && !semanas.get(otro)) cap[d] = Math.max(0, cap[d] - 1);
+    return cap;
+  };
+
   const t0 = Date.now();
   for (let pasada = 0; reoptimizar && pasada < MAX_PASADAS; pasada++) {
     let cambios = 0;
@@ -176,8 +192,8 @@ export function ejecutarPasada1(input: InputAlgoritmo, reoptimizar = true): Resu
       const pre = prefijosUtilidad(demanda, cobertura, pesosEfectivos);
       const contrato = contratoPart(input, colab.id);
       const nueva = es_full
-        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, aperturaSoloAux, francoMedioCorridos, input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0)
-        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, cap_francos, contrato, PEN_HORA, input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0);
+        ? optimizarSemanaFull(colab, pre, francos_full, francos_part, excepciones, sesgo, capPara(colab.id), aperturaSoloAux, francoMedioCorridos, input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0)
+        : optimizarSemanaPart(colab, pre, francos_full, francos_part, excepciones, sesgo, capPara(colab.id), contrato, PEN_HORA, input.inicio_minimo_lunes_por_colaborador?.[colab.id] ?? 0);
       const penal = (sem: Jornada[]) => (es_full ? 0 : penalizacionHoras(sem, contrato, PEN_HORA));
 
       let elegida: Jornada[] | null = previa;

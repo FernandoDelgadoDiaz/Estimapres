@@ -172,6 +172,8 @@ export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones
   preferenciasPorNombre?: Record<string, Partial<SesgoTurno>>;
   demandaMinima?: Array<{ dia: number; slotDesde: number; slotHasta: number; cantidad: number }>;
   maxFrancosDia?: number;
+  /** AH2-066: tope de francos de cajeros por día (lunes a domingo). */
+  maxFrancosPorDia?: number[];
   // Criterios de cobertura aprendidos: peso por slot (30 valores, default 1).
   pesosFranja?: number[];
   // Reglas operativas configurables de la sucursal (toggles con default).
@@ -292,6 +294,7 @@ export function convertirInputAV2(
     excepciones: [...excepciones, ...excepcionesFinCajeros],
     preferencias_turno,
     max_francos_dia: opciones?.maxFrancosDia,
+    ...(opciones?.maxFrancosPorDia?.length === 7 ? { max_francos_por_dia: opciones.maxFrancosPorDia.map(n => Math.max(0, Math.round(n))) } : {}),
     pesos_franja: opciones?.pesosFranja,
     apertura_solo_aux: opciones?.aperturaSoloAux,
     sin_aux_cierre: opciones?.sinAuxCierre,

@@ -10,6 +10,7 @@ import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import ProgresoGeneracion from '../components/semana/ProgresoGeneracion'
 import { mesDeSemana, rotacionMensual } from '../utils/rotacionMensual'
+import { francosFijosPorDia, necesidadPorDia, supervisoresDeFrancoPorDia, topesFrancosPorDia } from '../utils/topesFrancos'
 import { useAsignacion } from '../hooks/useAsignacion'
 import { useReglas } from '../hooks/useReglas'
 import { useHistorial } from '../hooks/useHistorial'
@@ -44,6 +45,7 @@ import {
   resumirTurnos,
   reglaVigenteEnSemana,
   margenContinuidadDeReglas,
+  normalizarExcepciones,
 } from '../utils/preferencias'
 import { format, startOfWeek } from 'date-fns'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
@@ -307,10 +309,19 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
     // Capacidad 1: reglas configuradas → excepciones + demanda mínima + tope de francos
     const excepcionesTotales = [...excepciones, ...reglasAExcepciones(reglas, fechaLunes, Object.fromEntries(cajerosActivos.map(c => [c.nombre, c.tipo])))]
     const operativa = operativaSemana ?? configOperativaDeReglas(reglas, fechaLunes)
+    // AH2-066: francos parejos en la semana contando a los supervisores (tope por día: configurado o según dotación).
+    const topesFrancos = topesFrancosPorDia({
+      necesidadPorDia: necesidadPorDia(necesidad), cajeros: cajerosActivos.length,
+      supervisores: disponibilidad.auxiliares.length,
+      supervisoresDeFranco: supervisoresDeFrancoPorDia(disponibilidad.auxiliares),
+      francosFijosCajeros: francosFijosPorDia(normalizarExcepciones(excepcionesTotales), cajerosActivos.map(c => c.nombre)),
+      maximoConfigurado: capFrancosDeReglas(reglas, fechaLunes),
+    })
     const opciones = {
       preferenciasPorNombre: sesgosGeneracion, // No aprender de simulaciones si se importó el domingo operativo
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
-      maxFrancosDia: capFrancosDeReglas(reglas, fechaLunes),
+      maxFrancosDia: Math.max(...topesFrancos.cajerosPorDia, 1),
+      maxFrancosPorDia: topesFrancos.cajerosPorDia,
       // AH2-053: los cajeros terminan como máximo a las 22:30 (salvo configuración particular del local).
       cajerosFinHoraLimite: FIN_CAJEROS_POR_DEFECTO,
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
@@ -330,6 +341,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       necesidad,
       excepciones: excepcionesTotales,
       maxFrancosDia: opciones.maxFrancosDia,
+      maxFrancosPorDia: opciones.maxFrancosPorDia,
+      supervisoresDeFranco: supervisoresDeFrancoPorDia(disponibilidad.auxiliares),
       minimosCajeros: opciones.demandaMinima,
       semanaAnterior: hibridoDisponible?undefined:previa?.horarios,
       finDomingoAnteriorPorId: antecedenteDomingo?.finPorId,

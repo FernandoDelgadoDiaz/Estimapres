@@ -15,6 +15,13 @@ describe('AH2-062 · diagnóstico antes de generar', () => {
     expect(m[0]).toContain('Quitá 6 francos')
     expect(m[0]).not.toMatch(/OP_|franco_dia|restricci/)
   })
+  it('AH2-066: el máximo cuenta a los supervisores de franco ese día y el mensaje lo dice', () => {
+    const m = diagnosticoPrevio(cajeros, [franco('Cajero 1', '2'), franco('Cajero 2', '2')], { maxFrancosDia: 2, maxFrancosPorDia: [2, 2, 1, 2, 2, 2, 2], supervisoresDeFranco: [0, 0, 1, 0, 0, 0, 0] })
+    expect(m).toHaveLength(1)
+    expect(m[0]).toContain('El miércoles tienen franco 2 cajeros')
+    expect(m[0]).toContain('el máximo es 2 personas por día y ese día ya está de franco un supervisor')
+    expect(m[0]).toContain('Quitá un franco')
+  })
   it('dos francos para la misma persona (regla de Configuración + cambio de la semana)', () => {
     const m = diagnosticoPrevio(cajeros, [franco('Cajero 1', '0'), franco('Cajero 1', 'Mié')], { maxFrancosDia: 2 })
     expect(m[0]).toContain('Cajero 1 tiene franco cargado 2 días (lunes y miércoles)')

@@ -1,4 +1,21 @@
-## PUNTO ÚNICO DE RETOMA — AH2-064 límite de preferencias (PR) + auditoría punta a punta · 23/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-066 francos parejos (PR) · 26/11/2026, Claude
+
+**Estado de producción:** `main@acf59f5` (AH2-065, arreglo de la pantalla en blanco) fusionado; publicación a cargo del propietario. Cloud Run `aliada-optimizer-00010-29t` sin cambios. Punto de retorno sin AH2-063: `docs/RETORNO_PRE_AH2-063.md`.
+
+**AH2-066 en PR (sin publicar):** rama `feat/ah2-066-francos-parejos`. Tope de francos por día que cuenta a cajeros y supervisores: configurado por la sucursal, o automático (dotación / 7, franco extra en los días de menos necesidad). Motores y validador reciben el tope de cajeros por día (`max_francos_por_dia`). El motor A reserva los francos fijos antes de repartir. Correcciones en Horarios: mismo tope sin invalidar lo guardado y control de salida máxima de cajeros (22:30). Aviso del híbrido cuando gana el candidato de continuidad. Configuración: máximo vacío = automático. Solo Netlify.
+
+**Pruebas:** Vitest 681 passed / 4 skipped; Playwright 25 passed; lint y build OK. Motor B real local (entrada de laboratorio 091): misma cobertura con y sin AH2-066; francos parejos.
+
+**Atención 091:** no tiene guardado el máximo de francos (la pantalla mostraba 2 por defecto). Con AH2-066 queda en automático; si se quiere 2 personas por día hay que cargarlo en Configuración.
+
+### Pendiente
+- CI, fusión y publicación de AH2-066 (autorización del propietario).
+- m2 de la auditoría: borrar reglas duplicadas antiguas (eventuales_caja_hora_limite 22:00 y un supervisor_jornada_completa repetido) — cambio de datos, requiere OK.
+- Antes del 07/12: comparar en modo prueba con margen 0 y margen 2.
+- Reemplazo asistido de supervisor ausente; rangos de turnos por sucursal; salida máxima de cajeros por local en pantalla; motor B por local.
+---
+
+## RELEVO ANTERIOR — AH2-064 límite de preferencias (PR) + auditoría punta a punta · 23/11/2026, Claude
 
 **Estado de producción:** Netlify deploy `6b045cba48b76ef16001de64` = `main@486cd82` (**AH2-063 publicado 23/11 15:34 UTC**). Punto de retorno a la versión sin AH2-063: rama `retorno/pre-ah2-063` y deploy `6b0445415809b6e33efd8a88` (`docs/RETORNO_PRE_AH2-063.md`). Cloud Run `aliada-optimizer-00010-29t` sin cambios.
 

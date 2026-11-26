@@ -11,7 +11,9 @@ import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import { useCorrecciones } from '../hooks/useCorrecciones'
 import { aplicarEdicionConRecalculo } from '../hooks/useAsignacion'
-import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas } from '../utils/preferencias'
+import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas, normalizarExcepciones } from '../utils/preferencias'
+import { FIN_CAJEROS_POR_DEFECTO } from '../algoritmo/adapter'
+import { francosFijosPorDia, necesidadPorDia, supervisoresDeFrancoPorDia, topesFrancosPorDia } from '../utils/topesFrancos'
 import { generarPDF } from '../utils/exportPDF'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
 import { getSucursalActual } from '../utils/sucursal'
@@ -20,7 +22,7 @@ import CoberturaLive from '../components/semana/CoberturaLive'
 import PanelAusencia, { type PersonaSemana } from '../components/semana/PanelAusencia'
 import { apoyoDeSemana, inicioLunesSiguiente, notaContingencia, versionPorContingencia } from '../contingencias/semana'
 import type { EntradaReparacion } from '../contingencias/reparar'
-import type { AusenciaCargada, SemanaHistorial } from '../types'
+import type { AusenciaCargada, ExcepcionSemanal, SemanaHistorial } from '../types'
 
 /**
  * «Horarios» del supervisor: abre en el último horario generado y permite elegir
@@ -107,12 +109,32 @@ export default function HorariosPage() {
     if (!ultimaSemana || !necesidadFranjas || !operativa) return null
     const disp = ultimaSemana.disponibilidadSemana
     const conDisp = <T extends { id: string; horarioSemanal: string[] }>(p: T): T => (disp?.[p.id] ? { ...p, horarioSemanal: disp[p.id] } : p)
+    const excepcionesReglas = reglasAExcepciones(reglas, ultimaSemana.fechaLunes, Object.fromEntries(colaboradoresActivos.map(c => [c.nombre, c.tipo])))
+    const cajeros = colaboradoresActivos.filter(c => c.tipo === 'FULL' || c.tipo === 'PART')
+    // Salida máxima de cajeros de la sucursal (22:30 por defecto): también se controla en las correcciones.
+    const finCajeros = ultimaSemana.hibrido?.entrada?.cajeros_fin_hora_limite ?? FIN_CAJEROS_POR_DEFECTO
+    const excepcionesValidacion = finCajeros < '23:00'
+      ? [...excepcionesReglas, ...cajeros.map(c => ({ id: `fin-cajeros-${c.id}`, colaboradorNombre: c.nombre, tipo: 'no_despues_de', valor: finCajeros, descripcion: 'salida máxima de cajeros de la sucursal' }) as ExcepcionSemanal)]
+      : excepcionesReglas
+    // AH2-066: el mismo tope de francos por día que al generar. Lo que ya estaba guardado no se invalida:
+    // una corrección solo no puede sumar francos por encima del tope.
+    const topes = topesFrancosPorDia({
+      necesidadPorDia: necesidadPorDia(necesidadFranjas.map(n => ({ necesidad: n }))), cajeros: cajeros.length,
+      supervisores: auxiliaresActivos.length,
+      supervisoresDeFranco: supervisoresDeFrancoPorDia(auxiliaresActivos.map(conDisp)),
+      francosFijosCajeros: francosFijosPorDia(normalizarExcepciones(excepcionesReglas), cajeros.map(c => c.nombre)),
+      maximoConfigurado: capFrancosDeReglas(reglas, ultimaSemana.fechaLunes),
+    })
+    const idsCajeros = new Set(cajeros.map(c => c.id))
+    const maxFrancosPorDia = topes.cajerosPorDia.map((t, d) => Math.max(t, ultimaSemana.horarios
+      .filter(h => idsCajeros.has(h.colaboradorId) && h.jornadas.some(j => j.dia === d && j.esFranco)).length))
     return validarResultadoSemana(
       resultado, colaboradoresActivos, auxiliaresActivos.map(conDisp), eventualesActivos.map(conDisp),
       {
         necesidad: HORAS_FRANJAS.map((hora, fi) => ({ hora, necesidad: necesidadFranjas[fi] ?? Array(7).fill(0) })),
-        excepciones: reglasAExcepciones(reglas, ultimaSemana.fechaLunes, Object.fromEntries(colaboradoresActivos.map(c => [c.nombre, c.tipo]))),
-        maxFrancosDia: capFrancosDeReglas(reglas, ultimaSemana.fechaLunes),
+        excepciones: excepcionesValidacion,
+        maxFrancosDia: Math.max(...maxFrancosPorDia, 1),
+        maxFrancosPorDia,
         minimosCajeros: demandaMinimaDeReglas(reglas, ultimaSemana.fechaLunes),
         operativa,
         omitirDisponibilidadEventual: !disp,
