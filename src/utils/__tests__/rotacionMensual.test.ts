@@ -93,3 +93,14 @@ describe('AH2-063 · sin semana elegida', () => {
     expect(rotacionMensual([], 'no-es-fecha', { cajeros }).explicacion.modo).toBe('sin_historia')
   })
 })
+
+describe('AH2-065 · vigencia de reglas sin semana elegida', () => {
+  it('una regla por persona con fechas no rompe con fecha vacía o inválida', async () => {
+    const { reglaVigenteEnSemana } = await import('../preferencias')
+    const r = { id: 'x', ambito: 'colaborador', tipo: 'prefiere_domingos', colaboradorNombre: 'A', activa: true, descripcion: '', creadaEl: '', vigenciaDesde: '2026-11-30', vigenciaHasta: '2026-12-06' } as never
+    expect(() => reglaVigenteEnSemana(r, '')).not.toThrow()
+    expect(reglaVigenteEnSemana(r, '')).toBe(false)
+    expect(reglaVigenteEnSemana(r, 'no-es-fecha')).toBe(false)
+    expect(reglaVigenteEnSemana(r, '2026-11-30')).toBe(true)
+  })
+})

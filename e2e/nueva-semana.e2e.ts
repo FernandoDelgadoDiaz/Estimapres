@@ -379,3 +379,18 @@ test('AH2-062: con más francos en un día que el máximo, explica por qué no g
   await expect(page.getByTestId('progreso-generacion')).toHaveCount(0) // no llama al motor
   if (process.env.SP) await error.screenshot({ path: process.env.SP + '/ah2062-error.png' })
 })
+
+test('AH2-065: con una regla por persona con fechas, Nueva semana no se queda en blanco antes de subir el POM', async ({ page }) => {
+  const errores: string[] = []
+  page.on('pageerror', e => errores.push(e.message))
+  await page.addInitScript(({ c, regla }) => {
+    localStorage.setItem('aliada_sucursal_actual', '900')
+    localStorage.setItem('cajeros_colaboradores::900', JSON.stringify(c))
+    localStorage.setItem('aliada_reglas_configurables::900', JSON.stringify([regla]))
+  }, { c: CAJEROS_DE_PRUEBA, regla: { id: 'r-dom', ambito: 'colaborador', tipo: 'prefiere_domingos', colaboradorNombre: CAJEROS_DE_PRUEBA[0].nombre, activa: true, descripcion: 'prefiere domingos', creadaEl: '2026-11-25T00:00:00Z', vigenciaDesde: '2026-11-30', vigenciaHasta: '2026-12-06' } })
+  await page.goto('/nueva-semana')
+  await page.waitForTimeout(2500)
+  await expect(page.getByText('Arrastrá el PDF acá')).toBeVisible()
+  await expect(page.getByTestId('error-pantalla')).toHaveCount(0)
+  expect(errores).toEqual([])
+})

@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { ErrorPantalla } from './components/ui/ErrorPantalla'
 import Layout from './components/layout/Layout'
 import InicioPage from './pages/InicioPage'
 import ColaboradoresPage from './pages/ColaboradoresPage'
@@ -37,6 +38,7 @@ function App() {
     <Routes>
       <Route path="/*" element={
         <Layout>
+          <ErrorPantallaRuta>
           <Routes>
             <Route path="/" element={<InicioPage />} />
             <Route path="/colaboradores" element={<ColaboradoresPage />} />
@@ -50,10 +52,17 @@ function App() {
             <Route path="/efectividad" element={<EfectividadPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </ErrorPantallaRuta>
         </Layout>
       } />
     </Routes>
   )
+}
+
+/** AH2-065: cada pantalla con su protección; al cambiar de pantalla se intenta de nuevo. */
+function ErrorPantallaRuta({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation()
+  return <ErrorPantalla pantalla={pathname}>{children}</ErrorPantalla>
 }
 
 export default App

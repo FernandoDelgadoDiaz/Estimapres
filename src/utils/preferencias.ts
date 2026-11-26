@@ -581,6 +581,8 @@ export function explicarSesgos(sesgos: SesgosPorNombre): string[] {
 export function reglaVigenteEnSemana(regla: ReglaConfigurable, fechaLunes: string): boolean {
   if (!regla.activa) return false
   if (!regla.vigenciaDesde && !regla.vigenciaHasta) return true
+  // AH2-065: sin semana elegida (fecha vacía o inválida) una regla con fechas no aplica; nunca se rompe la pantalla.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaLunes) || Number.isNaN(Date.parse(`${fechaLunes}T00:00:00`))) return false
   const lunes = fechaLunes
   const domingo = sumarDias(fechaLunes, 6)
   if (regla.vigenciaDesde && regla.vigenciaDesde > domingo) return false
