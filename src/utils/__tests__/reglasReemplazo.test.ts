@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reglasReemplazadas } from '../reglasReemplazo'
+import { reemplazoDeReglas, reglasReemplazadas } from '../reglasReemplazo'
 import type { ReglaConfigurable } from '../../types'
 
 const r = (x: Partial<ReglaConfigurable>): ReglaConfigurable => ({ id: Math.random().toString(36).slice(2), ambito: 'local', tipo: 'eventuales_caja_hora_limite', activa: true, descripcion: '', creadaEl: '2026-11-01T00:00:00Z', ...x } as ReglaConfigurable)
@@ -18,11 +18,38 @@ describe('AH2-067 · la regla nueva reemplaza a la anterior del mismo tema', () 
     const f = r({ tipo: 'min_cajeros_franja', horaDesde: '10:00', horaHasta: '12:00', cantidad: 3 })
     expect(reglasReemplazadas([f], { ambito: 'local', tipo: 'min_cajeros_franja', horaDesde: '18:00', horaHasta: '20:00', cantidad: 4, descripcion: '' })).toEqual([])
   })
-  it('por persona: reemplaza la de la misma persona, tipo y vigencia; no toca otras personas ni otros períodos', () => {
-    const ana = r({ ambito: 'colaborador', tipo: 'no_antes_de', colaboradorNombre: 'Ana', hora: '09:00' })
-    const anaDic = r({ ambito: 'colaborador', tipo: 'no_antes_de', colaboradorNombre: 'Ana', hora: '10:00', vigenciaDesde: '2026-12-01', vigenciaHasta: '2026-12-31' })
-    const beto = r({ ambito: 'colaborador', tipo: 'no_antes_de', colaboradorNombre: 'Beto', hora: '09:00' })
-    const anaOtro = r({ ambito: 'colaborador', tipo: 'no_despues_de', colaboradorNombre: 'Ana', hora: '20:00' })
-    expect(reglasReemplazadas([ana, anaDic, beto, anaOtro], { ambito: 'colaborador', tipo: 'no_antes_de', colaboradorNombre: 'Ana', hora: '11:00', descripcion: '' })).toEqual([ana])
+  const HOY = '2026-11-26'
+  const p = (x: Partial<ReglaConfigurable>) => r({ ambito: 'colaborador', tipo: 'franco_fijo', colaboradorNombre: 'Ana', ...x })
+  const nueva = (x: Partial<ReglaConfigurable>) => ({ ambito: 'colaborador' as const, tipo: 'franco_fijo' as const, colaboradorNombre: 'Ana', descripcion: '', ...x })
+
+  it('franco fijo «siempre» jueves → «siempre» viernes: el del jueves se borra', () => {
+    const jue = p({ dia: 3 })
+    expect(reemplazoDeReglas([jue], nueva({ dia: 4 }), HOY)).toEqual({ borrar: [jue], recortar: [] })
+  })
+  it('franco fijo «siempre» jueves → viernes desde la semana que viene: el jueves termina el domingo anterior', () => {
+    const jue = p({ dia: 3 })
+    expect(reemplazoDeReglas([jue], nueva({ dia: 4, vigenciaDesde: '2026-12-07', vigenciaHasta: '2026-12-13' }), HOY))
+      .toEqual({ borrar: [], recortar: [{ regla: jue, vigenciaHasta: '2026-12-06' }] })
+  })
+  it('jueves de una semana ya pasada y viernes la semana siguiente: el vencido se borra (no se acumula)', () => {
+    const jue = p({ dia: 3, vigenciaDesde: '2026-11-16', vigenciaHasta: '2026-11-22' })
+    expect(reemplazoDeReglas([jue], nueva({ dia: 4, vigenciaDesde: '2026-11-30', vigenciaHasta: '2026-12-06' }), HOY).borrar).toEqual([jue])
+  })
+  it('jueves esta semana próxima y viernes la siguiente: el jueves se mantiene para su semana', () => {
+    const jue = p({ dia: 3, vigenciaDesde: '2026-11-30', vigenciaHasta: '2026-12-06' })
+    expect(reemplazoDeReglas([jue], nueva({ dia: 4, vigenciaDesde: '2026-12-07', vigenciaHasta: '2026-12-13' }), HOY)).toEqual({ borrar: [], recortar: [] })
+  })
+  it('una regla para un período posterior a la nueva no se toca', () => {
+    const enero = p({ dia: 3, vigenciaDesde: '2027-01-04', vigenciaHasta: '2027-01-31' })
+    expect(reemplazoDeReglas([enero], nueva({ dia: 4, vigenciaDesde: '2026-11-30', vigenciaHasta: '2026-12-31' }), HOY)).toEqual({ borrar: [], recortar: [] })
+  })
+  it('turno pedido, siempre mañana y siempre cierre son el mismo tema', () => {
+    const manana = p({ tipo: 'siempre_manana' })
+    expect(reglasReemplazadas([manana], nueva({ tipo: 'turno', turno: 'cierre' }), HOY)).toEqual([manana])
+  })
+  it('no toca otras personas ni otros temas', () => {
+    const beto = r({ ambito: 'colaborador', tipo: 'franco_fijo', colaboradorNombre: 'Beto', dia: 3 })
+    const anaHora = p({ tipo: 'no_antes_de', hora: '09:00' })
+    expect(reemplazoDeReglas([beto, anaHora], nueva({ dia: 4 }), HOY)).toEqual({ borrar: [], recortar: [] })
   })
 })
