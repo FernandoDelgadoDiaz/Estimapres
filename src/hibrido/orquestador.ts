@@ -47,10 +47,16 @@ function evaluar(input:InputAlgoritmo,r:ResultadoSemanal,raw:InputAlgoritmo){
  return {valido:infracciones.length===0,infracciones,datos,metricas:m}
 }
 
-const mejor=(input:InputAlgoritmo,a:ReturnType<typeof metricasAH2040>,b:typeof a)=>{
+export const mejor=(input:InputAlgoritmo,a:ReturnType<typeof metricasAH2040>,b:typeof a)=>{
  const ev=(x:typeof a)=>Object.values(x.horasCajaEventual).reduce((s,y)=>s+y,0)
- if(input.equilibrio_semanal_version===1||input.equilibrio_semanal_version===2)return protegeReferencia(input,a.faltantesPorFranja,b.faltantesPorFranja,a.sobrantesHoras,b.sobrantesHoras,false)&&
+ if(input.equilibrio_semanal_version===1||input.equilibrio_semanal_version===2){
+  // AH2-072 (decisión del propietario, 27/11/2026: «cobertura primero» también frente a la protección de picos):
+  // si B cubre más horas en la semana, gana aunque algún pico quede peor; con igual cobertura rige la protección.
+  const fa=medirEquilibrio(input,a.faltantesPorFranja).totalSlots,fb=medirEquilibrio(input,b.faltantesPorFranja).totalSlots
+  if(fa!==fb)return fb<fa
+  return protegeReferencia(input,a.faltantesPorFranja,b.faltantesPorFranja,a.sobrantesHoras,b.sobrantesHoras,false)&&
   compararEquilibrio(medirEquilibrio(input,b.faltantesPorFranja),medirEquilibrio(input,a.faltantesPorFranja),b.sobrantesHoras,a.sobrantesHoras,ev(b),ev(a))<0
+ }
  const ka=[a.faltantesHoras,a.sobrantesHoras,ev(a)],kb=[b.faltantesHoras,b.sobrantesHoras,ev(b)]
  for(let i=0;i<3;i++){if(kb[i]<ka[i])return true;if(kb[i]>ka[i])return false}
  return false
@@ -109,7 +115,7 @@ export async function generarPropuestaHibrida(entradaOriginal:InputAlgoritmo,op:
  // 3. Selección: solo candidatos válidos; B únicamente si es estrictamente mejor.
  const validoA=candA?.e.valido?candA:null,validoB=candB?.e.valido?candB:null
  let origen:Origen|null=null,motivo:string
- if(validoA&&validoB&&mejor(input,validoA.e.metricas,validoB.e.metricas)){origen='B';motivo=input.equilibrio_semanal_version===2?'B válido y mejor según cobertura, reparto de faltantes con prioridad a horas y días pico, y equilibrio semanal, sin descubrir picos de A.':input.equilibrio_semanal_version===1?'B válido y mejor según cobertura, protección de picos y equilibrio semanal, sin descubrir picos de A.':'B válido y estrictamente mejor que A (faltantes → sobrantes → horas EVENTUAL).'}
+ if(validoA&&validoB&&mejor(input,validoA.e.metricas,validoB.e.metricas)){origen='B';motivo=input.equilibrio_semanal_version===2?'B válido y mejor: cubre más horas en la semana o, con igual cobertura, reparte mejor los faltantes sin descubrir picos de A.':input.equilibrio_semanal_version===1?'B válido y mejor según cobertura, protección de picos y equilibrio semanal, sin descubrir picos de A.':'B válido y estrictamente mejor que A (faltantes → sobrantes → horas EVENTUAL).'}
  else if(validoA){origen='A';motivo=validoB?'A y B válidos; B no mejora a A: se conserva A.':op.transporte?`B no utilizable (${estadoB}); se usa A, válido.`:'Solo A (B no ejecutado en esta llamada).'}
  else if(validoB){origen='B';motivo='A inválido o sin resultado; B válido.'}
  else motivo='Ningún candidato cumple las restricciones obligatorias: no se presenta propuesta.'

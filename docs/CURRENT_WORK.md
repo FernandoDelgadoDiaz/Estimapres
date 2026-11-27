@@ -8,9 +8,10 @@
 3. Tras ese intercambio, el AUX liberado no se volvía a sentar donde quedaba demanda. Ahora se completa (paso 4 de la Pasada 2 reutilizado: `sentarAuxEnDeficit`).
 Resultado: A válido en las 9 combinaciones (antes inválido en 2); s4 sube de 97,74 % a 97,87 %. Además, texto de horas PART «4–8 h» con adicionales y e2e de la regla. Vitest 704 OK, Playwright 25 OK, build OK, pytest 185 OK (motor B sin cambios).
 
+**AH2-072 (decisión del propietario: «opción 2», cobertura primero también frente a picos):** en la misma rama `fix/auditoria-2` (selector `mejor` del orquestador) y en aliada-optimizer rama `feat/ah2-072-cobertura-primero` (búsqueda: solo exige no cubrir menos que A; selección: más cobertura gana, a igual cobertura rige la protección de picos). Pruebas `ah2072.test.ts` y `test_ah2072_cobertura_primero_frente_a_picos`.
+
 ### Pendiente
-- Decisión del propietario: la protección de picos (AH2-043) hace elegir A aunque B cubra más (s2: A 95,6 % vs B 97,2 %). Opción: extender «cobertura primero» a esa comprobación.
-- OK para fusionar `fix/auditoria-2`; publicar Cloud Run (`optimizer:52ff894`) y después Netlify; regenerar 30/11.
+- OK para fusionar `fix/auditoria-2` y `feat/ah2-072-cobertura-primero` (motor); publicar Cloud Run (imagen del motor con AH2-072) y después Netlify; regenerar 30/11.
 - Hallazgo previo: B no llega a los criterios después de faltantes con la dotación real.
 - Antes del 07/12: comparar margen 0 y margen 2.
 ---
