@@ -46,6 +46,7 @@ import {
   reglaVigenteEnSemana,
   margenContinuidadDeReglas,
   normalizarExcepciones,
+  horasAdicionalesDeReglas,
 } from '../utils/preferencias'
 import { format, startOfWeek } from 'date-fns'
 import { esLunesISO, fechasDeSemana } from '../utils/pomContrato'
@@ -324,6 +325,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       maxFrancosPorDia: topesFrancos.cajerosPorDia,
       // AH2-070: domingos parejos como criterio del motor (después de la cobertura).
       domingoFrancoEvitar: rotacion.evitarDomingo,
+      // AH2-071: horas adicionales PART vigentes en la semana.
+      horasAdicionales: horasAdicionalesDeReglas(reglas, fechaLunes),
       // AH2-053: los cajeros terminan como máximo a las 22:30 (salvo configuración particular del local).
       cajerosFinHoraLimite: FIN_CAJEROS_POR_DEFECTO,
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
@@ -345,6 +348,7 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       maxFrancosDia: opciones.maxFrancosDia,
       maxFrancosPorDia: opciones.maxFrancosPorDia,
       supervisoresDeFranco: supervisoresDeFrancoPorDia(disponibilidad.auxiliares),
+      horasAdicionales: opciones.horasAdicionales,
       minimosCajeros: opciones.demandaMinima,
       semanaAnterior: hibridoDisponible?undefined:previa?.horarios,
       finDomingoAnteriorPorId: antecedenteDomingo?.finPorId,

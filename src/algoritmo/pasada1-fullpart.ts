@@ -40,6 +40,7 @@ import {
   CATALOGO_FULL_CORRIDAS,
   CATALOGO_FULL_CORTADAS,
   CATALOGO_PART,
+  CATALOGO_PART_ADICIONAL,
   generarParesCortada,
 } from "./catalogos";
 
@@ -293,6 +294,9 @@ function slotsSemana(semana: Jornada[] | undefined): number {
 }
 
 /** Contrato PART en slots: el informado por persona o el tope histórico (31 h). */
+/** AH2-071: costo mínimo por media hora adicional en «hasta» (desempata: no suma horas sin cobertura). */
+const EPS_HORA_ADICIONAL = 0.01;
+
 function contratoPart(input: InputAlgoritmo, id: string): ContratoSlots {
   return input.contratos?.[id] ?? { objetivoSlots: MAX_SLOTS_PART_HISTORICO, maximoSlots: MAX_SLOTS_PART_HISTORICO };
 }
@@ -562,11 +566,13 @@ function candidatosDiaPart(
   excepciones: ExcepcionSemanal[],
   franco_permitido: boolean,
   pen_franco: number,
-  sesgo: SesgoTurno
+  sesgo: SesgoTurno,
+  adicional = false
 ): Candidato[] {
   const cands: Candidato[] = [];
 
-  for (const jv of CATALOGO_PART) {
+  // AH2-071: con horas adicionales, corridas de 4 a 8 h y cortada (tramos de 3 a 5 h, ≤ 8 h, corte ≥ 4 h).
+  for (const jv of adicional ? CATALOGO_PART_ADICIONAL : CATALOGO_PART) {
     for (let ini = jv.slot_inicio_min; ini <= jv.slot_inicio_max; ini++) {
       const fin = ini + jv.duracion_slots;
       if (fin > 30) continue;
@@ -580,6 +586,20 @@ function candidatosDiaPart(
         es_manana: jv.turno === "mañana",
         item: jv.duracion_slots,
       });
+    }
+  }
+
+  if (adicional) {
+    for (let a = 6; a <= 10; a++) for (let b = 6; b <= 10 && a + b <= 16; b++) {
+      for (let ini = 2; ini <= 8; ini++) for (let ini2 = ini + a + 8; ini2 + b <= 30; ini2++) {
+        const bloques: Bloque[] = [{ slot_inicio: ini, slot_fin: ini + a }, { slot_inicio: ini2, slot_fin: ini2 + b }];
+        if (jornadaViolaExcepcion({ colab_id: colab.id, dia, bloques }, excepciones, colab.nombre)) continue;
+        cands.push({
+          bloques, inicio: ini, finB: bucketFin(ini2 + b),
+          util: pre[dia][ini + a] - pre[dia][ini] + pre[dia][ini2 + b] - pre[dia][ini2] + sesgoDeJornada(bloques, sesgo, dia),
+          es_manana: ini <= 6, item: a + b,
+        });
+      }
     }
   }
 
@@ -782,7 +802,8 @@ function optimizarSemanaPart(
         excepciones,
         francos_full[d] + francos_part[d] < (Array.isArray(cap_francos) ? cap_francos[d] : cap_francos),
         PENALIZACION_FRANCO * (2 * francos_full[d] + francos_part[d]),
-        sesgo
+        sesgo,
+        !!contrato.adicional
       ).filter(c => d !== 0 || c.item === -1 || c.inicio >= inicioMinimoLunes)
     );
   }
@@ -844,7 +865,9 @@ function optimizarSemanaPart(
       for (let usados = 0; usados <= MAX_SLOTS_PART; usados++) {
         const s = ((finB * 2 + 1) * 3 + man) * USADOS + usados;
         if (cur[s] === -Infinity) continue;
-        const v = cur[s] - penHora * Math.max(0, OBJETIVO - usados);
+        // AH2-071: «exacto» exige esas horas; «hasta» descuenta un poco cada media hora adicional (solo si cubre).
+        if (contrato.adicional?.modo === 'exacto' && usados !== MAX_SLOTS_PART) continue;
+        const v = cur[s] - penHora * Math.max(0, OBJETIVO - usados) - (contrato.adicional ? EPS_HORA_ADICIONAL * Math.max(0, usados - OBJETIVO) : 0);
         if (v > mejor_u) {
           mejor_u = v;
           mejor_s = s;

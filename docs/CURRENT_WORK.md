@@ -1,4 +1,20 @@
-## PUNTO ÚNICO DE RETOMA — AH2-070 domingos parejos y tramos de supervisores · 27/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-071 horas adicionales PART · 27/11/2026, Claude
+
+**Producción:** Netlify `main@5530e2c`; Cloud Run `aliada-optimizer-00010` (imagen `aaa0f40`). Semana 30/11 de la 091: v5 vigente (97,0 %).
+
+**Listo y fusionado, sin publicar:** AH2-070 (domingos parejos + tope de tramos de supervisores): app `main@33552de`, motor `b438902`.
+
+**AH2-071 en PR (sin fusionar ni publicar):** ramas `feat/ah2-071-horas-adicionales-part` en Estimapres y aliada-optimizer. Vitest 702 OK, Playwright 25 OK, pytest 185 OK. Medición real en MASTER.
+
+**Bloqueo de publicación:** la credencial de Google Cloud de la sesión venció y desde el celular Cloud Shell se reinicia al cambiar de app. Próximo paso: desde una computadora, publicar Cloud Run (aliada-optimizer, rama de producción con AH2-070 + AH2-071) y después Netlify; o crear una cuenta de servicio para que Claude publique solo.
+
+### Pendiente
+- OK del propietario para fusionar AH2-071 y publicar todo (Cloud Run primero).
+- Hallazgo: con la dotación real el motor B no llega a los criterios después de faltantes (rotación, equidad, preferencias). A decidir.
+- Antes del 07/12: comparar en modo prueba margen 0 y margen 2.
+---
+
+## RELEVO ANTERIOR — AH2-070 domingos parejos y tramos de supervisores · 27/11/2026, Claude
 
 **Producción:** Netlify `main@5530e2c` (AH2-066/067/068). Cloud Run `aliada-optimizer-00010-29t` (imagen `optimizer:aaa0f40`). Semana 30/11 de la 091: v3 vigente.
 

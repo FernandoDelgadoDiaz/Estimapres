@@ -165,6 +165,7 @@ function reglaAFila(r: ReglaConfigurable): Omit<FilaRegla, 'created_at'> {
       horaHasta: r.horaHasta,
       cantidad: r.cantidad,
       ...(r.turno ? { turno: r.turno } : {}), // AH2-056: pedido de turno (jsonb, sin migración)
+      ...(r.modoHoras ? { modoHoras: r.modoHoras } : {}), // AH2-071: horas adicionales PART
     },
     activa: r.activa,
     sucursal_id: getSucursalActual(),
@@ -187,6 +188,7 @@ export function filaARegla(f: FilaRegla): ReglaConfigurable {
     horaHasta: p.horaHasta as string | undefined,
     cantidad: p.cantidad as number | undefined,
     ...(p.turno ? { turno: p.turno as ReglaConfigurable['turno'] } : {}),
+    ...(p.modoHoras ? { modoHoras: p.modoHoras as ReglaConfigurable['modoHoras'] } : {}),
     vigenciaDesde: f.fecha_desde ?? undefined,
     vigenciaHasta: f.fecha_hasta ?? undefined,
     activa: f.activa,

@@ -39,6 +39,13 @@ export const CATALOGO_FULL_CORRIDAS: JornadaValida[] = [
   { tipo: "F5-T", duracion_slots: 10, slot_inicio_min: 7, slot_inicio_max: 20, turno: "tarde", rol: "FULL" },
 ];
 
+// AH2-071: PART con horas adicionales: corridas de 4 a 8 h (8..16 slots); la cortada se arma en la pasada 1.
+export const CATALOGO_PART_ADICIONAL: JornadaValida[] = [];
+for (let duracion = 8; duracion <= 16; duracion++) {
+  CATALOGO_PART_ADICIONAL.push({ tipo: `PA${duracion}-M`, duracion_slots: duracion, slot_inicio_min: 2, slot_inicio_max: 6, turno: "mañana", rol: "PART" });
+  CATALOGO_PART_ADICIONAL.push({ tipo: `PA${duracion}-T`, duracion_slots: duracion, slot_inicio_min: 7, slot_inicio_max: 30 - duracion, turno: "tarde", rol: "PART" });
+}
+
 // Catálogo de jornadas válidas para PART: corridas de 4-6h (8..12 slots).
 // P-M: inicio 09:00-11:00 (cuenta como mañana para H-P3).
 // P-T: inicio desde 11:30, continuo hasta donde permita el cierre (fin ≤ 23:00).
