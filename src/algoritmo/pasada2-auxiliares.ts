@@ -41,8 +41,6 @@ export const SLOTS_APERTURA: SlotIdx[] = [0, 1];
 
 export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: ResultadoPasada1): ResultadoPasada2 {
   const aperturaSoloAux = input.apertura_solo_aux ?? true;
-  const sinAuxCierre = input.sin_aux_cierre ?? true;
-  const slotMaxCaja = sinAuxCierre ? 27 : 28; // inclusivo (27 = 21:30-22:00)
   const supervisorJornadaCompleta = input.supervisor_jornada_completa ?? false;
 
   // === PASO 1: reglas de presencia de entrada (se informan, no abortan) ===
@@ -131,8 +129,23 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
   }
 
   // === PASO 4: AUX en caja solo donde hay déficit real (09:00 → slotMaxCaja) ===
+  sentarAuxEnDeficit(input, asignacion_aux, deficit_actual, supervisor_designado);
+
+  return { asignacion_aux, deficit_2: deficit_actual, auxes_activados_08_09, supervisor_designado, violaciones_input };
+}
+
+
+/**
+ * Paso 4 de la Pasada 2 (reutilizable): sienta AUX en caja donde queda déficit, respetando H-A2 (≥1 AUX de pie),
+ * R3 (el designado no se sienta) y el tope de tramos del día (AH2-070). Modifica `asignacion_aux` y `deficit_actual`.
+ */
+export function sentarAuxEnDeficit(input: InputAlgoritmo, asignacion_aux: Record<string, AsignacionAux[][]>, deficit_actual: number[][], supervisor_designado: Record<number, string>): void {
+  const slotMaxCaja = (input.sin_aux_cierre ?? true) ? 27 : 28;
   const peso = (s: SlotIdx) => input.pesos_franja?.[s] ?? 1;
-  for (const dia of DIAS) {
+  // Con tope de tramos, el orden por déficit puede dejar tramos sueltos que luego se unen: un AUX que pareció
+  // en su tope en un slot puede no estarlo al final. Se repasa el día con el estado final hasta que no cambie.
+  for (const dia of DIAS) for (let vuelta = 0, cambio = true; cambio && vuelta < (input.max_bloques_caja_aux_dia !== undefined ? 4 : 1); vuelta++) {
+    cambio = false;
     const slots: SlotIdx[] = [];
     for (let slot = 2; slot <= slotMaxCaja; slot++) if (deficit_actual[dia][slot] > 0) slots.push(slot);
     slots.sort((a, b) => deficit_actual[dia][b] * peso(b) - deficit_actual[dia][a] * peso(a) || a - b);
@@ -162,11 +175,11 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
       for (let i = 0; i < n; i++) {
         asignacion_aux[elegibles[i]][dia][slot] = "CAJA";
         deficit_actual[dia][slot] -= 1;
+        cambio = true;
       }
     }
   }
 
-  return { asignacion_aux, deficit_2: deficit_actual, auxes_activados_08_09, supervisor_designado, violaciones_input };
 }
 
 /**
@@ -174,7 +187,7 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
  * mayor presencia (desempate por id) como supervisor de jornada completa: queda
  * PARADO supervisando. Devuelve su id, o null si no aplica.
  */
-function designarSupervisorJornadaCompleta(asignacion_aux: Record<string, AsignacionAux[][]>, dia: DiaSemana): string | null {
+export function designarSupervisorJornadaCompleta(asignacion_aux: Record<string, AsignacionAux[][]>, dia: DiaSemana): string | null {
   const horasPresencia: Record<string, number> = {};
   let maxSimultaneos = 0;
   for (let slot = 0; slot < SLOTS_POR_DIA; slot++) {

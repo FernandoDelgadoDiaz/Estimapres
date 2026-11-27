@@ -1,4 +1,21 @@
-## PUNTO ÚNICO DE RETOMA — AH2-071 horas adicionales PART · 27/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — Auditoría 2 (después de AH2-066…071) · 27/11/2026, Claude
+
+**Producción:** Netlify `main@5530e2c`; Cloud Run `aliada-optimizer-00010` (imagen `aaa0f40`). Fusionado sin publicar: app `main@1b77d28` (AH2-066…071), motor `feat/minimo-impacto-semanal@52ff894`.
+
+**Rama `fix/auditoria-2` (Estimapres, sin fusionar):** tres errores del motor A con tope de tramos de supervisores, encontrados con la entrada real de la 091 (v5) en 9 combinaciones de reglas (s1 base … s9 sin tope):
+1. Pasada 2: contaba tramos mientras llenaba franjas en orden de déficit; dos trozos sueltos que después se unían bloqueaban a un AUX que no estaba en su tope (eventual sentado con AUX libre → `OP_PRIORIDAD_AUX`). Ahora repasa el día con el estado final.
+2. Equilibrio AH2-040 (`balancearIdentidadAux`): el intercambio de tramos entre AUX podía dejar a uno con 3 tramos (`OP_AUX_MAX_TRAMOS`). Ahora prueba con el otro AUX o deja la asignación original.
+3. Tras ese intercambio, el AUX liberado no se volvía a sentar donde quedaba demanda. Ahora se completa (paso 4 de la Pasada 2 reutilizado: `sentarAuxEnDeficit`).
+Resultado: A válido en las 9 combinaciones (antes inválido en 2); s4 sube de 97,74 % a 97,87 %. Además, texto de horas PART «4–8 h» con adicionales y e2e de la regla. Vitest 704 OK, Playwright 25 OK, build OK, pytest 185 OK (motor B sin cambios).
+
+### Pendiente
+- Decisión del propietario: la protección de picos (AH2-043) hace elegir A aunque B cubra más (s2: A 95,6 % vs B 97,2 %). Opción: extender «cobertura primero» a esa comprobación.
+- OK para fusionar `fix/auditoria-2`; publicar Cloud Run (`optimizer:52ff894`) y después Netlify; regenerar 30/11.
+- Hallazgo previo: B no llega a los criterios después de faltantes con la dotación real.
+- Antes del 07/12: comparar margen 0 y margen 2.
+---
+
+## RELEVO ANTERIOR — AH2-071 horas adicionales PART · 27/11/2026, Claude
 
 **Producción:** Netlify `main@5530e2c`; Cloud Run `aliada-optimizer-00010` (imagen `aaa0f40`). Semana 30/11 de la 091: v5 vigente (97,0 %).
 
