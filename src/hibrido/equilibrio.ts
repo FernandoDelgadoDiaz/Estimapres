@@ -65,9 +65,12 @@ export function compararEquilibrio(a:Equilibrio,b:Equilibrio,sobrantesA:number,s
  return eventualA-eventualB
 }
 
-/** Una mejora nunca descubre picos de A ni aumenta faltantes ponderados o sobrantes. */
-export function protegeReferencia(input:InputAlgoritmo,referencia:number[][],candidato:number[][],excesoA:number,excesoB:number){
+/**
+ * Una mejora nunca descubre picos de A ni aumenta faltantes ponderados. AH2-071 (decisión del propietario, 27/11/2026:
+ * «cobertura primero»): las cajas de más solo cuentan si se pide (`exigirSobrantes`), no para elegir entre motores.
+ */
+export function protegeReferencia(input:InputAlgoritmo,referencia:number[][],candidato:number[][],excesoA:number,excesoB:number,exigirSobrantes=true){
  const a=medirEquilibrio(input,referencia),b=medirEquilibrio(input,candidato),{mascara}=estructuraPicos(input)
- return b.totalSlots<=a.totalSlots&&b.ponderadoSlots<=a.ponderadoSlots&&excesoB<=excesoA&&
+ return b.totalSlots<=a.totalSlots&&b.ponderadoSlots<=a.ponderadoSlots&&(!exigirSobrantes||excesoB<=excesoA)&&
   mascara.every((row,d)=>row.every((p,s)=>!p||candidato[d][s]<=referencia[d][s]))
 }

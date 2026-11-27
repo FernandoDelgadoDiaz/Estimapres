@@ -49,7 +49,7 @@ function evaluar(input:InputAlgoritmo,r:ResultadoSemanal,raw:InputAlgoritmo){
 
 const mejor=(input:InputAlgoritmo,a:ReturnType<typeof metricasAH2040>,b:typeof a)=>{
  const ev=(x:typeof a)=>Object.values(x.horasCajaEventual).reduce((s,y)=>s+y,0)
- if(input.equilibrio_semanal_version===1||input.equilibrio_semanal_version===2)return protegeReferencia(input,a.faltantesPorFranja,b.faltantesPorFranja,a.sobrantesHoras,b.sobrantesHoras)&&
+ if(input.equilibrio_semanal_version===1||input.equilibrio_semanal_version===2)return protegeReferencia(input,a.faltantesPorFranja,b.faltantesPorFranja,a.sobrantesHoras,b.sobrantesHoras,false)&&
   compararEquilibrio(medirEquilibrio(input,b.faltantesPorFranja),medirEquilibrio(input,a.faltantesPorFranja),b.sobrantesHoras,a.sobrantesHoras,ev(b),ev(a))<0
  const ka=[a.faltantesHoras,a.sobrantesHoras,ev(a)],kb=[b.faltantesHoras,b.sobrantesHoras,ev(b)]
  for(let i=0;i<3;i++){if(kb[i]<ka[i])return true;if(kb[i]>ka[i])return false}
