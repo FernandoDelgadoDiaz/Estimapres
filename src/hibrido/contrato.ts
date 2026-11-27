@@ -39,7 +39,7 @@ export async function hashEntrada(entrada:unknown):Promise<string>{
 
 /** Campos que B entiende tal cual (mismos nombres y unidades). */
 const DIRECTOS=['demanda','colaboradores','presencia_aux','disponibilidad_eventual','excepciones','preferencias_turno','max_francos_dia','max_francos_por_dia',
- 'pesos_franja','apertura_solo_aux','sin_aux_cierre','supervisor_jornada_completa','franco_medio_corridos','contratos','max_bloques_caja_eventual_dia',
+ 'pesos_franja','apertura_solo_aux','sin_aux_cierre','supervisor_jornada_completa','franco_medio_corridos','contratos','max_bloques_caja_eventual_dia','max_bloques_caja_aux_dia','domingo_franco_evitar',
  'eventuales_caja_hora_limite','cajeros_fin_hora_limite','politica_recursos_version','supervision_apertura_externa','excepcion_apertura_aux_unico','max_caja_eventual_slots','reservas_sector_eventual',
  'disponibilidad_caja_eventual','topes_caja_eventual_contrato','comparacion_aux_eventual','condiciones_supervisor','sucursal_id','semana','equilibrio_semanal_version'] as const
 /** Campos propios de A, sin efecto en las reglas que B debe cumplir (no se envían). */

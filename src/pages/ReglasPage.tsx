@@ -11,7 +11,7 @@ import { useColaboradores } from '../hooks/useColaboradores'
 import { usaHibrido } from '../hibrido/integracion'
 import { getSucursalActual } from '../utils/sucursal'
 import { interpretarHorario, opcionesHorarioMotor } from '../utils/timeUtils'
-import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente, MARGEN_CONTINUIDAD_HORAS } from '../utils/preferencias'
+import { validarConflictosReglas, DEFAULTS_OPERATIVOS, type TipoReglaOperativa, reglaCajaEventualVigente, MARGEN_CONTINUIDAD_HORAS, MAX_BLOQUES_CAJA_AUX_POR_DEFECTO } from '../utils/preferencias'
 import { Boton, FilaAjuste, Interruptor, Pagina, Seccion, estiloCampo } from '../components/ui/Basicos'
 import { FranjasSupervisorSolo, MaximosEventuales, MensajesMotor, useConfiguracionMotor } from '../components/configuracion/MotorSucursal'
 import { ddmm, proximoLunesISO } from '../hibrido/configuracionSimple'
@@ -74,6 +74,7 @@ export default function ReglasPage() {
   }
   const maxBloques = reglaCajaEventualVigente(reglas, 'max_bloques_caja_eventual_dia')
   const limiteCaja = reglaCajaEventualVigente(reglas, 'eventuales_caja_hora_limite')
+  const limiteAux = reglaCajaEventualVigente(reglas, 'max_bloques_caja_aux_dia')
   const conflictos = useMemo(() => validarConflictosReglas(reglas, colaboradores), [reglas, colaboradores])
 
   const cajeros = colaboradores.filter(c => c.activo && (c.tipo === 'FULL' || c.tipo === 'PART'))
@@ -101,6 +102,18 @@ export default function ReglasPage() {
             <Interruptor activo={estado(t)} onCambiar={v => cambiarOperativa(t, v)} etiqueta={TEXTO_OPERATIVA[t].titulo} />
           </FilaAjuste>
         ))}
+        <FilaAjuste titulo="Tramos de caja por día de cada supervisor" id="max-bloques-caja-aux"
+          ayuda="Cuántas veces por día puede sentarse en caja un supervisor. Si no elegís nada, son 2.">
+          <select id="max-bloques-caja-aux" style={estiloCampo} value={limiteAux ? (limiteAux.activa ? limiteAux.cantidad ?? '' : '') : String(MAX_BLOQUES_CAJA_AUX_POR_DEFECTO)}
+            onChange={ev => {
+              const valor = ev.target.value
+              agregarRegla({ ambito: 'local', tipo: 'max_bloques_caja_aux_dia', activa: valor !== '', cantidad: valor ? Number(valor) : undefined,
+                descripcion: valor ? `Supervisores: máximo ${valor} tramos de caja por día` : 'Supervisores: sin límite de tramos de caja por día' })
+            }}>
+            <option value="">Sin límite</option>
+            {Array.from({ length: 6 }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+          </select>
+        </FilaAjuste>
         {motorListo && <FranjasSupervisorSolo motor={motor} sucursal={sucursal} />}
       </Seccion>
 

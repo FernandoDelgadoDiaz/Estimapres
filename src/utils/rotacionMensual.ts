@@ -44,6 +44,34 @@ export interface OpcionesRotacion {
 
 export interface ExplicacionRotacion { mes: string; modo: 'continuidad' | 'cambio_de_mes' | 'sin_historia'; frases: string[] }
 
+/**
+ * AH2-070 · Domingos parejos como criterio del motor (no solo preferencia): cajeros que NO deberían tener franco el
+ * domingo de esta semana. Son quienes ya tuvieron más francos de domingo que el que menos tuvo (este mes y el
+ * anterior), quien tuvo franco el domingo pasado y quien prefiere trabajar los domingos. Si quedaran todos, no se
+ * fuerza nada. El motor lo aplica después de la cobertura: si hace falta para cubrir, puede repetir.
+ */
+export function domingoFrancoEvitar(historial: SemanaHistorial[], lunes: string, op: OpcionesRotacion): string[] {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(lunes) || Number.isNaN(Date.parse(`${lunes}T12:00:00Z`))) return []
+  const mes = mesDeSemana(lunes)
+  const previas = ultimasVersiones(historial.filter(s => s.fechaLunes < lunes))
+  const ventana = previas.filter(s => [mes, mesAnterior(mes)].includes(mesDeSemana(s.fechaLunes)))
+  const nombrePorId = new Map(op.cajeros.map(c => [c.id, c.nombre]))
+  const francos = new Map<string, number>()
+  for (const s of ventana) for (const [id, clases] of clasesDeSemana(s)) {
+    const n = nombrePorId.get(id)
+    if (n) francos.set(n, (francos.get(n) ?? 0) + (clases[6] === 'franco' ? 1 : 0))
+  }
+  const evitar = new Set<string>()
+  if (francos.size) {
+    const minimo = Math.min(...op.cajeros.map(c => francos.get(c.nombre) ?? 0))
+    for (const [n, f] of francos) if (f > minimo) evitar.add(n)
+  }
+  const anterior = previas.find(s => s.fechaLunes === sumar(lunes, -7))
+  if (anterior) for (const [id, clases] of clasesDeSemana(anterior)) { const n = nombrePorId.get(id); if (n && clases[6] === 'franco') evitar.add(n) }
+  for (const n of op.prefierenDomingo ?? []) if (nombrePorId.size && op.cajeros.some(c => c.nombre === n)) evitar.add(n)
+  return evitar.size >= op.cajeros.length ? [] : [...evitar].sort()
+}
+
 /** Clases por día (0..6) de cada cajero en una semana guardada; los días ausentes cuentan con la jornada comunicada. */
 function clasesDeSemana(s: SemanaHistorial): Map<string, Clase[]> {
   const out = new Map<string, Clase[]>()
@@ -57,7 +85,7 @@ function clasesDeSemana(s: SemanaHistorial): Map<string, Clase[]> {
   return out
 }
 
-export function rotacionMensual(historial: SemanaHistorial[], lunes: string, op: OpcionesRotacion): { sesgos: SesgosPorNombre; explicacion: ExplicacionRotacion } {
+export function rotacionMensual(historial: SemanaHistorial[], lunes: string, op: OpcionesRotacion): { sesgos: SesgosPorNombre; explicacion: ExplicacionRotacion; evitarDomingo?: string[] } {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(lunes) || Number.isNaN(Date.parse(`${lunes}T12:00:00Z`))) {
     return { sesgos: {}, explicacion: { mes: '', modo: 'sin_historia', frases: [] } }
   }
@@ -124,6 +152,13 @@ export function rotacionMensual(historial: SemanaHistorial[], lunes: string, op:
     }
     frases.push('Domingos: se reparten parejo; tiene prioridad para trabajarlos quien trabajó menos domingos.')
   }
+  // AH2-070: quien no debería repetir franco el domingo tiende fuerte a trabajarlo también en el motor A.
+  const evitarDomingo = domingoFrancoEvitar(historial, lunes, op)
+  if (evitarDomingo.length) frases.push(`Domingo: no repiten franco ${evitarDomingo.join(', ')} (salvo que haga falta para cubrir).`)
+  for (const nombre of evitarDomingo) {
+    const x = dia(nombre, 6)
+    x.franco = Math.min(x.franco ?? 0, -DOMINGO_MAX)
+  }
   for (const nombre of op.prefierenDomingo ?? []) {
     if (!op.cajeros.some(c => c.nombre === nombre)) continue
     dia(nombre, 6).franco = -PREFIERE_DOMINGO
@@ -138,5 +173,5 @@ export function rotacionMensual(historial: SemanaHistorial[], lunes: string, op:
     if (s.porDia && !Object.keys(s.porDia).length) delete s.porDia
     if (!Object.keys(s).length) delete sesgos[n]
   }
-  return { sesgos, explicacion: { mes, modo, frases } }
+  return { sesgos, explicacion: { mes, modo, frases }, evitarDomingo }
 }

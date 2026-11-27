@@ -72,6 +72,10 @@ export interface InputAlgoritmo extends PoliticaRecursos, EntradaCondiciones {
   equilibrio_semanal_version?: 1 | 2;
   auditoria_condiciones?: AuditoriaCondiciones
   max_bloques_caja_eventual_dia?: number;
+  /** AH2-070: tope de tramos de caja por día de cada AUX. */
+  max_bloques_caja_aux_dia?: number;
+  /** AH2-070: ids de cajeros que no deberían repetir franco el domingo (reparto parejo; la cobertura va primero). */
+  domingo_franco_evitar?: string[];
   eventuales_caja_hora_limite?: string;
   /** AH2-053: salida máxima de cajeros FULL/PART («HH:MM», por defecto 22:30). */
   cajeros_fin_hora_limite?: string;

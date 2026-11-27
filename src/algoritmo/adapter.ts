@@ -166,6 +166,10 @@ function construirMatrizEventual(horarioSemanal: string[]): MatrizDisponibilidad
  */
 export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones {
   maxBloquesCajaEventualDia?: number
+  /** AH2-070: tramos de caja por día de cada supervisor. */
+  maxBloquesCajaAuxDia?: number
+  /** AH2-070: nombres de cajeros que no deberían repetir franco el domingo. */
+  domingoFrancoEvitar?: string[]
   eventualesCajaHoraLimite?: string
   /** AH2-053: último horario de salida de cajeros (FULL/PART), «HH:MM». Por defecto 22:30. */
   cajerosFinHoraLimite?: string
@@ -289,6 +293,9 @@ export function convertirInputAV2(
     disponibilidad_caja_eventual: opciones?.disponibilidad_caja_eventual && {...opciones.disponibilidad_caja_eventual,perfiles:opciones.disponibilidad_caja_eventual.perfiles.map(p=>({...p,colaboradorId:ident.v2PorUi.get(p.colaboradorId) ?? p.colaboradorId}))},
     topes_caja_eventual_contrato: opciones?.topes_caja_eventual_contrato,
     max_bloques_caja_eventual_dia: opciones?.maxBloquesCajaEventualDia,
+    max_bloques_caja_aux_dia: opciones?.maxBloquesCajaAuxDia,
+    ...(opciones?.domingoFrancoEvitar?.length ? { domingo_franco_evitar: [...new Set(opciones.domingoFrancoEvitar
+      .map(n => colaboradores.find(c => c.nombre === n && (c.rol === 'FULL' || c.rol === 'PART'))?.id).filter((x): x is string => !!x))] } : {}),
     eventuales_caja_hora_limite: opciones?.eventualesCajaHoraLimite,
     cajeros_fin_hora_limite: finCajeros,
     excepciones: [...excepciones, ...excepcionesFinCajeros],

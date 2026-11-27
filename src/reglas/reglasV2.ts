@@ -15,7 +15,7 @@
 // persistencia (migración no autorizada) — ver docs/proposals/RULES01_reglas_v2.sql.
 
 import type { ExcepcionSemanal, ReglaConfigurable } from '../types'
-import { DEFAULTS_OPERATIVOS, horaASlotUI, type ConfigOperativa, type MinimoFranja, type TipoReglaOperativa } from '../utils/preferencias'
+import { DEFAULTS_OPERATIVOS, MAX_BLOQUES_CAJA_AUX_POR_DEFECTO, horaASlotUI, type ConfigOperativa, type MinimoFranja, type TipoReglaOperativa } from '../utils/preferencias'
 
 // ======================= MODELO =======================
 
@@ -431,6 +431,8 @@ export function compilarParaMotor(res: ResolucionSemana, ctx: ContextoSemana): C
     sinAuxCierre: DEFAULTS_OPERATIVOS.sin_aux_cierre,
     supervisorJornadaCompleta: DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
     francoMedioCorridos: DEFAULTS_OPERATIVOS.franco_medio_corridos,
+    // AH2-070: sin representación propia en el modelo v2 todavía: rige el valor por defecto.
+    maxBloquesCajaAuxDia: MAX_BLOQUES_CAJA_AUX_POR_DEFECTO,
   }
   const campo = {
     apertura_solo_aux: 'aperturaSoloAux', sin_aux_cierre: 'sinAuxCierre',

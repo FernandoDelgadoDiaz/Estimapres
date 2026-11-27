@@ -163,6 +163,7 @@ export type TipoReglaColaborador =
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
   | 'max_bloques_caja_eventual_dia'
+  | 'max_bloques_caja_aux_dia'     // AH2-070: tramos de caja por día de cada supervisor
   | 'eventuales_caja_hora_limite'
   | 'max_francos_dia'    // máximo N francos el mismo día
   | 'margen_continuidad' // AH2-063: horas de cobertura que se aceptan perder por semana para no cambiar horarios dentro del mes
@@ -238,6 +239,7 @@ export interface SemanaHistorial {
     supervisorJornadaCompleta: boolean
     francoMedioCorridos: boolean
     maxBloquesCajaEventualDia?: number
+    maxBloquesCajaAuxDia?: number
     eventualesCajaHoraLimite?: string
   }
   // #38: disponibilidad RESUELTA de la semana (patrón habitual + excepciones por

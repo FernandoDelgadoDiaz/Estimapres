@@ -25,12 +25,14 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
 
   // Máximo de francos y eventuales
   await page.getByLabel('Máximo de personas de franco el mismo día (supervisores incluidos)').fill('3')
-  await page.getByLabel('Tramos de caja por día').selectOption('2')
+  await page.getByLabel('Tramos de caja por día', { exact: true }).selectOption('2')
+  // AH2-070: tramos de caja de supervisores, 2 por defecto.
+  await expect(page.getByLabel('Tramos de caja por día de cada supervisor')).toHaveValue('2')
   // AH2-067: cambiar la hora varias veces deja una sola regla (la última).
   await page.getByLabel('No atienden caja después de las').selectOption('22:00')
   await page.getByLabel('No atienden caja después de las').selectOption('21:00')
-  await page.getByLabel('Tramos de caja por día').selectOption('3')
-  await page.getByLabel('Tramos de caja por día').selectOption('2')
+  await page.getByLabel('Tramos de caja por día', { exact: true }).selectOption('3')
+  await page.getByLabel('Tramos de caja por día', { exact: true }).selectOption('2')
 
   // Regla por persona: franco fijo
   await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A (PART)' })
@@ -68,7 +70,7 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await page.reload()
   await expect(page.getByRole('switch', { name: 'La caja la abre un supervisor (08:00 a 09:00)' })).toHaveAttribute('aria-checked', 'false')
   await expect(page.getByLabel('Máximo de personas de franco el mismo día (supervisores incluidos)')).toHaveValue('3')
-  await expect(page.getByLabel('Tramos de caja por día')).toHaveValue('2')
+  await expect(page.getByLabel('Tramos de caja por día', { exact: true })).toHaveValue('2')
   await expect(page.getByLabel('No atienden caja después de las')).toHaveValue('21:00')
   await expect(page.getByText('Part A: franco fijo los Mié')).toBeVisible()
 

@@ -98,6 +98,7 @@ export function recalcularCajaAux(
       apertura_solo_aux: operativa?.aperturaSoloAux ?? DEFAULTS_OPERATIVOS.apertura_solo_aux,
       sin_aux_cierre: operativa?.sinAuxCierre ?? DEFAULTS_OPERATIVOS.sin_aux_cierre,
       supervisor_jornada_completa: operativa?.supervisorJornadaCompleta ?? DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
+      max_bloques_caja_aux_dia: operativa?.maxBloquesCajaAuxDia,
     },
     { jornadas_full: {}, jornadas_part: {}, deficit_1, infactibles: [] }
   )

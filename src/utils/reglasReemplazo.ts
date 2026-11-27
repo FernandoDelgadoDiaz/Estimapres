@@ -19,7 +19,7 @@
 import type { ReglaConfigurable } from '../types'
 
 export const TIPOS_SUCURSAL_UNICOS: ReadonlySet<string> = new Set([
-  'max_bloques_caja_eventual_dia', 'eventuales_caja_hora_limite', 'max_francos_dia', 'margen_continuidad',
+  'max_bloques_caja_eventual_dia', 'max_bloques_caja_aux_dia', 'eventuales_caja_hora_limite', 'max_francos_dia', 'margen_continuidad',
   'apertura_solo_aux', 'sin_aux_cierre', 'supervisor_jornada_completa', 'franco_medio_corridos',
 ])
 

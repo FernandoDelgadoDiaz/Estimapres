@@ -729,10 +729,13 @@ export const ETIQUETAS_OPERATIVAS: Record<TipoReglaOperativa, { titulo: string; 
   },
 }
 
-export type TipoReglaCajaEventual = 'max_bloques_caja_eventual_dia' | 'eventuales_caja_hora_limite'
+export type TipoReglaCajaEventual = 'max_bloques_caja_eventual_dia' | 'eventuales_caja_hora_limite' | 'max_bloques_caja_aux_dia'
+/** AH2-070: tramos de caja por día de cada supervisor cuando la sucursal no cargó nada. */
+export const MAX_BLOQUES_CAJA_AUX_POR_DEFECTO = 2
 
 export interface ConfigOperativa extends PoliticaRecursos {
   maxBloquesCajaEventualDia?: number
+  maxBloquesCajaAuxDia?: number
   eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
   sinAuxCierre: boolean
@@ -807,8 +810,11 @@ export function reglaCajaEventualVigente(
 export function configOperativaDeReglas(reglas: ReglaConfigurable[], fechaLunes: string): ConfigOperativa {
   const bloques = reglaCajaEventualVigente(reglas, 'max_bloques_caja_eventual_dia', fechaLunes)
   const cierre = reglaCajaEventualVigente(reglas, 'eventuales_caja_hora_limite', fechaLunes)
+  const bloquesAux = reglaCajaEventualVigente(reglas, 'max_bloques_caja_aux_dia', fechaLunes)
   return {
     ...(bloques?.activa ? { maxBloquesCajaEventualDia: bloques.cantidad ?? 0 } : {}),
+    // AH2-070: sin regla, 2 tramos por día; con la regla desactivada, sin límite.
+    ...(!bloquesAux ? { maxBloquesCajaAuxDia: MAX_BLOQUES_CAJA_AUX_POR_DEFECTO } : bloquesAux.activa && bloquesAux.cantidad ? { maxBloquesCajaAuxDia: bloquesAux.cantidad } : {}),
     ...(cierre?.activa ? { eventualesCajaHoraLimite: cierre.hora ?? '' } : {}),
     aperturaSoloAux: valorReglaOperativa(reglas, 'apertura_solo_aux', fechaLunes),
     sinAuxCierre: valorReglaOperativa(reglas, 'sin_aux_cierre', fechaLunes),
