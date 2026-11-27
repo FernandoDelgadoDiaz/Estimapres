@@ -54,6 +54,16 @@ test('Configuración: campos simples que se guardan y se aplican, sin textos té
   await page.getByLabel('Período', { exact: true }).selectOption('anio')
   await page.getByRole('button', { name: 'Agregar' }).first().click()
   await expect(page.getByText(/: solo cortado$/)).toBeVisible()
+  // AH2-071: horas adicionales solo para PART; se guardan con horas y modo.
+  await page.getByLabel('Persona', { exact: true }).selectOption({ label: 'Part A (PART)' })
+  await page.getByLabel('Regla', { exact: true }).selectOption('horas_adicionales')
+  await page.getByLabel('Horas semanales').fill('42')
+  await page.getByLabel('Modo de horas').selectOption('exacto')
+  await page.getByLabel('Período', { exact: true }).selectOption('semana')
+  await page.getByRole('button', { name: 'Agregar' }).first().click()
+  await expect(page.getByText('Part A: horas adicionales PART 42 h')).toBeVisible()
+  const adicionales = await page.evaluate(() => (JSON.parse(localStorage.getItem('aliada_reglas_configurables::900') ?? '[]') as Array<{ tipo: string; cantidad?: number; modoHoras?: string }>).filter(r => r.tipo === 'horas_adicionales'))
+  expect(adicionales).toEqual([expect.objectContaining({ cantidad: 42, modoHoras: 'exacto' })])
   // Opciones fuera de la pantalla del supervisor (decisión del propietario).
   await expect(page.getByRole('option', { name: /Lo armo yo/ })).toHaveCount(0)
   await expect(page.getByText('Qué eventuales atienden caja')).toHaveCount(0)

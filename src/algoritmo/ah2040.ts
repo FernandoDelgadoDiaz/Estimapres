@@ -15,7 +15,8 @@
  *     puede atender caja (con dos AUX intercambiables ninguno es comparable individualmente: la prioridad
  *     AUX por franja de AH2-036 ya garantiza que uno esté en caja). W = Kd(a) ∩ O(e): caja_W(e) ≤ caja_W(a).
  */
-import type {InputAlgoritmo,ResultadoSemanal} from './types'
+import type {DiaSemana,InputAlgoritmo,ResultadoSemanal} from './types'
+import {designarSupervisorJornadaCompleta,sentarAuxEnDeficit} from './pasada2-auxiliares'
 import {ejecutarAlgoritmo} from './orquestador'
 import {aperturaAuxUnicoAutorizada,excepcionAperturaAuxUnico} from './politicaRecursos'
 
@@ -189,11 +190,31 @@ export function balancearIdentidadAux(input:InputAlgoritmo,r:ResultadoSemanal,co
   // Solo los AUX comparables limitan a algún EVENTUAL: el tramo va primero a un comparable y, entre
   // comparables (o entre no comparables), al de menos horas-caja acumuladas.
   const ca=comparadores?comparadores.has(a):true,cb=comparadores?comparadores.has(b):true
-  const elegido=ca!==cb?(ca?a:b):total[a]<total[b]||(total[a]===total[b]&&a<b)?a:b,otro=elegido===a?b:a
-  for(const s of t.slots){aux[elegido][t.d][s]='CAJA';aux[otro][t.d][s]='PARADO'}
-  total[elegido]+=t.slots.length
+  const preferido=ca!==cb?(ca?a:b):total[a]<total[b]||(total[a]===total[b]&&a<b)?a:b
+  // AH2-070: el intercambio no puede dejar a ninguno de los dos por encima de su tope de tramos del día;
+  // si con el preferido se excede, se prueba con el otro y, si tampoco, queda la asignación original.
+  const tope=input.max_bloques_caja_aux_dia
+  const tramosFila=(row:string[])=>row.filter((v,s)=>v==='CAJA'&&row[s-1]!=='CAJA').length
+  let elegido:string|null=null
+  for(const cand of [preferido,preferido===a?b:a]){
+   const otro=cand===a?b:a
+   const filaC=[...aux[cand][t.d]],filaO=[...aux[otro][t.d]]
+   for(const s of t.slots){filaC[s]='CAJA';filaO[s]='PARADO'}
+   if(tope===undefined||(tramosFila(filaC)<=tope&&tramosFila(filaO)<=tope)){aux[cand][t.d]=filaC as never;aux[otro][t.d]=filaO as never;elegido=cand;break}
+  }
+  if(elegido)total[elegido]+=t.slots.length
+  else for(const id of t.par)for(const s of t.slots)if(aux[id][t.d][s]==='CAJA')total[id]++
  }
- return {...r,asignacion_aux:aux as ResultadoSemanal['asignacion_aux']}
+ const out={...r,asignacion_aux:aux as ResultadoSemanal['asignacion_aux']}
+ // Con tope de tramos, un intercambio puede liberar a un AUX que en la Pasada 2 estaba en su tope: si queda
+ // demanda sin cubrir donde ahora puede sentarse, se sienta (cascada: AUX antes que faltante).
+ if(input.max_bloques_caja_aux_dia!==undefined){
+  const deficit=metricasAH2040(input,out).faltantesPorFranja
+  const designados:Record<number,string>={}
+  if(input.supervisor_jornada_completa)for(let d=0;d<7;d++){const x=designarSupervisorJornadaCompleta(out.asignacion_aux,d as DiaSemana);if(x)designados[d]=x}
+  sentarAuxEnDeficit(input,out.asignacion_aux,deficit,designados)
+ }
+ return out
 }
 
 const BALANCEA=MODOS_COMPARABILIDAD

@@ -277,9 +277,9 @@ export function ejecutarPasada1(input: InputAlgoritmo, reoptimizar = true): Resu
       fila.factibleHoras = maxima ? slotsSemana(maxima) / 2 : 0;
       const propias = excepciones.filter(x => x.colaboradorNombre === c.nombre).map(x => x.descripcion || x.tipo);
       fila.motivo = !maxima
-        ? "No existe ninguna semana PART válida con sus restricciones (franco, ≥2 mañanas, 4–6 h por día, descanso 12 h)."
+        ? `No existe ninguna semana PART válida con sus restricciones (franco, ≥2 mañanas, ${contrato.adicional ? "4–8 h por día" : "4–6 h por día"}, descanso 12 h).`
         : fila.factibleHoras < objetivo
-          ? `Sus reglas permiten como máximo ${fila.factibleHoras} h esta semana (jornadas de 4–6 h, 1 franco, ≥2 mañanas, descanso 12 h${propias.length ? `; reglas propias: ${propias.join(", ")}` : ""}${cap_francos ? `; tope de ${cap_francos} francos por día` : ""}).`
+          ? `Sus reglas permiten como máximo ${fila.factibleHoras} h esta semana (jornadas de ${contrato.adicional ? "4–8" : "4–6"} h, 1 franco, ≥2 mañanas, descanso 12 h${propias.length ? `; reglas propias: ${propias.join(", ")}` : ""}${cap_francos ? `; tope de ${cap_francos} francos por día` : ""}).`
           : "El motor no alcanzó el objetivo aunque las reglas lo permiten (límite de tiempo de optimización).";
     }
     fila.estadoObjetivo = estadoObjetivoHoras(objetivo, asignadas, fila.cotaHoras);
