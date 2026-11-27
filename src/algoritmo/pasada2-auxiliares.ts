@@ -145,7 +145,12 @@ export function ejecutarPasada2(input: InputAlgoritmo, resultado_pasada1: Result
       const maxActivables = presentes === 1 && parados.length === 1 && excepcionAperturaAuxUnico(input, dia, slot) ? 1 : parados.length - 1;
       if (maxActivables <= 0) continue;
       const designado = supervisor_designado[dia];
-      const elegibles = parados.filter(id => id !== designado); // R3: el designado no se sienta
+      // AH2-070: sin abrir un tramo nuevo de caja por encima del tope diario del AUX.
+      const tope = input.max_bloques_caja_aux_dia
+      const tramos = (id: string) => asignacion_aux[id][dia].filter((v, s) => v === "CAJA" && asignacion_aux[id][dia][s - 1] !== "CAJA").length
+      const abreTramo = (id: string) => asignacion_aux[id][dia][slot - 1] !== "CAJA" && asignacion_aux[id][dia][slot + 1] !== "CAJA"
+      const elegibles = parados.filter(id => id !== designado // R3: el designado no se sienta
+        && !(tope !== undefined && abreTramo(id) && tramos(id) >= tope))
       const continuo = (id: string) => {
         const fila = asignacion_aux[id][dia];
         return (fila[slot - 1] === "CAJA" || fila[slot + 1] === "CAJA") ? 1 : 0;

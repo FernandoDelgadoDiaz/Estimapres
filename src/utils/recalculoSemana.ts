@@ -94,6 +94,7 @@ export function recalcularSemanaTrasEdicion(r: ResultadoAsignacion, ctx: Context
     apertura_solo_aux: ctx.operativa.aperturaSoloAux ?? DEFAULTS_OPERATIVOS.apertura_solo_aux,
     sin_aux_cierre: ctx.operativa.sinAuxCierre ?? DEFAULTS_OPERATIVOS.sin_aux_cierre,
     supervisor_jornada_completa: ctx.operativa.supervisorJornadaCompleta ?? DEFAULTS_OPERATIVOS.supervisor_jornada_completa,
+    max_bloques_caja_aux_dia: ctx.operativa.maxBloquesCajaAuxDia,
   }
   const fijos = new Set(ctx.eventualesFijos ?? [])
 

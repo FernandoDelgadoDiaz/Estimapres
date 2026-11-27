@@ -1,4 +1,21 @@
-## PUNTO ÚNICO DE RETOMA — AH2-068 principio general de reglas (PR) · 26/11/2026, Claude
+## PUNTO ÚNICO DE RETOMA — AH2-070 domingos parejos y tramos de supervisores · 27/11/2026, Claude
+
+**Producción:** Netlify `main@5530e2c` (AH2-066/067/068). Cloud Run `aliada-optimizer-00010-29t` (imagen `optimizer:aaa0f40`). Semana 30/11 de la 091: v3 vigente.
+
+**AH2-070 (autorizado, incluida la publicación en Cloud Run):**
+- Motor B: rama `feat/ah2-070-domingos-tramos-aux` de aliada-optimizer, commit `2a115b5` (182 pruebas OK).
+- App: rama `feat/ah2-070-domingos-tramos-aux` de Estimapres (Vitest 697 OK, Playwright 25 OK, lint y build OK).
+- **Orden obligatorio: primero Cloud Run, después Netlify.** Con el B viejo, sus horarios con más de 2 tramos AUX no validan y la app caería al motor A (menos cobertura).
+- Cloud Run: la credencial de gcloud de la sesión venció; la publicación la hace el propietario desde Cloud Shell (comandos en el reporte de la sesión) o se renueva la credencial.
+
+### Pendiente
+- Publicar Cloud Run con `optimizer:2a115b5` y luego Netlify; regenerar la semana 30/11 (v4).
+- Hallazgo a decidir: el motor B no llega a los criterios después de faltantes con la dotación real (rotación, equidad, preferencias). Propuesta: repartir el tiempo por fases o incorporar los criterios clave al primero.
+- Rama `fix/ah2-069-caja-aux-pareja` (borrador): desempate alfabético entre AUX; menor.
+- Antes del 07/12: comparar en modo prueba margen 0 y margen 2.
+---
+
+## RELEVO ANTERIOR — AH2-068 principio general de reglas (PR) · 26/11/2026, Claude
 
 **Estado:** `main@a2d473b` (AH2-066 + AH2-067 fusionados); publicación en Netlify a cargo del propietario. Cloud Run sin cambios.
 

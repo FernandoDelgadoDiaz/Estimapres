@@ -134,6 +134,8 @@ export interface EntradaValidacion {
 
 export interface OperativaValidacion extends PoliticaRecursos {
   maxBloquesCajaEventualDia?: number
+  /** AH2-070: tramos de caja por día de cada supervisor. */
+  maxBloquesCajaAuxDia?: number
   eventualesCajaHoraLimite?: string
   aperturaSoloAux: boolean
   sinAuxCierre?: boolean
@@ -501,13 +503,24 @@ function validarReglasOperativas(
       else if(count>cap!) v.push({codigo:'OP_EVENTUAL_TOPE_SEMANAL',nivel:'OPERATIVA',colaboradorId:id,detalle:'Supera el máximo semanal individual de caja.'})
       for(let d=0;d<7;d++) for(let slot=0;slot<30;slot++) if(m[d]?.[slot] && op.reservas_sector_eventual?.[id]?.[d]?.[slot]) v.push({codigo:'OP_EVENTUAL_RESERVA_SECTOR',nivel:'OPERATIVA',colaboradorId:id,dia:d,detalle:'Caja dentro de una reserva sectorial.'})
     }
+    // Supervisor designado del día (misma regla que el motor: más presencia, desempate por id).
+    const designadoDia=(d:number)=>{
+      if(!op.supervisorJornadaCompleta)return undefined
+      const ids=[...presencia.keys()]
+      if(!Array.from({length:30},(_,s)=>ids.filter(id=>presencia.get(id)![d][s]).length).some(x=>x>=2))return undefined
+      return [...ids].sort((x,y)=>presencia.get(y)![d].filter(Boolean).length-presencia.get(x)![d].filter(Boolean).length||(x<y?-1:x>y?1:0))[0]
+    }
     for(let d=0;d<7;d++) for(let slot=0;slot<30;slot++) {
       const n=[...presencia.values()].filter(m=>m[d][slot]).length
       const a=[...auxCaja.values()].filter(m=>m[d]?.[slot]).length
       const ev=evCaja.filter(m=>m.slotsCajaPorDia[d]?.[slot]).length
       if(n>2) v.push({codigo:'POLITICA_AUX_MULTIPLE',nivel:'DATOS',dia:d,detalle:'Generalización para más de dos AUX pendiente.'})
       if(slot<2 && op.aperturaSoloAux && demanda(d,slot)>0 && n===1 && !aperturaAuxUnicoAutorizada(op,d,slot)) v.push({codigo:'POLITICA_APERTURA_SUPERVISION',nivel:'DATOS',dia:d,detalle:'AUX único de apertura: falta supervisor distinto autorizado o la excepción local AH2-037 para esta franja.'})
-      if(slot>=2 && slot<=(sinAuxCierre?27:28) && n===2 && demanda(d,slot)>fp[d][slot] && a<1) v.push({codigo:'OP_PRIORIDAD_AUX',nivel:'OPERATIVA',dia:d,detalle:`AUX elegible sin caja con demanda residual; eventuales usados: ${ev}.`})
+      // AH2-070: un AUX en su tope de tramos del día que tendría que abrir uno nuevo no es elegible.
+      const topeTramos=(id:string)=>{const cap=op.maxBloquesCajaAuxDia;if(cap===undefined)return false;const f=auxCaja.get(id)?.[d]??[]
+        return !f[slot-1]&&!f[slot+1]&&f.filter((x,s)=>x&&!f[s-1]).length>=cap}
+      const elegibleAux=op.maxBloquesCajaAuxDia===undefined||[...presencia].some(([id,m])=>m[d][slot]&&!topeTramos(id)&&id!==designadoDia(d))
+      if(slot>=2 && slot<=(sinAuxCierre?27:28) && n===2 && demanda(d,slot)>fp[d][slot] && a<1 && elegibleAux) v.push({codigo:'OP_PRIORIDAD_AUX',nivel:'OPERATIVA',dia:d,detalle:`AUX elegible sin caja con demanda residual; eventuales usados: ${ev}.`})
     }
   }
   // AUX en caja fuera de su presencia / al cierre
@@ -526,6 +539,11 @@ function validarReglasOperativas(
     }
   }
 
+  if (op.maxBloquesCajaAuxDia !== undefined) for (const [id, m] of auxCaja) for (let d = 0; d < 7; d++) {
+    const fila = m[d] ?? []
+    const tramos = fila.filter((enCaja, s) => enCaja && !fila[s - 1]).length
+    if (tramos > op.maxBloquesCajaAuxDia) v.push({ codigo: 'OP_AUX_MAX_TRAMOS', nivel: 'OPERATIVA', colaboradorId: id, dia: d, detalle: `${nombre(id)}: ${tramos} tramos de caja el ${DIAS[d]} (máximo ${op.maxBloquesCajaAuxDia}).` })
+  }
   const maxBloques = op.maxBloquesCajaEventualDia
   const limite = slotLimiteCajaEventual(op.eventualesCajaHoraLimite)
   if ((maxBloques !== undefined && !esMaxBloquesCajaEventual(maxBloques)) ||

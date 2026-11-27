@@ -322,6 +322,8 @@ export default function NuevaSemanaPage({ autorSesion }: { autorSesion?: string 
       demandaMinima: demandaMinimaDeReglas(reglas, fechaLunes),
       maxFrancosDia: Math.max(...topesFrancos.cajerosPorDia, 1),
       maxFrancosPorDia: topesFrancos.cajerosPorDia,
+      // AH2-070: domingos parejos como criterio del motor (después de la cobertura).
+      domingoFrancoEvitar: rotacion.evitarDomingo,
       // AH2-053: los cajeros terminan como máximo a las 22:30 (salvo configuración particular del local).
       cajerosFinHoraLimite: FIN_CAJEROS_POR_DEFECTO,
       // Criterios de cobertura activos (2+ semanas): la propuesta prioriza esas franjas
