@@ -159,6 +159,7 @@ export type TipoReglaColaborador =
   | 'siempre_manana'   // siempre turno de mañana
   | 'turno'            // AH2-056: pedido de turno (mañana, intermedio, tarde, noche, cortado según contrato)
   | 'prefiere_domingos' // AH2-063: prefiere trabajar los domingos (preferencia fuerte; los domingos se pagan doble)
+  | 'horas_adicionales' // AH2-071: PART con horas adicionales (33–46 h; sigue siendo PART)
 
 export type TipoReglaLocal =
   | 'min_cajeros_franja' // mínimo N cajeros en una franja horaria
@@ -184,7 +185,9 @@ export interface ReglaConfigurable {
   hora?: string              // HH:MM para no_antes_de / no_despues_de
   horaDesde?: string         // HH:MM, franja para min_cajeros_franja
   horaHasta?: string
-  cantidad?: number          // N para min_cajeros_franja / max_francos_dia
+  cantidad?: number          // N para min_cajeros_franja / max_francos_dia; horas para horas_adicionales
+  /** AH2-071: «exacto» = trabaja esas horas; «hasta» = entre la ficha y esas horas (las suma si mejoran la cobertura). */
+  modoHoras?: 'exacto' | 'hasta'
   turno?: 'manana' | 'intermedio' | 'tarde' | 'noche' | 'cortado' | 'cierre' // AH2-056: solo tipo 'turno'
   vigenciaDesde?: string     // YYYY-MM-DD (opcional: restricción temporal)
   vigenciaHasta?: string

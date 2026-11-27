@@ -24,6 +24,8 @@ export interface ReglasContrato {
   horasSemanaMax: number
   /** Si se define, las horas semanales deben ser exactamente este valor (D1). */
   horasSemanaExactas?: number
+  /** AH2-071: mínimo semanal (horas adicionales «hasta»: no menos que la ficha). */
+  horasSemanaMin?: number
   /** Cantidad exacta de días de franco completos. */
   francosSemana: number
   /** Bloques máximos por día (1 = solo corrida). */
@@ -103,6 +105,8 @@ export interface EntradaValidacion {
   perfil: PerfilNormativo
   /** Excepciones/reglas por colaborador vigentes (mismo formato que usa el motor; franco_dia con índice 0..6). */
   excepciones?: ExcepcionSemanal[]
+  /** AH2-071: horas adicionales PART por nombre (sigue siendo PART: hasta 8 h por día y cortada con corte ≥ 4 h). */
+  horasAdicionales?: Record<string, { modo: 'exacto' | 'hasta'; horas: number; fichaHoras?: number }>
   /** Tope de francos FULL+PART por día. */
   maxFrancosDia?: number
   maxFrancosPorDia?: number[]
@@ -224,9 +228,13 @@ export function validarHorario(e: EntradaValidacion): ResultadoValidacion {
       // AH2-056: un pedido de turno fija la cantidad de cortadas FULL de la semana ('max' sin resolver: no se exige).
       const reglas = e.perfil.contratos[persona.contrato]
       const pedido = reglasDeTurno(e.excepciones ?? [], h.colaboradorId, nombre)
+      const ad = persona.contrato === 'PART' ? e.horasAdicionales?.[nombre] : undefined
       const reglasPersona = persona.contrato === 'FULL' && reglas.jornadasCortadasExactas !== undefined
         ? { ...reglas, jornadasCortadasExactas: pedido.cortadas === 'max' ? undefined : pedido.cortadas }
-        : reglas
+        : ad
+          ? { ...reglas, horasSemanaMax: ad.horas, maxBloquesDia: 2, horasDiaMax: 8, corteMinHoras: 4,
+              ...(ad.modo === 'exacto' ? { horasSemanaExactas: ad.horas } : ad.fichaHoras !== undefined ? { horasSemanaMin: ad.fichaHoras } : {}) }
+          : reglas
       validarContrato(v, h.colaboradorId, nombre, dias, reglasPersona, persona.contrato)
       validarDescanso(v, h.colaboradorId, nombre, dias, e.perfil.descansoEntreJornadasHoras, e.semanaAnterior, e.finDomingoAnteriorPorId)
       validarExcepciones(v, h.colaboradorId, nombre, dias, (e.excepciones ?? []).filter(x => x.colaboradorId?x.colaboradorId===h.colaboradorId:x.colaboradorNombre === nombre))
@@ -283,6 +291,7 @@ function validarContrato(
 
   if (total > r.horasSemanaMax + 0.01) push('NORM_HORAS_MAX', `${total} h semanales (máximo ${r.horasSemanaMax}).`)
   if (r.horasSemanaExactas !== undefined && !eq(total, r.horasSemanaExactas)) push('NORM_HORAS_EXACTAS', `${total} h semanales (deben ser ${r.horasSemanaExactas}).`)
+  if (r.horasSemanaMin !== undefined && total < r.horasSemanaMin - 0.01) push('NORM_HORAS_MIN', `${total} h semanales (mínimo ${r.horasSemanaMin}).`)
 
   const francos = dias.filter(b => b !== null && b.length === 0).length
   if (francos !== r.francosSemana) push('NORM_FRANCOS', `${francos} francos (deben ser ${r.francosSemana}).`)

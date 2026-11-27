@@ -168,6 +168,8 @@ export interface OpcionesGeneracion extends PoliticaRecursos, EntradaCondiciones
   maxBloquesCajaEventualDia?: number
   /** AH2-070: tramos de caja por día de cada supervisor. */
   maxBloquesCajaAuxDia?: number
+  /** AH2-071: horas adicionales PART vigentes, por nombre. */
+  horasAdicionales?: Record<string, { modo: 'exacto' | 'hasta'; horas: number }>
   /** AH2-070: nombres de cajeros que no deberían repetir franco el domingo. */
   domingoFrancoEvitar?: string[]
   eventualesCajaHoraLimite?: string
@@ -243,7 +245,17 @@ export function convertirInputAV2(
     if (c.tipo === 'FULL' || c.tipo === 'PART') {
       const id = ident.v2PorUi.get(c.id)!;
       colaboradores.push({ id, nombre: c.nombre, rol: c.tipo, horasSemanales: c.horasSemanales });
-      if (c.tipo === 'PART') contratos[id] = aSlots(resolverContratoHoras('PART', c.horasSemanales, perfilHoras));
+      if (c.tipo === 'PART') {
+        contratos[id] = aSlots(resolverContratoHoras('PART', c.horasSemanales, perfilHoras));
+        // AH2-071: horas adicionales (exacto: esas horas; hasta: entre la ficha y esas horas).
+        const ad = opciones?.horasAdicionales?.[c.nombre];
+        const base = contratos[id].objetivoSlots;
+        if (ad && base !== null && ad.horas * 2 >= base) {
+          const max = Math.round(ad.horas * 2);
+          contratos[id] = { ...contratos[id], objetivoSlots: ad.modo === 'exacto' ? max : base, maximoSlots: max,
+            minimoSlots: ad.modo === 'exacto' ? max : base, adicional: { modo: ad.modo, maximoSlots: max } };
+        }
+      }
     }
   }
 

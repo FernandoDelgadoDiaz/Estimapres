@@ -46,6 +46,8 @@ export interface ContextoValidacionSemana {
    * 31 h; id desconocido → limitación (nunca VALIDADO). Tiene prioridad sobre `perfil`.
    */
   perfilHorasId?: string | null
+  /** AH2-071: horas adicionales PART vigentes, por nombre. */
+  horasAdicionales?: Record<string, { modo: 'exacto' | 'hasta'; horas: number }>
   /** AH2-057: ausencias explícitas (además de las marcadas en las jornadas). */
   ausencias?: import('../contingencias/ausencias').AusenciaValidacion[]
 }
@@ -96,9 +98,12 @@ export function validarResultadoSemana(
     finDomingoAnteriorPorId: ctx.finDomingoAnteriorPorId,
     operativa: operativaEfectiva(ctx.operativa),
     ausencias: ctx.ausencias,
+    horasAdicionales: ctx.horasAdicionales && Object.fromEntries(Object.entries(ctx.horasAdicionales).map(([n, a]) =>
+      [n, { ...a, fichaHoras: colaboradores.find(c => c.nombre === n)?.horasSemanales }])),
   })
   // AH2-057: una ausencia no descuenta horas de contrato (se acredita la jornada comunicada).
-  const horas = validarHorasAsignadas(horariosAcreditados(resultado.horarios, ctx.ausencias), colaboradores, eventuales, perfil.perfilHorasId)
+  // AH2-071: con horas adicionales el límite de la ficha es el máximo cargado.
+  const horas = validarHorasAsignadas(horariosAcreditados(resultado.horarios, ctx.ausencias), colaboradores, eventuales, perfil.perfilHorasId, ctx.horasAdicionales)
   // H-A2 (supervisión 09–22) ya la calcula el validador sobre la presencia real
   // (incluida la edición manual); del diagnóstico previo solo se agrega H-A1.
   // H-A1 solo existe con «apertura solo AUX» activa (con OFF abre un FULL/PART).
@@ -123,9 +128,11 @@ export function validarResultadoSemana(
 
 export function validarHorasAsignadas(
   horarios: HorarioColaborador[], colaboradores: Colaborador[], eventuales: Eventual[],
-  perfilHorasId?: string,
+  perfilHorasId?: string, horasAdicionales?: Record<string, { modo: 'exacto' | 'hasta'; horas: number }>,
 ): Pick<ResultadoValidacion, 'violaciones'> & { advertencias: string[] } {
-  const perfilHoras = perfilHorasId ? perfilHorasDeSemana(perfilHorasId) : PERFIL_HORAS_VIGENTE
+  const perfilBase = perfilHorasId ? perfilHorasDeSemana(perfilHorasId) : PERFIL_HORAS_VIGENTE
+  // AH2-071: el tope PART de quien tiene horas adicionales es el máximo cargado (hasta 46 h).
+  const perfilHoras = horasAdicionales && Object.keys(horasAdicionales).length ? { ...perfilBase, maximoHoras: { ...perfilBase.maximoHoras, PART: 46 } } : perfilBase
   const porId = new Map(colaboradores.map(c => [c.id, c]))
   const roster = new Map<string, { nombre: string; tipo: string; objetivo?: number }>([
     ...colaboradores.map(c => [c.id, { nombre: c.nombre, tipo: c.tipo, objetivo: c.horasSemanales }] as const),
@@ -136,7 +143,8 @@ export function validarHorasAsignadas(
   for (const h of horarios) {
     const persona = roster.get(h.colaboradorId)
     if (!persona) continue
-    const { asignados, limite, exceso, preventivo } = resumenHoras(minutosAsignados(h.jornadas), persona.tipo, persona.objetivo)
+    const ad = persona.tipo === 'PART' ? horasAdicionales?.[persona.nombre] : undefined
+    const { asignados, limite, exceso, preventivo } = resumenHoras(minutosAsignados(h.jornadas), persona.tipo, ad ? ad.horas : persona.objetivo)
     if (exceso) violaciones.push({
       codigo: 'OP_HORAS_FICHA', nivel: 'OPERATIVA', colaboradorId: h.colaboradorId,
       detalle: `${persona.nombre}: ${horasLegibles(asignados)} asignadas. Límite en ficha: ${limite} h.`,
@@ -152,8 +160,9 @@ export function validarHorasAsignadas(
         detalle: `${persona.nombre}: ${contrato.avisos[0]}`,
       })
       else for (const aviso of contrato.avisos) advertencias.push(`${persona.nombre}: ${aviso}`)
-      const faltan = contrato.objetivoHoras === null ? 0 : Math.round(contrato.objetivoHoras * 60) - asignados
-      if (faltan > 0) advertencias.push(`${persona.nombre}: ${horasLegibles(asignados)} asignadas de ${contrato.objetivoHoras} h objetivo (faltan ${horasLegibles(faltan)}).`)
+      const objetivo = ad?.modo === 'exacto' ? ad.horas : contrato.objetivoHoras
+      const faltan = objetivo === null ? 0 : Math.round(objetivo * 60) - asignados
+      if (faltan > 0) advertencias.push(`${persona.nombre}: ${horasLegibles(asignados)} asignadas de ${objetivo} h objetivo (faltan ${horasLegibles(faltan)}).`)
     }
   }
   return { violaciones, advertencias }

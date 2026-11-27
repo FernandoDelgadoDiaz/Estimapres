@@ -33,6 +33,8 @@ const QUE_PERSONA: Array<{ valor: QuePersona; texto: string }> = [
   { valor: 'no_despues_de', texto: 'No sale después de' },
   // AH2-063: los domingos se reparten parejo; quien lo pide tiene prioridad (preferencia fuerte, no obligación).
   { valor: 'prefiere_domingos', texto: 'Prefiere trabajar los domingos' },
+  // AH2-071: solo para PART; sigue siendo PART (jornadas de 4 a 8 h, cortada con corte de 4 h).
+  { valor: 'horas_adicionales', texto: 'Horas adicionales PART' },
   // AH2-058: «Siempre de mañana» y «Siempre de cierre» ya no se ofrecen: son turnos («Solo mañana», «Solo cierre»).
   // Las reglas que ya existen con esos tipos se siguen mostrando y aplicando igual.
 ]
@@ -214,6 +216,7 @@ function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre
   const [periodoSel, setPeriodoSel] = useState<'siempre' | 'semana' | 'anio' | 'fechas'>('semana'), [desde, setDesde] = useState(''), [hasta, setHasta] = useState('')
   const temporal = periodoSel === 'fechas'
   const [turno, setTurno] = useState<TurnoPedido>('manana')
+  const [horasAd, setHorasAd] = useState(40), [modoHoras, setModoHoras] = useState<'exacto' | 'hasta'>('hasta')
   const contrato = cajeros.find(c => c.id === persona)?.tipo ?? ''
   // AH2-056: solo los turnos del contrato de la persona (un PART no ve «Solo cortado»).
   const opcionesTurno = turnosDeContrato(contrato)
@@ -224,6 +227,8 @@ function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre
     if (!persona) { setError('Elegí una persona.'); return }
     if (temporal && (!desde || !hasta || hasta < desde)) { setError('Indicá desde y hasta (el fin después del inicio).'); return }
     if (que === 'turno' && !opcionesTurno.some(([k]) => k === turno)) { setError('Elegí un turno de su contrato.'); return }
+    if (que === 'horas_adicionales' && contrato !== 'PART') { setError('Las horas adicionales son solo para PART.'); return }
+    if (que === 'horas_adicionales' && !(horasAd >= 33 && horasAd <= 46 && horasAd * 2 === Math.round(horasAd * 2))) { setError('Indicá entre 33 y 46 horas (en medias horas).'); return }
     // Vigencia: la semana que viene (lunes a domingo), hasta fin de año (desde el próximo lunes), entre fechas o siempre.
     const lunes = proximoLunesISO()
     const sumar = (iso: string, n: number) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
@@ -233,11 +238,13 @@ function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre
       franco_fijo: `${nombre}: franco fijo los ${DIAS_SEMANA[dia]}`, no_antes_de: `${nombre}: no entra antes de las ${hora}`,
       no_despues_de: `${nombre}: no sale después de las ${hora}`, siempre_manana: `${nombre}: siempre de mañana`, siempre_cierre: `${nombre}: siempre de cierre`,
       prefiere_domingos: `${nombre}: prefiere trabajar los domingos`,
+      horas_adicionales: `${nombre}: horas adicionales PART ${modoHoras === 'exacto' ? '' : 'hasta '}${horasAd} h`,
       turno: `${nombre}: ${(TURNOS[contrato as 'FULL' | 'PART']?.[turno]?.etiqueta ?? '').toLowerCase()}`,
     } as Record<TipoReglaColaborador, string>
     onRegla({ ambito: 'colaborador', tipo: que, colaboradorNombre: nombre, dia: que === 'franco_fijo' ? dia : undefined,
       hora: que === 'no_antes_de' || que === 'no_despues_de' ? hora : undefined,
       turno: que === 'turno' ? turno : undefined,
+      ...(que === 'horas_adicionales' ? { cantidad: horasAd, modoHoras } : {}),
       vigenciaDesde: vig.d, vigenciaHasta: vig.h, descripcion: txt[que] })
     setPersona('')
   }
@@ -247,12 +254,19 @@ function FormPersona({ cajeros, onRegla }: { cajeros: Array<{ id: string; nombre
         <option value="">Persona…</option>{cajeros.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.tipo})</option>)}
       </select>
       <select aria-label="Regla" value={que} onChange={e => setQue(e.target.value as QuePersona)} style={estiloCampo}>
-        {QUE_PERSONA.map(q => <option key={q.valor} value={q.valor}>{q.texto}</option>)}
+        {QUE_PERSONA.filter(q => q.valor !== 'horas_adicionales' || contrato === 'PART').map(q => <option key={q.valor} value={q.valor}>{q.texto}</option>)}
       </select>
       {que === 'turno' && <select aria-label="Turno" value={turno} onChange={e => setTurno(e.target.value as TurnoPedido)} style={estiloCampo} disabled={!persona}>
         {!persona && <option value="manana">Elegí la persona primero</option>}
         {opcionesTurno.map(([k, d]) => <option key={k} value={k}>{d.etiqueta}{d.ingreso ? ` (ingreso ${d.ingreso[0]}–${d.ingreso[1]})` : ''}</option>)}
       </select>}
+ {que === 'horas_adicionales' && <>
+        <input aria-label="Horas semanales" type="number" min={33} max={46} step={0.5} value={horasAd} onChange={e => setHorasAd(Number(e.target.value))} style={{ ...estiloCampo, width: '80px', textAlign: 'center' }} />
+        <select aria-label="Modo de horas" value={modoHoras} onChange={e => setModoHoras(e.target.value as 'exacto' | 'hasta')} style={estiloCampo}>
+          <option value="hasta">Hasta (suma solo si mejora la cobertura)</option>
+          <option value="exacto">Exacto (trabaja esas horas)</option>
+        </select>
+      </>}
       {que === 'franco_fijo' && <select aria-label="Día" value={dia} onChange={e => setDia(Number(e.target.value))} style={estiloCampo}>{DIAS_SEMANA.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>}
       {(que === 'no_antes_de' || que === 'no_despues_de') && <select aria-label="Hora" value={hora} onChange={e => setHora(e.target.value)} style={estiloCampo}>{HORAS.map(h => <option key={h} value={h}>{h}</option>)}</select>}
       <select aria-label="Período" value={periodoSel} onChange={e => setPeriodoSel(e.target.value as typeof periodoSel)} style={estiloCampo}>

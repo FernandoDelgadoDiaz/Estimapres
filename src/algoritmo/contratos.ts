@@ -135,6 +135,9 @@ export interface ContratoSlots {
   /** null = sin objetivo (ficha faltante o inválida): no se fuerza ninguna cantidad de horas. */
   objetivoSlots: number | null
   maximoSlots: number
+  /** AH2-071: horas adicionales PART (sigue siendo PART; jornadas de 4 a 8 h y cortada con corte ≥ 4 h). */
+  minimoSlots?: number
+  adicional?: { modo: 'exacto' | 'hasta'; maximoSlots: number }
   estadoFicha?: EstadoFichaHoras
 }
 

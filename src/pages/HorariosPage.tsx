@@ -11,7 +11,7 @@ import { useAuxiliares } from '../hooks/useAuxiliares'
 import { useEventuales } from '../hooks/useEventuales'
 import { useCorrecciones } from '../hooks/useCorrecciones'
 import { aplicarEdicionConRecalculo } from '../hooks/useAsignacion'
-import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas, normalizarExcepciones } from '../utils/preferencias'
+import { resumirTurnos, configOperativaDeReglas, reglasAExcepciones, capFrancosDeReglas, demandaMinimaDeReglas, normalizarExcepciones, horasAdicionalesDeReglas } from '../utils/preferencias'
 import { FIN_CAJEROS_POR_DEFECTO } from '../algoritmo/adapter'
 import { francosFijosPorDia, necesidadPorDia, supervisoresDeFrancoPorDia, topesFrancosPorDia } from '../utils/topesFrancos'
 import { generarPDF } from '../utils/exportPDF'
@@ -135,6 +135,7 @@ export default function HorariosPage() {
         excepciones: excepcionesValidacion,
         maxFrancosDia: Math.max(...maxFrancosPorDia, 1),
         maxFrancosPorDia,
+        horasAdicionales: horasAdicionalesDeReglas(reglas, ultimaSemana.fechaLunes),
         minimosCajeros: demandaMinimaDeReglas(reglas, ultimaSemana.fechaLunes),
         operativa,
         omitirDisponibilidadEventual: !disp,

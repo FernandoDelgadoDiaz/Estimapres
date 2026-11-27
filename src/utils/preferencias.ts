@@ -1017,3 +1017,18 @@ export function resolucionOperativaDeReglas(reglas: ReglaConfigurable[], fechaLu
   const tipos: TipoReglaOperativa[] = ['apertura_solo_aux', 'sin_aux_cierre', 'supervisor_jornada_completa', 'franco_medio_corridos']
   return Object.fromEntries(tipos.map(t => [t, resolverReglaOperativa(reglas, t, fechaLunes)])) as Record<TipoReglaOperativa, ResolucionReglaOperativa>
 }
+
+/** AH2-071 · Horas adicionales PART vigentes en la semana, por nombre (la más reciente de cada persona). */
+export interface HorasAdicionales { modo: 'exacto' | 'hasta'; horas: number }
+export function horasAdicionalesDeReglas(reglas: ReglaConfigurable[], fechaLunes: string): Record<string, HorasAdicionales> {
+  const out: Record<string, HorasAdicionales & { creada: string }> = {}
+  for (const r of reglas) {
+    if (r.ambito !== 'colaborador' || r.tipo !== 'horas_adicionales' || !r.colaboradorNombre || !reglaVigenteEnSemana(r, fechaLunes)) continue
+    const horas = Number(r.cantidad)
+    if (!Number.isFinite(horas) || horas < 33 || horas > 46 || horas * 2 !== Math.round(horas * 2)) continue
+    const previa = out[r.colaboradorNombre]
+    if (previa && previa.creada > (r.creadaEl ?? '')) continue
+    out[r.colaboradorNombre] = { modo: r.modoHoras === 'hasta' ? 'hasta' : 'exacto', horas, creada: r.creadaEl ?? '' }
+  }
+  return Object.fromEntries(Object.entries(out).map(([n, { modo, horas }]) => [n, { modo, horas }]))
+}
